@@ -1,5 +1,21 @@
 export { registerComponent } from './registry.js';
-export { ScenarioManagementProvider, skip } from './provider.js';
+export {
+  ScenarioManagementProvider,
+  skip,
+  back,
+  gotoScreen,
+  overlay,
+  closeOverlay,
+} from './provider.js';
 export type { ScenarioManagementProviderProps } from './provider.js';
 export { useScreenSystem } from './hook.js';
-export type { SkipOptions, SkipFn } from './types.js';
+export { CurrentScreen } from './current-screen.js';
+export type {
+  SkipOptions,
+  SkipFn,
+  BackFn,
+  GotoScreenFn,
+  OverlayFn,
+  CloseOverlayFn,
+  RegisterOptions,
+} from './types.js';
