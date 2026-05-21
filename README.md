@@ -18,7 +18,7 @@ npm install ink-kit
 
 | Dependency | Minimum Version |
 | ---------- | --------------- |
-| Node.js    | 18              |
+| Node.js    | 20              |
 | ink        | 5               |
 | react      | 18              |
 
