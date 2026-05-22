@@ -255,6 +255,17 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         return () => {
           const idx = target!.bindings.indexOf(entry);
           if (idx !== -1) target!.bindings.splice(idx, 1);
+
+          for (const k of entry.keys) {
+            const stillBound = 
+            layer.bindings.some(b => b.keys.includes(k)) ||
+              [...layer.focusTargets.values()].some(ft => 
+                ft.bindings.some(b => b.keys.includes(k))
+            );
+            if (!stillBound) {
+              layer.globalKeyOverrides.delete(k);
+            }
+          }
         };
 
 
@@ -302,6 +313,18 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const idx = layer.bindings.indexOf(entry);
         if (idx !== -1) {
           layer.bindings.splice(idx, 1);
+        }
+
+        // 检查是否需要把全局键给剔除
+        for (const k of entry.keys) {
+          const stillBound = 
+            layer.bindings.some(b => b.keys.includes(k)) ||
+            [...layer.focusTargets.values()].some(ft => 
+              ft.bindings.some(b => b.keys.includes(k))
+            );
+          if (!stillBound) {
+            layer.globalKeyOverrides.delete(k);
+          }
         }
       };
     },
