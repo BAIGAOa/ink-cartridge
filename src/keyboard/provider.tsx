@@ -13,12 +13,16 @@ import {
   BoundKeyEntry,
   ScreenKeyboardLayer,
   GlobalKeyEntry,
+  BlockedKeyOptions,
+  StopOptions,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 
 let _currentPath: React.ComponentType<any>[] = [];
 let _currentOverlayComponent: React.ComponentType<any> | null = null;
 let _globalKeys: GlobalKeyEntry[] = [];
+let _focusSubscribers = new Set<() => void>();
+
 
 /**
  * Convert an Ink `(input, key)` event into a list of possible key-name
@@ -72,6 +76,13 @@ function normalizeKeyNames(input: string, key: Key): string[] {
 
   return names;
 }
+
+
+function notifyFocusChange() {
+  _focusSubscribers.forEach(fn => fn());
+}
+
+
 
 function checkGlobalKey(
   entry: GlobalKeyEntry,
@@ -155,6 +166,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           blockedKeys: [],
           stoppedKeys: [],
           globalKeyOverrides: new Set(),
+          focusTargets: new Map(),
+          focusOrder: [],
+          currentFocusId: null,
         };
         layersRef.current.set(owner, layer);
       }
@@ -184,6 +198,70 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = path[path.length - 1];
       const layer = getLayer(owner);
 
+
+      if (options?.focusId) {
+        const fid = options.focusId;
+        let target = layer.focusTargets.get(fid);
+        if (!target) {
+          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
+          layer.focusTargets.set(fid, target);
+          layer.focusOrder.push(fid);
+          // 第一个注册的焦点目标自动激活
+          if (layer.currentFocusId === null) {
+            layer.currentFocusId = fid;
+            notifyFocusChange();
+          }
+        }
+
+
+        for (const gk of _globalKeys) {
+          const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
+          const matchingKeys = gkKeys.filter((k) => keys.includes(k));
+          if (matchingKeys.length === 0) continue;
+
+          const cat = gk.category;
+          let inCategory = false;
+          if (cat === undefined || cat === '*') {
+            inCategory = true;
+          } else if (Array.isArray(cat)) {
+            inCategory = cat.includes(owner);
+          }
+          if (!inCategory) continue;
+
+          const cover = gk.cover ?? true;
+          if (!cover) {
+            throw new Error(
+              `[Ink-Trc] 组件 "${owner.displayName || owner.name || 'anonymous'}" ` +
+              `通过 focusId="${fid}" 尝试绑定了 "${matchingKeys[0]}"，` +
+              `但该键已被 globalKeys 声明且 cover: false，不允许覆盖。`,
+            );
+          }
+
+          for (const k of matchingKeys) {
+            layer.globalKeyOverrides.add(k);
+          }
+
+
+        }
+
+        const entry: BoundKeyEntry = {
+          keys,
+          handler,
+          onlyThis: options?.onlyThis ?? false,
+          owner,
+        };
+        target.bindings.push(entry);
+
+        return () => {
+          const idx = target!.bindings.indexOf(entry);
+          if (idx !== -1) target!.bindings.splice(idx, 1);
+        };
+
+
+      }
+
+
+      // 为了向后兼容所以这里保持原有逻辑也就是没加焦点之前的逻辑
       for (const gk of _globalKeys) {
         const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
         const matchingKeys = gkKeys.filter((k) => keys.includes(k));
@@ -237,19 +315,37 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * are skipped and the key propagates to the next layer below.
    */
   const penetration = useCallback(
-    (keys: string[]) => {
+    (keys: string[], options?: BlockedKeyOptions) => {
       const path = _currentPath;
       if (path.length === 0) {
-        throw new Error(
-          '[Ink-Trc] blockedKey() 必须在屏幕组件内调用。',
-        );
+        throw new Error('[Ink-Trc] blockedKey() 必须在屏幕组件内调用。');
       }
       const owner = path[path.length - 1];
       const layer = getLayer(owner);
 
-      for (const k of keys) {
-        if (!layer.blockedKeys.includes(k)) {
-          layer.blockedKeys.push(k);
+      if (options?.focusId) {
+        // Focus 级 blockedKey
+        let target = layer.focusTargets.get(options.focusId);
+        if (!target) {
+          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
+          layer.focusTargets.set(options.focusId, target);
+          layer.focusOrder.push(options.focusId);
+          if (layer.currentFocusId === null) {
+            layer.currentFocusId = options.focusId;
+            notifyFocusChange();
+          }
+        }
+        for (const k of keys) {
+          if (!target.blockedKeys.includes(k)) {
+            target.blockedKeys.push(k);
+          }
+        }
+      } else {
+        // 向后兼容
+        for (const k of keys) {
+          if (!layer.blockedKeys.includes(k)) {
+            layer.blockedKeys.push(k);
+          }
         }
       }
     },
@@ -264,7 +360,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * layers never see it. The returned unstop function removes the keys.
    */
   const stop = useCallback(
-    (keys: string[]): (() => void) => {
+    (keys: string[], options?: StopOptions): (() => void) => {
       const path = _currentPath;
       if (path.length === 0) {
         throw new Error('[Ink-Trc] stop() 必须在屏幕组件内调用。');
@@ -272,23 +368,125 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = path[path.length - 1];
       const layer = getLayer(owner);
 
-      const added: string[] = [];
-      for (const k of keys) {
-        if (!layer.stoppedKeys.includes(k)) {
-          layer.stoppedKeys.push(k);
-          added.push(k);
+      if (options?.focusId) {
+        // Focus 级 stop
+        let target = layer.focusTargets.get(options.focusId);
+        if (!target) {
+          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
+          layer.focusTargets.set(options.focusId, target);
+          layer.focusOrder.push(options.focusId);
+          if (layer.currentFocusId === null) {
+            layer.currentFocusId = options.focusId;
+            notifyFocusChange();
+          }
         }
+        const added: string[] = [];
+        for (const k of keys) {
+          if (!target.stoppedKeys.includes(k)) {
+            target.stoppedKeys.push(k);
+            added.push(k);
+          }
+        }
+        return () => {
+          for (const k of added) {
+            const idx = target!.stoppedKeys.indexOf(k);
+            if (idx !== -1) target!.stoppedKeys.splice(idx, 1);
+          }
+        };
+      } else {
+        // 之前的stop逻辑，为了向后兼容得以保留
+        const added: string[] = [];
+        for (const k of keys) {
+          if (!layer.stoppedKeys.includes(k)) {
+            layer.stoppedKeys.push(k);
+            added.push(k);
+          }
+        }
+        return () => {
+          for (const k of added) {
+            const idx = layer.stoppedKeys.indexOf(k);
+            if (idx !== -1) layer.stoppedKeys.splice(idx, 1);
+          }
+        };
       }
-
-      return () => {
-        for (const k of added) {
-          const idx = layer.stoppedKeys.indexOf(k);
-          if (idx !== -1) layer.stoppedKeys.splice(idx, 1);
-        }
-      };
     },
     [getLayer],
   );
+
+
+  const subscribeFocus = useCallback((listener: () => void) => {
+    _focusSubscribers.add(listener);
+    return () => { _focusSubscribers.delete(listener); };
+  }, []);
+
+  const focusSet = useCallback(
+    (focusId: string) => {
+      const path = _currentPath;
+      if (path.length === 0) return;
+      const owner = path[path.length - 1];
+      const layer = layersRef.current.get(owner);
+      if (!layer || !layer.focusTargets.has(focusId)) return;
+      if (layer.currentFocusId !== focusId) {
+        layer.currentFocusId = focusId;
+        notifyFocusChange();
+      }
+    },
+    [],
+  );
+
+  const focusNext = useCallback(() => {
+    const path = _currentPath;
+    if (path.length === 0) return;
+    const owner = path[path.length - 1];
+    const layer = layersRef.current.get(owner);
+    if (!layer || layer.focusOrder.length === 0) return;
+
+    const current = layer.currentFocusId;
+    let idx = current ? layer.focusOrder.indexOf(current) : -1;
+    idx = (idx + 1) % layer.focusOrder.length;
+    layer.currentFocusId = layer.focusOrder[idx];
+    notifyFocusChange();
+  }, []);
+
+  const focusPrev = useCallback(() => {
+    const path = _currentPath;
+    if (path.length === 0) return;
+    const owner = path[path.length - 1];
+    const layer = layersRef.current.get(owner);
+    if (!layer || layer.focusOrder.length === 0) return;
+
+    const current = layer.currentFocusId;
+    let idx = current ? layer.focusOrder.indexOf(current) : -1;
+    idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
+    layer.currentFocusId = layer.focusOrder[idx];
+    notifyFocusChange();
+  }, []);
+
+  const focusCurrent = useCallback((): string | null => {
+    const path = _currentPath;
+    if (path.length === 0) return null;
+    const owner = path[path.length - 1];
+    const layer = layersRef.current.get(owner);
+    return layer?.currentFocusId ?? null;
+  }, []);
+
+  const focusUnregister = useCallback((focusId: string) => {
+    const path = _currentPath;
+    if (path.length === 0) return;
+    const owner = path[path.length - 1];
+    const layer = layersRef.current.get(owner);
+    if (!layer) return;
+
+    const wasFocused = layer.currentFocusId === focusId;
+    layer.focusTargets.delete(focusId);
+    layer.focusOrder = layer.focusOrder.filter(id => id !== focusId);
+
+    if (wasFocused) {
+      layer.currentFocusId =
+        layer.focusOrder.length > 0 ? layer.focusOrder[0] : null;
+      notifyFocusChange();
+    }
+  }, []);
 
   /**
    * Register global key bindings.
@@ -311,8 +509,25 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       blockedKey: penetration,
       stop,
       globalKeys,
+      focusSet,
+      focusNext,
+      focusPrev,
+      focusCurrent,
+      focusUnregister,
+      subscribeFocus,
     }),
-    [boundKeyboard, penetration, stop, globalKeys],
+    [
+      boundKeyboard,
+      penetration,
+      stop,
+      globalKeys,
+      focusSet,
+      focusNext,
+      focusPrev,
+      focusCurrent,
+      focusUnregister,
+      subscribeFocus,
+    ],
   );
 
   useInput((input, key) => {
@@ -320,6 +535,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const path = _currentPath;
     const topComponent = path.length > 0 ? path[path.length - 1] : null;
     const overlayComp = _currentOverlayComponent;
+
 
     for (const entry of _globalKeys) {
       if (!entry.affectOverlay) continue;
@@ -329,11 +545,54 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
     }
 
+
     if (overlayComp) {
       const overlayLayer = layersRef.current.get(overlayComp);
       if (overlayLayer) {
+        // 内置tab导航
+        if (
+          eventNames.includes('tab') &&
+          overlayLayer.focusOrder.length > 0
+        ) {
+          const shift = key.shift;
+          const current = overlayLayer.currentFocusId;
+          let idx = current ? overlayLayer.focusOrder.indexOf(current) : -1;
+          if (shift) {
+            idx = idx <= 0 ? overlayLayer.focusOrder.length - 1 : idx - 1;
+          } else {
+            idx = (idx + 1) % overlayLayer.focusOrder.length;
+          }
+          overlayLayer.currentFocusId = overlayLayer.focusOrder[idx];
+          notifyFocusChange();
+          return;
+        }
+
         const blocked = overlayLayer.blockedKeys;
         const unblocked = eventNames.filter((n) => !blocked.includes(n));
+
+
+        const focusId = overlayLayer.currentFocusId;
+        if (focusId) {
+          const ft = overlayLayer.focusTargets.get(focusId);
+          if (ft) {
+            const fBlocked = ft.blockedKeys;
+            const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
+
+            if (fUnblocked.length > 0) {
+              for (const binding of ft.bindings) {
+                if (binding.keys.some((k) => fUnblocked.includes(k))) {
+                  binding.handler(input, key);
+                  return;
+                }
+              }
+            }
+
+            if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
+              return;
+            }
+          }
+        }
+
 
         if (unblocked.length > 0) {
           for (const binding of overlayLayer.bindings) {
@@ -350,6 +609,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
     }
 
+
     for (const entry of _globalKeys) {
       if (entry.affectOverlay) continue;
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
@@ -358,15 +618,62 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
     }
 
+
     for (let i = path.length - 1; i >= 0; i--) {
       const comp = path[i];
       const layer = layersRef.current.get(comp);
       if (!layer) continue;
-
       const isTop = i === path.length - 1;
+
+      if (isTop) {
+        // tab键就是导航
+        if (
+          eventNames.includes('tab') &&
+          layer.focusOrder.length > 0
+        ) {
+          const shift = key.shift;
+          const current = layer.currentFocusId;
+          let idx = current ? layer.focusOrder.indexOf(current) : -1;
+          if (shift) {
+            idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
+          } else {
+            idx = (idx + 1) % layer.focusOrder.length;
+          }
+          layer.currentFocusId = layer.focusOrder[idx];
+          notifyFocusChange();
+          return;
+        }
+      }
 
       const blocked = layer.blockedKeys;
       const unblocked = eventNames.filter((n) => !blocked.includes(n));
+
+      if (isTop && layer.currentFocusId) {
+        const ft = layer.focusTargets.get(layer.currentFocusId);
+        if (ft) {
+          const fBlocked = ft.blockedKeys;
+          const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
+
+          if (fUnblocked.length > 0) {
+            for (const binding of ft.bindings) {
+              if (
+                binding.onlyThis &&
+                _currentOverlayComponent !== null
+              )
+                continue;
+
+              if (binding.keys.some((k) => fUnblocked.includes(k))) {
+                binding.handler(input, key);
+                return;
+              }
+            }
+          }
+
+          if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
+            return;
+          }
+        }
+      }
 
       if (unblocked.length > 0) {
         for (const binding of layer.bindings) {

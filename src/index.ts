@@ -32,3 +32,10 @@ export type {
   ScreenKeyboardLayer,
   KeyboardProviderProps,
 } from "./keyboard/index.js";
+
+export type {
+  BlockedKeyOptions,
+  StopOptions,
+  FocusTarget,
+} from "./keyboard/index.js";
+export { useFocusState } from "./keyboard/index.js";

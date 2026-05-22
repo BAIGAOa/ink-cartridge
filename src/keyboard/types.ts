@@ -1,4 +1,4 @@
-import type { Key } from 'ink';
+import type { Key } from "ink";
 
 /**
  * Keyboard callback, matching Ink's `useInput` signature.
@@ -15,13 +15,20 @@ export interface BoundKeyboardOptions {
   /**
    * When `true`, the binding only activates when the owning screen is the
    * top of the stack and no overlay is open. Otherwise the binding is
-   * ignored and the key continues to bubble down.
+   * ignored and the key continues to bubble down * Associate this binding with a named focus target on the current screen.
+   *
+   * Focus targets receive events only when they are the active target on
+   * their screen layer. Multiple focus targets on the same screen are
+   * navigated via Tab / Shift+Tab or programmatic `focusSet` / `focusNext`.
+   *
+   * When omitted, the binding is stored at the screen level and always
+   * evaluated after the active focus target (if any).
    */
-  onlyThis?: boolean;
+  focusId?: string;
 }
 
 /**
- * A single key-binding entry stored on a screen layer.
+ * A single key-binding entry stored on a screen layer or focus target.
  */
 export interface BoundKeyEntry {
   /** Normalized key names to match. */
@@ -35,17 +42,59 @@ export interface BoundKeyEntry {
 }
 
 /**
- * Per-layer keyboard state: bindings, transparent keys, and stop keys.
+ * Keyboard state for a single named focus target on a screen layer.
+ *
+ * Focus targets allow multiple form controls on the same screen to have
+ * independent key bindings. Only the currently active target receives
+ * events; inactive targets are skipped.
  */
-export interface ScreenKeyboardLayer {
+export interface FocusTarget {
   /** Registered key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
-  /** Keys marked as transparent on this layer (pass-through). */
+  /** Keys marked as transparent on this target (pass-through). */
   blockedKeys: string[];
-  /** Keys stopped on this layer (propagation barrier). */
+  /** Keys stopped on this target (propagation barrier). */
   stoppedKeys: string[];
-  /** Keys from globalKeys that this layer has overridden (only set when cover=true). */
+}
+
+/**
+ * Per-layer keyboard state: bindings, transparent keys, stop keys,
+ * and focus targets.
+ */
+export interface ScreenKeyboardLayer {
+  /** Registered screen-level key bindings (evaluation order). */
+  bindings: BoundKeyEntry[];
+  /** Keys marked as transparent at the screen level (pass-through). */
+  blockedKeys: string[];
+  /** Keys stopped at the screen level (propagation barrier). */
+  stoppedKeys: string[];
+  /** Keys from globalKeys that this layer has overridden. */
   globalKeyOverrides: Set<string>;
+
+  /** Named focus targets on this layer. */
+  focusTargets: Map<string, FocusTarget>;
+  /** Registration order of focus target ids. */
+  focusOrder: string[];
+  /** The currently active focus target id, or null. */
+  currentFocusId: string | null;
+}
+
+/**
+ * Options for {@link KeyboardContextValue.stop} when stopping keys
+ * within a specific focus target.
+ */
+export interface StopOptions {
+  /** If provided, stops only within the named focus target. */
+  focusId?: string;
+}
+
+/**
+ * Options for {@link KeyboardContextValue.blockedKey} when marking keys
+ * as transparent within a specific focus target.
+ */
+export interface BlockedKeyOptions {
+  /** If provided, blocks only within the named focus target. */
+  focusId?: string;
 }
 
 /**
@@ -91,5 +140,5 @@ export interface GlobalKeyEntry {
    * - `[]`: no screens (effectively disabled)
    * - `[Menu, Game]`: only when the stack top is exactly Menu or Game
    */
-  category?: React.ComponentType<any>[] | '*';
+  category?: React.ComponentType<any>[] | "*";
 }

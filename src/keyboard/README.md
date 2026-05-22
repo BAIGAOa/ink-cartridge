@@ -1,7 +1,7 @@
 
 # Keyboard System
 
-ink-kit provides a **layered keyboard event system** built on top of the screen management tree. Instead of a single global `useInput` with messy `if-else` chains, you get **per-screen-layer** key bindings with transparent keys, propagation barriers, and global shortcuts.
+ink-kit provides a **layered keyboard event system** built on top of the screen management tree. Instead of a single global `useInput` with messy `if-else` chains, you get **per-screen-layer** key bindings with transparent keys, propagation barriers, global shortcuts, and **within-screen focus management**.
 
 ---
 
@@ -19,7 +19,6 @@ import {
   useKeyboard,
 } from '@baigao_h/ink-kit';
 
-// 1. Register screen components
 function Menu() {
   const { skip } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
@@ -54,7 +53,6 @@ function Game({ level }: { level: number }) {
 }
 registerComponent(Game, { level: 1 }, { parent: Menu });
 
-// 2. Wrap with Providers (KeyboardProvider inside ScenarioManagementProvider)
 function App() {
   return (
     <KeyboardProvider>
@@ -72,19 +70,19 @@ render(
 
 ---
 
-## ⚠️ Important: Component Nesting Order
+## Important: Component Nesting Order
 
 `KeyboardProvider` **must** be nested inside `ScenarioManagementProvider`, because it depends on the screen context to obtain the current screen stack.
 
 ```tsx
-{/* ❌ Wrong: KeyboardProvider outside screen context */}
+{/* Wrong: KeyboardProvider outside screen context */}
 <KeyboardProvider>
   <ScenarioManagementProvider defaultScreen={Menu}>
     ...
   </ScenarioManagementProvider>
 </KeyboardProvider>
 
-{/* ✅ Correct: KeyboardProvider inside screen context */}
+{/* Correct: KeyboardProvider inside screen context */}
 <ScenarioManagementProvider defaultScreen={Menu}>
   <KeyboardProvider>
     ...
@@ -92,395 +90,47 @@ render(
 </ScenarioManagementProvider>
 ```
 
-> The screen system can be used independently without `KeyboardProvider`; but the keyboard system requires the screen context.
+The screen system can be used independently without `KeyboardProvider`; but the keyboard system requires the screen context.
 
 ---
 
-## Concept: Layered Event Handling
+## Concepts
 
-Every screen in the tree can have its own **keyboard layer**. When a key is pressed, the event travels through a priority chain:
+### Layered Event Handling
 
-```
- ① Global keys (affectOverlay: true)
- ② Active overlay layer (if any)
- ③ Global keys (affectOverlay: false, default)
- ④ Screen stack (top → bottom)
- ⑤ Dropped (unhandled)
-```
-
-At each layer, three mechanisms control the flow:
-
-| Mechanism     | Description                                                                 |
-| ------------- | --------------------------------------------------------------------------- |
-| `boundKeyboard` | Bind a key to a handler. If matched, the event is consumed (stops here).  |
-| `blockedKey`  | Mark a key as **transparent** — skip this layer's bindings and let the event pass through to the layer below. |
-| `stop`        | **Consume** a key even if no local binding matched, preventing it from reaching lower layers. |
-
----
-
-## API Reference
-
-### `KeyboardProvider`
-
-```tsx
-<KeyboardProvider>
-  {children}
-</KeyboardProvider>
-```
-
-Root context provider for the keyboard system. Handles `useInput` from Ink and routes all key events through the layered priority chain.
-
-| Prop       | Type      | Required | Description                          |
-| ---------- | --------- | -------- | ------------------------------------ |
-| children   | `ReactNode` | Yes    | Child components (usually `App`)     |
-
-**Must be nested inside `<ScenarioManagementProvider>`**.
-
----
-
-### `useKeyboard`
-
-```tsx
-const {
-  boundKeyboard,
-  blockedKey,
-  stop,
-  globalKeys,
-} = useKeyboard();
-```
-
-React hook returning the keyboard API.
-
-**Must be used inside `<KeyboardProvider>`**, otherwise throws an error.
-
----
-
-### `boundKeyboard`
-
-```tsx
-boundKeyboard(keys, handler, options?): () => void;
-```
-
-Bind one or more keys to a handler on the **current screen layer**. The binding is automatically associated with the top-of-stack component.
-
-| Parameter | Type                            | Description                                      |
-| --------- | ------------------------------- | ------------------------------------------------ |
-| keys      | `string[]`                      | Key names to bind (e.g.sctrl '`) handlerinput: void` | Callback matching Ink's `useInput` signature |
-| options   | `{ onlyThis?: boolean }`        | Optional behavior flags                         |
-
-**Returns**: An **unbind function** — call it to remove the binding (e.g. in a `useEffect` cleanup).
-
-**Key name format:**
-
-| Example             | Key Pressed                        |
-| ------------------- | ---------------------------------- |
-| `'s'`               | `s` key                            |
-| `'return'`          | Enter/Return                       |
-| `'escape'`          | Escape                             |
-| `'backspace'`       | Backspace                          |
-| `'ctrl+s'`          | Ctrl + S                           |
-| `'shift+tab'`       | Shift + Tab                        |
-| `'meta+f'`          | Meta/Command + F                   |
-| `'up'`              | Up arrow                           |
-| `'down'`            | Down arrow                         |
-
-**`onlyThis` option**
-
-When `true`, the binding only activates when the owning screen is the **top-of-stack** and **no overlay is open**. If an overlay is active or the screen is not the top, the binding is skipped and the key bubbles down.
-
-```tsx
-// Only works when Combat is the active screen (no overlay on top)
-boundKeyboard(['a'], attackHandler, { onlyThis: true });
-```
-
----
-
-### `blockedKey`
-
-```tsx
-blockedKey(keys: string[]): void;
-```
-
-Mark one or more keys as **transparent** on the current layer. When a transparent key reaches this layer, the layer's own bindings are **skipped** and the key continues to propagate to layers below. Use this to let a lower layer handle a key without interference from the current layer.
-
-```tsx
-// In Combat screen: let 'e' pass through to Menu's global 'e' handler
-blockedKey(['e']);
-```
-
-**Note**: Unlike `boundKeyboard` and `stop`, `blockedKey` does **not** return an unbind function. The transparency is automatically cleaned up when the layer is destroyed (when navigating away from the screen).
-
----
-
-### `stop`
-
-```tsx
-stop(keys: string[]): () => void;
-```
-
-Prevent one or more keys from propagating to layers below. The stopped keys are "consumed" at the current layer — they do **not** reach any lower layer. The current layer's own bindings are still evaluated before the stop takes effect, so local bindings work normally.
-
-| Parameter | Type       | Description                |
-| --------- | ---------- | -------------------------- |
-| keys      | `string[]` | Key names to stop          |
-
-**Returns**: An **unstop function** — call it to remove the keys from the stop list.
-
-```tsx
-// In Game screen: stop 'q' from reaching Menu's quit handler
-const unstop = stop(['q']);
-boundKeyboard(['b'], () => back());
-
-// Clean up when leaving the screen
-return () => unstop();
-```
-
-**Use case**: Prevent accidental activation of background-layer handlers — e.g. preventing `q` from triggering a "quit" action in the menu while the user is in-game.
-
----
-
-### `globalKeys`
-
-```tsx
-globalKeys(entries: GlobalKeyEntry[]): void;
-```
-
-Register **global key bindings** that fire independently of the screen stack. Calling this replaces any previously registered global keys.
-
-```tsx
-globalKeys([
-  {
-    key: 'e',
-    operate: () => console.log('Global E pressed'),
-    cover: true,
-  },
-  {
-    key: 'q',
-    operate: () => process.exit(),
-    cover: false,
-  },
-]);
-```
-
-#### `GlobalKeyEntry`
-
-| Property      | Type                                      | Default        | Description |
-| ------------- | ----------------------------------------- | -------------- | ----------- |
-| `key`         | `string \| string[]`                      | —              | Key name(s) to match (same format as `boundKeyboard`). |
-| `operate`     | `() => void`                              | —              | Callback invoked when the key is pressed. |
-| `cover`       | `boolean`                                 | `true`         | Whether screen components are allowed to override this global key via `boundKeyboard`. When `false`, calling `boundKeyboard` with the same key in a matching category screen will **throw a runtime error**. |
-| `affectOverlay` | `boolean`                               | `false`        | Whether this global key fires **before** the overlay layer (`true`) or **after** it (`false`). |
-| `category`    | `React.ComponentType[] \| '*' \| undefined` | `'*'`       | Whitelist of screen components that may use this global key. `'*'` or omitted = all screens; `[]` = effectively disabled; `[Menu, Game]` = only when the stack top is Menu or Game. |
-
-#### Event Placement
-
-- **`affectOverlay: false` (default)**: Overlay → global key → screen stack
-- **`affectOverlay: true`**: Global key → overlay → screen stack
-
-#### `cover` Behavior
-
-When `cover: true` (default), a screen can override the global key by calling `boundKeyboard` with the same key name. The screen's binding takes precedence over the global key.
-
-```tsx
-// Global key 'e' with cover: true
-globalKeys([{ key: 'e', operate: () => console.log('global e'), cover: true }]);
-
-// Screen can override 'e' locally:
-boundKeyboard(['e'], () => console.log('local e')); // ✅ OK
-```
-
-When `cover: false`, the global key **cannot** be overridden. Attempting to bind the same key via `boundKeyboard` in a matching category screen will throw:
-
-```tsx
-// Global key 'e' with cover false{', console'),//bound'], () => console.log('local e')); // ❌ Throws error
-```
-
----
-
-## Complete Event Chain
+Every screen in the tree has its own **keyboard layer**. When a key is pressed, the event travels through a priority chain:
 
 ```
 Key pressed
-    │
-    ├─ ① Global keys (affectOverlay: true)
-    │      └─ matched → consume, stop
-    │
-    ├─ ② Active overlay layer
-    │      ├─ blockedKey? → skip overlay bindings
-    │      ├─ boundKeyboard matched? → consume, stop
-    │      └─ stop keys matched? → consume, block
-    │
-    ├─ ③ Global keys (affectOverlay: false, default)
-    │      └─ matched → consume, stop
-    │
-    ├─ ④ Screen stack (top → bottom)
-    │      for each layer (top to bottom):
-    │        ├─ blockedKey? → skip bindings, continue to next layer
-    │        ├─ boundKeyboard matched? → consume, stop
-    │        └─ (top layer only) stop keys matched? → consume, block
-    │
-    └─ ⑤ Dropped (no handler matched)
+  │
+  ├─ ① Global keys (affectOverlay: true)
+  │
+  ├─ ② Active overlay layer
+  │      ├─ Built-in Tab/Shift+Tab → switch focus within overlay
+  │      ├─ Focus target (if active) → blockedKey → bindings → stop
+  │      └─ Overlay layer bindings → blockedKey → bindings → stop
+  │
+  ├─ ③ Global keys (affectOverlay: false, default)
+  │
+  ├─ ④ Screen stack (top → bottom)
+  │      For each layer (top to bottom):
+  │        ├─ Built-in Tab/Shift+Tab (top layer only) → switch focus
+  │        ├─ Focus target (top layer only, if active) → blockedKey → bindings → stop
+  │        └─ Screen layer bindings → blockedKey → bindings → stop
+  │
+  └─ ⑤ Dropped (unhandled)
 ```
 
----
+### Screen-Level vs Focus-Level
 
-## Type Safety
+Before the focus system, all bindings within a screen shared the same bucket. Two `SelectInput` components on the same screen would both bind `up`/`down`/`return` and collide. The focus system splits each layer into two tiers:
 
-All keyboard APIs provide full TypeScript type inference.
+- **Screen-level bindings**: the original `boundKeyboard` without `focusId`. Always active.
+- **Focus targets**: named buckets created by passing `focusId` in `BoundKeyboardOptions`. Only the **currently active** target receives events.
 
-```tsx
-// Key names are plain strings (no enum needed)
-boundKeyboard(['ctrl+s'], handler);
+Events always check the active focus target **first**, then fall through to screen-level bindings.
 
-// GlobalKeyEntry is fully typed
-globalKeys([
-  {
-    key: 'e',
-    operate: () => console.log('global e'),
-    cover: true,
-    affectOverlay: false,
-    category: [Menu, Settings],
-  },
-]);
-```
-
----
-
-## Common Patterns
-
-### Per-Screen Key Binding (Recommended)
-
-Use `useEffect` to set up bindings when the screen mounts and clean them up on unmount.
-
-```tsx
-function Game() {
-  const { back } = useScreenSystem();
-  const { boundKeyboard, stop } = useKeyboard();
-
-  useEffect(() => {
-    const unbindB = boundKeyboard(['b'], () => back());
-    const unstop); // prevent q from
- => {
-      unbindB();
-      unstopQ();
-    };
-  }, []);
-
-  return <Text>Playing...</Text>;
-}
-```
-
-### Blocking Keys for Pass-Through
-
-Let a specific key "pierce" through the current layer to reach a lower layer.
-
-```tsx
-function Combat() {
-  const { boundKeyboard, blockedKey } = useKeyboard();
-
-  useEffect(() => {
-    blockedKey(['e']);  // 'e' passes through to Menu
-    boundKeyboard(['a'], () => attack());
-  }, []);
-
-  return <Text>Combat! Press A to attack.</Text>;
-}
-```
-
-### Global Keys for Application-Wide Shortcuts
-
-```tsx
-function App() {
-  const { globalKeys } = useKeyboard();
-
-  useEffect(() => {
-    globalKeys([
-      {
-        key: 'q',
-        operate: () => process.exit(),
-        cover: false,
-      },
-      {
-        key: 'h',
-        operate: () => showHelp(),
-        cover: true,
-        affectOverlay: true,  // works even with an overlay open
-        category: '*',
-      },
-    ]);
-  }, []);
-
-  return <CurrentScreen />;
-}
-```
-
-### Override a Global Key in a Specific Screen
-
-```tsx
-// Global: 'e' is an exit key (cover: true, so it can be overridden)
-globalKeys([{ key: 'e', operate: () => exitGame(), cover: true }]);
-
-// In Settings screen: 'e' does something else
-function Settings() {
-  const { boundKeyboard } = useKeyboard();
-  useEffect(() => {
-    boundKeyboard(['e'], () => console.log('Settings: e pressed'));
-  }, []);
-  // This overrides the global 'e' while Settings is active
-}
-```
-
----
-
-## Common Errors
-
-| Error Message                                                              | Cause                                                    |
-| -------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `[Ink-Kit] useKeyboard() 必须在 <KeyboardProvider> 内部使用。`              | `useKeyboard` was called outside a `<KeyboardProvider>`. |
-| `[Ink-Kit] boundKeyboard() 必须在屏幕组件内调用。当前无活跃屏幕。`         | `boundKeyboard` was called when the screen stack is empty. |
-| `[Ink-Kit] stop() 必须在屏幕组件内调用。`                                  | `stop` was called outside a screen component.            |
-| `[Ink-Kit] blockedKey() 必须在屏幕组件内调用。`                            | `blockedKey` was called outside a screen component.      |
-| `[Ink-Kit] 组件 "X" 尝试通过 boundKeyboard 绑定 "Y"，但该键已被 globalKeys 声明且 cover: false，不允许覆盖。` | A screen tried to bind a key that a global key declared as non-overridable (`cover: false`). |
-```
-```tsx
-{/* ❌ Wrong: KeyboardProvider outside screen context */}
-<KeyboardProvider>
-  <ScenarioManagementProvider defaultScreen={Menu}>
-    ...
-  </ScenarioManagementProvider>
-</KeyboardProvider>
-
-{/* ✅ Correct: KeyboardProvider inside screen context */}
-<ScenarioManagementProvider defaultScreen={Menu}>
-  <KeyboardProvider>
-    ...
-  </KeyboardProvider>
-</ScenarioManagementProvider>
-```
-
-> The screen system can be used independently without `KeyboardProvider`; but the keyboard system requires the screen context.
-
----
-
-## Concept: Layered Event Handling
-
-Every screen in the tree can have its own **keyboard layer**. When a key is pressed, the event travels through a priority chain:
-
-```
- ① Global keys (affectOverlay: true)
- ② Active overlay layer (if any)
- ③ Global keys (affectOverlay: false, default)
- ④ Screen stack (top → bottom)
- ⑤ Dropped (unhandled)
-```
-
-At each layer, three mechanisms control the flow:
-
-| Mechanism     | Description                                                                 |
-| ------------- | --------------------------------------------------------------------------- |
-| `boundKeyboard` | Bind a key to a handler. If matched, the event is consumed (stops here).  |
-| `blockedKey`  | Mark a key as **transparent** — skip this layer's bindings and let the event pass through to the layer below. |
-| `stop`        | **Consume** a key even if no local binding matched, preventing it from reaching lower layers. |
+Multiple form controls on the same screen can each own a focus target. The built-in **Tab** key rotates between them automatically.
 
 ---
 
@@ -496,11 +146,7 @@ At each layer, three mechanisms control the flow:
 
 Root context provider for the keyboard system. Handles `useInput` from Ink and routes all key events through the layered priority chain.
 
-| Prop       | Type      | Required | Description                          |
-| ---------- | --------- | -------- | ------------------------------------ |
-| children   | `ReactNode` | Yes    | Child components (usually `App`)     |
-
-**Must be nested inside `<ScenarioManagementProvider>`**.
+Must be nested inside `<ScenarioManagementProvider>`.
 
 ---
 
@@ -512,12 +158,30 @@ const {
   blockedKey,
   stop,
   globalKeys,
+  focusSet,
+  focusNext,
+  focusPrev,
+  focusCurrent,
+  focusUnregister,
+  subscribeFocus,
 } = useKeyboard();
 ```
 
 React hook returning the keyboard API.
 
-**Must be used inside `<KeyboardProvider>`**, otherwise throws an error.
+Must be used inside `<KeyboardProvider>`, otherwise throws an error.
+
+---
+
+### `useFocusState`
+
+```tsx
+const isFocused = useFocusState(focusId: string): boolean;
+```
+
+A subscription-based hook that returns `true` when the given `focusId` is the currently active focus target on the current screen. Reactively re-renders on focus changes without causing the whole tree to update.
+
+Used by focus-aware components (SelectInput, TextInput, etc.) to react to focus gain/loss.
 
 ---
 
@@ -527,15 +191,15 @@ React hook returning the keyboard API.
 boundKeyboard(keys, handler, options?): () => void;
 ```
 
-Bind one or more keys to a handler on the **current screen layer**. The binding is automatically associated with the top-of-stack component.
+Bind one or more keys to a handler. The binding is automatically associated with the top-of-stack component.
 
 | Parameter | Type                            | Description                                      |
 | --------- | ------------------------------- | ------------------------------------------------ |
 | keys      | `string[]`                      | Key names to bind (e.g. `['s']`, `['ctrl+q', 'return']`) |
-| handler   | `(input: string, key: Key) => void` | Callback matching Ink's `useInput` signature |
-| options   | `{ onlyThis?: boolean }`        | Optional behavior flags                         |
+| handler   | `(input: string, key: Key) => void` | Callback matching Ink's `useInput` signature  |
+| options   | `{ onlyThis?: boolean; focusId?: string }` | Optional behavior flags               |
 
-**Returns**: An **unbind function** — call it to remove the binding (e.g. in a `useEffect` cleanup).
+Returns an unbind function.
 
 **Key name format:**
 
@@ -553,11 +217,16 @@ Bind one or more keys to a handler on the **current screen layer**. The binding 
 
 **`onlyThis` option**
 
-When `true`, the binding only activates when the owning screen is the **top-of-stack** and **no overlay is open**. If an overlay is active or the screen is not the top, the binding is skipped and the key bubbles down.
+When `true`, the binding only activates when the owning screen is the top-of-stack and no overlay is open.
+
+**`focusId` option**
+
+When provided, the binding is stored on a named **focus target** instead of the screen-level bucket. Only the currently active focus target receives events. Focus targets are created on first use and automatically activated if no other target is currently active.
 
 ```tsx
-// Only works when Combat is the active screen (no overlay on top)
-boundKeyboard(['a'], attackHandler, { onlyThis: true });
+boundKeyboard(['up'], handleUp, { focusId: 'theme-picker' });
+boundKeyboard(['down'], handleDown, { focusId: 'theme-picker' });
+boundKeyboard(['return'], handleSelect, { focusId: 'theme-picker' });
 ```
 
 ---
@@ -565,44 +234,34 @@ boundKeyboard(['a'], attackHandler, { onlyThis: true });
 ### `blockedKey`
 
 ```tsx
-blockedKey(keys: string[]): void;
+blockedKey(keys, options?): void;
 ```
 
-Mark one or more keys as **transparent** on the current layer. When a transparent key reaches this layer, the layer's own bindings are **skipped** and the key continues to propagate to layers below. Use this to let a lower layer handle a key without interference from the current layer.
+Mark one or more keys as **transparent** on the current layer. When a transparent key reaches this layer, the layer's own bindings are skipped and the key propagates to layers below.
 
-```tsx
-// In Combat screen: let 'e' pass through to Menu's global 'e' handler
-blockedKey(['e']);
-```
+| Parameter | Type                 | Description                              |
+| --------- | -------------------- | ---------------------------------------- |
+| keys      | `string[]`           | Key names to make transparent            |
+| options   | `{ focusId?: string }` | If provided, blocks only within that focus target |
 
-**Note**: Unlike `boundKeyboard` and `stop`, `blockedKey` does **not** return an unbind function. The transparency is automatically cleaned up when the layer is destroyed (when navigating away from the screen).
+Does not return an unbind function. Transparency is automatically cleaned up when the layer is destroyed.
 
 ---
 
 ### `stop`
 
 ```tsx
-stop(keys: string[]): () => void;
+stop(keys, options?): () => void;
 ```
 
-Prevent one or more keys from propagating to layers below. The stopped keys are "consumed" at the current layer — they do **not** reach any lower layer. The current layer's own bindings are still evaluated before the stop takes effect, so local bindings work normally.
+Prevent one or more keys from propagating to layers below. The stopped keys are consumed at this layer: the layer's own bindings are evaluated first, and if no binding matches, the key is blocked.
 
-| Parameter | Type       | Description                |
-| --------- | ---------- | -------------------------- |
-| keys      | `string[]` | Key names to stop          |
+| Parameter | Type                 | Description                              |
+| --------- | -------------------- | ---------------------------------------- |
+| keys      | `string[]`           | Key names to stop                        |
+| options   | `{ focusId?: string }` | If provided, stops within that focus target |
 
-**Returns**: An **unstop function** — call it to remove the keys from the stop list.
-
-```tsx
-// In Game screen: stop 'q' from reaching Menu's quit handler
-const unstop = stop(['q']);
-boundKeyboard(['b'], () => back());
-
-// Clean up when leaving the screen
-return () => unstop();
-```
-
-**Use case**: Prevent accidental activation of background-layer handlers — e.g. preventing `q` from triggering a "quit" action in the menu while the user is in-game.
+Returns an unstop function.
 
 ---
 
@@ -614,57 +273,136 @@ globalKeys(entries: GlobalKeyEntry[]): void;
 
 Register **global key bindings** that fire independently of the screen stack. Calling this replaces any previously registered global keys.
 
-```tsx
-globalKeys([
-  {
-    key: 'e',
-    operate: () => console.log('Global E pressed'),
-    cover: true,
-  },
-  {
-    key: 'q',
-    operate: () => process.exit(),
-    cover: false,
-  },
-]);
-```
-
 #### `GlobalKeyEntry`
 
 | Property      | Type                                      | Default        | Description |
 | ------------- | ----------------------------------------- | -------------- | ----------- |
-| `key`         | `string \| string[]`                      | —              | Key name(s) to match (same format as `boundKeyboard`). |
-| `operate`     | `() => void`                              | —              | Callback invoked when the key is pressed. |
-| `cover`       | `boolean`                                 | `true`         | Whether screen components are allowed to override this global key via `boundKeyboard`. When `false`, calling `boundKeyboard` with the same key in a matching category screen will **throw a runtime error**. |
-| `affectOverlay` | `boolean`                               | `false`        | Whether this global key fires **before** the overlay layer (`true`) or **after** it (`false`). |
-| `category`    | `React.ComponentType[] \| '*' \| undefined` | `'*'`       | Whitelist of screen components that may use this global key. `'*'` or omitted = all screens; `[]` = effectively disabled; `[Menu, Game]` = only when the stack top is Menu or Game. |
+| `key`         | `string \| string[]`                      | —              | Key name(s) to match |
+| `operate`     | `() => void`                              | —              | Callback invoked when the key is pressed |
+| `cover`       | `boolean`                                 | `true`         | Whether screen components may override this key |
+| `affectOverlay` | `boolean`                               | `false`        | Fire before (`true`) or after (`false`) the overlay layer |
+| `category`    | `React.ComponentType[] \| '*' \| undefined` | `'*'`       | Whitelist of screens; `'*'` = all, `[]` = disabled |
 
-#### Event Placement
+---
 
-- **`affectOverlay: false` (default)**: Overlay → global key → screen stack
-- **`affectOverlay: true`**: Global key → overlay → screen stack
+### Focus Management APIs
 
-#### `cover` Behavior
+These are available from `useKeyboard()` and operate on the **current screen's** focus targets.
 
-When `cover: true` (default), a screen can override the global key by calling `boundKeyboard` with the same key name. The screen's binding takes precedence over the global key.
+#### `focusSet(focusId: string): void`
+
+Activate a specific focus target by its id. No-op if the id does not exist.
+
+#### `focusNext(): void`
+
+Rotate to the next focus target in registration order. Equivalent to pressing Tab.
+
+#### `focusPrev(): void`
+
+Rotate to the previous focus target in registration order. Equivalent to pressing Shift+Tab.
+
+#### `focusCurrent(): string | null`
+
+Returns the currently active focus id, or `null` if none.
+
+#### `focusUnregister(focusId: string): void`
+
+Remove a focus target. If it was the active one, the next target (if any) is activated automatically. Components should call this in their `useEffect` cleanup.
+
+#### `subscribeFocus(listener: () => void): () => void`
+
+Subscribe to focus changes on the current screen. Returns an unsubscribe function. Used internally by `useFocusState`; you rarely need this directly.
+
+---
+
+## Built-in Tab Navigation
+
+When a screen has one or more focus targets registered, the keyboard system intercepts `tab` and `shift+tab` at the top layer and rotates through targets in registration order.
+
+- **Tab**: activate next focus target
+- **Shift+Tab**: activate previous focus target
+
+This is automatic — you do not need to bind Tab yourself. If a screen has no focus targets, Tab keys fall through to screen-level bindings as normal.
+
+The same behavior applies to overlays with focus targets.
+
+---
+
+## Common Patterns
+
+### Focus-aware Component
 
 ```tsx
-// Global key 'e' with cover: true
-globalKeys([{ key: 'e', operate: () => console.log('global e'), cover: true }]);
+function MySelectInput<T>(props: { focusId: string; items: Item<T>[]; onSelect: (item: Item<T>) => void }) {
+  const isFocused = useFocusState(props.focusId);
+  const { boundKeyboard, focusUnregister } = useKeyboard();
+  const [index, setIndex] = useState(0);
 
-// Screen can override 'e' locally:
-boundKeyboard(['e'], () => console.log('local e')); // ✅ OK
+  useEffect(() => {
+    const fid = props.focusId;
+    const u1 = boundKeyboard(['up'], () => setIndex(i => ...), { focusId: fid });
+    const u2 = boundKeyboard(['down'], () => setIndex(i => ...), { focusId: fid });
+    const u3 = boundKeyboard(['return'], () => props.onSelect(props.items[index]), { focusId: fid });
+    return () => { u1(); u2(); u3(); focusUnregister(fid); };
+  }, [props.focusId]);
+
+  return (
+    <Box flexDirection="column">
+      {props.items.map((item, i) => (
+        <Text key={String(item.value)} dimColor={!isFocused}>
+          {isFocused && i === index ? '❯ ' : '  '}{item.label}
+        </Text>
+      ))}
+    </Box>
+  );
+}
 ```
 
-When `cover: false`, the global key **cannot** be overridden. Attempting to bind the same key via `boundKeyboard` in a matching category screen will throw:
+### Multiple Controls on One Screen
 
 ```tsx
-// Global key 'e' with cover: false
-globalKeys([{ key: 'e', operate: () => console.log('global e'), cover: false }]);
+function Settings() {
+  return (
+    <Box flexDirection="column">
+      <Text bold>Settings</Text>
 
-// Screen cannot override:
-boundKeyboard(['e'], () => console.log('local e')); // ❌ Throws error
+      <MySelectInput
+        focusId="theme-picker"
+        items={[{ label: 'Dark', value: 'dark' }, { label: 'Light', value: 'light' }]}
+        onSelect={(item) => console.log('theme:', item.value)}
+      />
+
+      <MySelectInput
+        focusId="difficulty-picker"
+        items={[{ label: 'Easy', value: 'easy' }, { label: 'Hard', value: 'hard' }]}
+        onSelect={(item) => console.log('difficulty:', item.value)}
+      />
+
+      <Text dimColor>Press Tab to switch focus</Text>
+    </Box>
+  );
+}
 ```
+
+### Programmatic Focus Control
+
+```tsx
+function Wizard() {
+  const { focusSet, focusNext } = useKeyboard();
+
+  useEffect(() => {
+    boundKeyboard(['ctrl+n'], () => focusNext());
+    boundKeyboard(['ctrl+1'], () => focusSet('step1'));
+    boundKeyboard(['ctrl+2'], () => focusSet('step2'));
+  }, []);
+
+  // ...
+}
+```
+
+### Global Keys with Focus
+
+Global keys continue to work as before. Screen components can override them through either screen-level or focus-level bindings, as long as the global key has `cover: true`.
 
 ---
 
@@ -677,18 +415,32 @@ Key pressed
     │      └─ matched → consume, stop
     │
     ├─ ② Active overlay layer
-    │      ├─ blockedKey? → skip overlay bindings
-    │      ├─ boundKeyboard matched? → consume, stop
-    │      └─ stop keys matched? → consume, block
+    │      ├─ Built-in Tab/Shift+Tab → switch focus within overlay
+    │      ├─ Focus target (if active)
+    │      │    ├─ blockedKey → skip bindings
+    │      │    ├─ boundKeyboard matched? → consume, stop
+    │      │    └─ stop keys matched? → consume, block
+    │      ├─ Overlay layer bindings
+    │      │    ├─ blockedKey → skip bindings
+    │      │    ├─ boundKeyboard matched? → consume, stop
+    │      │    └─ stop keys matched? → consume, block
+    │      └─ (none matched) → continue
     │
     ├─ ③ Global keys (affectOverlay: false, default)
     │      └─ matched → consume, stop
     │
     ├─ ④ Screen stack (top → bottom)
     │      for each layer (top to bottom):
-    │        ├─ blockedKey? → skip bindings, continue to next layer
-    │        ├─ boundKeyboard matched? → consume, stop
-    │        └─ (top layer only) stop keys matched? → consume, block
+    │        ├─ Built-in Tab/Shift+Tab (top layer only) → switch focus
+    │        ├─ Focus target (top layer only, if active)
+    │        │    ├─ blockedKey → skip bindings
+    │        │    ├─ boundKeyboard matched? → consume, stop
+    │        │    └─ stop keys matched? → consume, block
+    │        ├─ Screen layer bindings
+    │        │    ├─ blockedKey → skip bindings
+    │        │    ├─ boundKeyboard matched? → consume, stop
+    │        │    └─ (top layer only) stop keys matched? → consume, block
+    │        └─ (none matched) → continue to next layer
     │
     └─ ⑤ Dropped (no handler matched)
 ```
@@ -713,6 +465,9 @@ globalKeys([
     category: [Menu, Settings],
   },
 ]);
+
+// Focus-aware components have full type safety on focusId
+boundKeyboard(['up'], handleUp, { focusId: 'my-input' });
 ```
 
 ---
@@ -730,7 +485,7 @@ function Game() {
 
   useEffect(() => {
     const unbindB = boundKeyboard(['b'], () => back());
-    const unstopQ = stop(['q']);  // prevent q from bubbling to Menu
+    const unstopQ = stop(['q']);
     return () => {
       unbindB();
       unstopQ();
@@ -750,7 +505,7 @@ function Combat() {
   const { boundKeyboard, blockedKey } = useKeyboard();
 
   useEffect(() => {
-    blockedKey(['e']);  // 'e' passes through to Menu
+    blockedKey(['e']);
     boundKeyboard(['a'], () => attack());
   }, []);
 
@@ -775,7 +530,7 @@ function App() {
         key: 'h',
         operate: () => showHelp(),
         cover: true,
-        affectOverlay: true,  // works even with an overlay open
+        affectOverlay: true,
         category: '*',
       },
     ]);
@@ -788,16 +543,30 @@ function App() {
 ### Override a Global Key in a Specific Screen
 
 ```tsx
-// Global: 'e' is an exit key (cover: true, so it can be overridden)
 globalKeys([{ key: 'e', operate: () => exitGame(), cover: true }]);
 
-// In Settings screen: 'e' does something else
 function Settings() {
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
     boundKeyboard(['e'], () => console.log('Settings: e pressed'));
   }, []);
-  // This overrides the global 'e' while Settings is active
+}
+```
+
+### Focus-Based Override with Global Keys
+
+```tsx
+globalKeys([{ key: 'e', operate: () => console.log('global e'), cover: true }]);
+
+function SettingsForm() {
+  const { boundKeyboard } = useKeyboard();
+  useEffect(() => {
+    // Override global 'e' only when this specific input is focused
+    boundKeyboard(['e'], () => console.log('input: e'), {
+      focusId: 'name-input',
+    });
+  }, []);
+  // ...
 }
 ```
 
@@ -805,10 +574,12 @@ function Settings() {
 
 ## Common Errors
 
-| Error Message                                                              | Cause                                                    |
-| -------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `[Ink-Trc] useKeyboard() 必须在 <KeyboardProvider> 内部使用。`              | `useKeyboard` was called outside a `<KeyboardProvider>`. |
-| `[Ink-Trc] boundKeyboard() 必须在屏幕组件内调用。当前无活跃屏幕。`         | `boundKeyboard` was called when the screen stack is empty. |
-| `[Ink-Trc] stop() 必须在屏幕组件内调用。`                                  | `stop` was called outside a screen component.            |
-| `[Ink-Trc] blockedKey() 必须在屏幕组件内调用。`                            | `blockedKey` was called outside a screen component.      |
-| `[Ink-Trc] 组件 "X" 尝试通过 boundKeyboard 绑定 "Y"，但该键已被 globalKeys 声明且 cover: false，不允许覆盖。` | A screen tried to bind a key that a global key declared as non-overridable (`cover: false`). |
+| Error Message | Cause |
+| --- | --- |
+| `[Ink-Trc] useKeyboard() 必须在 <KeyboardProvider> 内部使用。` | `useKeyboard` was called outside `<KeyboardProvider>` |
+| `[Ink-Trc] boundKeyboard() 必须在屏幕组件内调用。当前无活跃屏幕。` | `boundKeyboard` was called when the screen stack is empty |
+| `[Ink-Trc] stop() 必须在屏幕组件内调用。` | `stop` was called outside a screen component |
+| `[Ink-Trc] blockedKey() 必须在屏幕组件内调用。` | `blockedKey` was called outside a screen component |
+| `[Ink-Trc] 组件 "X" 尝试通过 boundKeyboard 绑定 "Y"，但该键已被 globalKeys 声明且 cover: false，不允许覆盖。` | A screen or focus target tried to bind a key with `cover: false` |
+```
+
