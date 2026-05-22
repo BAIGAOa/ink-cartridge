@@ -12,6 +12,7 @@ export type KeyHandler = (input: string, key: Key) => void;
  * Options for {@link KeyboardContextValue.boundKeyboard}.
  */
 export interface BoundKeyboardOptions {
+  onlyThis?: boolean;
   /**
    * When `true`, the binding only activates when the owning screen is the
    * top of the stack and no overlay is open. Otherwise the binding is
