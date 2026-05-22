@@ -18,7 +18,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/BAIGAOa/ink-kit.git"
+        "url": "git+https://github.com/BAIGAOa/ink-router-kit.git"
     },
     "scripts": {
         "build": "tsc --locale zh-CN",
@@ -56,7 +56,7 @@
         "vitest": "^4.1.5"
     },
     "bugs": {
-        "url": "https://github.com/BAIGAOa/ink-kit/issues"
+        "url": "https://github.com/BAIGAOa/ink-router-kit/issues"
     },
-    "homepage": "https://github.com/BAIGAOa/ink-kit#readme"
+    "homepage": "https://github.com/BAIGAOa/ink-router-kit#readme"
 }
