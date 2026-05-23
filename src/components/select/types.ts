@@ -42,4 +42,9 @@ export interface SelectInputProps<T, I extends Item<T> = Item<T>> {
    * Is not a Boolean type Because of the integration of the keyboard system.
    */
   focusId: string;
+  /**
+  * When the number of items exceeds what?
+  * The list will be scrolled
+  */
+  limit: number;
 }
