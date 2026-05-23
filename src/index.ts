@@ -39,3 +39,13 @@ export type {
   FocusTarget,
 } from "./keyboard/index.js";
 export { useFocusState } from "./keyboard/index.js";
+
+
+// Components — SelectInput
+export { SelectInput } from "./components/select/SelectInput.js";
+export type { Item } from "./components/select/types.js";
+export type { SelectInputProps } from "./components/select/types.js";
+
+// Components — TextInput
+export { TextInput, UncontrolledTextInput } from "./components/text/TextInput.js";
+export type { TextInputProps, UncontrolledTextInputProps } from "./components/text/types.js";
