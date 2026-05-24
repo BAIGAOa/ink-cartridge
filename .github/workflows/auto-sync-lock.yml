@@ -1,0 +1,78 @@
+name: Auto-Sync Lock File
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+jobs:
+  sync-lockfile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ── 尝试 npm ci ──
+      - name: Try npm ci
+        id: npm_ci
+        continue-on-error: true
+        run: npm ci
+
+      # ── 如果失败，用 npm install 修复 ──
+      - name: Fix lock file
+        if: steps.npm_ci.outcome == 'failure'
+        run: npm install
+
+      # ── 检查 lock 文件是否真的变了 ──
+      - name: Check for changes
+        if: steps.npm_ci.outcome == 'failure'
+        id: check
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "diff<<EOF" >> $GITHUB_OUTPUT
+            git diff --stat -- package-lock.json >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ─ 创建 Pull Request ──
+      - name: Create Pull Request
+        if: steps.check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: sync package-lock.json [skip ci]'
+          title: '🔄 Auto-sync: package-lock.json 已自动更新'
+          body: |
+            ## 自动同步 Lock 文件
+
+            `package-lock.json` 与 `package.json` 不同步，已自动执行 `npm install` 修复。
+
+            ### 变更摘要
+
+            ${{ steps.check.outputs.diff }}
+
+            ### 原因
+
+            `npm ci` 失败了，因为 lock 文件中缺少某些包的记录。
+            这通常发生在有人修改了 `package.json` 后没有运行 `npm install`。
+
+            > 警告: 此 PR 由 GitHub Actions 自动创建，review 确认后合并即可。
+          branch: auto-sync/lockfile
+          delete-branch: true
+          labels: automated
