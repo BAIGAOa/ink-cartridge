@@ -39,12 +39,12 @@ export function skip<C extends React.ComponentType<any>>(
 ): void {
   if (!_dispatch) {
     throw new Error(
-      '[Ink-Trc] skip() 调用时 Provider 尚未挂载。请确保 <ScenarioManagementProvider> 已挂载到组件树。',
+      '[Ink-Router-Kit] skip() called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
     );
   }
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。请先调用 registerComponent()。`,
+      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   // 模块级 skip 不做编译时树校验，运行时 reducer 中校验
@@ -64,7 +64,7 @@ export function skip<C extends React.ComponentType<any>>(
 export function back(): void {
   if (!_dispatch) {
     throw new Error(
-      '[Ink-Trc] back() 调用时 Provider 尚未挂载。',
+      '[Ink-Router-Kit] back() called before Provider is mounted.',
     );
   }
   _dispatch({ type: 'back' });
@@ -87,12 +87,12 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 ): void {
   if (!_dispatch) {
     throw new Error(
-      '[Ink-Trc] gotoScreen() 调用时 Provider 尚未挂载。',
+      '[Ink-Router-Kit] gotoScreen() called before Provider is mounted.',
     );
   }
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。请先调用 registerComponent()。`,
+      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   _dispatch({
@@ -119,12 +119,12 @@ export function overlay<C extends React.ComponentType<any>>(
 ): void {
   if (!_dispatch) {
     throw new Error(
-      '[Ink-Trc] overlay() 调用时 Provider 尚未挂载。',
+      '[Ink-Router-Kit] overlay() called before Provider is mounted.',
     );
   }
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。请先调用 registerComponent()。`,
+      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   _dispatch({
@@ -142,7 +142,7 @@ export function overlay<C extends React.ComponentType<any>>(
 export function closeOverlay(): void {
   if (!_dispatch) {
     throw new Error(
-      '[Ink-Trc] closeOverlay() 调用时 Provider 尚未挂载。',
+      '[Ink-Router-Kit] closeOverlay() called before Provider is mounted.',
     );
   }
   _dispatch({ type: 'closeOverlay' });
@@ -174,7 +174,7 @@ function findCommonAncestor(
   }
 
   throw new Error(
-    `[Ink-Trc] 无法找到共同祖先。目标组件可能不在同一棵树中。`,
+    `[Ink-Router-Kit] Cannot find common ancestor. The target component may not be in the same tree.`,
   );
 }
 
@@ -193,7 +193,7 @@ function buildPathFrom(
   }
   if (!node) {
     throw new Error(
-      `[Ink-Trc] 目标组件不是祖先的后代。`,
+      `[Ink-Router-Kit] Target component is not a descendant of the ancestor.`,
     );
   }
   // 现在 path 是 [target, ..., ancestor.child]，反转得到 [ancestor.child, ..., target]
@@ -210,7 +210,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       // 校验：目标组件必须是当前节点的子节点
       if (!isChildOf(action.component, current)) {
         throw new Error(
-          `[Ink-Trc] "${action.component.displayName || action.component.name || 'anonymous'}" 不是 "${current.displayName || current.name || 'anonymous'}" 的子节点。请用 skip 沿树向下导航，或用 gotoScreen 跨分支跳转。`,
+          `[Ink-Router-Kit] "${action.component.displayName || action.component.name || 'anonymous'}" is not a child of "${current.displayName || current.name || 'anonymous'}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
         );
       }
 
@@ -233,7 +233,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'back': {
       if (state.path.length <= 1) {
         throw new Error(
-          '[Ink-Trc] back() 失败：已在根节点，无法继续返回。',
+          '[Ink-Router-Kit] back() failed: already at the root node, cannot go back.',
         );
       }
 
@@ -251,7 +251,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       if (ancestorIndex === -1) {
         throw new Error(
-          `[Ink-Trc] gotoScreen 失败：无法定位共同祖先。`,
+          `[Ink-Router-Kit] gotoScreen failed: cannot locate common ancestor.`,
         );
       }
 
@@ -338,7 +338,7 @@ export function ScenarioManagementProvider({
 }: ScenarioManagementProviderProps) {
   if (!hasComponent(defaultScreen)) {
     throw new Error(
-      `[Ink-Trc] defaultScreen "${defaultScreen.displayName || defaultScreen.name || 'anonymous'}" 未注册。请先调用 registerComponent()。`,
+      `[Ink-Router-Kit] defaultScreen "${defaultScreen.displayName || defaultScreen.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
 
@@ -391,7 +391,7 @@ export function ScenarioManagementProvider({
     () => (component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。`,
+          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
@@ -413,7 +413,7 @@ export function ScenarioManagementProvider({
     () => (component, params) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。`,
+          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
@@ -429,7 +429,7 @@ export function ScenarioManagementProvider({
     () => (component, params) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Trc] 组件 "${component.displayName || component.name || 'anonymous'}" 未注册。`,
+          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
