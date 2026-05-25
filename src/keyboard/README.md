@@ -599,16 +599,3 @@ Key pressed
     └─ ⑤ Dropped (no handler matched)
 ```
 
----
-
-## Common Errors
-
-| Error Message | Cause |
-| --- | --- |
-| `[Ink-Trc] useKeyboard() 必须在 <KeyboardProvider> 内部使用。` | `useKeyboard` was called outside `<KeyboardProvider>` |
-| `[Ink-Trc] boundKeyboard() 必须在屏幕组件内调用。当前无活跃屏幕。` | `boundKeyboard` was called when the screen stack is empty |
-| `[Ink-Trc] stop() 必须在屏幕组件内调用。` | `stop` was called outside a screen component |
-| `[Ink-Trc] blockedKey() 必须在屏幕组件内调用。` | `blockedKey` was called outside a screen component |
-| `[Ink-Trc] 组件 "X" 尝试通过 boundKeyboard 绑定 "Y"，但该键已被 globalKeys 声明且 cover: false，不允许覆盖。` | A screen or focus target tried to bind a key with `cover: false` |
-| `[Ink-Router-Kit] The shortcut key you used does not exist with ID {id}` | `boundKeyboard` or `globalKeys` referenced a shortcut action ID that was not registered via `defineShortcutAction` |
-| `[Ink-Router-Kit] Duplicate shortcut cannot be defined with ID {id}` | A shortcut action ID was registered more than once |
