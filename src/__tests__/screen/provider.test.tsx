@@ -183,7 +183,7 @@ describe('ScenarioManagementProvider（默认屏幕）', () => {
           React.createElement('div', null),
         ),
       ),
-    ).toThrow('未注册');
+    ).toThrow('is not registered');
   });
 
   it('currentPath 初始为 [defaultScreen]', () => {
@@ -228,7 +228,7 @@ describe('skip（沿树向下）', () => {
       act(() => {
         get()!.skip(Combat, { enemy: 'x' });
       }),
-    ).toThrow('不是');
+    ).toThrow('is not a child of');
   });
 });
 
@@ -260,7 +260,7 @@ describe('back（沿树向上）', () => {
 
   it('根节点调用 back 抛错', () => {
     const { get } = renderWithRef(Menu);
-    expect(() => act(() => get()!.back())).toThrow('根节点');
+    expect(() => act(() => get()!.back())).toThrow('already at the root node');
   });
 
   it('模块级 back 行为一致', () => {
@@ -293,7 +293,7 @@ describe('gotoScreen（跨分支跳转）', () => {
       act(() => {
         get()!.gotoScreen(Ghost as any, {});
       }),
-    ).toThrow('未注册');
+    ).toThrow('is not registered');
   });
 
   it('模块级 gotoScreen 行为一致', () => {
@@ -395,18 +395,18 @@ describe('CurrentScreen 组件', () => {
 
 describe('模块级函数错误处理', () => {
   it('Provider 未挂载时 skip 抛错', () => {
-    expect(() => skip(Menu, {})).toThrow('Provider 尚未挂载');
+    expect(() => skip(Menu, {})).toThrow(/called before Provider is mounted/);
   });
   it('Provider 未挂载时 back 抛错', () => {
-    expect(() => back()).toThrow('Provider 尚未挂载');
+    expect(() => back()).toThrow(/called before Provider is mounted/);
   });
   it('Provider 未挂载时 gotoScreen 抛错', () => {
-    expect(() => gotoScreen(Menu, {})).toThrow('Provider 尚未挂载');
+    expect(() => gotoScreen(Menu, {})).toThrow(/called before Provider is mounted/);
   });
   it('Provider 未挂载时 overlay 抛错', () => {
-    expect(() => overlay(Notification, { message: '' })).toThrow('Provider 尚未挂载');
+    expect(() => overlay(Notification, { message: '' })).toThrow(/called before Provider is mounted/);
   });
   it('Provider 未挂载时 closeOverlay 抛错', () => {
-    expect(() => closeOverlay()).toThrow('Provider 尚未挂载');
+    expect(() => closeOverlay()).toThrow(/called before Provider is mounted/);
   });
 });
