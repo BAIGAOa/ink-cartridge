@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'package.json'
-      - 'package-lock.json'
   workflow_dispatch:
 
 jobs:
@@ -25,20 +24,12 @@ jobs:
           node-version: 22
           cache: npm
 
-      # ── 尝试 npm ci ──
-      - name: Try npm ci
-        id: npm_ci
-        continue-on-error: true
-        run: npm ci
-
-      # ── 如果失败，用 npm install 修复 ──
-      - name: Fix lock file
-        if: steps.npm_ci.outcome == 'failure'
+      # ── 直接执行 npm install 同步 lock 文件 ──
+      - name: Run npm install to sync lock file
         run: npm install
 
-      # ── 检查 lock 文件是否真的变了 ──
-      - name: Check for changes
-        if: steps.npm_ci.outcome == 'failure'
+      # ── 检查 lock 文件是否变了 ──
+      - name: Check for changes in package-lock.json
         id: check
         run: |
           if ! git diff --quiet -- package-lock.json; then
@@ -46,12 +37,15 @@ jobs:
             echo "diff<<EOF" >> $GITHUB_OUTPUT
             git diff --stat -- package-lock.json >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
+            echo "::notice::📦 package-lock.json 有变更，将创建 PR"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "::notice::✅ package-lock.json 无需更新"
           fi
 
-      # ─ 创建 Pull Request ──
+      # ── 创建 Pull Request ──
       - name: Create Pull Request
+        id: cpr
         if: steps.check.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
@@ -69,10 +63,15 @@ jobs:
 
             ### 原因
 
-            `npm ci` 失败了，因为 lock 文件中缺少某些包的记录。
-            这通常发生在有人修改了 `package.json` 后没有运行 `npm install`。
+            检测到 `package.json` 变更后自动执行了 `npm install`，lock 文件已同步更新。
 
             > 警告: 此 PR 由 GitHub Actions 自动创建，review 确认后合并即可。
           branch: auto-sync/lockfile
           delete-branch: true
           labels: automated
+
+      # ── 输出 PR 链接 ──
+      - name: Show PR link
+        if: steps.cpr.outputs.pull-request-url != ''
+        run: |
+          echo "::notice::🔗 PR 已创建: ${{ steps.cpr.outputs.pull-request-url }}"
