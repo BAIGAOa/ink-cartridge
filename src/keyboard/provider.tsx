@@ -267,6 +267,41 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     return { keys, handler, onlyThis, owner };
   }
 
+  function applyGlobalKeyOverrides(
+    keys: string[],
+    owner: React.ComponentType<any>,
+    layer: ScreenKeyboardLayer,
+    bindingContext: string,
+  ): void {
+    for (const gk of _globalKeys) {
+      const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
+      const matchingKeys = gkKeys.filter((k) => keys.includes(k));
+      if (matchingKeys.length === 0) continue;
+
+      const cat = gk.category;
+      let inCategory = false;
+      if (cat === undefined || cat === '*') {
+        inCategory = true;
+      } else if (Array.isArray(cat)) {
+        inCategory = cat.includes(owner);
+      }
+      if (!inCategory) continue;
+
+      const cover = gk.cover ?? true;
+      if (!cover) {
+        throw new Error(
+          `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" ` +
+          `attempted to bind "${matchingKeys[0]}" via ${bindingContext}, ` +
+          `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
+        );
+      }
+
+      for (const k of matchingKeys) {
+        layer.globalKeyOverrides.add(k);
+      }
+    }
+  }
+
   const getOrCreateFocusTarget = useCallback(
     (layer: ScreenKeyboardLayer, focusId: string) => {
       let target = layer.focusTargets.get(focusId);
@@ -310,35 +345,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const fid = options.focusId;
         const target = getOrCreateFocusTarget(layer, fid);
 
-        for (const gk of _globalKeys) {
-          const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
-          const matchingKeys = gkKeys.filter((k) => keys.includes(k));
-          if (matchingKeys.length === 0) continue;
-
-          const cat = gk.category;
-          let inCategory = false;
-          if (cat === undefined || cat === '*') {
-            inCategory = true;
-          } else if (Array.isArray(cat)) {
-            inCategory = cat.includes(owner);
-          }
-          if (!inCategory) continue;
-
-          const cover = gk.cover ?? true;
-          if (!cover) {
-            throw new Error(
-              `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" ` +
-              `attempted to bind "${matchingKeys[0]}" via focusId="${fid}", ` +
-              `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
-            )
-          }
-
-          for (const k of matchingKeys) {
-            layer.globalKeyOverrides.add(k);
-          }
-
-
-        }
+        applyGlobalKeyOverrides(keys, owner, layer, `focusId="${fid}"`);
 
         const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
 
@@ -364,33 +371,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
 
 
-      // 为了向后兼容所以这里保持原有逻辑也就是没加焦点之前的逻辑
-      for (const gk of _globalKeys) {
-        const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
-        const matchingKeys = gkKeys.filter((k) => keys.includes(k));
-        if (matchingKeys.length === 0) continue;
-
-        const cat = gk.category;
-        let inCategory = false;
-        if (cat === undefined || cat === '*') {
-          inCategory = true;
-        } else if (Array.isArray(cat)) {
-          inCategory = cat.includes(owner);
-        }
-
-        if (!inCategory) continue;
-
-        const cover = gk.cover ?? true;
-        if (!cover) {
-          throw new Error(
-            `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" attempted to bind "${matchingKeys[0]}" via boundKeyboard, but this key has already been declared by globalKeys with cover: false, disallowing overwriting.`
-          );
-        }
-
-        for (const k of matchingKeys) {
-          layer.globalKeyOverrides.add(k);
-        }
-      }
+      applyGlobalKeyOverrides(keys, owner, layer, 'boundKeyboard');
 
       const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
 
