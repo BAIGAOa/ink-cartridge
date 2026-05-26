@@ -249,6 +249,144 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     [],
   );
 
+  function tryMatchBindings(
+    bindings: BoundKeyEntry[],
+    unblockedKeys: string[],
+    input: string,
+    key: Key,
+    skipBinding?: (binding: BoundKeyEntry) => boolean,
+  ): boolean {
+    if (unblockedKeys.length === 0) return false;
+
+    for (const binding of bindings) {
+      if (skipBinding && skipBinding(binding)) continue;
+      if (binding.keys.some((k) => unblockedKeys.includes(k))) {
+        binding.handler(input, key);
+        return true;
+      }
+    }
+
+    const wildcardBinding = bindings.find(b => b.keys.includes('*'));
+    if (wildcardBinding && isNormalCharacter(input, key)) {
+      if (!skipBinding || !skipBinding(wildcardBinding)) {
+        wildcardBinding.handler(input, key);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function handleTabNavigation(
+    layer: ScreenKeyboardLayer,
+    eventNames: string[],
+    shift: boolean,
+  ): boolean {
+    if (!eventNames.includes('tab') || layer.focusOrder.length === 0) return false;
+    const current = layer.currentFocusId;
+    let idx = current ? layer.focusOrder.indexOf(current) : -1;
+    if (shift) {
+      idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
+    } else {
+      idx = (idx + 1) % layer.focusOrder.length;
+    }
+    layer.currentFocusId = layer.focusOrder[idx];
+    notifyFocusChange();
+    return true;
+  }
+
+  function getCurrentOwner(): React.ComponentType<any> | null {
+    const path = _currentPath;
+    if (path.length === 0) return null;
+    return _currentOverlayComponent || path[path.length - 1];
+  }
+
+  function createBoundKeyEntry(
+    keys: string[],
+    handler: KeyHandler | string,
+    onlyThis: boolean,
+    owner: React.ComponentType<any>,
+  ): BoundKeyEntry {
+    if (typeof handler === 'string') {
+      const action = _shortcutOperations.get(handler);
+      if (!action) {
+        throw new Error(
+          `[Ink-Router-Kit] The shortcut key you used does not exist with ID ${handler}`,
+        );
+      }
+      return { keys, handler: action, onlyThis, owner };
+    }
+    return { keys, handler, onlyThis, owner };
+  }
+
+  function cleanupGlobalKeyOverrides(
+    layer: ScreenKeyboardLayer,
+    keys: string[],
+  ): void {
+    for (const k of keys) {
+      const stillBound =
+        layer.bindings.some(b => b.keys.includes(k)) ||
+        [...layer.focusTargets.values()].some(ft =>
+          ft.bindings.some(b => b.keys.includes(k))
+        );
+      if (!stillBound) {
+        layer.globalKeyOverrides.delete(k);
+      }
+    }
+  }
+
+  function applyGlobalKeyOverrides(
+    keys: string[],
+    owner: React.ComponentType<any>,
+    layer: ScreenKeyboardLayer,
+    bindingContext: string,
+  ): void {
+    for (const gk of _globalKeys) {
+      const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
+      const matchingKeys = gkKeys.filter((k) => keys.includes(k));
+      if (matchingKeys.length === 0) continue;
+
+      const cat = gk.category;
+      let inCategory = false;
+      if (cat === undefined || cat === '*') {
+        inCategory = true;
+      } else if (Array.isArray(cat)) {
+        inCategory = cat.includes(owner);
+      }
+      if (!inCategory) continue;
+
+      const cover = gk.cover ?? true;
+      if (!cover) {
+        throw new Error(
+          `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" ` +
+          `attempted to bind "${matchingKeys[0]}" via ${bindingContext}, ` +
+          `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
+        );
+      }
+
+      for (const k of matchingKeys) {
+        layer.globalKeyOverrides.add(k);
+      }
+    }
+  }
+
+  const getOrCreateFocusTarget = useCallback(
+    (layer: ScreenKeyboardLayer, focusId: string) => {
+      let target = layer.focusTargets.get(focusId);
+      if (!target) {
+        target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
+        layer.focusTargets.set(focusId, target);
+        layer.focusOrder.push(focusId);
+        if (layer.currentFocusId === null) {
+          layer.currentFocusId = focusId;
+          notifyFocusChange();
+        }
+      }
+      return target;
+    },
+    [],
+  );
+
   /**
    * Bind keys on the current (top-of-stack) screen component.
    *
@@ -261,174 +399,45 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       handler: KeyHandler | string,
       options?: BoundKeyboardOptions,
     ): (() => void) => {
-      const path = _currentPath;
-      if (path.length === 0) {
+      const owner = getCurrentOwner();
+      if (!owner) {
         throw new Error(
-          '[Ink-Router-Kit] bound Keyboard () must be called inside the screen component. There is currently no active screen.',
+          '[Ink-Router-Kit] boundKeyboard() must be called inside a screen component. There is currently no active screen.',
         );
       }
-      const owner = _currentOverlayComponent || path[path.length - 1];
       const layer = getLayer(owner);
 
 
       if (options?.focusId) {
         const fid = options.focusId;
-        let target = layer.focusTargets.get(fid);
-        if (!target) {
-          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
-          layer.focusTargets.set(fid, target);
-          layer.focusOrder.push(fid);
-          // 第一个注册的焦点目标自动激活
-          if (layer.currentFocusId === null) {
-            layer.currentFocusId = fid;
-            notifyFocusChange();
-          }
-        }
+        const target = getOrCreateFocusTarget(layer, fid);
 
+        applyGlobalKeyOverrides(keys, owner, layer, `focusId="${fid}"`);
 
-        for (const gk of _globalKeys) {
-          const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
-          const matchingKeys = gkKeys.filter((k) => keys.includes(k));
-          if (matchingKeys.length === 0) continue;
-
-          const cat = gk.category;
-          let inCategory = false;
-          if (cat === undefined || cat === '*') {
-            inCategory = true;
-          } else if (Array.isArray(cat)) {
-            inCategory = cat.includes(owner);
-          }
-          if (!inCategory) continue;
-
-          const cover = gk.cover ?? true;
-          if (!cover) {
-            throw new Error(
-              `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" ` +
-              `attempted to bind "${matchingKeys[0]}" via focusId="${fid}", ` +
-              `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
-            )
-          }
-
-          for (const k of matchingKeys) {
-            layer.globalKeyOverrides.add(k);
-          }
-
-
-        }
-
-        let entry: BoundKeyEntry
-
-        if (typeof handler === 'string') {
-          const action = _shortcutOperations.get(handler)
-          if (!action) {
-            throw new Error(`[Ink-Router-Kit]The shortcut key you used does not exist with ID ${handler}`)
-          }
-          entry = {
-            keys,
-            handler: action,
-            onlyThis: options?.onlyThis ?? false,
-            owner
-          }
-        } else {
-          entry = {
-            keys,
-            handler,
-            onlyThis: options?.onlyThis ?? false,
-            owner
-          }
-        }
+        const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
 
         target.bindings.push(entry);
 
         return () => {
           const idx = target!.bindings.indexOf(entry);
           if (idx !== -1) target!.bindings.splice(idx, 1);
-
-          for (const k of entry.keys) {
-            const stillBound =
-              layer.bindings.some(b => b.keys.includes(k)) ||
-              [...layer.focusTargets.values()].some(ft =>
-                ft.bindings.some(b => b.keys.includes(k))
-              );
-            if (!stillBound) {
-              layer.globalKeyOverrides.delete(k);
-            }
-          }
+          cleanupGlobalKeyOverrides(layer, entry.keys);
         };
 
 
       }
 
 
-      // 为了向后兼容所以这里保持原有逻辑也就是没加焦点之前的逻辑
-      for (const gk of _globalKeys) {
-        const gkKeys = Array.isArray(gk.key) ? gk.key : [gk.key];
-        const matchingKeys = gkKeys.filter((k) => keys.includes(k));
-        if (matchingKeys.length === 0) continue;
+      applyGlobalKeyOverrides(keys, owner, layer, 'boundKeyboard');
 
-        const cat = gk.category;
-        let inCategory = false;
-        if (cat === undefined || cat === '*') {
-          inCategory = true;
-        } else if (Array.isArray(cat)) {
-          inCategory = cat.includes(owner);
-        }
-
-        if (!inCategory) continue;
-
-        const cover = gk.cover ?? true;
-        if (!cover) {
-          throw new Error(
-            `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" attempted to bind "${matchingKeys[0]}" via boundKeyboard, but this key has already been declared by globalKeys with cover: false, disallowing overwriting.`
-          );
-        }
-
-        for (const k of matchingKeys) {
-          layer.globalKeyOverrides.add(k);
-        }
-      }
-
-      let entry: BoundKeyEntry
-
-      if (typeof handler === 'string') {
-        const action = _shortcutOperations.get(handler)
-        if (!action) {
-          throw new Error(`[Ink-Router-Kit]The shortcut key you used does not exist with ID ${handler}`)
-        }
-        entry = {
-          keys,
-          handler: action,
-          onlyThis: options?.onlyThis ?? false,
-          owner
-        }
-      } else {
-        entry = {
-          keys,
-          handler,
-          onlyThis: options?.onlyThis ?? false,
-          owner
-        }
-      }
+      const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
 
       layer.bindings.push(entry);
 
       return () => {
         const idx = layer.bindings.indexOf(entry);
-        if (idx !== -1) {
-          layer.bindings.splice(idx, 1);
-        }
-
-        // 检查是否需要把全局键给剔除
-        for (const k of entry.keys) {
-          const stillBound =
-            layer.bindings.some(b => b.keys.includes(k)) ||
-            [...layer.focusTargets.values()].some(ft =>
-              ft.bindings.some(b => b.keys.includes(k))
-            );
-          if (!stillBound) {
-            layer.globalKeyOverrides.delete(k);
-          }
-        }
+        if (idx !== -1) layer.bindings.splice(idx, 1);
+        cleanupGlobalKeyOverrides(layer, entry.keys);
       };
     },
     [getLayer],
@@ -442,25 +451,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    */
   const penetration = useCallback(
     (keys: string[], options?: BlockedKeyOptions) => {
-      const path = _currentPath;
-      if (path.length === 0) {
+      const owner = getCurrentOwner();
+      if (!owner) {
         throw new Error('[Ink-Router-Kit] blockedKey() must be called inside a screen component.');
       }
-      const owner = _currentOverlayComponent || path[path.length - 1];
       const layer = getLayer(owner);
 
       if (options?.focusId) {
-        // Focus 级 blockedKey
-        let target = layer.focusTargets.get(options.focusId);
-        if (!target) {
-          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
-          layer.focusTargets.set(options.focusId, target);
-          layer.focusOrder.push(options.focusId);
-          if (layer.currentFocusId === null) {
-            layer.currentFocusId = options.focusId;
-            notifyFocusChange();
-          }
-        }
+        const target = getOrCreateFocusTarget(layer, options.focusId);
         for (const k of keys) {
           if (!target.blockedKeys.includes(k)) {
             target.blockedKeys.push(k);
@@ -487,25 +485,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    */
   const stop = useCallback(
     (keys: string[], options?: StopOptions): (() => void) => {
-      const path = _currentPath;
-      if (path.length === 0) {
-        throw new Error('[Ink-Trc] stop() must be called within a screen component.');
+      const owner = getCurrentOwner();
+      if (!owner) {
+        throw new Error('[Ink-Router-Kit] stop() must be called inside a screen component.');
       }
-      const owner = _currentOverlayComponent || path[path.length - 1];
       const layer = getLayer(owner);
 
       if (options?.focusId) {
-        // Focus 级 stop
-        let target = layer.focusTargets.get(options.focusId);
-        if (!target) {
-          target = { bindings: [], blockedKeys: [], stoppedKeys: [] };
-          layer.focusTargets.set(options.focusId, target);
-          layer.focusOrder.push(options.focusId);
-          if (layer.currentFocusId === null) {
-            layer.currentFocusId = options.focusId;
-            notifyFocusChange();
-          }
-        }
+        const target = getOrCreateFocusTarget(layer, options.focusId);
         const added: string[] = [];
         for (const k of keys) {
           if (!target.stoppedKeys.includes(k)) {
@@ -547,9 +534,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const focusSet = useCallback(
     (focusId: string) => {
-      const path = _currentPath;
-      if (path.length === 0) return;
-      const owner = _currentOverlayComponent || path[path.length - 1];
+      const owner = getCurrentOwner();
+      if (!owner) return;
       const layer = layersRef.current.get(owner);
       if (!layer || !layer.focusTargets.has(focusId)) return;
       if (layer.currentFocusId !== focusId) {
@@ -561,9 +547,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   );
 
   const focusNext = useCallback(() => {
-    const path = _currentPath;
-    if (path.length === 0) return;
-    const owner = _currentOverlayComponent || path[path.length - 1];
+    const owner = getCurrentOwner();
+    if (!owner) return;
     const layer = layersRef.current.get(owner);
     if (!layer || layer.focusOrder.length === 0) return;
 
@@ -575,9 +560,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, []);
 
   const focusPrev = useCallback(() => {
-    const path = _currentPath;
-    if (path.length === 0) return;
-    const owner = _currentOverlayComponent || path[path.length - 1];
+    const owner = getCurrentOwner();
+    if (!owner) return;
     const layer = layersRef.current.get(owner);
     if (!layer || layer.focusOrder.length === 0) return;
 
@@ -589,17 +573,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, []);
 
   const focusCurrent = useCallback((): string | null => {
-    const path = _currentPath;
-    if (path.length === 0) return null;
-    const owner = _currentOverlayComponent || path[path.length - 1];
+    const owner = getCurrentOwner();
+    if (!owner) return null;
     const layer = layersRef.current.get(owner);
     return layer?.currentFocusId ?? null;
   }, []);
 
   const focusUnregister = useCallback((focusId: string) => {
-    const path = _currentPath;
-    if (path.length === 0) return;
-    const owner = _currentOverlayComponent || path[path.length - 1];
+    const owner = getCurrentOwner();
+    if (!owner) return;
     const layer = layersRef.current.get(owner);
     if (!layer) return;
 
@@ -712,23 +694,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     if (overlayComp) {
       const overlayLayer = layersRef.current.get(overlayComp);
       if (overlayLayer) {
-        // 内置tab导航
-        if (
-          eventNames.includes('tab') &&
-          overlayLayer.focusOrder.length > 0
-        ) {
-          const shift = key.shift;
-          const current = overlayLayer.currentFocusId;
-          let idx = current ? overlayLayer.focusOrder.indexOf(current) : -1;
-          if (shift) {
-            idx = idx <= 0 ? overlayLayer.focusOrder.length - 1 : idx - 1;
-          } else {
-            idx = (idx + 1) % overlayLayer.focusOrder.length;
-          }
-          overlayLayer.currentFocusId = overlayLayer.focusOrder[idx];
-          notifyFocusChange();
-          return;
-        }
+        if (handleTabNavigation(overlayLayer, eventNames, key.shift)) return;
 
         const blocked = overlayLayer.blockedKeys;
         const unblocked = eventNames.filter((n) => !blocked.includes(n));
@@ -741,20 +707,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             const fBlocked = ft.blockedKeys;
             const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
 
-            if (fUnblocked.length > 0) {
-              for (const binding of ft.bindings) {
-                if (binding.keys.some((k) => fUnblocked.includes(k))) {
-                  binding.handler(input, key);
-                  return;
-                }
-              }
-
-              const wildcardBinding = ft.bindings.find(b => b.keys.includes('*'));
-              if (wildcardBinding && isNormalCharacter(input, key)) {
-                wildcardBinding.handler(input, key);
-                return;
-              }
-            }
+            if (tryMatchBindings(ft.bindings, fUnblocked, input, key)) return;
 
             if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
               return;
@@ -762,21 +715,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           }
         }
 
-
-        if (unblocked.length > 0) {
-          for (const binding of overlayLayer.bindings) {
-            if (binding.keys.some((k) => unblocked.includes(k))) {
-              binding.handler(input, key);
-              return;
-            }
-          }
-
-          const wildcardBinding = overlayLayer.bindings.find(b => b.keys.includes('*'));
-          if (wildcardBinding && isNormalCharacter(input, key)) {
-            wildcardBinding.handler(input, key);
-            return;
-          }
-        }
+        if (tryMatchBindings(overlayLayer.bindings, unblocked, input, key)) return;
 
         if (eventNames.some((n) => overlayLayer.stoppedKeys.includes(n))) {
           return;
@@ -800,25 +739,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (!layer) continue;
       const isTop = i === path.length - 1;
 
-      if (isTop) {
-        // tab键就是导航
-        if (
-          eventNames.includes('tab') &&
-          layer.focusOrder.length > 0
-        ) {
-          const shift = key.shift;
-          const current = layer.currentFocusId;
-          let idx = current ? layer.focusOrder.indexOf(current) : -1;
-          if (shift) {
-            idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
-          } else {
-            idx = (idx + 1) % layer.focusOrder.length;
-          }
-          layer.currentFocusId = layer.focusOrder[idx];
-          notifyFocusChange();
-          return;
-        }
-      }
+      if (isTop && handleTabNavigation(layer, eventNames, key.shift)) return;
 
       const blocked = layer.blockedKeys;
       const unblocked = eventNames.filter((n) => !blocked.includes(n));
@@ -829,28 +750,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           const fBlocked = ft.blockedKeys;
           const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
 
-          if (fUnblocked.length > 0) {
-            for (const binding of ft.bindings) {
-              if (
-                binding.onlyThis &&
-                _currentOverlayComponent !== null
-              )
-                continue;
-
-              if (binding.keys.some((k) => fUnblocked.includes(k))) {
-                binding.handler(input, key);
-                return;
-              }
-            }
-
-            const wildcardBinding = ft.bindings.find(b => b.keys.includes('*'));
-            if (wildcardBinding && isNormalCharacter(input, key)) {
-              if (!(wildcardBinding.onlyThis && overlayComp !== null)) {
-                wildcardBinding.handler(input, key);
-                return;
-              }
-            }
-          }
+          const skipOnlyThis = (b: BoundKeyEntry) => b.onlyThis && overlayComp !== null;
+          if (tryMatchBindings(ft.bindings, fUnblocked, input, key, skipOnlyThis)) return;
 
           if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
             return;
@@ -858,28 +759,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         }
       }
 
-      if (unblocked.length > 0) {
-        for (const binding of layer.bindings) {
-          if (
-            binding.onlyThis &&
-            (i !== path.length - 1 || _currentOverlayComponent !== null)
-          )
-            continue;
-
-          if (binding.keys.some((k) => unblocked.includes(k))) {
-            binding.handler(input, key);
-            return;
-          }
-        }
-
-        const wildcardBinding = layer.bindings.find(b => b.keys.includes('*'));
-        if (wildcardBinding && isNormalCharacter(input, key)) {
-          if (!(wildcardBinding.onlyThis && (i !== path.length - 1 || overlayComp !== null))) {
-            wildcardBinding.handler(input, key);
-            return;
-          }
-        }
-      }
+      const skipOnlyThis = (b: BoundKeyEntry) =>
+        b.onlyThis && (i !== path.length - 1 || overlayComp !== null);
+      if (tryMatchBindings(layer.bindings, unblocked, input, key, skipOnlyThis)) return;
 
       if (isTop && eventNames.some((n) => layer.stoppedKeys.includes(n))) {
         return;
