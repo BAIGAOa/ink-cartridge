@@ -249,6 +249,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     [],
   );
 
+  function handleTabNavigation(
+    layer: ScreenKeyboardLayer,
+    eventNames: string[],
+    shift: boolean,
+  ): boolean {
+    if (!eventNames.includes('tab') || layer.focusOrder.length === 0) return false;
+    const current = layer.currentFocusId;
+    let idx = current ? layer.focusOrder.indexOf(current) : -1;
+    if (shift) {
+      idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
+    } else {
+      idx = (idx + 1) % layer.focusOrder.length;
+    }
+    layer.currentFocusId = layer.focusOrder[idx];
+    notifyFocusChange();
+    return true;
+  }
+
   function getCurrentOwner(): React.ComponentType<any> | null {
     const path = _currentPath;
     if (path.length === 0) return null;
@@ -648,23 +666,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     if (overlayComp) {
       const overlayLayer = layersRef.current.get(overlayComp);
       if (overlayLayer) {
-        // 内置tab导航
-        if (
-          eventNames.includes('tab') &&
-          overlayLayer.focusOrder.length > 0
-        ) {
-          const shift = key.shift;
-          const current = overlayLayer.currentFocusId;
-          let idx = current ? overlayLayer.focusOrder.indexOf(current) : -1;
-          if (shift) {
-            idx = idx <= 0 ? overlayLayer.focusOrder.length - 1 : idx - 1;
-          } else {
-            idx = (idx + 1) % overlayLayer.focusOrder.length;
-          }
-          overlayLayer.currentFocusId = overlayLayer.focusOrder[idx];
-          notifyFocusChange();
-          return;
-        }
+        if (handleTabNavigation(overlayLayer, eventNames, key.shift)) return;
 
         const blocked = overlayLayer.blockedKeys;
         const unblocked = eventNames.filter((n) => !blocked.includes(n));
@@ -736,25 +738,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (!layer) continue;
       const isTop = i === path.length - 1;
 
-      if (isTop) {
-        // tab键就是导航
-        if (
-          eventNames.includes('tab') &&
-          layer.focusOrder.length > 0
-        ) {
-          const shift = key.shift;
-          const current = layer.currentFocusId;
-          let idx = current ? layer.focusOrder.indexOf(current) : -1;
-          if (shift) {
-            idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
-          } else {
-            idx = (idx + 1) % layer.focusOrder.length;
-          }
-          layer.currentFocusId = layer.focusOrder[idx];
-          notifyFocusChange();
-          return;
-        }
-      }
+      if (isTop && handleTabNavigation(layer, eventNames, key.shift)) return;
 
       const blocked = layer.blockedKeys;
       const unblocked = eventNames.filter((n) => !blocked.includes(n));
