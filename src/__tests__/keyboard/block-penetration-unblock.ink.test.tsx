@@ -14,6 +14,7 @@ async function flush() {
   await new Promise((r) => setTimeout(r, 10));
 }
 
+
 // 向 stdin 写入字符模拟按键，包含 10ms 等待让 Ink 处理
 async function press(
   stdin: { write: (data: string) => void },
