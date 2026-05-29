@@ -188,6 +188,12 @@ render(
 
 More components are planned for deep integration into the keyboard and focus system, including Form, Tabs, and SearchInput.
 
+## Other
+
+I admit I thought about some things too quickly at the beginning of the project.
+For example, the method of **blockedKeys**. Why is it called that? I don't know. Maybe I didn't think about it at that time.
+Actually, it should be called **penetration**, but I don't want to change it.
+
 ## License
 
 [MIT](LICENSE)
