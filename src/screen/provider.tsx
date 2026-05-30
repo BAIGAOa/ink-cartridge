@@ -19,7 +19,17 @@ import {
 
 
 
-let _dispatch: React.Dispatch<ScreenAction> | null = null;
+const _dispatchers = new Set<React.Dispatch<ScreenAction>>();
+
+function getDispatch(): React.Dispatch<ScreenAction> {
+  if (_dispatchers.size === 0) {
+    throw new Error(
+      '[Ink-Router-Kit] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
+    );
+  }
+  // Set 按插入顺序迭代，取最后一个（最近挂载的 Provider）
+  return [..._dispatchers][_dispatchers.size - 1];
+}
 
 /**
  * Navigate down the tree to a direct child of the current screen.
@@ -37,18 +47,13 @@ export function skip<C extends React.ComponentType<any>>(
   params: React.ComponentProps<C>,
   options?: SkipOptions,
 ): void {
-  if (!_dispatch) {
-    throw new Error(
-      '[Ink-Router-Kit] skip() called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
-    );
-  }
   if (!hasComponent(component)) {
     throw new Error(
       `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   // 模块级 skip 不做编译时树校验，运行时 reducer 中校验
-  _dispatch({
+  getDispatch()({
     type: 'skip',
     component,
     params: params as Record<string, unknown>,
@@ -62,12 +67,7 @@ export function skip<C extends React.ComponentType<any>>(
  * @throws If the provider is not mounted or the current screen is the root.
  */
 export function back(): void {
-  if (!_dispatch) {
-    throw new Error(
-      '[Ink-Router-Kit] back() called before Provider is mounted.',
-    );
-  }
-  _dispatch({ type: 'back' });
+  getDispatch()({ type: 'back' });
 }
 
 /**
@@ -85,17 +85,12 @@ export function gotoScreen<C extends React.ComponentType<any>>(
   component: C,
   params: React.ComponentProps<C>,
 ): void {
-  if (!_dispatch) {
-    throw new Error(
-      '[Ink-Router-Kit] gotoScreen() called before Provider is mounted.',
-    );
-  }
   if (!hasComponent(component)) {
     throw new Error(
       `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
-  _dispatch({
+  getDispatch()({
     type: 'gotoScreen',
     component,
     params: params as Record<string, unknown>,
@@ -117,17 +112,12 @@ export function overlay<C extends React.ComponentType<any>>(
   component: C,
   params: React.ComponentProps<C>,
 ): void {
-  if (!_dispatch) {
-    throw new Error(
-      '[Ink-Router-Kit] overlay() called before Provider is mounted.',
-    );
-  }
   if (!hasComponent(component)) {
     throw new Error(
       `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
-  _dispatch({
+  getDispatch()({
     type: 'overlay',
     component,
     params: params as Record<string, unknown>,
@@ -140,12 +130,7 @@ export function overlay<C extends React.ComponentType<any>>(
  * @throws If the provider is not mounted.
  */
 export function closeOverlay(): void {
-  if (!_dispatch) {
-    throw new Error(
-      '[Ink-Router-Kit] closeOverlay() called before Provider is mounted.',
-    );
-  }
-  _dispatch({ type: 'closeOverlay' });
+  getDispatch()({ type: 'closeOverlay' });
 }
 
 
@@ -352,11 +337,11 @@ export function ScenarioManagementProvider({
     counter: 0,
   });
 
-  // 注入模块级 dispatch
+  // 注入模块级 dispatch（支持多实例共存）
   useEffect(() => {
-    _dispatch = dispatch;
+    _dispatchers.add(dispatch);
     return () => {
-      _dispatch = null;
+      _dispatchers.delete(dispatch);
     };
   }, []);
 
