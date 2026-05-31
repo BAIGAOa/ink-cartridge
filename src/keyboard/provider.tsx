@@ -57,6 +57,7 @@ function normalizeKeyNames(input: string, key: Key): string[] {
       if (key.ctrl) names.push(`ctrl+${kName}`);
       if (key.shift) names.push(`shift+${kName}`);
       if (key.meta) names.push(`meta+${kName}`);
+      if (key.ctrl && key.shift) names.push(`ctrl+shift+${kName}`);
       return names;
     }
   }

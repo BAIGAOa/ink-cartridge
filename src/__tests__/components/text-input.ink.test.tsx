@@ -638,6 +638,52 @@ describe('焦点目标稳定性', () => {
   });
 });
 
+describe('动态 focusId', () => {
+  it('focusId 变化后旧目标清理，新目标正常响应', async () => {
+    const onChange = vi.fn();
+
+    function DynamicHost() {
+      const [fid, setFid] = useState('input-a');
+      const { boundKeyboard: bk } = useKeyboard();
+      useEffect(() => {
+        const un = bk(['s'], () => setFid('input-b'));
+        return un;
+      }, [bk]);
+
+      return React.createElement(TextInput, {
+        focusId: fid,
+        value: '',
+        onChange,
+      });
+    }
+
+    clearRegistry();
+    registerComponent(DynamicHost, {});
+
+    const { stdin } = render(
+      React.createElement(
+        ScenarioManagementProvider,
+        { defaultScreen: DynamicHost },
+        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
+      ),
+    );
+    await new Promise((r) => setTimeout(r, 10));
+
+    // 用旧 focusId 输入 → 正常
+    await press(stdin, 'x');
+    expect(onChange).toHaveBeenCalledWith('x');
+
+    // 切换 focusId
+    await press(stdin, 's');
+    await new Promise((r) => setTimeout(r, 10));
+
+    // 用新 focusId 输入 → 仍正常（旧目标已注销，新目标已创建）
+    onChange.mockClear();
+    await press(stdin, 'y');
+    expect(onChange).toHaveBeenCalledWith('y');
+  });
+});
+
 describe('placeholder 边界', () => {
   it('空字符串 placeholder 且 value 为空时不抛错', () => {
     const { lastFrameClean } = renderTextInput({

@@ -172,6 +172,14 @@ describe('按键名标准化', () => {
     pressKey('', { tab: true, shift: true });
     expect(cb).toHaveBeenCalled();
   });
+
+  it('ctrl+shift+return 组合键被正确生成', () => {
+    const cb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundKeyboard(['ctrl+shift+return'], cb);
+    pressKey('', { return: true, ctrl: true, shift: true });
+    expect(cb).toHaveBeenCalled();
+  });
 });
 
 describe('boundKeyboard（屏幕级，无 focusId）', () => {
@@ -729,5 +737,60 @@ describe('屏幕切换后焦点重置', () => {
     pressKey('a', {});
     expect(cb1).toHaveBeenCalledTimes(1);
     expect(cb2).not.toHaveBeenCalled();
+  });
+});
+
+describe('globalKeys + overlay 覆盖', () => {
+  it('affectOverlay=true & cover=true → overlay 可覆盖全局键', () => {
+    const globalCb = vi.fn();
+    const overlayCb = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    // 注册全局键 q，影响 overlay，允许覆盖（cover: true 为默认）
+    getKeyboard()!.globalKeys([
+      { key: 'q', operate: globalCb, affectOverlay: true, cover: true },
+    ]);
+
+    // 打开 overlay 并绑定 q 到 overlay
+    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    getKeyboard()!.boundKeyboard(['q'], overlayCb);
+
+    // overlay 的绑定优先
+    pressKey('q', {});
+    expect(overlayCb).toHaveBeenCalledTimes(1);
+    expect(globalCb).not.toHaveBeenCalled();
+  });
+
+  it('affectOverlay=true & cover=false → overlay 无法覆盖全局键', () => {
+    const globalCb = vi.fn();
+    const overlayCb = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    // 注册全局键 q，cover: false 禁止覆盖
+    getKeyboard()!.globalKeys([
+      { key: 'q', operate: globalCb, affectOverlay: true, cover: false },
+    ]);
+
+    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    // 尝试绑定 q 会抛错
+    expect(() =>
+      getKeyboard()!.boundKeyboard(['q'], overlayCb),
+    ).toThrow('cover: false');
+
+    // 全局键仍然触发
+    pressKey('q', {});
+    expect(globalCb).toHaveBeenCalled();
+  });
+
+  it('无 overlay 时 affectOverlay=true 全局键正常触发', () => {
+    const globalCb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'q', operate: globalCb, affectOverlay: true },
+    ]);
+
+    pressKey('q', {});
+    expect(globalCb).toHaveBeenCalledTimes(1);
   });
 });
