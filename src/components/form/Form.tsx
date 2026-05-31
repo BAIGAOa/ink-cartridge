@@ -46,7 +46,7 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
   const rulesRef = useRef<Record<string, Validator[]>>({});
   const focusIdRef = useRef<Record<string, string>>({});
 
-  const { focusSet, globalKeys } = useKeyboard();
+  const { focusSet, boundKeyboard } = useKeyboard();
 
   /**
    * Register a field's validation rules and default value.
@@ -136,11 +136,9 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
     onSubmit(valuesRef.current);
   }, [validate, onSubmit, onError]);
 
-  // Stable ref so globalKeys effect doesn't re-add on every render
+  // Stable ref so the boundKeyboard effect always calls the latest submitForm
   const submitFormRef = useRef(submitForm);
   submitFormRef.current = submitForm;
-  // Prevent calling submitForm on an unmounted Form
-  const mountedRef = useRef(true);
 
   // Defer focusSet to avoid calling it inside render
   useEffect(() => {
@@ -155,17 +153,14 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
     if (submitRef) submitRef.current = submitForm;
   }, [submitForm, submitRef]);
 
-  // Bind Ctrl+S to submit via globalKeys so it fires before
-  // focus-target bindings (avoiding SelectInput/MultiSelectInput's
-  // 'return' binding from consuming the event first).
-  // Uses refs so the entry is added once and the latest submitForm
-  // is always called; mountedRef prevents calling after unmount.
+  // Bind Ctrl+S to submit via screen-level binding. Focus-target bindings
+  // (TextInput's '*' wildcard) do NOT match Ctrl+S (isNormalCharacter
+  // returns false when ctrl is set), so the event safely passes through
+  // to the screen level without needing globalKeys.
   useEffect(() => {
-    globalKeys([
-      { key: 'ctrl+s', operate: () => { if (mountedRef.current) submitFormRef.current(); }, cover: false, affectOverlay: false },
-    ], { mode: 'add' });
-    return () => { mountedRef.current = false; };
-  }, []);
+    const unBind = boundKeyboard(['ctrl+s'], () => submitFormRef.current());
+    return () => unBind();
+  }, [boundKeyboard]);
 
   /**
    * Wrapper around registerField that also stores the field's focusId
