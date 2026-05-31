@@ -290,12 +290,10 @@ export function MultiSelectInput<T, I extends Item<T> = Item<T>>({
     onSubmitRef.current?.(selectedValuesRef.current);
   }, []);
 
-  // 焦点目标生命周期 — 挂载/卸载时注册/注销，不随值变化重建
-  const focusIdRef = useRef(focusId);
-  focusIdRef.current = focusId;
+  // Unregister old focus target when focusId changes
   useEffect(() => {
-    return () => focusUnregister(focusIdRef.current);
-  }, []);
+    return () => focusUnregister(focusId);
+  }, [focusId]);
 
   // 注册键盘绑定
   useEffect(() => {

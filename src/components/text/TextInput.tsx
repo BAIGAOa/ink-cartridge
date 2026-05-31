@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Text } from 'ink';
 import chalk from 'chalk';
 import { useKeyboard, useFocusState } from '../../keyboard/index.js';
@@ -179,12 +179,10 @@ export function TextInput({
     [originalValue, cursorOffset, onChange, highlightPastedText],
   );
 
-  // 焦点目标生命周期 — 挂载/卸载时注册/注销，不随值变化重建
-  const focusIdRef = useRef(focusId);
-  focusIdRef.current = focusId;
+  // 焦点目标生命周期 — focusId 变化时注销旧的，新的由绑定 effect 创建
   useEffect(() => {
-    return () => focusUnregister(focusIdRef.current);
-  }, []);
+    return () => focusUnregister(focusId);
+  }, [focusId]);
 
   // 注册键盘绑定（仅在获得焦点时生效）
   useEffect(() => {

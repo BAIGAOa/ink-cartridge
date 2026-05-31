@@ -837,6 +837,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
     for (const entry of globalKeys) {
       if (!entry.affectOverlay) continue;
+      // Allow the active overlay to override a global key (same as the
+      // top screen can — via boundKeyboard setting globalKeyOverrides).
+      if (overlayComp && entry.cover !== false) {
+        const overlayLayer = layersRef.current.get(overlayComp);
+        if (overlayLayer) {
+          const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
+          if (keyNames.some((k) => overlayLayer.globalKeyOverrides.has(k))) continue;
+        }
+      }
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
         entry.operate();
         return;

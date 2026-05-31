@@ -112,12 +112,10 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
     [hasLimit, items.length, limit, scrollOffset],
   );
 
-  // Focus target lifecycle — mount/unmount only
-  const focusIdRef = useRef(focusId);
-  focusIdRef.current = focusId;
+  // Unregister old focus target when focusId changes
   useEffect(() => {
-    return () => focusUnregister(focusIdRef.current);
-  }, []);
+    return () => focusUnregister(focusId);
+  }, [focusId]);
 
   useEffect(() => {
     const fid = focusId;
