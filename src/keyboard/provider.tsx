@@ -722,35 +722,37 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * Calling this replaces any previously registered global keys.
    */
   const globalKeys = useCallback(
-    (entries: GlobalKeyEntry[]) => {
-      // 根据预期特性，每一次调用都应该重置全局键集合
-      // 后续都是这样，所以每次调用都相当于直接替换
-      const next: typeof globalKeysRef.current = [];
-      for (const each of entries) {
+    (entries: GlobalKeyEntry[], options?: { mode?: 'replace' | 'add' }) => {
+      const processed = entries.map((each) => {
         if (typeof each.operate === 'string') {
-          const entry = shortcutOperationsRef.current.get(each.operate)
+          const entry = shortcutOperationsRef.current.get(each.operate);
           if (!entry) {
-            throw new Error(`[Ink-Kit-Router]You want to call the shortcut ${each.operate} in the global key, but it is not registered`)
+            throw new Error(`[Ink-Kit-Router]You want to call the shortcut ${each.operate} in the global key, but it is not registered`);
           }
-          next.push({
+          return {
             key: each.key,
             operate: entry.action,
             cover: each.cover,
             category: each.category,
-            affectOverlay: each.affectOverlay
-          })
-        } else {
-          next.push({
-            key: each.key,
-            operate: each.operate,
-            cover: each.cover,
-            category: each.category,
-            affectOverlay: each.affectOverlay
-          })
+            affectOverlay: each.affectOverlay,
+          };
         }
+        return {
+          key: each.key,
+          operate: each.operate,
+          cover: each.cover,
+          category: each.category,
+          affectOverlay: each.affectOverlay,
+        };
+      });
 
+      if (options?.mode === 'add') {
+        // Append to existing global keys (backward-compatible addition)
+        globalKeysRef.current = [...globalKeysRef.current, ...processed];
+      } else {
+        // Replace (default behavior, backward compatible)
+        globalKeysRef.current = processed;
       }
-      globalKeysRef.current = next;
     },
     [],
   );

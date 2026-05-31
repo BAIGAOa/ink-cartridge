@@ -56,7 +56,7 @@ export function Field({ name, children, rules, defaultValue, focusId }: FieldPro
    * the Field's own defaultValue. This avoids passing undefined to input
    * components on the initial render.
    */
-  const resolvedValue = values[name] !== undefined ? values[name] : defaultValue;
+  const resolvedValue = values[name] !== undefined ? values[name] : (defaultValue !== undefined ? defaultValue : '');
 
   /** Memoize the render props to avoid unnecessary re-renders. */
   const fieldProps = useMemo(

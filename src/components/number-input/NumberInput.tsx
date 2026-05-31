@@ -35,7 +35,9 @@ export function NumberInput({
 
     // Capture digit input so number keys don't leak to other
     // focus targets (e.g. SelectInput's 1-9 bindings).
+    // Guard: skip non-digit input and reject NaN propagation
     const wildcard = boundKeyboard(['*'], (input) => {
+      if (isNaN(value)) return;
       const digit = parseInt(input, 10);
       if (isNaN(digit)) return;
       // Append digit: 25 + '3' → 253, clamped to [min, max]

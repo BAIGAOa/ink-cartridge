@@ -155,7 +155,7 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
   useEffect(() => {
     globalKeys([
       { key: 'ctrl+return', operate: () => submitForm(), cover: false, affectOverlay: false },
-    ]);
+    ], { mode: 'add' });
   }, [globalKeys, submitForm]);
 
   /**

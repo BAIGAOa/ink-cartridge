@@ -64,11 +64,14 @@ export interface KeyboardContextValue {
    * Global keys fire independently of the screen stack (subject to
    * `category` whitelist and `affectOverlay` placement).
    *
-   * Calling this replaces any previously registered global keys.
+   * By default (or with `{ mode: 'replace' }`), replaces all previously
+   * registered global keys. Pass `{ mode: 'add' }` to append without
+   * removing existing entries.
    *
    * @param entries  Array of global key definitions.
+   * @param options  Optional: `{ mode: 'replace' | 'add' }`. Default `'replace'`.
    */
-  globalKeys: (entries: GlobalKeyEntry[]) => void;
+  globalKeys: (entries: GlobalKeyEntry[], options?: { mode?: 'replace' | 'add' }) => void;
 
   /**
    * Remove a focus target from the current screen layer.
