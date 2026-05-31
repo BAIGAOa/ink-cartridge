@@ -9,7 +9,17 @@
 
 ---
 
-## Install
+## Getting Started
+
+### Quick Start (scaffold a new project)
+
+```bash
+npx @baigao_h/ink-kit init my-tui
+cd my-tui
+npm start
+```
+
+### Install in existing project
 
 ```bash
 npm install @baigao_h/ink-kit
