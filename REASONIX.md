@@ -128,19 +128,31 @@ export function useFocusLifecycle(focusId: string) {
 }
 ```
 
-### Test triad pattern
-Each test group should cover three categories where applicable:
-1. **Happy path** — typical usage, correct values
-2. **Edge case** — empty, zero, boundary values
-3. **Error path** — invalid input, missing dependencies, failure recovery
+### Tests must find bugs and prevent regressions
+No "happy tests" (tests that only verify the obvious and never fail).
+Every test should target a **specific behavior** that could break:
+
+- Test **edge cases** (empty, zero, boundary, unexpected input)
+- Test **failure modes** (what happens when validation fails, component unmounts mid-operation)
+- Test **state transitions** (did state A correctly transition to state B?)
+- Test **regression** (did a fix for one issue introduce another?)
+
+Strive for **broad scenario coverage** — not line coverage percentage, but
+coverage of real user flows (input → navigate → validate → submit → error → recover).
 
 ```tsx
 describe('submit', () => {
-  it('passes valid values to onSubmit');     // happy path
-  it('returns error on empty values');       // edge case
-  it('does not throw when callbacks change'); // error path
+  it('rejects empty email with specific error message');   // validation logic
+  it('clears error after user starts typing');              // state transition
+  it('does not call onSubmit after unmount');               // regression guard
+  it('focuses the first invalid field on error');           // user flow
+  it('handles rapid consecutive submits without crash');    // edge case
 });
 ```
+
+A test that never failed while you developed the feature is a test that
+doesn't test anything worthwhile. If you find yourself writing
+`it('renders correctly', () => { expect(true).toBe(true); })`, delete it.
 
 ## Watch out for
 - `blockedKey` means "pass-through" (penetration), NOT "block" — makes keys transparent to lower layers
