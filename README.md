@@ -121,6 +121,9 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 - **[Badge](src/components/badge/README.md)** — Colored label/tag component
 - **[KeyHint](src/components/key-hint/README.md)** — Keyboard shortcut hint bar (`[S] Save`)
 
+### Navigation
+- **[Tabs](src/components/tabs/README.md)** — Tabbed panel with keyboard navigation and focus system integration
+
 ### Layout
 - **[Divider](src/components/divider/README.md)** — Horizontal separator with optional centered label
 
@@ -203,7 +206,7 @@ render(
 
 ## Coming Soon
 
-More components are planned for deep integration into the keyboard and focus system, including Form and Tabs.
+More components are planned for deep integration into the keyboard and focus system, including Form.
 
 ## Other
 
