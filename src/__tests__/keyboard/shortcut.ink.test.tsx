@@ -259,6 +259,54 @@ describe('globalKeys + shortcut', () => {
       kbRef.current!.globalKeys([{ key: 'e', operate: 'ghost' } as any]);
     }).toThrow(/ghost/);
   });
+
+  it('mode="add" 后所有全局键仍正常触发', async () => {
+    const spyA = vi.fn();
+    const spyB = vi.fn();
+    const { kbRef, stdin } = renderKeyboardApi();
+    await flush();
+
+    kbRef.current!.defineShortcutAction([
+      { actionId: 'action-a', action: spyA },
+      { actionId: 'action-b', action: spyB },
+    ]);
+
+    kbRef.current!.globalKeys([
+      { key: 'a', operate: 'action-a' },
+    ]);
+
+    kbRef.current!.globalKeys([
+      { key: 'b', operate: 'action-b' },
+    ], { mode: 'add' });
+
+    await press(stdin, 'a');
+    expect(spyA).toHaveBeenCalledTimes(1);
+
+    await press(stdin, 'b');
+    expect(spyB).toHaveBeenCalledTimes(1);
+  });
+
+  it('mode="replace"（默认）仍覆盖已有全局键', async () => {
+    const spyA = vi.fn();
+    const spyB = vi.fn();
+    const { kbRef, stdin } = renderKeyboardApi();
+    await flush();
+
+    kbRef.current!.globalKeys([
+      { key: 'a', operate: spyA },
+    ]);
+
+    // 不传 mode → 默认 replace，覆盖 a
+    kbRef.current!.globalKeys([
+      { key: 'b', operate: spyB },
+    ]);
+
+    await press(stdin, 'a');
+    expect(spyA).not.toHaveBeenCalled();
+
+    await press(stdin, 'b');
+    expect(spyB).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════
