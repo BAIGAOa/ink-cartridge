@@ -84,6 +84,10 @@ export { SearchInput } from "./components/search-input/SearchInput.js";
 export { Tabs } from "./components/tabs/Tabs.js";
 export type { Tab, TabsProps } from "./components/tabs/types.js";
 
+// Components — Fold
+export { Fold } from "./components/fold/Fold.js";
+export type { FoldProps } from "./components/fold/types.js";
+
 // Components — Form
 export { Form } from "./components/form/Form.js";
 export { Field } from "./components/form/Field.js";
