@@ -83,6 +83,65 @@ const mountedRef = useRef(true);
 useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 ```
 
+### No decorative delimiter comments
+Do NOT use separator lines like `// ──` or `// ===` or `// ═══` to visually group code.
+Write comments that explain **why**, not banners that claim territory. If a section is
+long enough to need a delimiter, extract it to a separate function or file.
+
+```tsx
+// ❌ Bad
+// ── Validation ──
+
+// ✅ Good
+// Trim whitespace before comparing to avoid false negatives on user input
+```
+
+### Public API requires JSDoc in English
+Every export in `src/index.ts` and every public type/function must have a JSDoc
+comment in English. The comment should describe **what** the function does and
+**when** to use it.
+
+```tsx
+/**
+ * A single-select list component integrated with the ink-kit keyboard and
+ * focus system. Supports virtual scrolling, custom item rendering, and
+ * Tab / Shift+Tab focus navigation.
+ */
+export function SelectInput(...) { ... }
+```
+
+Internal helpers and module-level state can omit JSDoc or use short inline comments.
+
+### Hook encapsulation rule
+When the same `useEffect` + `useRef` pattern appears in 3+ components, extract it
+into a custom hook in the shared system module.
+
+```tsx
+// src/keyboard/useFocusLifecycle.ts
+export function useFocusLifecycle(focusId: string) {
+  const { focusUnregister } = useKeyboard();
+  const focusIdRef = useRef(focusId);
+  focusIdRef.current = focusId;
+  useEffect(() => {
+    return () => focusUnregister(focusIdRef.current);
+  }, []);
+}
+```
+
+### Test triad pattern
+Each test group should cover three categories where applicable:
+1. **Happy path** — typical usage, correct values
+2. **Edge case** — empty, zero, boundary values
+3. **Error path** — invalid input, missing dependencies, failure recovery
+
+```tsx
+describe('submit', () => {
+  it('passes valid values to onSubmit');     // happy path
+  it('returns error on empty values');       // edge case
+  it('does not throw when callbacks change'); // error path
+});
+```
+
 ## Watch out for
 - `blockedKey` means "pass-through" (penetration), NOT "block" — makes keys transparent to lower layers
 - `_dispatch` is set in `useEffect` — not available during `componentDidCatch`. If an error boundary calls `overlay()` in `componentDidCatch`, `_dispatch` is `null`
