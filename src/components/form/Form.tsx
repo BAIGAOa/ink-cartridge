@@ -136,6 +136,10 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
     onSubmit(valuesRef.current);
   }, [validate, onSubmit, onError]);
 
+  // Stable ref so globalKeys effect doesn't re-add on every render
+  const submitFormRef = useRef(submitForm);
+  submitFormRef.current = submitForm;
+
   // Defer focusSet to avoid calling it inside render
   useEffect(() => {
     if (focusedErrorField) {
@@ -152,11 +156,12 @@ export function Form({ children, onSubmit, onError, initialValues = {}, submitRe
   // Bind Ctrl+Enter to submit via globalKeys so it fires before
   // focus-target bindings (avoiding SelectInput/MultiSelectInput's
   // 'return' binding from consuming the event first).
+  // Uses submitFormRef to avoid re-adding the entry on every render.
   useEffect(() => {
     globalKeys([
-      { key: 'ctrl+return', operate: () => submitForm(), cover: false, affectOverlay: false },
+      { key: 'ctrl+return', operate: () => submitFormRef.current(), cover: false, affectOverlay: false },
     ], { mode: 'add' });
-  }, [globalKeys, submitForm]);
+  }, []); // mount-only: ref ensures latest submitForm is always called
 
   /**
    * Wrapper around registerField that also stores the field's focusId
