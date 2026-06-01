@@ -45,14 +45,27 @@ export interface I18nContextValue {
    * Translate a key to the current language.
    *
    * Dot-separated nested keys are resolved via the flat key map
-   * (e.g. `menu.title` find the key `"menu.title"` in the JSON).
+   * (e.g. `menu.title` finds the key `"menu.title"` in the JSON).
    *
-   * Interpolation: `t('welcome', { name: 'Alice' })` replaces `{name}`
-   * in the translated template with the provided value.
+   * @example
+   * // Simple key
+   * t('hello')  →  'Hello'
+   *
+   * // Parameter interpolation
+   * t('welcome', { params: { name: 'Alice' } })  →  'Welcome, Alice'
+   *
+   * // Context-based lookup (e.g. gendered forms)
+   * // Resources: { 'greeting': 'Hello', 'greeting.female': 'Hello, madam' }
+   * t('greeting', { context: 'female' })        →  'Hello, madam'
+   * t('greeting', { context: 'unknown' })        →  'Hello'  (fallback)
+   *
+   * // Context + interpolation
+   * // Resources: { 'welcome.female': 'Welcome, Ms. {name}' }
+   * t('welcome', { context: 'female', params: { name: 'Alice' } })  →  'Welcome, Ms. Alice'
    *
    * Missing keys resolve to the key string itself.
    */
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (key: string, options?: { params?: Record<string, string | number>; context?: string }) => string;
 
   /**
    * Switch to a different language. Triggers re-render of all consumers.

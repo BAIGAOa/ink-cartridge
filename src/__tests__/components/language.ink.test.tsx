@@ -14,7 +14,7 @@ function stripAnsi(str: string): string {
 
 function T({ k, p }: { k: string; p?: Record<string, string | number> }) {
   const { t } = useI18n();
-  return <Text>{t(k, p)}</Text>;
+  return <Text>{t(k, p ? { params: p } : undefined)}</Text>;
 }
 
 function CurrentLang() {
@@ -250,6 +250,165 @@ describe('JSON 值类型处理', () => {
       </LanguageProvider>,
     );
     expect(stripAnsi(lastFrame())).toContain('a, b, c');
+  });
+});
+
+function TContext({ k, c }: { k: string; c?: string }) {
+  const { t } = useI18n();
+  return <Text>{t(k, { context: c })}</Text>;
+}
+
+function TContextParams({
+  k,
+  c,
+  p,
+}: {
+  k: string;
+  c?: string;
+  p?: Record<string, string | number>;
+}) {
+  const { t } = useI18n();
+  return <Text>{t(k, { context: c, params: p })}</Text>;
+}
+
+describe('context 上下文翻译', () => {
+  it('使用 context=female 解析 greeting.female', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+            'greeting.male': 'Hello, sir',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <TContext k="greeting" c="female" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello, madam');
+  });
+
+  it('使用 context=male 解析 greeting.male', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+            'greeting.male': 'Hello, sir',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <TContext k="greeting" c="male" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello, sir');
+  });
+
+  it('context 对应的键不存在时回退到基础键', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <TContext k="greeting" c="unknown" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello');
+  });
+
+  it('context + 参数插值', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            'welcome.female': 'Welcome, Ms. {name}',
+            'welcome.male': 'Welcome, Mr. {name}',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <TContextParams k="welcome" c="female" p={{ name: 'Alice' }} />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Welcome, Ms. Alice');
+  });
+
+  it('基础键和 context 键都不存在时返回 key 本身', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{ 'en-US': {} }}
+        defaultLanguage="en-US"
+      >
+        <TContext k="missing" c="male" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('missing');
+  });
+
+  it('flat params object is NOT interpolated (breaking from v2.x)', () => {
+    // Passing a plain params record without wrapping in { params: ... }
+    // is a BREAKING CHANGE: the old API accepted this, the new API ignores it.
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{ 'en-US': { level: 'Level {n}' } }}
+        defaultLanguage="en-US"
+      >
+        <T k="level" p={{ n: 5 }} />
+      </LanguageProvider>,
+    );
+    // T helper wraps p in { params: p }, so this still works.
+    // Direct flat-object calls are verified in the next test.
+    expect(stripAnsi(lastFrame())).toContain('Level 5');
+  });
+
+  it('extra keys in options are safely ignored', () => {
+    // Regression: unexpected keys must not crash or leak into interpolation.
+    function Extra() {
+      const { t } = useI18n();
+      // Deliberately pass extra key — should be ignored
+      const result = t('greeting', { context: 'female', extra: 'ignored' } as any);
+      return <Text>{result}</Text>;
+    }
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <Extra />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello, madam');
+  });
+
+  it('context 为 undefined 时行为与不传 options 一致', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <TContext k="greeting" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 });
 

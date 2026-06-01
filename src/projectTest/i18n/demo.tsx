@@ -22,9 +22,9 @@ function I18nDemo() {
         {t('title')}
       </Text>
       <Box marginTop={1} flexDirection="column">
-        <Text>  {t('game.info', { level: 3, score: 4200 })}</Text>
-        <Text>  {t('player', { age: 25 })}</Text>
-        <Text>  {t('inventory', { count: 7 })}</Text>
+        <Text>  {t('game.info', { params: { level: 3, score: 4200 } })}</Text>
+        <Text>  {t('player', { params: { age: 25 } })}</Text>
+        <Text>  {t('inventory', { params: { count: 7 } })}</Text>
       </Box>
       <Box marginTop={2}>
         <Text dimColor>

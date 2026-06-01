@@ -118,12 +118,29 @@ export function LanguageProvider({
   const currentResources = rawResources[lang] ?? {};
 
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>): string => {
-      let value = currentResources[key];
+    (key: string, options?: { params?: Record<string, string | number>; context?: string }): string => {
+      const params = options?.params;
+      const context = options?.context;
 
-      if (value === undefined && fallbackLanguage) {
-        const fb = rawResources[fallbackLanguage];
-        if (fb) value = fb[key];
+      let value: string | undefined;
+
+      // Context-aware lookup: first try key.<context>
+      if (context) {
+        const contextKey = `${key}.${context}`;
+        value = currentResources[contextKey];
+        if (value === undefined && fallbackLanguage) {
+          const fb = rawResources[fallbackLanguage];
+          if (fb) value = fb[contextKey];
+        }
+      }
+
+      // Fall back to the base key if context lookup failed
+      if (value === undefined) {
+        value = currentResources[key];
+        if (value === undefined && fallbackLanguage) {
+          const fb = rawResources[fallbackLanguage];
+          if (fb) value = fb[key];
+        }
       }
 
       if (value === undefined) return key;
