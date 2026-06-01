@@ -43,6 +43,25 @@ interface LanguageProviderProps {
   fallbackLanguage?: string;
 }
 
+/**
+ * Context provider for internationalization (i18n).
+ *
+ * Loads translation resources either from a directory of `{locale}.json` files
+ * (via the `path` prop) or from a pre-built inline object (via `resources`).
+ *
+ * Once mounted, descendant components can use the {@link useI18n} hook to
+ * access the `t()` translation function, `setLanguage()` to switch locales,
+ * and `getLanguages()` / `currentLanguage` for language discovery.
+ *
+ * Language switches trigger an immediate re-render of all consumer components.
+ *
+ * @example
+ * ```tsx
+ * <LanguageProvider path="./locales" defaultLanguage="en-US">
+ *   <MyApp />
+ * </LanguageProvider>
+ * ```
+ */
 export function LanguageProvider({
   children,
   resources: inlineResources,
