@@ -1,0 +1,157 @@
+import React, { ReactNode, useState, useMemo, useCallback } from 'react';
+import { readFileSync, readdirSync } from 'fs';
+import { resolve } from 'path';
+import { LanguageContext } from './context.js';
+import type { I18nContextValue } from './types.js';
+
+function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
+  const resources: Record<string, Record<string, string>> = {};
+  let files: string[];
+  try {
+    files = readdirSync(dirPath);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `[Ink-Router-Kit] LanguageProvider failed to read directory "${dirPath}": ${msg}`,
+    );
+  }
+  for (const file of files) {
+    if (file.endsWith('.json')) {
+      const lang = file.replace('.json', '');
+      const fullPath = resolve(dirPath, file);
+      let raw: string;
+      try {
+        raw = readFileSync(fullPath, 'utf-8');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `[Ink-Router-Kit] LanguageProvider failed to read "${fullPath}": ${msg}`,
+        );
+      }
+      try {
+        resources[lang] = flatJSON(JSON.parse(raw));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `[Ink-Router-Kit] LanguageProvider failed to parse "${file}" as JSON: ${msg}`,
+        );
+      }
+    }
+  }
+  return resources;
+}
+
+function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === 'string') {
+      result[fullKey] = value;
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      result[fullKey] = String(value);
+    } else if (Array.isArray(value)) {
+      result[fullKey] = value.map((v) => String(v)).join(', ');
+    } else if (typeof value === 'object' && value !== null) {
+      Object.assign(result, flatJSON(value as Record<string, unknown>, fullKey));
+    }
+  }
+  return result;
+}
+
+function interpolate(template: string, params?: Record<string, string | number>): string {
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(params[key] ?? `{${key}}`));
+}
+
+interface LanguageProviderProps {
+  children: ReactNode;
+  resources?: Record<string, Record<string, string>>;
+  path?: string;
+  defaultLanguage?: string;
+  fallbackLanguage?: string;
+}
+
+/**
+ * Context provider for internationalization (i18n).
+ *
+ * Loads translation resources either from a directory of `{locale}.json` files
+ * (via the `path` prop) or from a pre-built inline object (via `resources`).
+ *
+ * Once mounted, descendant components can use the {@link useI18n} hook to
+ * access the `t()` translation function, `setLanguage()` to switch locales,
+ * and `getLanguages()` / `currentLanguage` for language discovery.
+ *
+ * Language switches trigger an immediate re-render of all consumer components.
+ *
+ * @example
+ * ```tsx
+ * <LanguageProvider path="./locales" defaultLanguage="en-US">
+ *   <MyApp />
+ * </LanguageProvider>
+ * ```
+ */
+export function LanguageProvider({
+  children,
+  resources: inlineResources,
+  path,
+  defaultLanguage,
+  fallbackLanguage,
+}: LanguageProviderProps) {
+  const rawResources = useMemo(() => {
+    if (inlineResources) {
+      const flat: Record<string, Record<string, string>> = {};
+      for (const [lang, obj] of Object.entries(inlineResources)) {
+        flat[lang] = flatJSON(obj);
+      }
+      return flat;
+    }
+    if (path) return loadFromPath(path);
+    return {};
+  }, [inlineResources, path]);
+
+  const languages = useMemo(() => Object.keys(rawResources), [rawResources]);
+
+  const [lang, setLang] = useState<string>(
+    defaultLanguage ?? languages[0] ?? 'en-US',
+  );
+
+  const currentResources = rawResources[lang] ?? {};
+
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>): string => {
+      let value = currentResources[key];
+
+      if (value === undefined && fallbackLanguage) {
+        const fb = rawResources[fallbackLanguage];
+        if (fb) value = fb[key];
+      }
+
+      if (value === undefined) return key;
+      return interpolate(value, params);
+    },
+    [currentResources, rawResources, fallbackLanguage],
+  );
+
+  const setLanguage = useCallback(
+    (newLang: string) => {
+      if (rawResources[newLang]) {
+        setLang(newLang);
+      } else {
+        throw new Error(
+          `[Ink-Router-Kit] Language "${newLang}" is not available. ` +
+          `Available languages: ${languages.join(', ')}`,
+        );
+      }
+    },
+    [rawResources, languages],
+  );
+
+  const getLanguages = useCallback(() => languages, [languages]);
+
+  const ctx: I18nContextValue = useMemo(
+    () => ({ t, setLanguage, getLanguages, currentLanguage: lang }),
+    [t, setLanguage, getLanguages, lang],
+  );
+
+  return <LanguageContext.Provider value={ctx}>{children}</LanguageContext.Provider>;
+}
