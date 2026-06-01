@@ -54,7 +54,12 @@ export interface I18nContextValue {
    */
   t: (key: string, params?: Record<string, string | number>) => string;
 
-  /** Switch to a different language. Triggers re-render of all consumers. */
+  /**
+   * Switch to a different language. Triggers re-render of all consumers.
+   *
+   * @throws {Error} If the requested language is not available, throws
+   *   with a message listing available languages.
+   */
   setLanguage: (lang: string) => void;
 
   /** Returns all available locale codes. */

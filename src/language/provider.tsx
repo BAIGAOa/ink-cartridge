@@ -6,12 +6,36 @@ import type { I18nContextValue } from './types.js';
 
 function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
   const resources: Record<string, Record<string, string>> = {};
-  const files = readdirSync(dirPath);
+  let files: string[];
+  try {
+    files = readdirSync(dirPath);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `[Ink-Router-Kit] LanguageProvider failed to read directory "${dirPath}": ${msg}`,
+    );
+  }
   for (const file of files) {
     if (file.endsWith('.json')) {
       const lang = file.replace('.json', '');
-      const raw = readFileSync(resolve(dirPath, file), 'utf-8');
-      resources[lang] = flatJSON(JSON.parse(raw));
+      const fullPath = resolve(dirPath, file);
+      let raw: string;
+      try {
+        raw = readFileSync(fullPath, 'utf-8');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `[Ink-Router-Kit] LanguageProvider failed to read "${fullPath}": ${msg}`,
+        );
+      }
+      try {
+        resources[lang] = flatJSON(JSON.parse(raw));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `[Ink-Router-Kit] LanguageProvider failed to parse "${file}" as JSON: ${msg}`,
+        );
+      }
     }
   }
   return resources;
@@ -23,6 +47,10 @@ function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<string, str
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (typeof value === 'string') {
       result[fullKey] = value;
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      result[fullKey] = String(value);
+    } else if (Array.isArray(value)) {
+      result[fullKey] = value.map((v) => String(v)).join(', ');
     } else if (typeof value === 'object' && value !== null) {
       Object.assign(result, flatJSON(value as Record<string, unknown>, fullKey));
     }
@@ -70,7 +98,13 @@ export function LanguageProvider({
   fallbackLanguage,
 }: LanguageProviderProps) {
   const rawResources = useMemo(() => {
-    if (inlineResources) return inlineResources;
+    if (inlineResources) {
+      const flat: Record<string, Record<string, string>> = {};
+      for (const [lang, obj] of Object.entries(inlineResources)) {
+        flat[lang] = flatJSON(obj);
+      }
+      return flat;
+    }
     if (path) return loadFromPath(path);
     return {};
   }, [inlineResources, path]);
@@ -100,9 +134,16 @@ export function LanguageProvider({
 
   const setLanguage = useCallback(
     (newLang: string) => {
-      if (rawResources[newLang]) setLang(newLang);
+      if (rawResources[newLang]) {
+        setLang(newLang);
+      } else {
+        throw new Error(
+          `[Ink-Router-Kit] Language "${newLang}" is not available. ` +
+          `Available languages: ${languages.join(', ')}`,
+        );
+      }
     },
-    [rawResources],
+    [rawResources, languages],
   );
 
   const getLanguages = useCallback(() => languages, [languages]);
