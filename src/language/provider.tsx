@@ -109,13 +109,20 @@ export function LanguageProvider({
     return {};
   }, [inlineResources, path]);
 
-  const languages = useMemo(() => Object.keys(rawResources), [rawResources]);
+  // Overlay state for mergeLanguage — avoids mutating rawResources so that
+  // setLanguage closures always see the latest language list.
+  const [mergedResources, setMergedResources] = useState<Record<string, Record<string, string>> | null>(null);
+  const effectiveResources = mergedResources ?? rawResources;
+
+  const [mergeCounter, setMergeCounter] = useState(0);
+
+  const languages = useMemo(() => Object.keys(effectiveResources), [effectiveResources, mergeCounter]);
 
   const [lang, setLang] = useState<string>(
     defaultLanguage ?? languages[0] ?? 'en-US',
   );
 
-  const currentResources = rawResources[lang] ?? {};
+  const currentResources = effectiveResources[lang] ?? {};
 
   const t = useCallback(
     (key: string, options?: { params?: Record<string, string | number>; context?: string }): string => {
@@ -129,7 +136,7 @@ export function LanguageProvider({
         const contextKey = `${key}.${context}`;
         value = currentResources[contextKey];
         if (value === undefined && fallbackLanguage) {
-          const fb = rawResources[fallbackLanguage];
+          const fb = effectiveResources[fallbackLanguage];
           if (fb) value = fb[contextKey];
         }
       }
@@ -138,7 +145,7 @@ export function LanguageProvider({
       if (value === undefined) {
         value = currentResources[key];
         if (value === undefined && fallbackLanguage) {
-          const fb = rawResources[fallbackLanguage];
+          const fb = effectiveResources[fallbackLanguage];
           if (fb) value = fb[key];
         }
       }
@@ -146,12 +153,12 @@ export function LanguageProvider({
       if (value === undefined) return key;
       return interpolate(value, params);
     },
-    [currentResources, rawResources, fallbackLanguage],
+    [currentResources, effectiveResources, fallbackLanguage],
   );
 
   const setLanguage = useCallback(
     (newLang: string) => {
-      if (rawResources[newLang]) {
+      if (effectiveResources[newLang]) {
         setLang(newLang);
       } else {
         throw new Error(
@@ -160,14 +167,30 @@ export function LanguageProvider({
         );
       }
     },
-    [rawResources, languages],
+    [effectiveResources, languages],
   );
 
-  const getLanguages = useCallback(() => languages, [languages]);
+  const mergeLanguage = useCallback(
+    (paths: string[]) => {
+      const base = mergedResources ?? rawResources;
+      const merged = { ...base };
+      for (const dirPath of paths) {
+        const incoming = loadFromPath(dirPath);
+        for (const [langCode, flat] of Object.entries(incoming)) {
+          merged[langCode] = { ...(merged[langCode] ?? {}), ...flat };
+        }
+      }
+      setMergedResources(merged);
+      setMergeCounter((n) => n + 1);
+    },
+    [mergedResources, rawResources],
+  );
+
+  const getLanguages = useCallback(() => Object.keys(effectiveResources), [effectiveResources, mergeCounter]);
 
   const ctx: I18nContextValue = useMemo(
-    () => ({ t, setLanguage, getLanguages, currentLanguage: lang }),
-    [t, setLanguage, getLanguages, lang],
+    () => ({ t, setLanguage, getLanguages, mergeLanguage, currentLanguage: lang }),
+    [t, setLanguage, getLanguages, mergeLanguage, lang],
   );
 
   return <LanguageContext.Provider value={ctx}>{children}</LanguageContext.Provider>;

@@ -447,6 +447,111 @@ describe('useI18n 不在 Provider 内', () => {
   });
 });
 
+const TMP_MOD = resolve('src/__tests__/components/__locales_mod');
+
+function writeMod(files: Record<string, object>) {
+  rmSync(TMP_MOD, { recursive: true, force: true });
+  mkdirSync(TMP_MOD, { recursive: true });
+  for (const [name, content] of Object.entries(files)) {
+    writeFileSync(resolve(TMP_MOD, name), JSON.stringify(content));
+  }
+}
+
+afterEach(() => {
+  rmSync(TMP_MOD, { recursive: true, force: true });
+});
+
+describe('mergeLanguage', () => {
+  it('合并后新键覆盖旧键', async () => {
+    writeMod({ 'en-US.json': { hello: 'Hello from mod' } });
+
+    function MergeTest() {
+      const { t, mergeLanguage } = useI18n();
+      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      return <Text>{t('hello')}</Text>;
+    }
+
+    const { lastFrame } = render(
+      <LanguageProvider resources={{ 'en-US': { hello: 'Base' } }} defaultLanguage="en-US">
+        <MergeTest />
+      </LanguageProvider>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+    expect(stripAnsi(lastFrame())).toContain('Hello from mod');
+  });
+
+  it('合并可引入新的语言', async () => {
+    writeMod({ 'zh-CN.json': { hello: '模组你好' } });
+
+    function MergeTest() {
+      const { t, mergeLanguage, getLanguages } = useI18n();
+      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      return <Text>{getLanguages().join(',')}</Text>;
+    }
+
+    const { lastFrame } = render(
+      <LanguageProvider resources={{ 'en-US': { hello: 'Hello' } }} defaultLanguage="en-US">
+        <MergeTest />
+      </LanguageProvider>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+    const out = stripAnsi(lastFrame());
+    expect(out).toContain('zh-CN');
+    expect(out).toContain('en-US');
+  });
+
+  it('合并后的新语言可被 getLanguages 列出并使用其翻译', async () => {
+    writeMod({ 'zh-CN.json': { hello: '模组的你好' } });
+
+    function MergeTest() {
+      const { t, mergeLanguage, getLanguages } = useI18n();
+      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      return <Text>{getLanguages().join(',')}</Text>;
+    }
+
+    const { lastFrame } = render(
+      <LanguageProvider resources={{ 'en-US': { hello: 'Hello' } }} defaultLanguage="en-US">
+        <MergeTest />
+      </LanguageProvider>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+    const out = stripAnsi(lastFrame());
+    expect(out).toContain('zh-CN');
+    expect(out).toContain('en-US');
+  });
+
+  it('多路径：后面的覆盖前面的', async () => {
+    const modA = resolve(TMP_MOD, 'a');
+    const modB = resolve(TMP_MOD, 'b');
+    rmSync(TMP_MOD, { recursive: true, force: true });
+    mkdirSync(modA, { recursive: true });
+    mkdirSync(modB, { recursive: true });
+    writeFileSync(resolve(modA, 'en-US.json'), JSON.stringify({ hello: 'From A' }));
+    writeFileSync(resolve(modB, 'en-US.json'), JSON.stringify({ hello: 'From B' }));
+
+    function MergeTest() {
+      const { t, mergeLanguage } = useI18n();
+      useEffect(() => { mergeLanguage([modA, modB]); }, []);
+      return <Text>{t('hello')}</Text>;
+    }
+
+    const { lastFrame } = render(
+      <LanguageProvider resources={{ 'en-US': { hello: 'Base' } }} defaultLanguage="en-US">
+        <MergeTest />
+      </LanguageProvider>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+    expect(stripAnsi(lastFrame())).toContain('From B');
+    expect(stripAnsi(lastFrame())).not.toContain('From A');
+  });
+
+
+});
+
 class ErrorCatcher extends React.Component<
   { children: React.ReactNode },
   { err: string | null }

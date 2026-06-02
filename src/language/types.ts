@@ -78,6 +78,19 @@ export interface I18nContextValue {
   /** Returns all available locale codes. */
   getLanguages: () => string[];
 
+  /**
+   * Merge translation files from one or more directory paths into the
+   * current resources. Later paths override earlier paths when the same
+   * key exists in multiple sources. Triggers re-render of all consumers.
+   *
+   * Only merges languages whose JSON files exist in the provided paths;
+   * other languages are unaffected.
+   *
+   * @param paths  Array of directory paths, each containing `{locale}.json` files.
+   *               Applied in order: later paths win on key conflicts.
+   */
+  mergeLanguage: (paths: string[]) => void;
+
   /** Currently active locale code. */
   currentLanguage: string;
 }

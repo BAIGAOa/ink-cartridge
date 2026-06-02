@@ -101,6 +101,7 @@ const {
   t,
   setLanguage,
   getLanguages,
+  mergeLanguage,
   currentLanguage,
 } = useI18n();
 ```
@@ -159,6 +160,22 @@ getLanguages() // ['en-US', 'zh-CN', 'ja-JP']
 ```
 
 ---
+
+#### mergeLanguage
+
+```tsx
+mergeLanguage(paths: string[]): void
+```
+
+Merge translation files from one or more directory paths into current resources. Later paths override earlier paths when the same key exists in multiple sources. Triggers re-render of all consumers.
+
+```tsx
+mergeLanguage(['./mod-a', './mod-b']);
+```
+
+- Only languages whose JSON files exist in the provided paths are merged; other languages are unaffected.
+- Works with both `path`-mode and `resources`-mode providers.
+- Useful for game modding, where mods can overlay their own translations on top of base game translations.
 
 #### currentLanguage
 
