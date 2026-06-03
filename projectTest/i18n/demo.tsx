@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { render, Box, Text, useInput } from 'ink';
-import { LanguageProvider, useI18n } from '../../index.js';
+import { LanguageProvider, useI18n } from '../../src/index.js';
 
 function I18nDemo() {
   const { t, setLanguage, getLanguages, currentLanguage } = useI18n();
@@ -37,7 +37,7 @@ function I18nDemo() {
 
 render(
   <LanguageProvider
-    path="./src/projectTest/i18n/locales"
+    path="./projectTest/i18n/locales"
     defaultLanguage="en-US"
   >
     <I18nDemo />

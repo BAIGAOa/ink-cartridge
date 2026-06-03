@@ -7,9 +7,9 @@ import {
   useScreenSystem,
   useKeyboard,
   KeyboardProvider,
-} from '../../index.js';
-import { SelectInput } from '../../components/select/SelectInput.js';
-import type { Item } from '../../components/select/types.js';
+} from '../../src/index.js';
+import { SelectInput } from '../../src/components/select/SelectInput.js';
+import type { Item } from '../../src/components/select/types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Demo Data — Item arrays used by SelectInput instances

@@ -7,7 +7,7 @@ import {
   KeyboardProvider,
   MultiSelectInput,
   useKeyboard,
-} from '../../index.js';
+} from '../../src/index.js';
 
 const colorItems = [
   { label: 'Red', value: 'red' },

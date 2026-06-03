@@ -15,9 +15,9 @@ import {
   Badge,
   Divider,
   KeyHint,
-} from '../../index.js';
-import type { Validator } from '../../components/form/types.js';
-import type { Item } from '../../components/select/types.js';
+} from '../../src/index.js';
+import type { Validator } from '../../src/components/form/types.js';
+import type { Item } from '../../src/components/select/types.js';
 
 // ── Validators ────────────────────────────────────────────
 

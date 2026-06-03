@@ -5,10 +5,10 @@ import {
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
-} from '../../index.js';
-import { SearchInput } from '../../components/search-input/SearchInput.js';
-import { Divider } from '../../components/divider/Divider.js';
-import { KeyHint } from '../../components/key-hint/KeyHint.js';
+} from '../../src/index.js';
+import { SearchInput } from '../../src/components/search-input/SearchInput.js';
+import { Divider } from '../../src/components/divider/Divider.js';
+import { KeyHint } from '../../src/components/key-hint/KeyHint.js';
 
 function Demo() {
   const [query, setQuery] = useState('');

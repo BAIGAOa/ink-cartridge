@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Spinner } from '../../components/spinner/Spinner.js';
-import { Divider } from '../../components/divider/Divider.js';
+import { Spinner } from '../../src/components/spinner/Spinner.js';
+import { Divider } from '../../src/components/divider/Divider.js';
 
 function Demo() {
   return (

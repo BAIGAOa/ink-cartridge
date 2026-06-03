@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { KeyHint } from '../../components/key-hint/KeyHint.js';
-import { Divider } from '../../components/divider/Divider.js';
+import { KeyHint } from '../../src/components/key-hint/KeyHint.js';
+import { Divider } from '../../src/components/divider/Divider.js';
 
 function Demo() {
   return (

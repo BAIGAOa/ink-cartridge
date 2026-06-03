@@ -13,7 +13,7 @@ import {
   Badge,
   Divider,
   KeyHint,
-} from '../../index.js';
+} from '../../src/index.js';
 
 const difficultyItems = [
   { label: 'Easy', value: 'easy' },

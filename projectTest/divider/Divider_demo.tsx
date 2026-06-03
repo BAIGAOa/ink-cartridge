@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Divider } from '../../components/divider/Divider.js';
+import { Divider } from '../../src/components/divider/Divider.js';
 
 function Demo() {
   return (

@@ -9,7 +9,7 @@ import {
   useScreenSystem,
   useKeyboard,
   closeOverlay,
-} from '../../index.js';
+} from '../../src/index.js';
 
 function MainScreen() {
   const { boundKeyboard, globalKeys } = useKeyboard();

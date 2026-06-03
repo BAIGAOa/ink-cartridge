@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Badge } from '../../components/badge/Badge.js';
+import { Badge } from '../../src/components/badge/Badge.js';
 
 function Demo() {
   return (

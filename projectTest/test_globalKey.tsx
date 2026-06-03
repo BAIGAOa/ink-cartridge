@@ -7,7 +7,7 @@ import {
   useScreenSystem,
   useKeyboard,
   KeyboardProvider,
-} from '../index.js';
+} from '../src/index.js';
 
 function Menu() {
   const { skip } = useScreenSystem();

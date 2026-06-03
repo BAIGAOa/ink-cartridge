@@ -11,7 +11,7 @@ import {
   NumberInput,
   Divider,
   KeyHint,
-} from '../../index.js';
+} from '../../src/index.js';
 
 function Demo() {
   const [name, setName] = useState('');
