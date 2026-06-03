@@ -552,6 +552,146 @@ describe('mergeLanguage', () => {
 
 });
 
+describe('defaultContext prop', () => {
+  it('defaultContext="male" 时 t("greeting") 解析 greeting.male', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.male': 'Hello, sir',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <T k="greeting" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello, sir');
+  });
+
+  it('defaultContext 对应的键不存在时回退到基础键', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <T k="greeting" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello');
+  });
+
+  it('显式 context 覆盖 defaultContext', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.male': 'Hello, sir',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <TContext k="greeting" c="female" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello, madam');
+  });
+
+  it('setDefaultContext 动态切换后 t() 实时更新', async () => {
+    function Switcher() {
+      const { t, setDefaultContext } = useI18n();
+      useEffect(() => { setDefaultContext('female'); }, []);
+      return <Text>{t('greeting')}</Text>;
+    }
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.male': 'Hello, sir',
+            'greeting.female': 'Hello, madam',
+          },
+        }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <Switcher />
+      </LanguageProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    expect(stripAnsi(lastFrame())).toContain('Hello, madam');
+  });
+
+  it('setDefaultContext(undefined) 清除后 t() 恢复为仅查基础键', async () => {
+    function Clearer() {
+      const { t, setDefaultContext } = useI18n();
+      useEffect(() => { setDefaultContext(undefined); }, []);
+      return <Text>{t('greeting')}</Text>;
+    }
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.male': 'Hello, sir',
+          },
+        }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <Clearer />
+      </LanguageProvider>,
+    );
+    await new Promise((r) => setTimeout(r, 10));
+    // After clearing, it should NOT use 'greeting.male'
+    expect(stripAnsi(lastFrame())).not.toContain('Hello, sir');
+    expect(stripAnsi(lastFrame())).toContain('Hello');
+  });
+
+  it('defaultContext 下缺失键返回键本身', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{ 'en-US': {} }}
+        defaultLanguage="en-US"
+        defaultContext="male"
+      >
+        <T k="nonexistent" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('nonexistent');
+  });
+
+  it('未设置 defaultContext 时行为保持不变', () => {
+    const { lastFrame } = render(
+      <LanguageProvider
+        resources={{
+          'en-US': {
+            greeting: 'Hello',
+            'greeting.male': 'Hello, sir',
+          },
+        }}
+        defaultLanguage="en-US"
+      >
+        <T k="greeting" />
+      </LanguageProvider>,
+    );
+    expect(stripAnsi(lastFrame())).toContain('Hello');
+    expect(stripAnsi(lastFrame())).not.toContain('sir');
+  });
+});
+
 class ErrorCatcher extends React.Component<
   { children: React.ReactNode },
   { err: string | null }

@@ -34,6 +34,26 @@ export interface LanguageProviderProps {
    * If the key is also missing in the fallback, the key itself is returned.
    */
   fallbackLanguage?: string;
+
+  /**
+   * Default context applied to every `t()` call unless an explicit `context`
+   * option is passed.
+   *
+   * When set, `t('greeting')` behaves as if every call were
+   * `t('greeting', { context: defaultContext })` — it first tries
+   * `key.<defaultContext>`, then falls back to `key`, then to the key itself.
+   *
+   * Can be changed dynamically via the `setDefaultContext` API returned by
+   * `useI18n()`.
+   *
+   * @example
+   * ```tsx
+   * <LanguageProvider defaultContext="male" ...>
+   *   // t('greeting') → looks up 'greeting.male' first
+   * </LanguageProvider>
+   * ```
+   */
+  defaultContext?: string;
 }
 
 /**
@@ -90,6 +110,23 @@ export interface I18nContextValue {
    *               Applied in order: later paths win on key conflicts.
    */
   mergeLanguage: (paths: string[]) => void;
+
+  /**
+   * Dynamically update the default context for all `t()` calls.
+   *
+   * Pass `undefined` to clear the default context, restoring the original
+   * behaviour where only the bare key is looked up.
+   *
+   * @example
+   * ```tsx
+   * setDefaultContext('female');
+   * // All subsequent t() calls now prefer key.<female> first.
+   *
+   * setDefaultContext(undefined);
+   * // Back to bare-key-only lookup.
+   * ```
+   */
+  setDefaultContext: (context?: string) => void;
 
   /** Currently active locale code. */
   currentLanguage: string;

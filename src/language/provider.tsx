@@ -69,6 +69,7 @@ interface LanguageProviderProps {
   path?: string;
   defaultLanguage?: string;
   fallbackLanguage?: string;
+  defaultContext?: string;
 }
 
 /**
@@ -96,6 +97,7 @@ export function LanguageProvider({
   path,
   defaultLanguage,
   fallbackLanguage,
+  defaultContext,
 }: LanguageProviderProps) {
   const rawResources = useMemo(() => {
     if (inlineResources) {
@@ -124,10 +126,12 @@ export function LanguageProvider({
 
   const currentResources = effectiveResources[lang] ?? {};
 
+  const [defaultCtx, setDefaultCtx] = useState<string | undefined>(defaultContext);
+
   const t = useCallback(
     (key: string, options?: { params?: Record<string, string | number>; context?: string }): string => {
       const params = options?.params;
-      const context = options?.context;
+      const context = options?.context ?? defaultCtx;
 
       let value: string | undefined;
 
@@ -153,7 +157,7 @@ export function LanguageProvider({
       if (value === undefined) return key;
       return interpolate(value, params);
     },
-    [currentResources, effectiveResources, fallbackLanguage],
+    [currentResources, effectiveResources, fallbackLanguage, defaultCtx],
   );
 
   const setLanguage = useCallback(
@@ -186,10 +190,15 @@ export function LanguageProvider({
     [mergedResources, rawResources],
   );
 
+  const setDefaultContext = useCallback(
+    (ctx?: string) => { setDefaultCtx(ctx); },
+    [],
+  );
+
   const getLanguages = useCallback(() => Object.keys(effectiveResources), [effectiveResources, mergeCounter]);
 
   const ctx: I18nContextValue = useMemo(
-    () => ({ t, setLanguage, getLanguages, mergeLanguage, currentLanguage: lang }),
+    () => ({ t, setLanguage, setDefaultContext, getLanguages, mergeLanguage, currentLanguage: lang }),
     [t, setLanguage, getLanguages, mergeLanguage, lang],
   );
 

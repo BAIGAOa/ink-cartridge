@@ -91,6 +91,7 @@ t('welcome', { name: 'Alice', age: 30 })
 | resources | `Record<string, Record<string, string>>` | — | Inline translation object. Alternative to `path` |
 | defaultLanguage | `string` | first available locale | Initial language |
 | fallbackLanguage | `string` | — | Fallback when a key is missing in the current language |
+| defaultContext | `string` | — | Default context for all `t()` calls. See [defaultContext](#defaultcontext) |
 
 At least one of `path` or `resources` must be provided.
 
@@ -103,6 +104,7 @@ const {
   getLanguages,
   mergeLanguage,
   currentLanguage,
+  setDefaultContext,
 } = useI18n();
 ```
 
@@ -113,21 +115,27 @@ const {
 #### t
 
 ```tsx
-t(key: string, params?: Record<string, string | number>): string
+t(key: string, options?: { params?: Record<string, string | number>; context?: string }): string
 ```
 
-Translate a key. Supports dot-separated nested keys.
+Translate a key. Supports dot-separated nested keys, context-based lookups,
+and interpolation.
 
 ```tsx
-t('title')                      // Basic
-t('game.info', { level: 3 })   // With interpolation
-t('nonexistent')                // Returns 'nonexistent' if missing
+t('title')                                      // Basic
+t('game.info', { params: { level: 3 } })       // With interpolation
+t('nonexistent')                                // Returns 'nonexistent' if missing
+t('greeting', { context: 'male' })             // Context-based lookup
+t('greeting')                                   // Uses defaultContext if set
 ```
 
-Resolution order:
-1. Current language's resources
-2. `fallbackLanguage` resources (if set)
-3. Returns the key itself
+When a `defaultContext` (or explicit `context`) is active, the resolution
+order becomes:
+1. `key.<context>` — context-specific translation in current language
+2. `key` — base translation in current language
+3. `key.<context>` — context-specific translation in `fallbackLanguage` (if set)
+4. `key` — base translation in `fallbackLanguage` (if set)
+5. Returns the key itself
 
 ---
 
@@ -177,6 +185,35 @@ mergeLanguage(['./mod-a', './mod-b']);
 - Works with both `path`-mode and `resources`-mode providers.
 - Useful for game modding, where mods can overlay their own translations on top of base game translations.
 
+#### setDefaultContext
+
+```tsx
+setDefaultContext(context?: string): void
+```
+
+Dynamically update or clear the default context for all `t()` calls. When
+a default context is set, every `t('key')` call first looks up
+`'key.<defaultContext>'` before falling back to the bare key. An explicit
+`context` option passed to `t()` still takes precedence over the default
+context.
+
+```tsx
+// Assume resources: { greeting: 'Hello', 'greeting.man': 'Hello, sir' }
+
+setDefaultContext('man');
+t('greeting')  // → 'Hello, sir' (uses 'greeting.man')
+
+t('greeting', { context: undefined })  // → 'Hello' (explicit override)
+
+setDefaultContext(undefined);          // Clear default context
+t('greeting')  // → 'Hello'
+```
+
+Pass `undefined` to clear the default context and restore bare-key-only
+lookup.
+
+---
+
 #### currentLanguage
 
 ```tsx
@@ -201,6 +238,47 @@ The currently active locale code.
 >
   <App />
 </LanguageProvider>
+```
+
+### Default Context
+
+When your app knows the current user context (e.g. gender), use
+`defaultContext` to avoid repeating `{ context: '...' }` on every call.
+
+```tsx
+<LanguageProvider
+  resources={{
+    'en-US': {
+      greeting: 'Hello',
+      'greeting.male': 'Hello, sir',
+      'greeting.female': 'Hello, madam',
+      'welcome.male': 'Welcome, Mr. {name}',
+      'welcome.female': 'Welcome, Ms. {name}',
+    },
+  }}
+  defaultLanguage="en-US"
+  defaultContext="male"
+>
+  <MyApp />
+</LanguageProvider>
+```
+
+Switch context dynamically with `setDefaultContext`:
+
+```tsx
+function Profile() {
+  const { t, setDefaultContext } = useI18n();
+
+  return (
+    <Box flexDirection="column">
+      <Text>{t('greeting')}</Text>
+      <Text>{t('welcome', { params: { name: 'Bob' } })}</Text>
+      <Text>  </Text>
+      <Text>{t('greeting', { context: 'female' })}</Text>
+      {/* ↑ explicit context overrides the default */}
+    </Box>
+  );
+}
 ```
 
 ### Switching Language via Keybinding
