@@ -81,7 +81,7 @@ describe('stopAction — 阻断 action 对应的键向下传播', () => {
     expect(parentHandler).not.toHaveBeenCalled();
   });
 
-  it('stopAction 对未注册的 action ID 不抛错', async () => {
+  it('stopAction 对未注册的 action ID 抛错', async () => {
     function Parent() {
       const sc = useScreenSystem();
       const { boundKeyboard } = useKeyboard();
@@ -96,7 +96,9 @@ describe('stopAction — 阻断 action 对应的键向下传播', () => {
       const sc = useScreenSystem();
       const { stop } = useKeyboard();
       useEffect(() => {
-        stop(['nonexistent-action'], { stopAction: true, focusId: 'child-focus' });
+        expect(() => {
+          stop(['nonexistent-action'], { stopAction: true, focusId: 'child-focus' });
+        }).toThrow(/nonexistent-action/);
         boundKeyboard(['b'], () => sc.back());
       }, []);
       return React.createElement(Text, null, 'Child');
@@ -118,6 +120,8 @@ describe('stopAction — 阻断 action 对应的键向下传播', () => {
     await press(stdin, 's');
     await flush();
 
+    // Press 'x' should not crash — the error is caught in expect(() => ...), and
+    // the child is still a functional screen
     await expect(press(stdin, 'x')).resolves.not.toThrow();
   });
 

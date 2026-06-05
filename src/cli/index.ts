@@ -3,6 +3,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { makeLanguageType } from './makeLanguageType.js';
+import { makeThemeType } from './makeThemeType.js';
+import { initTheme } from './initTheme.js';
 
 const args = process.argv.slice(2);
 const subcommand = args[0];
@@ -10,9 +12,11 @@ const subcommand = args[0];
 function printHelp(): void {
   console.log('');
   console.log('  ink-kit init <project-name>              Scaffold a new project');
+  console.log('  ink-kit initTheme [--output <dir>]        Interactive theme scaffold');
   console.log('  ink-kit makeLanguageType <source> <out>   Generate typed i18n bindings');
+  console.log('  ink-kit makeThemeType <source> <out>      Generate typed theme bindings');
   console.log('');
-  console.log('Options for makeLanguageType:');
+  console.log('Options for makeLanguageType / makeThemeType:');
   console.log('  --watch          Re-generate on every file change');
   console.log('  --debounce <ms>  Debounce delay (default 500)');
   console.log('  --from <pkg>     Package name to import from (default @baigao_h/ink-kit)');
@@ -171,6 +175,15 @@ console.log(`  cd ${projectName}`);
 console.log('  npm start');
 }
 
+/* ── initTheme ── */
+
+if (subcommand === 'initTheme') {
+  const outputIndex = args.indexOf('--output');
+  const outputDir = outputIndex !== -1 ? args[outputIndex + 1] : './themes';
+
+  initTheme({ outputDir });
+}
+
 /* ── makeLanguageType ── */
 
 if (subcommand === 'makeLanguageType') {
@@ -194,6 +207,38 @@ if (subcommand === 'makeLanguageType') {
   }
 
   makeLanguageType({
+    sourceDir: path.resolve(sourceDir),
+    outputDir: path.resolve(outputDir),
+    watch,
+    debounceMs,
+    packageName,
+  });
+  process.exit(0);
+}
+
+/* ── makeThemeType ── */
+
+if (subcommand === 'makeThemeType') {
+  const sourceDir = args[1];
+  const outputDir = args[2];
+
+  if (!sourceDir || !outputDir) {
+    console.error('Error: ink-kit makeThemeType <source-dir> <output-dir> [options]');
+    process.exit(1);
+  }
+
+  const watch = args.includes('--watch');
+  const debounceIndex = args.indexOf('--debounce');
+  const debounceMs = debounceIndex !== -1 ? parseInt(args[debounceIndex + 1], 10) : 500;
+  const fromIndex = args.indexOf('--from');
+  const packageName = fromIndex !== -1 ? args[fromIndex + 1] : '@baigao_h/ink-kit';
+
+  if (isNaN(debounceMs) || debounceMs < 0) {
+    console.error('Error: --debounce must be a non-negative number');
+    process.exit(1);
+  }
+
+  makeThemeType({
     sourceDir: path.resolve(sourceDir),
     outputDir: path.resolve(outputDir),
     watch,

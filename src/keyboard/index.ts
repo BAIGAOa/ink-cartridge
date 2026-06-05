@@ -10,4 +10,5 @@ export type {
   ScreenKeyboardLayer,
   FocusTarget,
   GlobalKeyEntry,
+  ShortcutOperationEntry,
 } from "./types.js";

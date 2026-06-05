@@ -217,14 +217,27 @@ describe('焦点系统与 actionId 绑定', () => {
 });
 
 describe('boundKeyboard(actionId) 参数校验', () => {
-  it('调用 boundKeyboard(actionId) 时必须提供 options (至少包含 focusId)', async () => {
+  it('调用 boundKeyboard(actionId) 不提供 options 时自动绑定到屏幕级', async () => {
+    const actionSpy = vi.fn();
     const { stdin } = createTestScreen((kb) => {
       kb.defineShortcutAction([
-        { actionId: 'test', action: vi.fn(), keys: ['t'] },
+        { actionId: 'test', action: actionSpy, keys: ['t'] },
       ]);
-      // @ts-expect-error 故意传入错误参数类型
-      expect(() => kb.boundKeyboard('test')).toThrow();
-      expect(() => kb.boundKeyboard('test', { focusId: 'some' })).not.toThrow();
+      // boundKeyboard(actionId) without options: binds at screen level with predefined keys
+      expect(() => kb.boundKeyboard('test')).not.toThrow();
+      return () => {};
+    });
+    await flush();
+    await press(stdin, 't');
+    expect(actionSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('调用 boundKeyboard(actionId) 不带 options 时 action 无 keys 则抛错', async () => {
+    const { stdin } = createTestScreen((kb) => {
+      kb.defineShortcutAction([
+        { actionId: 'noKeys', action: vi.fn() },
+      ]);
+      expect(() => kb.boundKeyboard('noKeys')).toThrow(/does not have predefined keys/);
       return () => {};
     });
     await flush();

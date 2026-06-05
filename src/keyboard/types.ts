@@ -12,11 +12,15 @@ export type KeyHandler = (input: string, key: Key) => void;
  * Options for {@link KeyboardContextValue.boundKeyboard}.
  */
 export interface BoundKeyboardOptions {
-  onlyThis?: boolean;
   /**
    * When `true`, the binding only activates when the owning screen is the
    * top of the stack and no overlay is open. Otherwise the binding is
-   * ignored and the key continues to bubble down * Associate this binding with a named focus target on the current screen.
+   * ignored and the key continues to bubble down.
+   */
+  onlyThis?: boolean;
+
+  /**
+   * Associate this binding with a named focus target on the current screen.
    *
    * Focus targets receive events only when they are the active target on
    * their screen layer. Multiple focus targets on the same screen are

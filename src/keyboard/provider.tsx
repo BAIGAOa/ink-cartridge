@@ -598,12 +598,18 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           ? getOrCreateFocusTarget(layer, options.focusId).actionKeysMap
           : layer.actionKeysMap;
         const merged: string[] = [];
+        const ownerName = (owner as any).displayName || owner.name || 'Unknown';
         for (const actionId of keys) {
           const boundKeys = map.get(actionId);
-          if (boundKeys) {
-            for (const k of boundKeys) {
-              if (!merged.includes(k)) merged.push(k);
-            }
+          if (!boundKeys) {
+            throw new Error(
+              `[Ink-Router-Kit] stop(["${actionId}"], { stopAction: true }) on screen "${ownerName}": ` +
+              `action "${actionId}" is not registered or has no keys bound. ` +
+              `Register it with defineShortcutAction() and bind it with boundKeyboard() first.`,
+            );
+          }
+          for (const k of boundKeys) {
+            if (!merged.includes(k)) merged.push(k);
           }
         }
         effectiveKeys = merged;

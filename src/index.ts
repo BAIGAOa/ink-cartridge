@@ -104,3 +104,8 @@ export type {
 export { LanguageProvider } from "./language/index.js";
 export { useI18n } from "./language/index.js";
 export type { LanguageProviderProps, I18nContextValue } from "./language/index.js";
+
+// Theme System
+export { ThemeProvider } from "./theme/index.js";
+export { useTheme } from "./theme/index.js";
+export type { ThemeProviderProps, ThemeContextValue, ThemeDefinition } from "./theme/index.js";

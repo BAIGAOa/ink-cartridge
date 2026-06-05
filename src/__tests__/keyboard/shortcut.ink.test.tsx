@@ -8,7 +8,7 @@ import { CurrentScreen } from '../../screen/current-screen.js';
 import { KeyboardProvider, clearShortcutOperations } from '../../keyboard/provider.js';
 import { useKeyboard } from '../../keyboard/hook.js';
 
-// ── 按键常量（仅用于 stdin.write，不用于 boundKeyboard）──
+// Key constants for stdin.write only (not used with boundKeyboard)
 
 const KEYS = {
   enter: '\r',
@@ -16,8 +16,6 @@ const KEYS = {
   up: '\x1b[A',
   down: '\x1b[B',
 } as const;
-
-// ── 辅助函数 ─────────────────────────────────────────────
 
 async function flush() {
   await new Promise((r) => setTimeout(r, 10));
@@ -35,7 +33,7 @@ function stubAction(name: string) {
   return vi.fn().mockName(name);
 }
 
-// ── Render 辅助：成功路径（ink-testing-library）────────
+// Render helper: success path (ink-testing-library)
 
 function renderShortcutSuccess(config: {
   shortcuts?: { actionId: string }[];
@@ -102,7 +100,7 @@ function renderShortcutSuccess(config: {
   return { lastFrame, stdin, unmount, spies };
 }
 
-// ── Render 辅助：API 直调（错误路径用）─────────────────
+// Render helper: direct API access (error paths)
 
 function renderKeyboardApi() {
   const kbRef: { current: ReturnType<typeof useKeyboard> | null } = {
@@ -132,7 +130,7 @@ function renderKeyboardApi() {
   return { lastFrame, stdin, unmount, kbRef };
 }
 
-// ── Cleanup ───────────────────────────────────────────────
+// Cleanup
 
 beforeEach(() => {
   clearRegistry();
@@ -142,10 +140,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-// ═══════════════════════════════════════════════════════════
-// 1. defineShortcutAction
-// ═══════════════════════════════════════════════════════════
 
 describe('defineShortcutAction', () => {
   it('正常注册不抛错', async () => {
@@ -187,10 +181,6 @@ describe('defineShortcutAction', () => {
     }).not.toThrow();
   });
 });
-
-// ═══════════════════════════════════════════════════════════
-// 2. boundKeyboard + shortcut（string handler）
-// ═══════════════════════════════════════════════════════════
 
 describe('boundKeyboard + shortcut', () => {
   it('已注册的 actionId：按键触发对应 action', async () => {
@@ -234,10 +224,6 @@ describe('boundKeyboard + shortcut', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
-
-// ═══════════════════════════════════════════════════════════
-// 3. globalKeys + shortcut（string operate）
-// ═══════════════════════════════════════════════════════════
 
 describe('globalKeys + shortcut', () => {
   it('已注册的 actionId：全局键触发对应 action', async () => {
@@ -308,10 +294,6 @@ describe('globalKeys + shortcut', () => {
     expect(spyB).toHaveBeenCalledTimes(1);
   });
 });
-
-// ═══════════════════════════════════════════════════════════
-// 4. 组合场景
-// ═══════════════════════════════════════════════════════════
 
 describe('组合场景', () => {
   it('同一个 shortcut 绑定到多个按键，都触发同一个 action', async () => {

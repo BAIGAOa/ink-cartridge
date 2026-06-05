@@ -158,7 +158,7 @@ stop(['save'], { stopAction: true, focusId: 'editor' });
 
 If you later rebind save to meta+s, the stop call still works - it always resolves the action to its current keys.
 
-The actionKeysMap is populated automatically whenever boundKeyboard is called with a string handler, and cleaned up when the binding is removed. stopAction with an unregistered action ID simply produces no keys - no error is thrown.
+The actionKeysMap is populated automatically whenever boundKeyboard is called with a string handler, and cleaned up when the binding is removed. stopAction with an unregistered action ID throws an error.
 
 ---
 
@@ -286,12 +286,12 @@ blockedKey(keys, options?): void;
 
 Mark keys as transparent on the current layer. When a transparent key reaches this layer, bindings are skipped and the key propagates downward.
 
+Returns an unbind function that removes the keys from the transparent list when called.
+
 Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Key names to make transparent
 options   | { focusId?: string } | If provided, blocks only within that focus target
-
-Does not return an unbind function.
 
 ---
 
@@ -327,7 +327,7 @@ boundKeyboard(['ctrl+s'], 'save', { focusId: 'editor' });
 stop(['save'], { stopAction: true, focusId: 'editor' });
 ```
 
-When stopAction is used with an action ID that has no bindings (never registered or already unbound), no keys are added to the stop list and no error is thrown.
+When stopAction is used with an action ID that has no bindings (never registered or already unbound), an error is thrown.
 
 ---
 
