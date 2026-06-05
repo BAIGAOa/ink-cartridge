@@ -114,6 +114,7 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 - **[Screen Management System](src/screen/README.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `overlay` / `closeOverlay`
 - **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
 - **[Internationalization](src/language/README.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
+- **[Theme System](src/theme/README.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
 
 ---
 
