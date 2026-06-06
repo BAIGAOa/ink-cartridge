@@ -69,7 +69,7 @@ Menu (root)
  Operation    | Description                                                      |
  ------------ | ---------------------------------------------------------------- |
  `skip`       | Walk down the tree to a direct child                             |
- `back`       | Walk up the tree to the parent                                  |
+ `back`       | Walk up the tree toward the root (default 1 level). Pass `back(n)` to go multiple levels ||
  `gotoScreen` | Jump across branches (finds the nearest common ancestor, rebuilds the path) |
  `overlay`    | Open a floating overlay independent of the tree (path unchanged) |
 
@@ -178,12 +178,23 @@ Navigate down the tree to a **direct child**.
 ### `back`
 
 ```tsx
-back();
+back(levels?);
 ```
 
-Navigate up the tree to the parent.
+Navigate up the tree toward the root.
 
-**Validation**: Throws if called at the root node.
+| Parameter | Type     | Default | Description                                |
+| --------- | -------- | ------- | ------------------------------------------ |
+| levels    | `number` | `1`     | Number of levels to go back. Must be >= 1. |
+
+```tsx
+back();      // go back 1 level (parent)
+back(2);     // go back 2 levels at once
+```
+
+**Validation**:
+- Throws if `levels < 1`.
+- Throws if at the root node (`levels >= current depth`).
 
 ---
 

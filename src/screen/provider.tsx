@@ -74,10 +74,19 @@ export function skip<C extends React.ComponentType<any>>(
 /**
  * Navigate up the tree to the parent of the current screen.
  *
- * @throws If the provider is not mounted or the current screen is the root.
+ * @param levels  Number of levels to go back. Defaults to 1.
+ *                Must be >= 1 and < current path length.
+ *
+ * @throws If the provider is not mounted, if levels < 1, or if
+ *         levels >= current path length (would go past root).
  */
-export function back(): void {
-  getDispatch()({ type: 'back' });
+export function back(levels: number = 1): void {
+  if (levels < 1) {
+    throw new Error(
+      '[Ink-Router-Kit] back() levels must be >= 1.',
+    );
+  }
+  getDispatch()({ type: 'back', levels });
 }
 
 /**
@@ -226,15 +235,19 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     }
 
     case 'back': {
-      if (state.path.length <= 1) {
+      const levels = action.levels ?? 1;
+
+      if (state.path.length <= levels) {
         throw new Error(
-          '[Ink-Router-Kit] back() failed: already at the root node, cannot go back.',
+          levels === 1
+            ? '[Ink-Router-Kit] back() failed: already at the root node, cannot go back.'
+            : `[Ink-Router-Kit] back(${levels}) failed: current depth is ${state.path.length}, cannot go back ${levels} levels.`,
         );
       }
 
       return {
-        path: state.path.slice(0, -1),
-        pathParams: state.pathParams.slice(0, -1),
+        path: state.path.slice(0, -levels),
+        pathParams: state.pathParams.slice(0, -levels),
         overlay: null,
         counter: state.counter + 1,
       };
@@ -400,7 +413,14 @@ export function ScenarioManagementProvider({
   );
 
   const backInContext: BackFn = useMemo(
-    () => () => dispatch({ type: 'back' }),
+    () => (levels: number = 1) => {
+      if (levels < 1) {
+        throw new Error(
+          '[Ink-Router-Kit] back() levels must be >= 1.',
+        );
+      }
+      dispatch({ type: 'back', levels });
+    },
     [],
   );
 

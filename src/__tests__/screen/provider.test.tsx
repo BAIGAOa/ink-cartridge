@@ -269,6 +269,41 @@ describe('back（沿树向上）', () => {
     act(() => back());
     expect(get()!.currentPath).toEqual([Menu]);
   });
+
+  it('back(2) 一次回退两层', () => {
+    const { get } = renderWithRef(Menu);
+
+    act(() => get()!.skip(GameLevel, { level: 1 }));
+    act(() => get()!.skip(Combat, { enemy: 'goblin' }));
+    expect(get()!.currentPath).toEqual([Menu, GameLevel, Combat]);
+
+    act(() => get()!.back(2));
+    expect(get()!.currentPath).toEqual([Menu]);
+  });
+
+  it('back(1) 等价于无参 back()', () => {
+    const { get } = renderWithRef(Menu);
+
+    act(() => get()!.skip(GameLevel, { level: 1 }));
+    act(() => get()!.skip(Combat, { enemy: 'goblin' }));
+    act(() => get()!.back(1));
+
+    expect(get()!.currentPath).toEqual([Menu, GameLevel]);
+  });
+
+  it('back(0) 抛错', () => {
+    const { get } = renderWithRef(Menu);
+
+    act(() => get()!.skip(GameLevel, { level: 1 }));
+    expect(() => act(() => get()!.back(0))).toThrow('levels must be >= 1');
+  });
+
+  it('back(n) 超过当前深度时抛错', () => {
+    const { get } = renderWithRef(Menu);
+
+    act(() => get()!.skip(GameLevel, { level: 1 }));
+    expect(() => act(() => get()!.back(5))).toThrow(/cannot go back/);
+  });
 });
 
 describe('gotoScreen（跨分支跳转）', () => {

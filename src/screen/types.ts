@@ -50,6 +50,8 @@ export interface SkipAction {
 /** Action dispatched when navigating back to the parent screen. */
 export interface BackAction {
   type: 'back';
+  /** Number of levels to go back. Defaults to 1. */
+  levels?: number;
 }
 
 /** Action dispatched when jumping to any registered screen across branches. */
@@ -98,7 +100,7 @@ export type SkipFn = <C extends React.ComponentType<any>>(
 ) => void;
 
 /** Function signature for navigating back to the parent screen. */
-export type BackFn = () => void;
+export type BackFn = (levels?: number) => void;
 
 /**
  * Function signature for jumping to any registered screen across branches.
