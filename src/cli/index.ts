@@ -49,7 +49,7 @@ fs.mkdirSync(path.join(root, 'src'), { recursive: true });
 
 const pkg = {
   name: projectName,
-  version: '1.0.0',
+  version: '0.0.1',
   private: true,
   type: 'module',
   scripts: {

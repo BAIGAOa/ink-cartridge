@@ -488,7 +488,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           target.actionKeysMap.set(handler, existing);
         }
 
-        return () => {
+        const doUnbind = () => {
           const idx = target!.bindings.indexOf(entry);
           if (idx !== -1) target!.bindings.splice(idx, 1);
           cleanupGlobalKeyOverrides(layer, entry.keys);
@@ -497,6 +497,16 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             removeKeysFromActionMap(target!.actionKeysMap, handler, keys);
           }
         };
+
+        if (options?.once) {
+          const originalHandler = entry.handler;
+          entry.handler = (input: string, key: Key) => {
+            doUnbind();
+            originalHandler(input, key);
+          };
+        }
+
+        return doUnbind;
       }
 
       applyGlobalKeyOverrides(keys, owner, layer, 'boundKeyboard');
@@ -514,7 +524,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         layer.actionKeysMap.set(handler, existing);
       }
 
-      return () => {
+      const doUnbind = () => {
         const idx = layer.bindings.indexOf(entry);
         if (idx !== -1) layer.bindings.splice(idx, 1);
         cleanupGlobalKeyOverrides(layer, entry.keys);
@@ -523,6 +533,16 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           removeKeysFromActionMap(layer.actionKeysMap, handler, keys);
         }
       };
+
+      if (options?.once) {
+        const originalHandler = entry.handler;
+        entry.handler = (input: string, key: Key) => {
+          doUnbind();
+          originalHandler(input, key);
+        };
+      }
+
+      return doUnbind;
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );

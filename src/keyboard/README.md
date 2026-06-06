@@ -242,7 +242,7 @@ Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Key names to bind (e.g. ['s'], ['ctrl+q', 'return'])
 handler   | (input, key) => void or string | Callback or shortcut action ID
-options   | { onlyThis?: boolean; focusId?: string } | Optional behavior flags
+options   | { onlyThis?: boolean; focusId?: string; once?: boolean } | Optional behavior flags
 
 Returns an unbind function.
 
@@ -273,6 +273,17 @@ Example        | Key Pressed
 **onlyThis**: when true, the binding only activates when the owning screen is top-of-stack and no overlay is open.
 
 **focusId**: when provided, the binding is stored on a named focus target. Only the currently active focus target receives events.
+
+**once**: when `true`, the binding is automatically removed after its first successful invocation. The unbind happens _before_ the handler executes — so even if the handler throws, the binding is consumed and the key will not fire again. Returns the same unbind function for manual early removal.
+
+```tsx
+// One-shot "press any key to continue"
+useEffect(() => {
+  boundKeyboard(['a', 'b', 'c', 'return', 'escape', ' '], () => {
+    // first press triggers, then binding auto-removes
+  }, { once: true });
+}, []);
+```
 
 When the handler is a string (shortcut action ID), the binding is also tracked in an internal actionKeysMap. This enables stop to resolve action IDs to their bound key names.
 

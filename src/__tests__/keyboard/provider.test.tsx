@@ -797,3 +797,91 @@ describe('globalKeys + overlay 覆盖', () => {
     expect(globalCb).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('boundKeyboard once 功能', () => {
+  it('once=true 时绑定仅在首次触发时执行，再次按键不再响应', () => {
+    const cb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.boundKeyboard(['a'], cb, { once: true });
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1); // 仍然是1次
+  });
+
+  it('once 多键绑定——按任意一个键后其他键也一并解绑', () => {
+    const cb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.boundKeyboard(['a', 'b', 'c'], cb, { once: true });
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    pressKey('b', {});
+    pressKey('c', {});
+    expect(cb).toHaveBeenCalledTimes(1); // 其他键也不再生效
+  });
+
+  it('once 绑定的 handler 抛异常后绑定依然被移除', () => {
+    const cb = vi.fn(() => { throw new Error('boom'); });
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.boundKeyboard(['a'], cb, { once: true });
+
+    // 首次触发，handler 抛异常
+    expect(() => pressKey('a', {})).toThrow('boom');
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    // 第二次按键不再触发（绑定已被消费）
+    expect(() => pressKey('a', {})).not.toThrow();
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('once + focusId：聚焦目标上的 once 绑定同样自动解绑', () => {
+    const cb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.boundKeyboard(['a'], cb, { focusId: 'inp', once: true });
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('once + onlyThis：条件不满足时不触发也不解绑，条件满足时触发并解绑', () => {
+    const cb = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.boundKeyboard(['a'], cb, { onlyThis: true, once: true });
+
+    // 先打开 overlay，使 onlyThis 条件不满足
+    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(0);
+
+    // 关闭 overlay 后再按，条件满足 → 触发并解绑
+    act(() => getScreen()!.closeOverlay());
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    pressKey('a', {});
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('once 绑定在首次触发前可通过返回的 unbind 手动移除', () => {
+    const cb = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    const unbind = getKeyboard()!.boundKeyboard(['a'], cb, { once: true });
+    unbind();
+
+    pressKey('a', {});
+    expect(cb).not.toHaveBeenCalled();
+  });
+});

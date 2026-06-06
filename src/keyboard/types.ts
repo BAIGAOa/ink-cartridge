@@ -30,6 +30,15 @@ export interface BoundKeyboardOptions {
    * evaluated after the active focus target (if any).
    */
   focusId?: string;
+
+  /**
+   * When `true`, the binding is automatically removed after its first
+   * invocation. The unbind happens *before* the handler executes, so
+   * even if the handler throws, the binding is consumed.
+   *
+   * Useful for one-shot key bindings (e.g. "press any key to continue").
+   */
+  once?: boolean;
 }
 
 /**
