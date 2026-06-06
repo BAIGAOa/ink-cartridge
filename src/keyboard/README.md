@@ -242,7 +242,7 @@ Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Key names to bind (e.g. ['s'], ['ctrl+q', 'return'])
 handler   | (input, key) => void or string | Callback or shortcut action ID
-options   | { onlyThis?: boolean; focusId?: string; once?: boolean } | Optional behavior flags
+options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number } | Optional behavior flags
 
 Returns an unbind function.
 
@@ -282,6 +282,29 @@ useEffect(() => {
   boundKeyboard(['a', 'b', 'c', 'return', 'escape', ' '], () => {
     // first press triggers, then binding auto-removes
   }, { once: true });
+}, []);
+```
+
+**times**: requires the bound key(s) to be pressed **N times** before the handler fires. The counter is per-binding — all keys in the `keys` array share the same counter — and never auto-resets. When the counter reaches `times`, the handler fires and the counter resets to 0.
+
+Can be combined with `once: true` to unbind after the threshold is reached.
+
+Must be >= 1; passing 0 or negative throws a runtime error.
+
+```tsx
+// Press 'q' twice to quit
+useEffect(() => {
+  boundKeyboard(['q'], () => process.exit(), { times: 2 });
+}, []);
+
+// Press escape 3 times to exit a modal, then unbind
+useEffect(() => {
+  boundKeyboard(['escape'], closeModal, { times: 3, once: true });
+}, []);
+
+// Combined with focusId — each focus target has its own counter
+useEffect(() => {
+  boundKeyboard(['return'], submit, { times: 2, focusId: 'form' });
 }, []);
 ```
 
