@@ -267,6 +267,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     cover?: boolean;
     affectOverlay?: boolean;
     category?: React.ComponentType<any>[] | "*";
+    times?: number;
+    pressCount?: number;
   }[]>([]);
   const focusSubscribersRef = useRef(new Set<() => void>());
 
@@ -806,6 +808,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const globalKeys = useCallback(
     (entries: GlobalKeyEntry[], options?: { mode?: 'replace' | 'add' }) => {
       const processed = entries.map((each) => {
+        // Validate times option
+        if (each.times !== undefined && each.times < 1) {
+          throw new Error(
+            '[Ink-Router-Kit] globalKeys() times option must be >= 1.',
+          );
+        }
         if (typeof each.operate === 'string') {
           const entry = shortcutOperationsRef.current.get(each.operate);
           if (!entry) {
@@ -817,6 +825,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             cover: each.cover,
             category: each.category,
             affectOverlay: each.affectOverlay,
+            times: each.times,
+            pressCount: each.times !== undefined ? 0 : undefined,
           };
         }
         return {
@@ -825,6 +835,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           cover: each.cover,
           category: each.category,
           affectOverlay: each.affectOverlay,
+          times: each.times,
+          pressCount: each.times !== undefined ? 0 : undefined,
         };
       });
 
@@ -956,6 +968,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         }
       }
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
+        // Handle times counter
+        if (entry.times !== undefined && entry.times >= 1) {
+          entry.pressCount! += 1;
+          if (entry.pressCount! < entry.times!) {
+            return; // consume event, but haven't reached threshold yet
+          }
+          entry.pressCount = 0; // reset counter
+        }
         entry.operate();
         return;
       }
@@ -998,6 +1018,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     for (const entry of globalKeys) {
       if (entry.affectOverlay) continue;
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
+        // Handle times counter
+        if (entry.times !== undefined && entry.times >= 1) {
+          entry.pressCount! += 1;
+          if (entry.pressCount! < entry.times!) {
+            return; // consume event, but haven't reached threshold yet
+          }
+          entry.pressCount = 0; // reset counter
+        }
         entry.operate();
         return;
       }

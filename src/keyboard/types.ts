@@ -179,6 +179,20 @@ export interface GlobalKeyEntry {
   affectOverlay?: boolean;
 
   /**
+   * Number of times the global key must be pressed before the handler fires.
+   * Defaults to `undefined` (fire immediately on every press).
+   *
+   * The counter is per-global-key-entry and never auto-resets. When the
+   * counter reaches `times`, the handler fires and the counter resets to 0.
+   *
+   * Must be >= 1.
+   *
+   * Examples:
+   * - `times: 2` → handler fires on the 2nd, 4th, 6th… press.
+   */
+  times?: number;
+
+  /**
    * Whitelist of screen components that may use this global key.
    *
    * - `"*"` or omitted: all screens
