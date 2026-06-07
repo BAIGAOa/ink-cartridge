@@ -109,3 +109,11 @@ export type { LanguageProviderProps, I18nContextValue } from "./language/index.j
 export { ThemeProvider } from "./theme/index.js";
 export { useTheme } from "./theme/index.js";
 export type { ThemeProviderProps, ThemeContextValue, ThemeDefinition } from "./theme/index.js";
+
+// Persistence System
+export { createStorage } from "./storage/index.js";
+export type { StorageOptions, StorageAPI } from "./storage/index.js";
+
+// Binary Persistence System
+export { createBinaryStorage, TypeTag, TAG_NAMES } from "./binary-storage/index.js";
+export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/index.js";

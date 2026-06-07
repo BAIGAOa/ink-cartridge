@@ -115,6 +115,8 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 - **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
 - **[Internationalization](src/language/README.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
 - **[Theme System](src/theme/README.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
+- **[Persistence System](src/storage/README.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
+- **[Binary Storage System](src/binary-storage/README.md)** — `createBinaryStorage`, sequential typed binary streams with positional cursors, ideal for game replays, sensor logs, and ordered data
 
 ---
 
