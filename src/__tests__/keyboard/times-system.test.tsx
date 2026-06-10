@@ -355,13 +355,13 @@ describe('times + onlyThis', () => {
     expect(handler).toHaveBeenCalledTimes(0);
 
     // 打开 overlay → onlyThis 条件不满足
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     pressKey('a'); // 应被跳过，不计入 counter
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(0);
 
     // 关闭 overlay → onlyThis 条件重新满足
-    act(() => getScreen()!.closeOverlay());
+    act(() => getScreen()!.closeOverlay('test-ovl'));
     pressKey('a'); // count=2 → 触发
     expect(handler).toHaveBeenCalledTimes(1);
   });
@@ -533,7 +533,7 @@ describe('times + overlay', () => {
 
     getKeyboard()!.boundKeyboard(['escape'], screenHandler, { times: 2 });
 
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     getKeyboard()!.boundKeyboard(['escape'], overlayHandler, { times: 2 });
 
     // overlay 上的计数

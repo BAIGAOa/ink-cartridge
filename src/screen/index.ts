@@ -4,8 +4,11 @@ export {
   skip,
   back,
   gotoScreen,
-  overlay,
+  openOverlay,
   closeOverlay,
+  closeAllOverlays,
+  activateOverlay,
+  deactivateOverlay,
   clearDispatchers,
 } from './provider.js';
 export type { ScenarioManagementProviderProps } from './provider.js';
@@ -16,7 +19,12 @@ export type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OverlayFn,
+  OpenOverlayFn,
   CloseOverlayFn,
+  CloseAllOverlaysFn,
+  ActivateOverlayFn,
+  DeactivateOverlayFn,
+  OpenOverlayOptions,
+  OverlayEntry,
   RegisterOptions,
 } from './types.js';

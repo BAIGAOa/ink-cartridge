@@ -4,8 +4,9 @@ import { ScreenSystemContext, ScreenSystemContextValue } from './context.js';
 /**
  * Access the screen-management API from within a React component.
  *
- * Returns `{ currentScreen, currentOverlay, currentPath, skip, back,
- * gotoScreen, overlay, closeOverlay }`.
+ * Returns `{ currentScreen, currentOverlays, currentPath, skip, back,
+ * gotoScreen, openOverlay, closeOverlay, closeAllOverlays, activateOverlay,
+ * deactivateOverlay, activeOverlayIds, displayedOverlays }`.
  *
  * Must be used inside a {@link ScenarioManagementProvider}.
  *

@@ -287,7 +287,7 @@ describe('onlyThis', () => {
     getKeyboard()!.boundKeyboard(['a'], combatCb, { onlyThis: true });
     pressKey('a', {});
     expect(combatCb).toHaveBeenCalledTimes(1);
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     combatCb.mockClear();
     pressKey('a', {});
     expect(combatCb).not.toHaveBeenCalled();
@@ -299,7 +299,7 @@ describe('Overlay 优先级', () => {
     const screenCb = vi.fn();
     const overlayCb = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     getKeyboard()!.boundKeyboard(['escape'], overlayCb);
     getKeyboard()!.boundKeyboard(['escape'], screenCb);
     pressKey('', { escape: true });
@@ -311,7 +311,7 @@ describe('Overlay 优先级', () => {
     const menuCb = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['e'], menuCb);
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     pressKey('e', {});
     expect(menuCb).toHaveBeenCalledTimes(1);
   });
@@ -684,7 +684,7 @@ describe('焦点层内的 onlyThis', () => {
     pressKey('a', {});
     expect(cb).toHaveBeenCalledTimes(1);
 
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     cb.mockClear();
     pressKey('a', {});
     expect(cb).not.toHaveBeenCalled();
@@ -697,7 +697,7 @@ describe('overlay 内部的焦点系统', () => {
     const overlayCb2 = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
 
     getKeyboard()!.boundKeyboard(['return'], overlayCb1, { focusId: 'over1' });
     getKeyboard()!.boundKeyboard(['return'], overlayCb2, { focusId: 'over2' });
@@ -755,7 +755,7 @@ describe('globalKeys + overlay 覆盖', () => {
     ]);
 
     // 打开 overlay 并绑定 q 到 overlay
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     getKeyboard()!.boundKeyboard(['q'], overlayCb);
 
     // overlay 的绑定优先
@@ -774,7 +774,7 @@ describe('globalKeys + overlay 覆盖', () => {
       { key: 'q', operate: globalCb, affectOverlay: true, cover: false },
     ]);
 
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     // 尝试绑定 q 会抛错
     expect(() =>
       getKeyboard()!.boundKeyboard(['q'], overlayCb),
@@ -861,12 +861,12 @@ describe('boundKeyboard once 功能', () => {
     getKeyboard()!.boundKeyboard(['a'], cb, { onlyThis: true, once: true });
 
     // 先打开 overlay，使 onlyThis 条件不满足
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     pressKey('a', {});
     expect(cb).toHaveBeenCalledTimes(0);
 
     // 关闭 overlay 后再按，条件满足 → 触发并解绑
-    act(() => getScreen()!.closeOverlay());
+    act(() => getScreen()!.closeOverlay('test-ovl'));
     pressKey('a', {});
     expect(cb).toHaveBeenCalledTimes(1);
 

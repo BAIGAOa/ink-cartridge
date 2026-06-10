@@ -17,6 +17,32 @@ export interface SkipOptions {
 }
 
 /**
+ * Options for {@link openOverlay}.
+ */
+export interface OpenOverlayOptions {
+  /** Whether to activate the overlay immediately. Defaults to true. */
+  activate?: boolean;
+  /** Visual stacking order. Smaller values render behind larger values. */
+  zIndex?: number;
+}
+
+/**
+ * A single overlay entry in the multi-overlay system.
+ */
+export interface OverlayEntry {
+  /** Unique identifier for this overlay. */
+  id: string;
+  /** The overlay component to render. */
+  component: React.ComponentType<any>;
+  /** Props passed to the overlay component. */
+  props: Record<string, unknown>;
+  /** Visual stacking order (lower = behind, higher = front). */
+  zIndex: number;
+  /** Timestamp for tie-breaking when zIndex values are equal. */
+  createdAt: number;
+}
+
+/**
  * Internal state of the screen management provider.
  */
 export interface ScreenState {
@@ -24,17 +50,24 @@ export interface ScreenState {
   path: React.ComponentType<any>[];
   /** Parameters for each component along the path, in the same order. */
   pathParams: Record<string, unknown>[];
-  /** The currently active overlay, or null if none is open. */
-  overlay: {
-    component: React.ComponentType<any>;
-    params: Record<string, unknown>;
-  } | null;
+  /** All open overlays, sorted by zIndex (ascending). */
+  overlays: OverlayEntry[];
+  /** Set of overlay IDs that are currently active (receiving keyboard events). */
+  activeOverlayIds: Set<string>;
   /** Auto-incrementing counter used as a React key to force remounts when needed. */
   counter: number;
 }
 
 /** Discriminated union type discriminator. */
-export type ScreenActionType = 'skip' | 'back' | 'gotoScreen' | 'overlay' | 'closeOverlay';
+export type ScreenActionType =
+  | 'skip'
+  | 'back'
+  | 'gotoScreen'
+  | 'openOverlay'
+  | 'closeOverlay'
+  | 'closeAllOverlays'
+  | 'activateOverlay'
+  | 'deactivateOverlay';
 
 /** Action dispatched when navigating down to a child screen. */
 export interface SkipAction {
@@ -63,18 +96,45 @@ export interface GotoScreenAction {
   params: Record<string, unknown>;
 }
 
-/** Action dispatched when opening an overlay on top of the current screen. */
-export interface OverlayAction {
-  type: 'overlay';
+/** Action dispatched when opening a new overlay. */
+export interface OpenOverlayAction {
+  type: 'openOverlay';
+  /** Unique identifier for this overlay. */
+  id: string;
   /** The overlay component to render. */
   component: React.ComponentType<any>;
   /** Props to pass to the overlay component. */
   params: Record<string, unknown>;
+  /** Whether to activate the overlay immediately. */
+  activate: boolean;
+  /** Optional zIndex for visual stacking. */
+  zIndex?: number;
 }
 
-/** Action dispatched when closing the currently active overlay. */
+/** Action dispatched when closing a specific overlay by ID. */
 export interface CloseOverlayAction {
   type: 'closeOverlay';
+  /** The ID of the overlay to close. */
+  id: string;
+}
+
+/** Action dispatched when closing all overlays. */
+export interface CloseAllOverlaysAction {
+  type: 'closeAllOverlays';
+}
+
+/** Action dispatched when activating an overlay by ID. */
+export interface ActivateOverlayAction {
+  type: 'activateOverlay';
+  /** The ID of the overlay to activate. */
+  id: string;
+}
+
+/** Action dispatched when deactivating an overlay by ID. */
+export interface DeactivateOverlayAction {
+  type: 'deactivateOverlay';
+  /** The ID of the overlay to deactivate. */
+  id: string;
 }
 
 /** Union of all possible screen actions. */
@@ -82,8 +142,11 @@ export type ScreenAction =
   | SkipAction
   | BackAction
   | GotoScreenAction
-  | OverlayAction
-  | CloseOverlayAction;
+  | OpenOverlayAction
+  | CloseOverlayAction
+  | CloseAllOverlaysAction
+  | ActivateOverlayAction
+  | DeactivateOverlayAction;
 
 /**
  * Function signature for navigating to a direct child of the current screen.
@@ -115,16 +178,29 @@ export type GotoScreenFn = <C extends React.ComponentType<any>>(
 ) => void;
 
 /**
- * Function signature for opening an overlay on top of the current screen.
+ * Function signature for opening a new overlay.
  *
  * @typeParam C - The overlay component type.
+ * @param id - Unique identifier for this overlay.
  * @param component - The overlay component (must be registered).
  * @param params - Props to pass to the overlay.
+ * @param options - Optional activation and zIndex settings.
  */
-export type OverlayFn = <C extends React.ComponentType<any>>(
+export type OpenOverlayFn = <C extends React.ComponentType<any>>(
+  id: string,
   component: C,
   params: React.ComponentProps<C>,
+  options?: OpenOverlayOptions,
 ) => void;
 
-/** Function signature for closing the currently active overlay. */
-export type CloseOverlayFn = () => void;
+/** Function signature for closing a specific overlay by ID. */
+export type CloseOverlayFn = (id: string) => void;
+
+/** Function signature for closing all overlays. */
+export type CloseAllOverlaysFn = () => void;
+
+/** Function signature for activating an overlay by ID. */
+export type ActivateOverlayFn = (id: string) => void;
+
+/** Function signature for deactivating an overlay by ID. */
+export type DeactivateOverlayFn = (id: string) => void;

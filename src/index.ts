@@ -6,8 +6,11 @@ export {
   skip,
   back,
   gotoScreen,
-  overlay,
+  openOverlay,
   closeOverlay,
+  closeAllOverlays,
+  activateOverlay,
+  deactivateOverlay,
   useScreenSystem,
 } from "./screen/index.js";
 
@@ -16,8 +19,13 @@ export type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OverlayFn,
+  OpenOverlayFn,
   CloseOverlayFn,
+  CloseAllOverlaysFn,
+  ActivateOverlayFn,
+  DeactivateOverlayFn,
+  OpenOverlayOptions,
+  OverlayEntry,
   RegisterOptions,
   ScenarioManagementProviderProps,
 } from "./screen/index.js";

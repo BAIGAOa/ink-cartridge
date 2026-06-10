@@ -10,8 +10,9 @@ import {
   skip,
   back,
   gotoScreen,
-  overlay,
+  openOverlay,
   closeOverlay,
+  closeAllOverlays,
 } from '../../screen/provider.js';
 import { useScreenSystem } from '../../screen/hook.js';
 import { CurrentScreen } from '../../screen/current-screen.js';
@@ -52,13 +53,18 @@ Notification.displayName = 'Notification';
 
 interface CapturedScreenSystem {
   currentScreen: ReactNode;
-  currentOverlay: ReactNode | null;
+  currentOverlays: ReactNode[];
   currentPath: React.ComponentType<any>[];
+  activeOverlayIds: string[];
+  displayedOverlays: { id: string; component: React.ComponentType<any>; props: Record<string, unknown>; zIndex: number; createdAt: number }[];
   skip: (comp: any, params: any, opts?: any) => void;
-  back: () => void;
+  back: (levels?: number) => void;
   gotoScreen: (comp: any, params: any) => void;
-  overlay: (comp: any, params: any) => void;
-  closeOverlay: () => void;
+  openOverlay: (id: string, comp: any, params: any, opts?: any) => void;
+  closeOverlay: (id: string) => void;
+  closeAllOverlays: () => void;
+  activateOverlay: (id: string) => void;
+  deactivateOverlay: (id: string) => void;
 }
 
 function CaptureConsumer({
@@ -339,65 +345,97 @@ describe('gotoScreen（跨分支跳转）', () => {
   });
 });
 
-describe('overlay（浮层）', () => {
+describe('overlay（多浮层）', () => {
   it('打开 overlay 不影响 currentPath', () => {
     const { get } = renderWithRef(Menu);
     const pathBefore = [...get()!.currentPath];
 
-    act(() => get()!.overlay(Notification, { message: 'hello' }));
+    act(() => get()!.openOverlay('notif-1', Notification, { message: 'hello' }));
 
     const ctx = get()!;
     expect(ctx.currentPath).toEqual(pathBefore);
-    expect(ctx.currentOverlay).not.toBeNull();
-    expect((ctx.currentOverlay as React.ReactElement).type).toBe(Notification);
-    expect((ctx.currentOverlay as React.ReactElement).props).toMatchObject({ message: 'hello' });
+    expect(ctx.currentOverlays.length).toBeGreaterThan(0);
+    expect(ctx.displayedOverlays.length).toBe(1);
+    expect(ctx.displayedOverlays[0].id).toBe('notif-1');
+    expect(ctx.activeOverlayIds).toContain('notif-1');
   });
 
-  it('closeOverlay 关闭浮层', () => {
+  it('closeOverlay 通过 ID 关闭浮层', () => {
     const { get } = renderWithRef(Menu);
-    act(() => get()!.overlay(Notification, { message: 'test' }));
-    expect(get()!.currentOverlay).not.toBeNull();
+    act(() => get()!.openOverlay('n1', Notification, { message: 'test' }));
+    expect(get()!.displayedOverlays.length).toBe(1);
 
-    act(() => get()!.closeOverlay());
-    expect(get()!.currentOverlay).toBeNull();
+    act(() => get()!.closeOverlay('n1'));
+    expect(get()!.displayedOverlays.length).toBe(0);
   });
 
-  it('skip 时自动关闭 overlay', () => {
+  it('closeAllOverlays 关闭所有浮层', () => {
     const { get } = renderWithRef(Menu);
-    act(() => get()!.overlay(Notification, { message: 'x' }));
-    expect(get()!.currentOverlay).not.toBeNull();
+    act(() => get()!.openOverlay('n1', Notification, { message: 'a' }));
+    act(() => get()!.openOverlay('n2', Notification, { message: 'b' }));
+    expect(get()!.displayedOverlays.length).toBe(2);
+
+    act(() => get()!.closeAllOverlays());
+    expect(get()!.displayedOverlays.length).toBe(0);
+  });
+
+  it('skip 时自动清空所有浮层', () => {
+    const { get } = renderWithRef(Menu);
+    act(() => get()!.openOverlay('n1', Notification, { message: 'x' }));
+    expect(get()!.displayedOverlays.length).toBe(1);
 
     act(() => get()!.skip(GameLevel, { level: 1 }));
-    expect(get()!.currentOverlay).toBeNull();
+    expect(get()!.displayedOverlays.length).toBe(0);
   });
 
-  it('back 时自动关闭 overlay', () => {
+  it('back 时自动清空所有浮层', () => {
     const { get } = renderWithRef(Menu);
     act(() => get()!.skip(GameLevel, { level: 1 }));
-    act(() => get()!.overlay(Notification, { message: 'y' }));
-    expect(get()!.currentOverlay).not.toBeNull();
+    act(() => get()!.openOverlay('n1', Notification, { message: 'y' }));
+    expect(get()!.displayedOverlays.length).toBe(1);
 
     act(() => get()!.back());
-    expect(get()!.currentOverlay).toBeNull();
+    expect(get()!.displayedOverlays.length).toBe(0);
   });
 
-  it('gotoScreen 时自动关闭 overlay', () => {
+  it('gotoScreen 时自动清空所有浮层', () => {
     const { get } = renderWithRef(Menu);
     act(() => get()!.skip(GameLevel, { level: 1 }));
-    act(() => get()!.overlay(Notification, { message: 'z' }));
-    expect(get()!.currentOverlay).not.toBeNull();
+    act(() => get()!.openOverlay('n1', Notification, { message: 'z' }));
+    expect(get()!.displayedOverlays.length).toBe(1);
 
     act(() => get()!.gotoScreen(Settings, { theme: 'dark' }));
-    expect(get()!.currentOverlay).toBeNull();
+    expect(get()!.displayedOverlays.length).toBe(0);
   });
 
-  it('模块级 overlay/closeOverlay 行为一致', () => {
+  it('模块级 openOverlay/closeOverlay 行为一致', () => {
     const { get } = renderWithRef(Menu);
-    act(() => overlay(Notification, { message: 'mod' }));
-    expect(get()!.currentOverlay).not.toBeNull();
+    act(() => openOverlay('mod-1', Notification, { message: 'mod' }));
+    expect(get()!.displayedOverlays.length).toBe(1);
+    expect(get()!.displayedOverlays[0].id).toBe('mod-1');
 
-    act(() => closeOverlay());
-    expect(get()!.currentOverlay).toBeNull();
+    act(() => closeOverlay('mod-1'));
+    expect(get()!.displayedOverlays.length).toBe(0);
+  });
+
+  it('重复 ID 的 openOverlay 抛错', () => {
+    const { get } = renderWithRef(Menu);
+    act(() => get()!.openOverlay('dup', Notification, { message: 'first' }));
+    expect(() =>
+      act(() => get()!.openOverlay('dup', Notification, { message: 'second' })),
+    ).toThrow(/already exists/);
+  });
+
+  it('activate/deactivate 控制浮层激活状态', () => {
+    const { get } = renderWithRef(Menu);
+    act(() => get()!.openOverlay('n1', Notification, { message: 'test' }, { activate: true }));
+    expect(get()!.activeOverlayIds).toContain('n1');
+
+    act(() => get()!.deactivateOverlay('n1'));
+    expect(get()!.activeOverlayIds).not.toContain('n1');
+
+    act(() => get()!.activateOverlay('n1'));
+    expect(get()!.activeOverlayIds).toContain('n1');
   });
 });
 
@@ -407,11 +445,11 @@ describe('CurrentScreen 组件', () => {
     expect(text).toContain('Menu');
   });
 
-  it('有 overlay 时同时渲染两层', () => {
+  it('有 overlay 时同时渲染多层', () => {
     function TestOverlay() {
-      const { overlay: ov } = useScreenSystem();
+      const { openOverlay: op } = useScreenSystem();
       useEffect(() => {
-        ov(Notification, { message: 'popup!' });
+        op('popup-1', Notification, { message: 'popup!' });
       }, []);
       return React.createElement(CurrentScreen);
     }
@@ -419,8 +457,7 @@ describe('CurrentScreen 组件', () => {
     const { container } = render(
       React.createElement(
         ScenarioManagementProvider,
-        { defaultScreen: Menu },
-        React.createElement(TestOverlay),
+        { defaultScreen: Menu, children: React.createElement(TestOverlay) },
       ),
     );
     expect(container.textContent).toContain('Menu');
@@ -438,10 +475,13 @@ describe('模块级函数错误处理', () => {
   it('Provider 未挂载时 gotoScreen 抛错', () => {
     expect(() => gotoScreen(Menu, {})).toThrow(/called before Provider is mounted/);
   });
-  it('Provider 未挂载时 overlay 抛错', () => {
-    expect(() => overlay(Notification, { message: '' })).toThrow(/called before Provider is mounted/);
+  it('Provider 未挂载时 openOverlay 抛错', () => {
+    expect(() => openOverlay('test', Notification, { message: '' })).toThrow(/called before Provider is mounted/);
   });
   it('Provider 未挂载时 closeOverlay 抛错', () => {
-    expect(() => closeOverlay()).toThrow(/called before Provider is mounted/);
+    expect(() => closeOverlay('test')).toThrow(/called before Provider is mounted/);
+  });
+  it('Provider 未挂载时 closeAllOverlays 抛错', () => {
+    expect(() => closeAllOverlays()).toThrow(/called before Provider is mounted/);
   });
 });
