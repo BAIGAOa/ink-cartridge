@@ -155,6 +155,35 @@ return React.createElement(Box, { flexDirection: 'column' },
 );
 ```
 
+Type safety
+
+· Avoid any at all costs. If you must use any, add a comment explaining why no safer alternative exists and which invariants you are asserting.
+· Avoid type assertions (as). If you must use as, add a comment explaining why the assertion is safe (e.g., “we just checked typeof value === 'string', so this cast is safe”).
+· Prefer unknown over any for values with truly unknown shapes, then narrow via type guards.
+· If you cannot find a way to make the type safe (e.g., due to complex generics or third‑party untyped data), ask the user before writing unsafe code. Propose a design that could be type‑safe and get approval.
+
+✅ Correct (safe, no assertion)
+
+```ts
+if (typeof value === 'string') {
+  // value is now `string` – no assertion needed
+  processString(value);
+}
+```
+
+✅ Acceptable (assertion with explanation)
+
+```ts
+// This assertion is safe because we validated the object shape with `isValidTheme` above.
+const theme = data as ThemeDefinition;
+```
+
+❌ Wrong (unsafe any without comment)
+
+```ts
+const result: any = apiResponse;
+```
+
 No over‑engineering / premature optimisation
 
 · Do not add abstractions, design patterns, or performance optimisations “just in case”. Write the simplest code that makes the tests pass.
@@ -166,6 +195,56 @@ How to ask:
 “I noticed that [describe the issue]. I think we could [proposed refactor/optimisation]. This would [benefit]. Should I proceed with this change?”
 
 Wait for explicit approval (e.g., “yes”, “go ahead”, “do it”) before making any non‑trivial structural change or optimisation.
+
+Error handling
+
+· All asynchronous operations must handle errors. Use try/catch with .catch() or proper catch blocks.
+· Provide meaningful error messages that help the user understand what went wrong and, if possible, how to fix it.
+· Use a consistent error prefix: [ink-router-kit] (note: the project name is ink-router-kit, not ink-kit – align with existing error prefixes in the codebase).
+· For edge‑case errors where the correct behaviour is ambiguous (e.g., should we throw, log, or silently recover?), ask the user which behaviour they prefer before writing the error handling code.
+
+✅ Correct (caught and reported)
+
+```ts
+try {
+  await riskyOperation();
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  throw new Error(`[ink-router-kit] Failed to load config: ${message}`);
+}
+```
+
+❌ Wrong (silent failure)
+
+```ts
+await riskyOperation(); // unhandled rejection
+```
+
+React performance guidelines
+
+· Follow React’s rules of hooks: call hooks only at the top level, only inside React function components or custom hooks.
+· Dependency arrays must be complete and correct. Include every value that the effect/callback/memo refers to from the component scope. Do not lie about dependencies.
+· Use useCallback and useMemo when necessary:
+  · Functions passed as props to child components that rely on referential equality (e.g., inside useEffect dependencies) should be memoised with useCallback.
+  · Expensive computations should be memoised with useMemo.
+  · Do not wrap every function in useCallback — only when it provides a measurable benefit or stabilises a dependency chain.
+· Avoid stale closures. Be especially careful with useEffect that references state or props — include them in the dependency array, or use refs if you intentionally want the latest value without re‑running the effect.
+
+✅ Correct (complete dependencies)
+
+```ts
+useEffect(() => {
+  console.log(value);
+}, [value]); // value is declared as a dependency
+```
+
+❌ Wrong (missing dependency)
+
+```ts
+useEffect(() => {
+  console.log(value);
+}, []); // value changes but effect never re-runs
+```
 
 Focus target lifecycle
 
@@ -217,6 +296,20 @@ useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 Hook encapsulation rule
 
 When the same useEffect + useRef pattern appears in 3+ components, extract it into a custom hook. (Note: the focusUnregister pattern exists in 8+ components but hasn't been extracted yet — a candidate for useFocusLifecycle.)
+
+File naming conventions
+
+· Component files (those that export a React component) use PascalCase.tsx – e.g., SelectInput.tsx, ConfirmDialog.tsx.
+· Non‑component files (utilities, types, contexts, hooks, test helpers) use camelCase.ts – e.g., registry.ts, binaryStorage.ts, makeLanguageType.ts.
+· Test files follow the same naming as the file they test, plus .test.ts or .ink.test.tsx.
+
+Documentation must stay in sync
+
+· When you change a public API (function signature, component prop, type export, class method), you must update the corresponding README.md or relevant documentation file.
+· Do not leave documentation outdated – a user (or another agent) reading the docs should always see the current behaviour.
+· For components, update the component’s README.md in its folder (e.g., src/components/select/README.md).
+· For top‑level APIs, update README.md in the project root.
+· If a change does not affect any existing documentation (e.g., fixing a bug that was never documented), no doc update is required.
 
 Comment conventions
 
@@ -312,7 +405,7 @@ Every public function, component, type, or constant exported from src/index.ts m
  * ```tsx
  * registerComponent(Menu, {});
  * registerComponent(Game, { level: 1 }, { parent: Menu });
-* ```
+```
 
 */
 export function registerComponent<C extends React.ComponentType<any>>(
