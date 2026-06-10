@@ -9,6 +9,12 @@ import type {
 } from "./types.js";
 
 /**
+ * Type for the owner stack used to track overlay context.
+ * Can be a component type (for screens) or a string (for overlay IDs).
+ */
+export type LayerOwner = React.ComponentType<any> | string;
+
+/**
  * Value provided by {@link KeyboardProvider} via React context.
  */
 export interface KeyboardContextValue {
@@ -133,17 +139,17 @@ export interface KeyboardContextValue {
    */
   subscribeFocus: (listener: () => void) => () => void;
 
-	/**
-	 * Register named shortcut actions that can be referenced by key bindings
-	 * using a string identifier instead of an inline callback.
-	 *
-	 * Decouples operation definition from key binding.
-	 *
-	 * @param entries - Array of shortcut operation definitions.
- 	 *                  Each entry must have a unique `actionId`.
-	 *
-	 * @throws {Error} If an `actionId` is duplicated.
-	 	*/
+  /**
+   * Register named shortcut actions that can be referenced by key bindings
+   * using a string identifier instead of an inline callback.
+   *
+   * Decouples operation definition from key binding.
+   *
+   * @param entries - Array of shortcut operation definitions.
+   *                  Each entry must have a unique `actionId`.
+   *
+   * @throws {Error} If an `actionId` is duplicated.
+   */
   defineShortcutAction: (entries: ShortcutOperationEntry[]) => void;
   /**
    * Dynamically register a single shortcut action.
@@ -179,6 +185,18 @@ export interface KeyboardContextValue {
    * Primarily used for testing or full keyboard reset scenarios.
    */
   clearShortcutOperations: () => void;
+
+  /**
+   * Internal: Push an owner onto the owner stack.
+   * Used by useKeyboard() when rendering inside an overlay.
+   */
+  _pushOwner: (owner: LayerOwner) => void;
+
+  /**
+   * Internal: Pop an owner from the owner stack.
+   * Used by useKeyboard() cleanup when leaving an overlay context.
+   */
+  _popOwner: (owner: LayerOwner) => void;
 }
 
 /**

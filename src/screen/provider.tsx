@@ -7,8 +7,13 @@ import {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OverlayFn,
+  OpenOverlayFn,
   CloseOverlayFn,
+  CloseAllOverlaysFn,
+  ActivateOverlayFn,
+  DeactivateOverlayFn,
+  OverlayEntry,
+  OpenOverlayOptions,
 } from './types.js';
 import {
   getTemplate,
@@ -37,20 +42,21 @@ function getDispatch(): React.Dispatch<ScreenAction> {
       '[Ink-Router-Kit] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
     );
   }
-  // Set 按插入顺序迭代，取最后一个（最近挂载的 Provider）
   return [..._dispatchers][_dispatchers.size - 1];
 }
 
 /**
+ * Sort overlays by zIndex ascending, then by createdAt for tie-breaking.
+ */
+function sortOverlays(overlays: OverlayEntry[]): OverlayEntry[] {
+  return [...overlays].sort((a, b) => {
+    if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
+    return a.createdAt - b.createdAt;
+  });
+}
+
+/**
  * Navigate down the tree to a direct child of the current screen.
- *
- * @param component  The target child component (must be a registered child
- *                   of the current screen).
- * @param params     Props to merge with the component's registered template.
- * @param options    Optional navigation options.
- *
- * @throws If the provider is not mounted or the target is not a child of
- *         the current screen.
  */
 export function skip<C extends React.ComponentType<any>>(
   component: C,
@@ -62,7 +68,6 @@ export function skip<C extends React.ComponentType<any>>(
       `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
-  // 模块级 skip 不做编译时树校验，运行时 reducer 中校验
   getDispatch()({
     type: 'skip',
     component,
@@ -73,12 +78,6 @@ export function skip<C extends React.ComponentType<any>>(
 
 /**
  * Navigate up the tree to the parent of the current screen.
- *
- * @param levels  Number of levels to go back. Defaults to 1.
- *                Must be >= 1 and < current path length.
- *
- * @throws If the provider is not mounted, if levels < 1, or if
- *         levels >= current path length (would go past root).
  */
 export function back(levels: number = 1): void {
   if (levels < 1) {
@@ -91,14 +90,6 @@ export function back(levels: number = 1): void {
 
 /**
  * Jump to any registered screen across branches of the tree.
- *
- * The path is rebuilt by finding the closest common ancestor between the
- * current screen and the target, then walking down from that ancestor.
- *
- * @param component  The target component (must be registered).
- * @param params     Props to merge with the component's registered template.
- *
- * @throws If the provider is not mounted or the component is not registered.
  */
 export function gotoScreen<C extends React.ComponentType<any>>(
   component: C,
@@ -119,17 +110,21 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 /**
  * Open a floating overlay on top of the current screen stack.
  *
- * The overlay renders independently of the tree navigation. Only one overlay
- * may be active at a time. Opening a new overlay replaces the previous one.
+ * Multiple overlays can be open simultaneously, distinguished by unique IDs.
  *
+ * @param id         Unique identifier for this overlay.
  * @param component  The overlay component (must be registered).
- * @param params     Props to merge with the component's registered template.
+ * @param params     Props to pass to the overlay component.
+ * @param options    Optional activation and zIndex settings.
  *
- * @throws If the provider is not mounted or the component is not registered.
+ * @throws If the provider is not mounted, the component is not registered,
+ *         or the ID is already in use.
  */
-export function overlay<C extends React.ComponentType<any>>(
+export function openOverlay<C extends React.ComponentType<any>>(
+  id: string,
   component: C,
   params: React.ComponentProps<C>,
+  options?: OpenOverlayOptions,
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
@@ -137,19 +132,55 @@ export function overlay<C extends React.ComponentType<any>>(
     );
   }
   getDispatch()({
-    type: 'overlay',
+    type: 'openOverlay',
+    id,
     component,
     params: params as Record<string, unknown>,
+    activate: options?.activate ?? true,
+    zIndex: options?.zIndex,
   });
 }
 
 /**
- * Close the currently active overlay.
+ * Close a specific overlay by its ID.
+ *
+ * @param id  The ID of the overlay to close.
  *
  * @throws If the provider is not mounted.
  */
-export function closeOverlay(): void {
-  getDispatch()({ type: 'closeOverlay' });
+export function closeOverlay(id: string): void {
+  getDispatch()({ type: 'closeOverlay', id });
+}
+
+/**
+ * Close all open overlays.
+ *
+ * @throws If the provider is not mounted.
+ */
+export function closeAllOverlays(): void {
+  getDispatch()({ type: 'closeAllOverlays' });
+}
+
+/**
+ * Activate an overlay by its ID (so it receives keyboard events).
+ *
+ * @param id  The ID of the overlay to activate.
+ *
+ * @throws If the provider is not mounted or the overlay ID does not exist.
+ */
+export function activateOverlay(id: string): void {
+  getDispatch()({ type: 'activateOverlay', id });
+}
+
+/**
+ * Deactivate an overlay by its ID (so it no longer receives keyboard events).
+ *
+ * @param id  The ID of the overlay to deactivate.
+ *
+ * @throws If the provider is not mounted.
+ */
+export function deactivateOverlay(id: string): void {
+  getDispatch()({ type: 'deactivateOverlay', id });
 }
 
 
@@ -162,7 +193,6 @@ function findCommonAncestor(
   currentPath: React.ComponentType<any>[],
   target: React.ComponentType<any>,
 ): React.ComponentType<any> {
-  // 收集目标及其所有祖先
   const targetAncestors = new Set<React.ComponentType<any>>();
   let node: React.ComponentType<any> | null | undefined = target;
   while (node) {
@@ -170,7 +200,6 @@ function findCommonAncestor(
     node = getParent(node);
   }
 
-  // 从 path 底部向上查找第一个共同祖先
   for (let i = currentPath.length - 1; i >= 0; i--) {
     if (targetAncestors.has(currentPath[i])) {
       return currentPath[i];
@@ -200,18 +229,25 @@ function buildPathFrom(
       `[Ink-Router-Kit] Target component is not a descendant of the ancestor.`,
     );
   }
-  // 现在 path 是 [target, ..., ancestor.child]，反转得到 [ancestor.child, ..., target]
   path.reverse();
   return path;
 }
 
+/**
+ * Pure reducer for {@link ScreenState}.
+ *
+ * Handles all navigation actions: skip (down), back (up), gotoScreen
+ * (cross-branch), openOverlay, closeOverlay, closeAllOverlays,
+ * activateOverlay, and deactivateOverlay.
+ *
+ * Navigation actions (skip / back / gotoScreen) clear all open overlays.
+ */
 function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   switch (action.type) {
 
     case 'skip': {
       const current = state.path[state.path.length - 1];
 
-      // 校验：目标组件必须是当前节点的子节点
       if (!isChildOf(action.component, current)) {
         throw new Error(
           `[Ink-Router-Kit] "${action.component.displayName || action.component.name || 'anonymous'}" is not a child of "${current.displayName || current.name || 'anonymous'}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
@@ -229,7 +265,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       return {
         path: [...state.path, action.component],
         pathParams: [...state.pathParams, mergedParams],
-        overlay: null,
+        overlays: [],
+        activeOverlayIds: new Set<string>(),
         counter,
       };
     }
@@ -248,7 +285,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       return {
         path: state.path.slice(0, -levels),
         pathParams: state.pathParams.slice(0, -levels),
-        overlay: null,
+        overlays: [],
+        activeOverlayIds: new Set<string>(),
         counter: state.counter + 1,
       };
     }
@@ -272,7 +310,6 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       const template = getTemplate(action.component) ?? {};
       const mergedParams = { ...template, ...action.params };
 
-      // 为新路径的每个新节点生成参数（使用模板兜底）
       const newPathParams = [
         ...state.pathParams.slice(0, ancestorIndex + 1),
         ...suffix.map((comp) => {
@@ -284,30 +321,96 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       return {
         path: newPath,
         pathParams: newPathParams,
-        overlay: null,
+        overlays: [],
+        activeOverlayIds: new Set<string>(),
         counter: state.counter + 1,
       };
     }
 
-    case 'overlay': {
-      const template = getTemplate(action.component) ?? {};
-      const mergedParams = { ...template, ...action.params };
+    case 'openOverlay': {
+      if (state.overlays.some(o => o.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Overlay with id "${action.id}" already exists. Use a unique id for each overlay.`,
+        );
+      }
+
+      const newEntry: OverlayEntry = {
+        id: action.id,
+        component: action.component,
+        props: action.params,
+        zIndex: action.zIndex ?? state.overlays.length,
+        createdAt: Date.now(),
+      };
+
+      const newOverlays = sortOverlays([...state.overlays, newEntry]);
+      const newActiveIds = new Set(state.activeOverlayIds);
+
+      if (action.activate) {
+        newActiveIds.add(action.id);
+      }
 
       return {
         ...state,
-        overlay: {
-          component: action.component,
-          params: mergedParams,
-        },
-        counter: state.counter,
+        overlays: newOverlays,
+        activeOverlayIds: newActiveIds,
       };
     }
 
     case 'closeOverlay': {
+      if (!state.overlays.some(o => o.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot close overlay "${action.id}": no overlay with that ID exists.`,
+        );
+      }
+
+      const newOverlays = state.overlays.filter(o => o.id !== action.id);
+      const newActiveIds = new Set(state.activeOverlayIds);
+      newActiveIds.delete(action.id);
+
       return {
         ...state,
-        overlay: null,
-        counter: state.counter,
+        overlays: newOverlays,
+        activeOverlayIds: newActiveIds,
+      };
+    }
+
+    case 'closeAllOverlays': {
+      return {
+        ...state,
+        overlays: [],
+        activeOverlayIds: new Set<string>(),
+      };
+    }
+
+    case 'activateOverlay': {
+      if (!state.overlays.some(o => o.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot activate overlay "${action.id}": no overlay with that ID exists.`,
+        );
+      }
+
+      const newActiveIds = new Set(state.activeOverlayIds);
+      newActiveIds.add(action.id);
+
+      return {
+        ...state,
+        activeOverlayIds: newActiveIds,
+      };
+    }
+
+    case 'deactivateOverlay': {
+      if (!state.overlays.some(o => o.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot deactivate overlay "${action.id}": no overlay with that ID exists.`,
+        );
+      }
+
+      const newActiveIds = new Set(state.activeOverlayIds);
+      newActiveIds.delete(action.id);
+
+      return {
+        ...state,
+        activeOverlayIds: newActiveIds,
       };
     }
 
@@ -330,14 +433,7 @@ export interface ScenarioManagementProviderProps {
  * Screen-management context provider.
  *
  * Wraps the application and enables tree-based screen navigation, overlays,
- * and module-level navigation functions (`skip`, `back`, `gotoScreen`,
- * `overlay`, `closeOverlay`).
- *
- * @param defaultScreen  The root screen component (must be registered).
- * @param defaultParams  Optional initial props for the root screen.
- *
- * @throws If `defaultScreen` has not been registered via
- *         {@link registerComponent}.
+ * and module-level navigation functions.
  */
 export function ScenarioManagementProvider({
   children,
@@ -356,11 +452,11 @@ export function ScenarioManagementProvider({
   const [state, dispatch] = useReducer(screenReducer, {
     path: [defaultScreen],
     pathParams: [initialParams],
-    overlay: null,
+    overlays: [],
+    activeOverlayIds: new Set<string>(),
     counter: 0,
   });
 
-  // 注入模块级 dispatch（支持多实例共存）
   useEffect(() => {
     _dispatchers.add(dispatch);
     return () => {
@@ -368,11 +464,9 @@ export function ScenarioManagementProvider({
     };
   }, []);
 
-  // 当前栈顶组件 & 参数
   const topComponent = state.path[state.path.length - 1];
   const topParams = state.pathParams[state.pathParams.length - 1];
 
-  // 渲染当前屏幕元素
   const currentScreen = useMemo(
     () =>
       React.createElement(topComponent, {
@@ -382,16 +476,16 @@ export function ScenarioManagementProvider({
     [topComponent, topParams, state.counter],
   );
 
-  // 渲染 overlay 元素
-  const currentOverlay = useMemo(
+  // Render all overlay elements (sorted by zIndex)
+  const currentOverlays = useMemo(
     () =>
-      state.overlay
-        ? React.createElement(state.overlay.component, {
-          ...state.overlay.params,
-          key: `overlay-${state.counter}`,
-        })
-        : null,
-    [state.overlay, state.counter],
+      state.overlays.map((entry) =>
+        React.createElement(entry.component, {
+          ...entry.props,
+          key: entry.id,
+        }),
+      ),
+    [state.overlays],
   );
 
   // Context 内的导航方法
@@ -440,47 +534,80 @@ export function ScenarioManagementProvider({
     [],
   );
 
-  const overlayInContext: OverlayFn = useMemo(
-    () => (component, params) => {
+  const openOverlayInContext: OpenOverlayFn = useMemo(
+    () => (id, component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
           `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
-        type: 'overlay',
+        type: 'openOverlay',
+        id,
         component,
         params: params as Record<string, unknown>,
+        activate: options?.activate ?? true,
+        zIndex: options?.zIndex,
       });
     },
     [],
   );
 
   const closeOverlayInContext: CloseOverlayFn = useMemo(
-    () => () => dispatch({ type: 'closeOverlay' }),
+    () => (id: string) => dispatch({ type: 'closeOverlay', id }),
     [],
+  );
+
+  const closeAllOverlaysInContext: CloseAllOverlaysFn = useMemo(
+    () => () => dispatch({ type: 'closeAllOverlays' }),
+    [],
+  );
+
+  const activateOverlayInContext: ActivateOverlayFn = useMemo(
+    () => (id: string) => dispatch({ type: 'activateOverlay', id }),
+    [],
+  );
+
+  const deactivateOverlayInContext: DeactivateOverlayFn = useMemo(
+    () => (id: string) => dispatch({ type: 'deactivateOverlay', id }),
+    [],
+  );
+
+  const activeOverlayIdsArray = useMemo(
+    () => [...state.activeOverlayIds],
+    [state.activeOverlayIds],
   );
 
   const value = useMemo(
     () => ({
       currentScreen,
-      currentOverlay,
+      currentOverlays,
       currentPath: state.path,
       skip: skipInContext,
       back: backInContext,
       gotoScreen: gotoScreenInContext,
-      overlay: overlayInContext,
+      openOverlay: openOverlayInContext,
       closeOverlay: closeOverlayInContext,
+      closeAllOverlays: closeAllOverlaysInContext,
+      activateOverlay: activateOverlayInContext,
+      deactivateOverlay: deactivateOverlayInContext,
+      activeOverlayIds: activeOverlayIdsArray,
+      displayedOverlays: state.overlays,
     }),
     [
       currentScreen,
-      currentOverlay,
+      currentOverlays,
       state.path,
+      state.overlays,
+      activeOverlayIdsArray,
       skipInContext,
       backInContext,
       gotoScreenInContext,
-      overlayInContext,
+      openOverlayInContext,
       closeOverlayInContext,
+      closeAllOverlaysInContext,
+      activateOverlayInContext,
+      deactivateOverlayInContext,
     ],
   );
 
