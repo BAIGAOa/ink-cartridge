@@ -405,8 +405,7 @@ Every public function, component, type, or constant exported from src/index.ts m
  * ```tsx
  * registerComponent(Menu, {});
  * registerComponent(Game, { level: 1 }, { parent: Menu });
-```
-
+* ```
 */
 export function registerComponent<C extends React.ComponentType<any>>(
 component: C,
