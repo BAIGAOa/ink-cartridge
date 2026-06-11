@@ -785,7 +785,12 @@ describe('globalKeys + overlay 覆盖', () => {
     expect(globalCb).toHaveBeenCalled();
   });
 
-  it('无 overlay 时 affectOverlay=true 全局键正常触发', () => {
+
+  // After version 3.0.0, affectOverlay only works on floating layers.
+  // When you enable affectOverlay, the global key will not work on the screen stack if there is no floating layer.
+  //
+  // TIMESTAMP: 2026-06-11 7:39 CST
+  it('无 overlay 时 affectOverlay=true 全局键不会触发', () => {
     const globalCb = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
 
@@ -794,7 +799,7 @@ describe('globalKeys + overlay 覆盖', () => {
     ]);
 
     pressKey('q', {});
-    expect(globalCb).toHaveBeenCalledTimes(1);
+    expect(globalCb).toHaveBeenCalledTimes(0);
   });
 });
 

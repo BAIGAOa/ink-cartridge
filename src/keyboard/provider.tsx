@@ -19,6 +19,7 @@ import {
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 
+
 /**
  * Convert an Ink `(input, key)` event into a list of possible key-name
  * strings for matching.
@@ -363,6 +364,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     category?: React.ComponentType<any>[] | "*";
     times?: number;
     pressCount?: number;
+    executeWhenNoOverlay?: boolean
   }[]>([]);
   const focusSubscribersRef = useRef(new Set<() => void>());
 
@@ -926,6 +928,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             affectOverlay: each.affectOverlay,
             times: each.times,
             pressCount: each.times !== undefined ? 0 : undefined,
+            executeWhenNoOverlay: each.executeWhenNoOverlay
           };
         }
         return {
@@ -936,6 +939,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           affectOverlay: each.affectOverlay,
           times: each.times,
           pressCount: each.times !== undefined ? 0 : undefined,
+          executeWhenNoOverlay: each.executeWhenNoOverlay
         };
       });
 
@@ -1046,30 +1050,42 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const globalKeys = globalKeysRef.current;
     const activeIds = activeOverlayIdsRef.current;
     const overlays = displayedOverlaysRef.current;
+    const activeOverlays = overlays.filter(n => activeIds.has(n.id))
+    const activeCount = activeIds.size;
 
     // 1. 全局键 affectOverlay: true (在所有浮层之前触发)
     for (const entry of globalKeys) {
       if (!entry.affectOverlay) continue;
 
-      // Check all active overlays for globalKeyOverrides
-      const activeOverlays = overlays.filter(o => activeIds.has(o.id));
-      const anyOverlayHasOverride = activeOverlays.some(overlay => {
-        const overlayLayer = layersRef.current.get(overlay.id);
-        if (!overlayLayer) return false;
-        const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
-        return keyNames.some((k) => overlayLayer.globalKeyOverrides.has(k));
-      });
-      if (entry.cover !== false && anyOverlayHasOverride) continue;
+      // After version 3.0.0, the global key for affectOverlay was turned on
+      // They will now only take effect if there is a floating layer.
+      // Otherwise, the global key won't take effect anyway
+      //
+      // But if execute WhenNoOverlay is turned on, things are different.
+      // At this point, even if affectOverlay is turned on and the floating layer is gone, it will continue.
+      // At this point, it affects the screen stack
+      //
+      // --------Warning!!!!------: Global keys with affectOverlay and executeWhenNoOverlay turned on have a higher priority than global keys without affectOverlay turned on
+      //
+      //
+      // TODO: I also have to write annoying tests for this feature.
+      // TIMESTAMP: 2026-06-11 7:11 CST
+      if(activeCount === 0 && !entry.executeWhenNoOverlay) continue
 
-      // Also check top component override
-      if (entry.cover !== false && topComponent) {
-        const topLayer = layersRef.current.get(topComponent);
-        if (topLayer) {
-          const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
-          if (keyNames.some((k) => topLayer.globalKeyOverrides.has(k))) continue;
+      let anyOverlayHasOverride = false
+      if(entry.cover !== false){
+        const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key]
+        for(const overLay of activeOverlays){
+          const overlayLayer = layersRef.current.get(overLay.id);
+          if(overlayLayer && keyNames.some(k => overlayLayer.globalKeyOverrides.has(k))){
+            anyOverlayHasOverride = true
+            break
+          }          
         }
       }
 
+      if(anyOverlayHasOverride) continue
+      
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
         if (entry.times !== undefined && entry.times >= 1) {
           entry.pressCount! += 1;
@@ -1084,9 +1100,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     }
 
     // 2. 广播给所有激活浮层（按 zIndex 升序）
-    let anyOverlayConsumed = false;
-    const activeOverlays = overlays.filter(o => activeIds.has(o.id));
-    const activeCount = activeIds.size;
+    let anyOverlayConsumed = false
 
     for (const overlay of activeOverlays) {
       const layer = layersRef.current.get(overlay.id);
@@ -1099,6 +1113,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     // 3. 全局键 affectOverlay: false (在浮层广播之后、屏幕栈之前触发)
     for (const entry of globalKeys) {
       if (entry.affectOverlay) continue;
+
+      // Fix: In version 3.0.0, Because the check screen stack overrides the global key before the floating layer.
+      // Causes the screen stack to fail to overwrite the global key
+      // So now we're going to do the same thing in the screen stack.
+      //
+      //
+      // The current cover mechanism is as follows:
+      // When affectOverlay is enabled for a global key and cover is true, the screen stack cannot override the global key
+      let screenHasOverride = false
+      if(entry.cover !== false && topComponent){
+        const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
+        const topLayer = layersRef.current.get(topComponent);
+        if(topLayer && keyNames.some(k => topLayer.globalKeyOverrides.has(k))){
+          screenHasOverride = true
+        }
+      }
+      if(screenHasOverride) continue
+      
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
         if (entry.times !== undefined && entry.times >= 1) {
           entry.pressCount! += 1;

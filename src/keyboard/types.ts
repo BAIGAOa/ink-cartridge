@@ -200,6 +200,12 @@ export interface GlobalKeyEntry {
    * - `[Menu, Game]`: only when the stack top is exactly Menu or Game
    */
   category?: React.ComponentType<any>[] | "*";
+
+  /**
+   * This key also works when you have affectOverlay turned on, but you want to have no floating layer
+   * You turn it on.
+   */
+  executeWhenNoOverlay?: boolean;
 }
 
 /**
