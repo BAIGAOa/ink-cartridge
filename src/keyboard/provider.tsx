@@ -6,7 +6,7 @@ import React, {
   useRef,
 } from 'react';
 import { useInput, Key } from 'ink';
-import { KeyboardContext } from './context.js';
+import { KeyboardContext, LayerOwner } from './context.js';
 import {
   KeyHandler,
   BoundKeyboardOptions,
@@ -18,6 +18,7 @@ import {
   ShortcutOperationEntry,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
+
 
 /**
  * Convert an Ink `(input, key)` event into a list of possible key-name
@@ -120,7 +121,7 @@ function checkGlobalKey(
   entry: GlobalKeyEntry,
   eventNames: string[],
   topComponent: React.ComponentType<any> | null,
-  layersRef: React.MutableRefObject<Map<React.ComponentType<any>, ScreenKeyboardLayer>>,
+  layersRef: React.MutableRefObject<Map<LayerOwner, ScreenKeyboardLayer>>,
 ): boolean {
   const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
   if (!keyNames.some((k) => eventNames.includes(k))) return false;
@@ -142,6 +143,20 @@ function checkGlobalKey(
   return true;
 }
 
+/**
+ * Iterate through a list of bindings and fire the first matching handler.
+ *
+ * Matches exact key names first, then falls back to the wildcard `"*"` binding
+ * for normal character input (see {@link isNormalCharacter}).
+ *
+ * @param bindings      Ordered list of key bindings to try.
+ * @param unblockedKeys Normalized key names not blocked at this layer.
+ * @param input         Raw character from Ink's useInput.
+ * @param key           Full Key descriptor from Ink.
+ * @param skipBinding   Optional predicate to skip individual bindings
+ *                      (used for `onlyThis` enforcement).
+ * @returns `true` if a binding matched and consumed the event.
+ */
 function tryMatchBindings(
   bindings: BoundKeyEntry[],
   unblockedKeys: string[],
@@ -170,6 +185,15 @@ function tryMatchBindings(
   return false;
 }
 
+/**
+ * Built-in Tab / Shift+Tab focus rotation for a given layer.
+ *
+ * Cycles {@link ScreenKeyboardLayer.currentFocusId} through the layer's
+ * {@link ScreenKeyboardLayer.focusOrder} list (Tab forward, Shift+Tab backward).
+ * Wraps around at both ends.
+ *
+ * @returns `true` if a tab event was handled and focus was moved.
+ */
 function handleTabNavigation(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
@@ -189,6 +213,66 @@ function handleTabNavigation(
   return true;
 }
 
+/**
+ * Handle a keyboard event against a single layer.
+ *
+ * Evaluates tab navigation, blocked keys, focus-target bindings,
+ * layer-level bindings, and stopped keys — in that order.
+ *
+ * @returns true if the event was consumed by this layer.
+ */
+function handleLayer(
+  layer: ScreenKeyboardLayer,
+  eventNames: string[],
+  input: string,
+  key: Key,
+  isTop: boolean,
+  notifyFocusChange: () => void,
+  activeOverlayCount: number,
+  isOverlay: boolean,
+): boolean {
+  if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
+
+  const blocked = layer.blockedKeys;
+  const unblocked = eventNames.filter((n) => !blocked.includes(n));
+
+  // onlyThis semantics differ between screens and overlays:
+  // - Screen: skip when any overlay is active (activeOverlayCount > 0)
+  // - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
+  const shouldSkipOnlyThis = (b: BoundKeyEntry): boolean => {
+    if (!b.onlyThis) return false;
+    if (isOverlay) return activeOverlayCount > 1;
+    return activeOverlayCount > 0;
+  };
+
+  if (isTop && layer.currentFocusId) {
+    const ft = layer.focusTargets.get(layer.currentFocusId);
+    if (ft) {
+      const fBlocked = ft.blockedKeys;
+      const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
+
+      if (tryMatchBindings(ft.bindings, fUnblocked, input, key, shouldSkipOnlyThis)) return true;
+
+      if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
+        return true;
+      }
+    }
+  }
+
+  if (tryMatchBindings(layer.bindings, unblocked, input, key, shouldSkipOnlyThis)) return true;
+
+  if (isTop && eventNames.some((n) => layer.stoppedKeys.includes(n))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Remove keys from {@link ScreenKeyboardLayer.globalKeyOverrides} when no
+ * bindings (screen-level or focus-target) still reference them.
+ * Keeps the override set consistent after unbind operations.
+ */
 function cleanupGlobalKeyOverrides(
   layer: ScreenKeyboardLayer,
   keys: string[],
@@ -205,7 +289,12 @@ function cleanupGlobalKeyOverrides(
   }
 }
 
-// 从 actionKeysMap 中移除指定 actionId 对应的 keys（若集合为空则删除整个条目）
+/**
+ * Remove specific keys from an action's entry in the actionKeysMap.
+ * If no keys remain for the action after removal, the entire entry is deleted.
+ *
+ * Used during unbind to keep the map consistent with the current bindings.
+ */
 function removeKeysFromActionMap(
   map: Map<string, string[]>,
   actionId: string,
@@ -247,20 +336,26 @@ export interface KeyboardProviderProps {
  * key-stop propagation barriers (`stop`), and global keys (`globalKeys`).
  * Handles the full event priority chain:
  *   1. Global keys with `affectOverlay: true`
- *   2. Active overlay layer
+ *   2. Broadcast to all active overlays (sorted by zIndex ascending)
  *   3. Global keys with `affectOverlay: false` (default)
- *   4. Screen stack (top → bottom)
+ *   4. Screen stack (top → bottom), only if no overlay consumed the event
  *   5. Drop unhandled keys
  *
  * Must be nested inside a {@link ScenarioManagementProvider} so that the
- * current screen path is available for layer management.
+ * current screen path and overlay state are available.
  */
 export function KeyboardProvider({ children }: KeyboardProviderProps) {
-  const { currentPath, currentOverlay } = useScreenSystem();
+  const {
+    currentPath,
+    activeOverlayIds,
+    displayedOverlays,
+  } = useScreenSystem();
 
   // 使用 useRef 替代模块级全局变量，实现多实例隔离
   const pathRef = useRef<React.ComponentType<any>[]>(currentPath);
-  const overlayRef = useRef<React.ComponentType<any> | null>(null);
+  const activeOverlayIdsRef = useRef<Set<string>>(new Set());
+  const displayedOverlaysRef = useRef(displayedOverlays);
+
   const globalKeysRef = useRef<{
     key: string | string[];
     operate: () => void;
@@ -269,35 +364,30 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     category?: React.ComponentType<any>[] | "*";
     times?: number;
     pressCount?: number;
+    executeWhenNoOverlay?: boolean
   }[]>([]);
   const focusSubscribersRef = useRef(new Set<() => void>());
 
-  // 存储快捷操作的集合
-  // 在某些场景下为了防止多次重复定义某个操作
-  // 以及为了可以JSON配置化，我们就需要这个东西
   const shortcutOperationsRef = useRef(
     new Map<string, { action: () => void; keys?: string[] }>()
   );
 
+  // Owner stack: top of stack is the current "owner" for keyboard bindings.
+  // When inside an overlay, the overlay ID is pushed. When outside, the
+  // top component from the screen path is used as fallback.
+  const ownerStackRef = useRef<LayerOwner[]>([]);
+
   // 每次渲染同步最新值（无副作用，只是指针赋值）
   pathRef.current = currentPath;
-  overlayRef.current = currentOverlay
-    ? (currentOverlay as React.ReactElement).type as React.ComponentType<any>
-    : null;
+  activeOverlayIdsRef.current = new Set(activeOverlayIds);
+  displayedOverlaysRef.current = displayedOverlays;
 
-  const layersRef = useRef<
-    Map<
-      React.ComponentType<any>,
-      ScreenKeyboardLayer
-    >
-  >(new Map());
+  // layersRef now accepts both component types (for screens) and strings (for overlay IDs)
+  const layersRef = useRef<Map<LayerOwner, ScreenKeyboardLayer>>(new Map());
 
   const prevPathRef = useRef<React.ComponentType<any>[]>([]);
 
-  // 覆盖层是独立的
-  const prevOverlayRef = useRef<React.ComponentType<any> | null>(null);
-
-
+  // Clean up layers for removed screens
   useEffect(() => {
     const prev = prevPathRef.current;
     for (const comp of prev) {
@@ -308,18 +398,35 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     prevPathRef.current = currentPath;
   }, [currentPath]);
 
-  // Fix: 添加覆盖层的清理逻辑
+  // Clean up layers for removed overlays
+  const prevOverlayIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (prevOverlayRef.current && !currentOverlay) {
-      layersRef.current.delete(prevOverlayRef.current);
+    const currentIds = new Set(displayedOverlays.map(o => o.id));
+
+    // Delete layers for overlays that no longer exist
+    for (const key of layersRef.current.keys()) {
+      if (typeof key === 'string' && !currentIds.has(key)) {
+        layersRef.current.delete(key);
+      }
     }
-    prevOverlayRef.current = currentOverlay
-      ? (currentOverlay as React.ReactElement).type as React.ComponentType<any>
-      : null;
-  }, [currentOverlay])
+
+    prevOverlayIdsRef.current = currentIds;
+  }, [displayedOverlays]);
+
+  // ---- Owner stack management (internal, used by useKeyboard) ----
+
+  const pushOwner = useCallback((owner: LayerOwner) => {
+    ownerStackRef.current = [...ownerStackRef.current, owner];
+  }, []);
+
+  const popOwner = useCallback((owner: LayerOwner) => {
+    ownerStackRef.current = ownerStackRef.current.filter(o => o !== owner);
+  }, []);
+
+  // ---- Core keyboard functions ----
 
   const getLayer = useCallback(
-    (owner: React.ComponentType<any>) => {
+    (owner: LayerOwner) => {
       let layer = layersRef.current.get(owner);
       if (!layer) {
         layer = {
@@ -330,7 +437,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           focusTargets: new Map(),
           focusOrder: [],
           currentFocusId: null,
-          actionKeysMap: new Map(), // 用于存储 action ID 到 keys 的映射（屏幕级别）
+          actionKeysMap: new Map(),
         };
         layersRef.current.set(owner, layer);
       }
@@ -339,10 +446,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     [],
   );
 
-  const getCurrentOwner = useCallback((): React.ComponentType<any> | null => {
+  const getCurrentOwner = useCallback((): LayerOwner | null => {
+    const stack = ownerStackRef.current;
+    if (stack.length > 0) return stack[stack.length - 1];
     const path = pathRef.current;
     if (path.length === 0) return null;
-    return overlayRef.current || path[path.length - 1];
+    return path[path.length - 1];
   }, []);
 
   const notifyFocusChange = useCallback(() => {
@@ -357,7 +466,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           bindings: [],
           blockedKeys: [],
           stoppedKeys: [],
-          actionKeysMap: new Map(), // 用于存储 action ID 到 keys 的映射（焦点目标级别）
+          actionKeysMap: new Map(),
         };
         layer.focusTargets.set(focusId, target);
         layer.focusOrder.push(focusId);
@@ -372,10 +481,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   );
 
   /**
-   * Bind keys on the current (top-of-stack) screen component.
+   * Bind keys on the current layer (screen or overlay).
    *
-   * The owner is automatically set to the current top-of-stack component.
-   * Returns an unbind function for cleanup.
+   * The owner is automatically determined from the owner stack
+   * (set by OverlayContext when inside an overlay) or falls back
+   * to the top screen component.
    *
    * Overloads:
    * 1. (keys: string[], handler: KeyHandler | string, options?: BoundKeyboardOptions)
@@ -392,7 +502,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         keys: string[],
         handler: KeyHandler | string,
         onlyThis: boolean,
-        owner: React.ComponentType<any>,
+        owner: LayerOwner,
       ): BoundKeyEntry {
         if (typeof handler === 'string') {
           const entry = shortcutOperationsRef.current.get(handler);
@@ -408,7 +518,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
       function applyGlobalKeyOverrides(
         keys: string[],
-        owner: React.ComponentType<any>,
+        owner: LayerOwner,
         layer: ScreenKeyboardLayer,
         bindingContext: string,
       ): void {
@@ -419,17 +529,26 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
           const cat = gk.category;
           let inCategory = false;
-          if (cat === undefined || cat === '*') {
-            inCategory = true;
-          } else if (Array.isArray(cat)) {
-            inCategory = cat.includes(owner);
+
+          // Category applies to screen components, not overlay IDs
+          if (typeof owner !== 'string') {
+            if (cat === undefined || cat === '*') {
+              inCategory = true;
+            } else if (Array.isArray(cat)) {
+              inCategory = cat.includes(owner);
+            }
           }
+
+          // For overlay owners, category checks are skipped (overlays don't override global keys by category)
+          if (typeof owner === 'string' && matchingKeys.length > 0) continue;
+
           if (!inCategory) continue;
 
           const cover = gk.cover ?? true;
           if (!cover) {
+            const ownerName = typeof owner === 'string' ? owner : (owner.displayName || owner.name || 'anonymous');
             throw new Error(
-              `[Ink-Router-Kit] Component "${owner.displayName || owner.name || 'anonymous'}" ` +
+              `[Ink-Router-Kit] Component "${ownerName}" ` +
               `attempted to bind "${matchingKeys[0]}" via ${bindingContext}, ` +
               `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
             );
@@ -454,7 +573,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             `[Ink-Router-Kit] Action "${actionId}" does not have predefined keys. Please register with keys field or call boundKeyboard with explicit keys.`,
           );
         }
-        // 递归调用原有实现
         return boundKeyboard(entry.keys, actionId, options);
       }
 
@@ -466,7 +584,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = getCurrentOwner();
       if (!owner) {
         throw new Error(
-          '[Ink-Router-Kit] boundKeyboard() must be called inside a screen component. There is currently no active screen.',
+          '[Ink-Router-Kit] boundKeyboard() must be called inside a screen component or overlay. There is currently no active screen.',
         );
       }
 
@@ -502,7 +620,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           const idx = target!.bindings.indexOf(entry);
           if (idx !== -1) target!.bindings.splice(idx, 1);
           cleanupGlobalKeyOverrides(layer, entry.keys);
-          // 解绑时同步清理 actionKeysMap
           if (typeof handler === 'string') {
             removeKeysFromActionMap(target!.actionKeysMap, handler, keys);
           }
@@ -516,9 +633,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           entry.handler = (input: string, key: Key) => {
             entry.pressCount! += 1;
             if (entry.pressCount! < entry.times!) {
-              return; // consume event, don't fire handler yet
+              return;
             }
-            entry.pressCount = 0; // reset counter
+            entry.pressCount = 0;
             if (options?.once) {
               doUnbind();
             }
@@ -554,7 +671,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const idx = layer.bindings.indexOf(entry);
         if (idx !== -1) layer.bindings.splice(idx, 1);
         cleanupGlobalKeyOverrides(layer, entry.keys);
-        // 解绑时同步清理 actionKeysMap
         if (typeof handler === 'string') {
           removeKeysFromActionMap(layer.actionKeysMap, handler, keys);
         }
@@ -568,9 +684,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         entry.handler = (input: string, key: Key) => {
           entry.pressCount! += 1;
           if (entry.pressCount! < entry.times!) {
-            return; // consume event, don't fire handler yet
+            return;
           }
-          entry.pressCount = 0; // reset counter
+          entry.pressCount = 0;
           if (options?.once) {
             doUnbind();
           }
@@ -591,15 +707,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   /**
    * Mark keys as transparent on the current layer.
-   *
-   * When a transparent key reaches this layer, the layer's own bindings
-   * are skipped and the key propagates to the next layer below.
    */
   const penetration = useCallback(
     (keys: string[], options?: BlockedKeyOptions): (() => void) => {
       const owner = getCurrentOwner();
       if (!owner) {
-        throw new Error('[Ink-Router-Kit] blockedKey() must be called inside a screen component.');
+        throw new Error('[Ink-Router-Kit] blockedKey() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
 
@@ -620,7 +733,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         };
       }
 
-      // 向后兼容
       const added: string[] = [];
       for (const k of keys) {
         if (!layer.blockedKeys.includes(k)) {
@@ -639,17 +751,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   );
 
   /**
-   * Prevent keys from propagating beyond the current (top-of-stack) layer.
-   *
-   * The layer's own bindings are evaluated first — only if no binding
-   * matches does the stop take effect, consuming the key so that lower
-   * layers never see it. The returned unstop function removes the keys.
+   * Prevent keys from propagating beyond the current layer.
    */
   const stop = useCallback(
     (keys: string[], options?: StopOptions): (() => void) => {
       const owner = getCurrentOwner();
       if (!owner) {
-        throw new Error('[Ink-Router-Kit] stop() must be called inside a screen component.');
+        throw new Error('[Ink-Router-Kit] stop() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
 
@@ -660,12 +768,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           ? getOrCreateFocusTarget(layer, options.focusId).actionKeysMap
           : layer.actionKeysMap;
         const merged: string[] = [];
-        const ownerName = (owner as any).displayName || owner.name || 'Unknown';
+        const ownerName = typeof owner === 'string' ? owner : ((owner as any).displayName || owner.name || 'Unknown');
         for (const actionId of keys) {
           const boundKeys = map.get(actionId);
           if (!boundKeys) {
             throw new Error(
-              `[Ink-Router-Kit] stop(["${actionId}"], { stopAction: true }) on screen "${ownerName}": ` +
+              `[Ink-Router-Kit] stop(["${actionId}"], { stopAction: true }) on "${ownerName}": ` +
               `action "${actionId}" is not registered or has no keys bound. ` +
               `Register it with defineShortcutAction() and bind it with boundKeyboard() first.`,
             );
@@ -693,7 +801,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           }
         };
       } else {
-        // 之前的stop逻辑，为了向后兼容得以保留
         const added: string[] = [];
         for (const k of effectiveKeys) {
           if (!layer.stoppedKeys.includes(k)) {
@@ -722,11 +829,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     (focusId: string) => {
       const owner = getCurrentOwner();
       if (!owner) return;
-      const ownerName = (owner as any).displayName || owner.name || 'Unknown';
+      const ownerName = typeof owner === 'string' ? owner : ((owner as any).displayName || owner.name || 'Unknown');
       const layer = layersRef.current.get(owner);
       if (!layer) {
         throw new Error(
-          `focusSet("${focusId}"): no keyboard layer found for screen "${ownerName}". ` +
+          `focusSet("${focusId}"): no keyboard layer found for "${ownerName}". ` +
           `Did you forget to wrap the screen in <KeyboardProvider>?`,
         );
       }
@@ -735,7 +842,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           ? layer.focusOrder.map(id => `"${id}"`).join(', ')
           : '(none)';
         throw new Error(
-          `focusSet("${focusId}"): focus target not found on screen "${ownerName}". ` +
+          `focusSet("${focusId}"): focus target not found on "${ownerName}". ` +
           `Available targets: ${available}`,
         );
       }
@@ -799,16 +906,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   /**
    * Register global key bindings.
-   *
-   * Global keys fire independently of the screen stack (subject to
-   * `category` whitelist and `affectOverlay` placement).
-   *
-   * Calling this replaces any previously registered global keys.
    */
   const globalKeys = useCallback(
     (entries: GlobalKeyEntry[], options?: { mode?: 'replace' | 'add' }) => {
       const processed = entries.map((each) => {
-        // Validate times option
         if (each.times !== undefined && each.times < 1) {
           throw new Error(
             '[Ink-Router-Kit] globalKeys() times option must be >= 1.',
@@ -827,6 +928,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             affectOverlay: each.affectOverlay,
             times: each.times,
             pressCount: each.times !== undefined ? 0 : undefined,
+            executeWhenNoOverlay: each.executeWhenNoOverlay
           };
         }
         return {
@@ -837,14 +939,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           affectOverlay: each.affectOverlay,
           times: each.times,
           pressCount: each.times !== undefined ? 0 : undefined,
+          executeWhenNoOverlay: each.executeWhenNoOverlay
         };
       });
 
       if (options?.mode === 'add') {
-        // Append to existing global keys (backward-compatible addition)
         globalKeysRef.current = [...globalKeysRef.current, ...processed];
       } else {
-        // Replace (default behavior, backward compatible)
         globalKeysRef.current = processed;
       }
     },
@@ -856,7 +957,6 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (shortcutOperationsRef.current.has(each.actionId)) {
         throw new Error(`[Ink-Router-Kit]Duplicate shortcut cannot be defined with ID ${each.actionId}`)
       }
-      // 存储 action 函数和可选的 keys
       shortcutOperationsRef.current.set(each.actionId, {
         action: each.action,
         keys: each.keys,
@@ -864,27 +964,18 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     }
   }, [])
 
-  /**
-   * Modify the default keys of an existing shortcut action.
-   *
-   * @param actionId - Unique identifier of the action.
-   * @param keys     - New key names to replace the previous default keys.
-   * @throws If the action does not exist or was not registered with a `keys` field.
-   */
   const modifyAction = useCallback((actionId: string, keys: string[]) => {
     const entry = shortcutOperationsRef.current.get(actionId);
     if (!entry) {
       throw new Error(`[Ink-Router-Kit] Cannot modify action "${actionId}": action not registered.`);
     }
-    // 原注册时没有提供 keys 字段，不允许修改（静默失败原则直接报错）
     if (entry.keys === undefined) {
       throw new Error(`[Ink-Router-Kit] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`);
     }
-    // 直接覆盖
     entry.keys = keys;
   }, []);
 
-    const addAction = useCallback((entry: ShortcutOperationEntry) => {
+  const addAction = useCallback((entry: ShortcutOperationEntry) => {
     if (shortcutOperationsRef.current.has(entry.actionId)) {
       throw new Error(`[Ink-Router-Kit] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
     }
@@ -927,6 +1018,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       removeAction,
       modifyAction,
       clearShortcutOperations,
+      _pushOwner: pushOwner,
+      _popOwner: popOwner,
     }),
     [
       boundKeyboard,
@@ -945,6 +1038,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       removeAction,
       modifyAction,
       clearShortcutOperations,
+      pushOwner,
+      popOwner,
     ],
   );
 
@@ -952,118 +1047,111 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const eventNames = normalizeKeyNames(input, key);
     const path = pathRef.current;
     const topComponent = path.length > 0 ? path[path.length - 1] : null;
-    const overlayComp = overlayRef.current;
     const globalKeys = globalKeysRef.current;
+    const activeIds = activeOverlayIdsRef.current;
+    const overlays = displayedOverlaysRef.current;
+    const activeOverlays = overlays.filter(n => activeIds.has(n.id))
+    const activeCount = activeIds.size;
 
-
+    // 1. 全局键 affectOverlay: true (在所有浮层之前触发)
     for (const entry of globalKeys) {
       if (!entry.affectOverlay) continue;
-      // Allow the active overlay to override a global key (same as the
-      // top screen can — via boundKeyboard setting globalKeyOverrides).
-      if (overlayComp && entry.cover !== false) {
-        const overlayLayer = layersRef.current.get(overlayComp);
-        if (overlayLayer) {
-          const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
-          if (keyNames.some((k) => overlayLayer.globalKeyOverrides.has(k))) continue;
+
+      // After version 3.0.0, the global key for affectOverlay was turned on
+      // They will now only take effect if there is a floating layer.
+      // Otherwise, the global key won't take effect anyway
+      //
+      // But if execute WhenNoOverlay is turned on, things are different.
+      // At this point, even if affectOverlay is turned on and the floating layer is gone, it will continue.
+      // At this point, it affects the screen stack
+      //
+      // --------Warning!!!!------: Global keys with affectOverlay and executeWhenNoOverlay turned on have a higher priority than global keys without affectOverlay turned on
+      //
+      //
+      // TODO: I also have to write annoying tests for this feature.
+      // TIMESTAMP: 2026-06-11 7:11 CST
+      if(activeCount === 0 && !entry.executeWhenNoOverlay) continue
+
+      let anyOverlayHasOverride = false
+      if(entry.cover !== false){
+        const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key]
+        for(const overLay of activeOverlays){
+          const overlayLayer = layersRef.current.get(overLay.id);
+          if(overlayLayer && keyNames.some(k => overlayLayer.globalKeyOverrides.has(k))){
+            anyOverlayHasOverride = true
+            break
+          }          
         }
       }
+
+      if(anyOverlayHasOverride) continue
+      
       if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
-        // Handle times counter
         if (entry.times !== undefined && entry.times >= 1) {
           entry.pressCount! += 1;
           if (entry.pressCount! < entry.times!) {
-            return; // consume event, but haven't reached threshold yet
-          }
-          entry.pressCount = 0; // reset counter
-        }
-        entry.operate();
-        return;
-      }
-    }
-
-
-    if (overlayComp) {
-      const overlayLayer = layersRef.current.get(overlayComp);
-      if (overlayLayer) {
-        if (handleTabNavigation(overlayLayer, eventNames, key.shift, notifyFocusChange)) return;
-
-        const blocked = overlayLayer.blockedKeys;
-        const unblocked = eventNames.filter((n) => !blocked.includes(n));
-
-
-        const focusId = overlayLayer.currentFocusId;
-        if (focusId) {
-          const ft = overlayLayer.focusTargets.get(focusId);
-          if (ft) {
-            const fBlocked = ft.blockedKeys;
-            const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
-
-            if (tryMatchBindings(ft.bindings, fUnblocked, input, key)) return;
-
-            if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
-              return;
-            }
-          }
-        }
-
-        if (tryMatchBindings(overlayLayer.bindings, unblocked, input, key)) return;
-
-        if (eventNames.some((n) => overlayLayer.stoppedKeys.includes(n))) {
-          return;
-        }
-      }
-    }
-
-
-    for (const entry of globalKeys) {
-      if (entry.affectOverlay) continue;
-      if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
-        // Handle times counter
-        if (entry.times !== undefined && entry.times >= 1) {
-          entry.pressCount! += 1;
-          if (entry.pressCount! < entry.times!) {
-            return; // consume event, but haven't reached threshold yet
-          }
-          entry.pressCount = 0; // reset counter
-        }
-        entry.operate();
-        return;
-      }
-    }
-
-
-    for (let i = path.length - 1; i >= 0; i--) {
-      const comp = path[i];
-      const layer = layersRef.current.get(comp);
-      if (!layer) continue;
-      const isTop = i === path.length - 1;
-
-      if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return;
-
-      const blocked = layer.blockedKeys;
-      const unblocked = eventNames.filter((n) => !blocked.includes(n));
-
-      if (isTop && layer.currentFocusId) {
-        const ft = layer.focusTargets.get(layer.currentFocusId);
-        if (ft) {
-          const fBlocked = ft.blockedKeys;
-          const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
-
-          const skipOnlyThis = (b: BoundKeyEntry) => b.onlyThis && overlayComp !== null;
-          if (tryMatchBindings(ft.bindings, fUnblocked, input, key, skipOnlyThis)) return;
-
-          if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
             return;
           }
+          entry.pressCount = 0;
+        }
+        entry.operate();
+        return;
+      }
+    }
+
+    // 2. 广播给所有激活浮层（按 zIndex 升序）
+    let anyOverlayConsumed = false
+
+    for (const overlay of activeOverlays) {
+      const layer = layersRef.current.get(overlay.id);
+      if (layer && handleLayer(layer, eventNames, input, key, true, notifyFocusChange, activeCount, true)) {
+        anyOverlayConsumed = true;
+        // 不 break，继续下一个浮层
+      }
+    }
+
+    // 3. 全局键 affectOverlay: false (在浮层广播之后、屏幕栈之前触发)
+    for (const entry of globalKeys) {
+      if (entry.affectOverlay) continue;
+
+      // Fix: In version 3.0.0, Because the check screen stack overrides the global key before the floating layer.
+      // Causes the screen stack to fail to overwrite the global key
+      // So now we're going to do the same thing in the screen stack.
+      //
+      //
+      // The current cover mechanism is as follows:
+      // When affectOverlay is enabled for a global key and cover is true, the screen stack cannot override the global key
+      let screenHasOverride = false
+      if(entry.cover !== false && topComponent){
+        const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
+        const topLayer = layersRef.current.get(topComponent);
+        if(topLayer && keyNames.some(k => topLayer.globalKeyOverrides.has(k))){
+          screenHasOverride = true
         }
       }
-
-      const skipOnlyThis = (b: BoundKeyEntry) =>
-        b.onlyThis && (i !== path.length - 1 || overlayComp !== null);
-      if (tryMatchBindings(layer.bindings, unblocked, input, key, skipOnlyThis)) return;
-
-      if (isTop && eventNames.some((n) => layer.stoppedKeys.includes(n))) {
+      if(screenHasOverride) continue
+      
+      if (checkGlobalKey(entry, eventNames, topComponent, layersRef)) {
+        if (entry.times !== undefined && entry.times >= 1) {
+          entry.pressCount! += 1;
+          if (entry.pressCount! < entry.times!) {
+            return;
+          }
+          entry.pressCount = 0;
+        }
+        entry.operate();
         return;
+      }
+    }
+
+    // 4. 屏幕栈（仅当没有激活浮层消费事件时执行）
+    if (!anyOverlayConsumed) {
+      for (let i = path.length - 1; i >= 0; i--) {
+        const comp = path[i];
+        const layer = layersRef.current.get(comp);
+        if (!layer) continue;
+        const isTop = i === path.length - 1;
+        if (handleLayer(layer, eventNames, input, key, isTop, notifyFocusChange, activeCount, false)) break;
       }
     }
   });

@@ -13,9 +13,9 @@ export type KeyHandler = (input: string, key: Key) => void;
  */
 export interface BoundKeyboardOptions {
   /**
-   * When `true`, the binding only activates when the owning screen is the
-   * top of the stack and no overlay is open. Otherwise the binding is
-   * ignored and the key continues to bubble down.
+   * When `true`, the binding only activates when the owning overlay is the
+   * only active overlay (for overlays), or when no overlays are active
+   * and the screen is at the top of the stack (for screens).
    */
   onlyThis?: boolean;
 
@@ -70,8 +70,8 @@ export interface BoundKeyEntry {
   handler: KeyHandler;
   /** Whether this binding requires the owner to be stack top. */
   onlyThis: boolean;
-  /** The screen component that owns this binding. */
-  owner: React.ComponentType<any>;
+  /** The screen component or overlay ID that owns this binding. */
+  owner: React.ComponentType<any> | string;
   /** Number of presses needed before the handler fires (from options). */
   times?: number;
   /** Current press count. Managed internally by the keyboard provider. */
@@ -200,6 +200,12 @@ export interface GlobalKeyEntry {
    * - `[Menu, Game]`: only when the stack top is exactly Menu or Game
    */
   category?: React.ComponentType<any>[] | "*";
+
+  /**
+   * This key also works when you have affectOverlay turned on, but you want to have no floating layer
+   * You turn it on.
+   */
+  executeWhenNoOverlay?: boolean;
 }
 
 /**

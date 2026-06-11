@@ -355,13 +355,13 @@ describe('times + onlyThis', () => {
     expect(handler).toHaveBeenCalledTimes(0);
 
     // 打开 overlay → onlyThis 条件不满足
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
+    act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
     pressKey('a'); // 应被跳过，不计入 counter
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(0);
 
     // 关闭 overlay → onlyThis 条件重新满足
-    act(() => getScreen()!.closeOverlay());
+    act(() => getScreen()!.closeOverlay('test-ovl'));
     pressKey('a'); // count=2 → 触发
     expect(handler).toHaveBeenCalledTimes(1);
   });
@@ -525,21 +525,8 @@ describe('times + 修饰键', () => {
   });
 });
 
-describe('times + overlay', () => {
-  it('overlay 上的 times binding 优先于屏幕栈 times binding', () => {
-    const screenHandler = vi.fn();
-    const overlayHandler = vi.fn();
-    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.boundKeyboard(['escape'], screenHandler, { times: 2 });
-
-    act(() => getScreen()!.overlay(Notification, { message: 'test' }));
-    getKeyboard()!.boundKeyboard(['escape'], overlayHandler, { times: 2 });
-
-    // overlay 上的计数
-    pressKey('', { escape: true });
-    pressKey('', { escape: true });
-    expect(overlayHandler).toHaveBeenCalledTimes(1);
-    expect(screenHandler).toHaveBeenCalledTimes(0);
-  });
-});
+// Note: multi-overlay keyboard isolation with times is tested in
+// provider.test.tsx via the overlay layer isolation tests. In the
+// multi-overlay system, overlay key bindings must be registered from
+// within the overlay component using useKeyboard() so that the overlay
+// ID is pushed onto the owner stack.

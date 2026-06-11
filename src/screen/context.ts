@@ -3,28 +3,54 @@ import type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OverlayFn,
+  OpenOverlayFn,
   CloseOverlayFn,
+  CloseAllOverlaysFn,
+  ActivateOverlayFn,
+  DeactivateOverlayFn,
+  OverlayEntry,
 } from './types.js';
 
+/**
+ * Value provided by {@link ScenarioManagementProvider} via React context.
+ *
+ * Includes the current screen, all active overlays, navigation functions,
+ * and overlay management functions for the multi-overlay system.
+ */
 export interface ScreenSystemContextValue {
-  /** 当前屏幕的已渲染元素（栈顶组件） */
+  /** The rendered React element for the current (top-of-stack) screen. */
   currentScreen: ReactNode;
-  /** overlay 的已渲染元素（若有） */
-  currentOverlay: ReactNode | null;
-  /** 当前激活路径：从根到栈顶的组件数组 */
+  /** Rendered React elements for all overlays, sorted by zIndex ascending. */
+  currentOverlays: ReactNode[];
+  /** Full navigation path from root to the current screen. */
   currentPath: React.ComponentType<any>[];
-  /** 沿树向下跳转（选分支） */
+  /** Navigate down the tree to a direct child of the current screen. */
   skip: SkipFn;
-  /** 沿树向上返回父节点 */
+  /** Navigate up the tree toward the root. */
   back: BackFn;
-  /** 跨分支跳转到任意已注册节点 */
+  /** Jump to any registered screen across branches via LCA resolution. */
   gotoScreen: GotoScreenFn;
-  /** 打开浮层 */
-  overlay: OverlayFn;
-  /** 关闭浮层 */
+  /** Open a new overlay with a unique ID. Multiple overlays can coexist. */
+  openOverlay: OpenOverlayFn;
+  /** Close a specific overlay by its ID. */
   closeOverlay: CloseOverlayFn;
+  /** Close all open overlays at once. */
+  closeAllOverlays: CloseAllOverlaysFn;
+  /** Activate an overlay so it receives keyboard events. */
+  activateOverlay: ActivateOverlayFn;
+  /** Deactivate an overlay so it stops receiving keyboard events. */
+  deactivateOverlay: DeactivateOverlayFn;
+  /** IDs of overlays that are currently active (receiving keyboard events). */
+  activeOverlayIds: string[];
+  /** All currently displayed overlays with metadata (id, zIndex, etc.). */
+  displayedOverlays: OverlayEntry[];
 }
 
+/**
+ * React context for the screen navigation system.
+ *
+ * Accessed via {@link useScreenSystem}. Must be provided by a
+ * {@link ScenarioManagementProvider} at the root of the component tree.
+ */
 export const ScreenSystemContext =
   createContext<ScreenSystemContextValue | null>(null);

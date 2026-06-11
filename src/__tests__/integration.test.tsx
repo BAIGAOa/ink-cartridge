@@ -11,11 +11,13 @@ import {
   act,
 } from '@testing-library/react';
 import React, {
+  useContext,
   useEffect,
 } from 'react';
 import type {
   Key,
 } from 'ink';
+import { OverlayContext } from '../screen/OverlayContext.js';
 
 import { CurrentScreen } from '../screen/current-screen.js';
 import {
@@ -96,7 +98,7 @@ interface GameProps {
 }
 
 function Game({ onEscape }: GameProps) {
-  const { back, skip, overlay: ov } = useScreenSystem();
+  const { back, skip, openOverlay } = useScreenSystem();
   const { boundKeyboard, blockedKey, stop } = useKeyboard();
 
   useEffect(() => {
@@ -104,7 +106,7 @@ function Game({ onEscape }: GameProps) {
     stop(['q']);
     boundKeyboard(['b'], () => back());
     boundKeyboard(['i'], () => skip(Inventory, {}));
-    boundKeyboard(['o'], () => ov(PauseOverlay, {}));
+    boundKeyboard(['o'], () => openOverlay('pause-ovl', PauseOverlay, {}));
     // For scenario 5: Game binds escape, but overlay's escape should win.
     boundKeyboard(['escape'], () => onEscape?.());
   }, []);
@@ -124,11 +126,12 @@ function Inventory() {
 Inventory.displayName = 'Inventory';
 
 function PauseOverlay() {
+  const overlayId = useContext(OverlayContext);
   const { closeOverlay } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
 
   useEffect(() => {
-    boundKeyboard(['escape'], () => closeOverlay());
+    boundKeyboard(['escape'], () => closeOverlay(overlayId!));
   }, []);
   return React.createElement('div', null, 'PauseOverlay');
 }
@@ -272,12 +275,12 @@ describe('场景 5：Overlay 优先级 — overlay 的 escape 优先于屏幕', 
     expect(getScreen()!.currentPath).toEqual([Menu, Game]);
 
     act(() => pressKey('o', {}));
-    expect(getScreen()!.currentOverlay).not.toBeNull();
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
     expect(getScreen()!.currentPath).toEqual([Menu, Game]);
 
     act(() => pressKey('', { escape: true }));
 
-    expect(getScreen()!.currentOverlay).toBeNull();
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
     expect(gameEscapeSpy).not.toHaveBeenCalled();
   });
 
@@ -287,11 +290,11 @@ describe('场景 5：Overlay 优先级 — overlay 的 escape 优先于屏幕', 
 
     act(() => pressKey('s', {}));
 
-    act(() => getScreen()!.overlay(PauseOverlay, {}));
-    expect(getScreen()!.currentOverlay).not.toBeNull();
+    act(() => getScreen()!.openOverlay('pause-2', PauseOverlay, {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
 
-    act(() => getScreen()!.closeOverlay());
-    expect(getScreen()!.currentOverlay).toBeNull();
+    act(() => getScreen()!.closeOverlay('pause-2'));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
 
     act(() => pressKey('', { escape: true }));
     expect(gameEscapeSpy).toHaveBeenCalledTimes(1);
