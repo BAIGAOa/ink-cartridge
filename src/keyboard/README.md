@@ -104,6 +104,7 @@ Key pressed
   |
   +- 2. Active overlay layer
   |      +- Tab / Shift+Tab -> switch focus
+  |      +- Sequence matching -> pending / advance / cancel
   |      +- Focus target (if active) -> blockedKey -> bindings -> stop
   |      +- Screen layer bindings -> blockedKey -> bindings -> stop
   |
@@ -112,6 +113,7 @@ Key pressed
   +- 4. Screen stack (top to bottom)
   |      For each layer:
   |        +- Tab / Shift+Tab (top layer only) -> switch focus
+  |        +- Sequence matching (top layer only) -> pending / advance / cancel
   |        +- Focus target (top layer only) -> blockedKey -> bindings -> stop
   |        +- Screen layer bindings -> blockedKey -> bindings -> stop
   |
@@ -184,7 +186,10 @@ Must be nested inside ScenarioManagementProvider.
 const {
   boundKeyboard, blockedKey, stop, globalKeys,
   focusSet, focusNext, focusPrev, focusCurrent,
-  focusUnregister, subscribeFocus, defineShortcutAction,
+  focusUnregister, subscribeFocus,
+  defineShortcutAction, addAction, hasAction,
+  removeAction, modifyAction, clearShortcutOperations,
+  boundSequence,
 } = useKeyboard();
 ```
 
@@ -368,26 +373,134 @@ When stopAction is used with an action ID that has no bindings (never registered
 ### globalKeys
 
 ```tsx
-globalKeys(entries: GlobalKeyEntry[]): void;
+globalKeys(entries: GlobalKeyEntry[], options?): void;
 ```
 
-Register global key bindings that fire independently of the screen stack. Calling this replaces any previously registered global keys.
+Register global key bindings that fire independently of the screen stack.
 
-#### GlobalKeyEntry
-
-Property        | Type | Default | Description
---------------- | ---- | ------- | -----------
-key             | string or string[] | - | Key name(s) to match
-operate         | () => void or string | - | Callback or shortcut action ID
-cover           | boolean | true | Whether screen components may override this key
-affectOverlay   | boolean | false | Fire before (true) or after (false) the overlay
-category        | ComponentType[] or '*' or undefined | '*' | Screen whitelist; '*' = all, [] = disabled
+By default (or with `{ mode: 'replace' }`), replaces all previously registered global keys. Pass `{ mode: 'add' }` to append without removing existing entries.
 
 ```tsx
 globalKeys([
   { key: 'q', operate: 'quit' },
   { key: 'h', operate: 'help', affectOverlay: true },
-]);
+], { mode: 'add' });
+```
+
+#### GlobalKeyEntry
+
+Property            | Type | Default | Description
+------------------- | ---- | ------- | -----------
+key                 | string or string[] | - | Key name(s) to match
+operate             | () => void or string | - | Callback or shortcut action ID
+cover               | boolean | true | Whether screen components may override this key
+affectOverlay       | boolean | false | Fire before (true) or after (false) the overlay
+category            | ComponentType[] or '*' or undefined | '*' | Screen whitelist; '*' = all, [] = disabled
+times               | number | undefined | Number of presses needed before handler fires (must be >= 1)
+executeWhenNoOverlay | boolean | false | When `affectOverlay: true`, also execute when no overlay is open
+
+---
+### boundSequence
+
+```tsx
+boundSequence(keys, handler, options?): () => void;
+```
+
+Register a multi-key sequence binding (Vim-style key chords like `gg`, `dd`, `cw`).
+
+**Sequence priority**: Sequences are evaluated **before** ordinary `boundKeyboard` bindings. When a sequence's first key is pressed, it is consumed by the sequence system and will not trigger any normal binding for that key.
+
+Parameter | Type | Description
+--------- | ---- | -----------
+keys      | string[] | Ordered key names (e.g. `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2.
+handler   | (input, key) => void | Callback invoked when the full sequence is matched
+options   | `{ timeout?, onlyThis?, focusId?, exclusive? }` | Optional behavior flags
+
+Returns an unbind function.
+
+**Options**:
+
+- **timeout** (ms, default 500): Maximum time between key presses. Timer starts on the first key and resets on each match.
+- **exclusive** (default false): When `true`, mismatched keys are silently consumed — the sequence keeps waiting. When `false` (default), a mismatched key cancels the pending sequence and falls through to normal bindings.
+- **onlyThis** / **focusId**: Same behavior as `boundKeyboard`.
+
+```tsx
+// Vim-like 'gg' to scroll to top
+useEffect(() => {
+  boundSequence(['g', 'g'], () => scrollToTop());
+}, []);
+
+// Exclusive mode: only 'ctrl+w' 'q' triggers, no other key interrupts
+useEffect(() => {
+  boundSequence(['ctrl+w', 'q'], closeTab, { exclusive: true, timeout: 1000 });
+}, []);
+
+// Sequence restricted to a specific focus target
+useEffect(() => {
+  boundSequence(['d', 'd'], deleteLine, { focusId: 'editor' });
+}, []);
+```
+
+**Layer isolation**: Each screen/overlay maintains its own pending sequence. Navigating away, switching focus, or closing an overlay automatically cancels any pending sequence.
+
+---
+
+### Shortcut Action Management
+
+Beyond `defineShortcutAction`, the following APIs allow dynamic management of shortcut operations:
+
+#### addAction
+
+```tsx
+addAction(entry: ShortcutOperationEntry): void;
+```
+
+Register a single shortcut action dynamically. Throws if an action with the same `actionId` already exists.
+
+#### hasAction
+
+```tsx
+hasAction(actionId: string): boolean;
+```
+
+Check whether a shortcut action with the given ID is registered.
+
+#### removeAction
+
+```tsx
+removeAction(actionId: string): void;
+```
+
+Remove a registered shortcut action. Throws if no action with the given ID exists.
+
+#### modifyAction
+
+```tsx
+modifyAction(actionId: string, keys: string[]): void;
+```
+
+Change the default keys of an existing shortcut action. Throws if the action does not exist or was not registered with a `keys` field.
+
+#### clearShortcutOperations
+
+```tsx
+clearShortcutOperations(): void;
+```
+
+Remove all registered shortcut operations. Primarily used for testing or full keyboard reset.
+
+```tsx
+// Dynamic shortcut management
+const { addAction, hasAction, removeAction, modifyAction } = useKeyboard();
+
+addAction({ actionId: 'reload', action: () => fetchData() });
+
+if (hasAction('reload')) {
+  modifyAction('reload', ['ctrl+r']);
+  boundKeyboard(['ctrl+r'], 'reload');
+}
+
+removeAction('obsolete-action');
 ```
 
 ---
@@ -517,6 +630,28 @@ function App() {
 }
 ```
 
+### Vim-Style Key Sequences
+
+```tsx
+function Editor() {
+  const { boundSequence, boundKeyboard } = useKeyboard();
+
+  useEffect(() => {
+    // 'gg' to go to top
+    boundSequence(['g', 'g'], () => cursorToTop());
+
+    // 'dd' to delete line
+    boundSequence(['d', 'd'], () => deleteCurrentLine());
+
+    // Normal 'g' key is consumed by the sequence system, so bind a
+    // different key for ordinary 'g' if needed (or omit entirely).
+    boundKeyboard(['G'], () => cursorToBottom());
+  }, []);
+
+  return <Text>Editor</Text>;
+}
+```
+
 ### Multiple Controls on One Screen
 
 ```tsx
@@ -544,6 +679,11 @@ Key pressed
   |
   +- 2. Active overlay layer
   |      +- Tab / Shift+Tab -> switch focus
+  |      +- Pending sequence (if any)
+  |      |    +- match next key? -> advance; full match? -> fire handler
+  |      |    +- mismatch? exclusive? -> consume, keep waiting
+  |      |    +- mismatch? non-exclusive? -> cancel, fall through
+  |      +- New sequence candidate? -> start pending sequence, consume
   |      +- Focus target (if active)
   |      |    +- blockedKey -> skip bindings
   |      |    +- boundKeyboard matched? -> consume, stop
@@ -560,6 +700,11 @@ Key pressed
   +- 4. Screen stack (top to bottom)
   |      for each layer:
   |        +- Tab / Shift+Tab (top layer only) -> switch focus
+  |        +- Pending sequence (top layer only, if any)
+  |        |    +- match next key? -> advance; full match? -> fire handler
+  |        |    +- mismatch? exclusive? -> consume, keep waiting
+  |        |    +- mismatch? non-exclusive? -> cancel, fall through
+  |        +- New sequence candidate? (top layer only) -> start pending, consume
   |        +- Focus target (top layer only, if active)
   |        |    +- blockedKey -> skip bindings
   |        |    +- boundKeyboard matched? -> consume, stop

@@ -45,6 +45,7 @@ export type {
   BlockedKeyOptions,
   StopOptions,
   FocusTarget,
+  SequenceOptions,
 } from "./keyboard/index.js";
 export { useFocusState } from "./keyboard/index.js";
 

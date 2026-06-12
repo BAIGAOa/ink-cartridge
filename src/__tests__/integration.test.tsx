@@ -150,6 +150,42 @@ function Settings() {
 }
 Settings.displayName = 'Settings';
 
+// Sequence-aware component: binds both a normal key and a two-key sequence
+// (Vim-like 'gg' to trigger the provided spy).
+interface VimMenuProps {
+  onGgSpy?: () => void;
+  onOrdinaryG?: () => void;
+}
+
+function VimMenu({ onGgSpy, onOrdinaryG }: VimMenuProps) {
+  const { boundKeyboard, boundSequence } = useKeyboard();
+
+  useEffect(() => {
+    boundSequence(['g', 'g'], () => onGgSpy?.());
+    boundKeyboard(['g'], () => onOrdinaryG?.());
+  }, []);
+  return React.createElement('div', null, 'VimMenu');
+}
+VimMenu.displayName = 'VimMenu';
+
+// Overlay component that exposes a sequence binding.
+interface SeqOverlayProps {
+  onSeqSpy?: () => void;
+}
+
+function SeqOverlay({ onSeqSpy }: SeqOverlayProps) {
+  const overlayId = useContext(OverlayContext);
+  const { closeOverlay } = useScreenSystem();
+  const { boundKeyboard, boundSequence } = useKeyboard();
+
+  useEffect(() => {
+    boundSequence(['q', 'q'], () => onSeqSpy?.());
+    boundKeyboard(['escape'], () => closeOverlay(overlayId!));
+  }, []);
+  return React.createElement('div', null, 'SeqOverlay');
+}
+SeqOverlay.displayName = 'SeqOverlay';
+
 // Render helper — mounts both providers and captures hook APIs via refs.
 // CurrentScreen is rendered so that screen component effects actually run.
 
@@ -195,6 +231,8 @@ beforeEach(() => {
   registerComponent(Inventory, {}, { parent: Game });
   registerComponent(Settings, {}, { parent: Menu });
   registerComponent(PauseOverlay, {});
+  registerComponent(VimMenu, {}, { parent: Menu });
+  registerComponent(SeqOverlay, {});
 });
 
 afterEach(() => {
@@ -364,5 +402,137 @@ describe('场景 7：Focus — Tab 切换 focus target', () => {
 
     getKeyboard()!.focusSet('difficulty-select');
     expect(getKeyboard()!.focusCurrent()).toBe('difficulty-select');
+  });
+});
+
+describe('场景 8：boundSequence 集成 — 序列 + 屏幕导航', () => {
+  it('"gg" 完成序列后触发回调，单次 "g" 不触发序列回调', () => {
+    const ggSpy = vi.fn();
+    const ordinaryG = vi.fn();
+    const { getScreen } = renderSystem(VimMenu, { onGgSpy: ggSpy, onOrdinaryG: ordinaryG });
+
+    // 单次 g：被序列消费（启动待匹配），序列回调不触发，普通 g 绑定也不触���
+    act(() => pressKey('g', {}));
+    expect(ggSpy).not.toHaveBeenCalled();
+    expect(ordinaryG).not.toHaveBeenCalled();
+
+    // 完成序列
+    act(() => pressKey('g', {}));
+    expect(ggSpy).toHaveBeenCalledTimes(1);
+    expect(ordinaryG).not.toHaveBeenCalled();
+  });
+
+  it('"gg" 序列不匹配时，取消序列并触发普通绑定', () => {
+    const ggSpy = vi.fn();
+    const ordinaryG = vi.fn();
+    renderSystem(VimMenu, { onGgSpy: ggSpy, onOrdinaryG: ordinaryG });
+
+    act(() => pressKey('g', {})); // 启动序列
+    act(() => pressKey('x', {})); // 不匹配 → 取消序列，x 应该匹配正常绑定...但 VimMenu 没有 x 绑定
+    // 序列被取消，ordinaryG 还没触发
+
+    act(() => pressKey('g', {})); // 新序列开始
+    act(() => pressKey('g', {})); // 完成
+    expect(ggSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('序列匹配期间按错键后，重新开始序列仍可成功', () => {
+    const ggSpy = vi.fn();
+    const ordinaryG = vi.fn();
+    renderSystem(VimMenu, { onGgSpy: ggSpy, onOrdinaryG: ordinaryG });
+
+    // First attempt: g + x (cancel)
+    act(() => pressKey('g', {}));
+    act(() => pressKey('x', {}));
+
+    // Second attempt: gg (success)
+    act(() => pressKey('g', {}));
+    act(() => pressKey('g', {}));
+    expect(ggSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('序列 + 屏幕导航：跳转到其他屏幕时 pending 序列被清除', () => {
+    const ggSpy = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    // Navigate to VimMenu (child of Menu)
+    act(() => getScreen()!.skip(VimMenu, { onGgSpy: ggSpy }));
+
+    act(() => pressKey('g', {})); // pending
+
+    // Navigate back to Menu — clears pending sequence via layer deletion
+    act(() => getScreen()!.back());
+
+    // Go back to VimMenu
+    act(() => getScreen()!.skip(VimMenu, { onGgSpy: ggSpy }));
+    act(() => pressKey('g', {})); // new sequence on fresh layer
+    act(() => pressKey('g', {}));
+    // The second gg should complete fresh, not from old pending
+    expect(ggSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('场景 9：boundSequence + Overlay 集成', () => {
+  it('overlay 中的 "qq" 序列在 overlay 打开时正常工作', () => {
+    const qqSpy = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    act(() => getScreen()!.openOverlay('seq-ov1', SeqOverlay, { onSeqSpy: qqSpy }));
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
+
+    act(() => pressKey('q', {}));
+    act(() => pressKey('q', {}));
+    expect(qqSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('overlay 关闭后序列绑定不再生效', () => {
+    const qqSpy = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    act(() => getScreen()!.openOverlay('seq-ov2', SeqOverlay, { onSeqSpy: qqSpy }));
+    act(() => getScreen()!.closeOverlay('seq-ov2'));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
+
+    act(() => pressKey('q', {}));
+    act(() => pressKey('q', {}));
+    expect(qqSpy).not.toHaveBeenCalled();
+  });
+
+  it('overlay 序列的 escape 仍能关闭 overlay（序列 + 普通键共存）', () => {
+    const qqSpy = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    act(() => getScreen()!.openOverlay('seq-ov3', SeqOverlay, { onSeqSpy: qqSpy }));
+
+    // Start a sequence
+    act(() => pressKey('q', {}));
+
+    // Press escape to close overlay — cancels pending sequence
+    act(() => pressKey('', { escape: true }));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
+
+    // Sequence should NOT have fired
+    expect(qqSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('场景 10：boundSequence + blockedKey / stop 交互', () => {
+  it('序列在 VimMenu 上正常完成，普通 boundKeyboard 不受影响', () => {
+    const ggSpy = vi.fn();
+    const ordinaryG = vi.fn();
+    renderSystem(VimMenu, { onGgSpy: ggSpy, onOrdinaryG: ordinaryG });
+
+    // Press 'g' three times: first starts seq, second completes seq, third starts new seq
+    act(() => pressKey('g', {}));
+    act(() => pressKey('g', {}));
+    expect(ggSpy).toHaveBeenCalledTimes(1);
+    expect(ordinaryG).not.toHaveBeenCalled();
+
+    act(() => pressKey('g', {})); // new pending
+    act(() => pressKey('x', {})); // cancel, x not bound on VimMenu
+    // The pending was cancelled, now another 'g' starts fresh
+    act(() => pressKey('g', {}));
+    act(() => pressKey('g', {}));
+    expect(ggSpy).toHaveBeenCalledTimes(2);
   });
 });

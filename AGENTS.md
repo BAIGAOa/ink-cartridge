@@ -421,6 +421,60 @@ options?: RegisterOptions,
 export function registerComponent(...) { ... }
 ```
 
+5. Timestamp large comment blocks
+
+Any comment block (// or /* */) spanning **more than 5 lines** MUST end with a timestamp line showing the date (day precision) and the project version from `package.json`.  Single‑line and short (≤ 5‑line) comments are exempt.
+
+Format:
+```
+// @2026-06-14 v3.1.0
+```
+or, inside a JSDoc block:
+```
+ * @2026-06-14 v3.1.0
+ */
+```
+
+✅ Correct (6‑line // block with timestamp)
+
+```ts
+// The write queue is a promise chain. We use `.then(task, task)` so
+// that even if a previous write rejects, the next write still executes.
+// Without the second argument, a rejection would break the chain forever.
+// This is critical because the queue is shared across all writers and
+// one failing writer must not block subsequent writes.
+// @2026-06-14 v3.1.0
+this.pending = this.pending.then(task, task);
+```
+
+✅ Correct (multi‑line JSDoc with timestamp)
+
+```ts
+/**
+ * Handle a keyboard event against a single layer.
+ *
+ * Evaluates tab navigation, blocked keys, sequence matching,
+ * focus-target bindings, layer-level bindings, and stopped keys
+ * — in that order.
+ *
+ * @returns true if the event was consumed by this layer.
+ * @2026-06-14 v3.1.0
+ */
+function handleLayer(...): boolean { ... }
+```
+
+❌ Wrong (8‑line comment block, missing timestamp)
+
+```ts
+// We need to iterate in reverse order because the keyboard event
+// must be offered to the topmost layer first. If the top layer
+// does not handle the key, we try the next one below it and so
+// on until someone consumes it or we run out of layers.
+// The reverse loop also correctly handles the case where a layer
+// is removed mid-iteration.
+for (let i = path.length - 1; i >= 0; i--) { ... }
+```
+
 Watch out for
 
 · blockedKey means pass-through (penetration), NOT "block". Makes keys transparent to lower layers.

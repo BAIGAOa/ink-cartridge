@@ -6,6 +6,7 @@ import type {
   StopOptions,
   GlobalKeyEntry,
   ShortcutOperationEntry,
+  SequenceOptions,
 } from "./types.js";
 
 /**
@@ -77,7 +78,10 @@ export interface KeyboardContextValue {
    * @param entries  Array of global key definitions.
    * @param options  Optional: `{ mode: 'replace' | 'add' }`. Default `'replace'`.
    */
-  globalKeys: (entries: GlobalKeyEntry[], options?: { mode?: 'replace' | 'add' }) => void;
+  globalKeys: (
+    entries: GlobalKeyEntry[],
+    options?: { mode?: "replace" | "add" },
+  ) => void;
 
   /**
    * Remove a focus target from the current screen layer.
@@ -197,6 +201,69 @@ export interface KeyboardContextValue {
    * Used by useKeyboard() cleanup when leaving an overlay context.
    */
   _popOwner: (owner: LayerOwner) => void;
+
+  /**
+   * Register a multi-key sequence binding on the current screen layer.
+   *
+   * When the first key of a sequence is pressed, the layer enters a pending
+   * state waiting for subsequent keys within `timeout` milliseconds (default
+   * 500). If the full sequence is entered in order before the timeout, the
+   * handler fires. Otherwise the pending state is cancelled.
+   *
+   * **Sequence priority**: Sequences are evaluated before ordinary
+   * `boundKeyboard` bindings. When a sequence's first key is pressed, it
+   * is consumed by the sequence system and will not trigger any normal
+   * binding for that key.
+   *
+   * **Exclusive vs non-exclusive (default)**: In non-exclusive mode, a
+   * key that does NOT match the next expected key in the sequence
+   * immediately cancels the pending sequence and falls through to normal
+   * bindings. In exclusive mode (`exclusive: true`), mismatched keys are
+   * silently consumed — the sequence keeps waiting within its timeout.
+   *
+   * **Layer isolation**: Each screen / overlay maintains its own pending
+   * sequence state. Navigating away, switching focus, or closing an
+   * overlay automatically clears any pending sequence on that layer.
+   *
+   * @param keys      Ordered key names that make up the sequence
+   *                  (e.g. `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2.
+   * @param handler   Callback invoked when the full sequence is matched.
+   *                  Receives the Ink `input` and `key` of the final key
+   *                  press that completed the sequence.
+   * @param options   Optional configuration:
+   *                  - `timeout` (ms, default 500): how long to wait between
+   *                    key presses before cancelling the sequence.
+   *                  - `exclusive` (default false): if true, mismatched keys
+   *                    are consumed silently; if false, they cancel the
+   *                    sequence and fall through.
+   *                  - `onlyThis` / `focusId`: same behaviour as
+   *                    `boundKeyboard`.
+   * @returns         An unbind function that removes the sequence binding
+   *                   when called.
+   *
+   * @example
+   * ```tsx
+   * // Vim-like 'gg' to jump to the top
+   * useEffect(() => {
+   *   boundSequence(['g', 'g'], () => scrollToTop());
+   * }, []);
+   *
+   * // Exclusive mode: only 'ctrl+w' 'q' triggers, no other key interrupts
+   * useEffect(() => {
+   *   boundSequence(['ctrl+w', 'q'], closeTab, { exclusive: true });
+   * }, []);
+   *
+   * // Sequence restricted to a specific focus target
+   * useEffect(() => {
+   *   boundSequence(['d', 'd'], deleteLine, { focusId: 'editor' });
+   * }, []);
+   * ```
+   */
+  boundSequence: (
+    keys: string[],
+    handler: KeyHandler,
+    options?: SequenceOptions,
+  ) => () => void;
 }
 
 /**

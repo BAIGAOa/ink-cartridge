@@ -45,8 +45,9 @@ In ink-kit, **every React component is a "screen"**. Register them into a **scre
 
 ### Layered Keyboard Events
 
-No more global `useInput` cluttered with `if-else` chains. ink-kit's keyboard system maintains **per-screen-layer** key bindings. Events bubble from **top to bottom** through the stack, with three key mechanisms:
+No more global `useInput` cluttered with `if-else` chains. ink-kit's keyboard system maintains **per-screen-layer** key bindings. Events bubble from **top to bottom** through the stack, with four key mechanisms:
 
+- **Sequence (`boundSequence`)** — Multi-key chords (e.g. `gg`, `dd`, `cw`) with timeout and exclusive/non-exclusive modes. Sequences take priority over ordinary bindings.
 - **Blocked Key (`blockedKey`)** — Let a key pass through the current layer to be handled below
 - **Stop (`stop`)** — Prevent a key from propagating to lower layers. Supports `stopAction` mode to block by shortcut action ID instead of literal key name
 - **Global Key (`globalKeys`)** — Shortcuts independent of the screen stack
@@ -73,15 +74,15 @@ stop(['quit'], { stopAction: true });
 
 ### Overlay System
 
-`overlay()` and `closeOverlay()` provide floating dialogs on top of the screen stack. Combined with the keyboard system, overlays intercept keys before they reach the underlying screen — ideal for confirmation dialogs, modals, and pop-up menus.
+`openOverlay()` and `closeOverlay()` provide floating dialogs on top of the screen stack. Combined with the keyboard system, overlays intercept keys before they reach the underlying screen — ideal for confirmation dialogs, modals, and pop-up menus.
 
 ### Module-Level Functions
 
-Navigation functions (`skip`, `back`, `gotoScreen`, `overlay`, `closeOverlay`) work both inside React components (via hooks) and as **module-level imports** in any `.ts` / `.tsx` file. This allows non-UI layers — game engines, state managers, etc. — to trigger screen transitions.
+Navigation functions (`skip`, `back`, `gotoScreen`, `openOverlay`, `closeOverlay`) work both inside React components (via hooks) and as **module-level imports** in any `.ts` / `.tsx` file. This allows non-UI layers — game engines, state managers, etc. — to trigger screen transitions.
 
 ### Type Safety
 
-Every API provides full TypeScript type inference. Functions like `skip`, `gotoScreen`, and `overlay` automatically infer parameter types from your component's props, catching errors at compile time.
+Every API provides full TypeScript type inference. Functions like `skip`, `gotoScreen`, and `openOverlay` automatically infer parameter types from your component's props, catching errors at compile time.
 
 ---
 
@@ -111,8 +112,8 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 
 ## Documentation
 
-- **[Screen Management System](src/screen/README.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `overlay` / `closeOverlay`
-- **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
+- **[Screen Management System](src/screen/README.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
+- **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
 - **[Internationalization](src/language/README.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
 - **[Theme System](src/theme/README.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
 - **[Persistence System](src/storage/README.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
@@ -162,8 +163,6 @@ import {
   useScreenSystem,
   KeyboardProvider,
   useKeyboard,
-  overlay,
-  closeOverlay,
   ConfirmDialog,
 } from '@baigao_h/ink-kit';
 
@@ -196,7 +195,7 @@ function Game({ level }: { level: number }) {
 }
 registerComponent(Game, { level: 1 }, { parent: Menu });
 
-// Register the dialog so it can be used with overlay()
+// Register the dialog so it can be used with openOverlay()
 registerComponent(ConfirmDialog, {
   title: '', message: '', onConfirm: () => {}, onCancel: () => {},
 });
@@ -219,9 +218,6 @@ render(
 
 ---
 
-## Coming Soon
-
-More components are planned for deep integration into the keyboard and focus system, including Form.
 
 ## Other
 

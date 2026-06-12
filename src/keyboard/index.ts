@@ -11,4 +11,7 @@ export type {
   FocusTarget,
   GlobalKeyEntry,
   ShortcutOperationEntry,
+  SequenceOptions,
+  SequenceBinding,
+  PendingSequence,
 } from "./types.js";

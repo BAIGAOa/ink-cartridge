@@ -16,9 +16,13 @@ import {
   BlockedKeyOptions,
   StopOptions,
   ShortcutOperationEntry,
+  SequenceOptions,
+  SequenceBinding,
+  PendingSequence,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 
+const DEFAULT_SEQUENCE_TIMEOUT = 500;
 
 /**
  * Convert an Ink `(input, key)` event into a list of possible key-name
@@ -238,6 +242,82 @@ function handleLayer(
   const blocked = layer.blockedKeys;
   const unblocked = eventNames.filter((n) => !blocked.includes(n));
 
+  // Sequence matching: only for the top layer (isTop).
+  // Sequences have priority over ordinary boundKeyboard bindings.
+  if (isTop && unblocked.length > 0) {
+    const pending = layer.pendingSequence;
+
+    // We already have a pending sequence in progress.
+    if (pending !== null) {
+      const expectedKey = pending.sequences[pending.nextIndex];
+      if (unblocked.includes(expectedKey)) {
+        // Matched the next key in the sequence.
+        clearTimeout(pending.timer);
+        pending.nextIndex++;
+        if (pending.nextIndex === pending.sequences.length) {
+          // Full sequence matched — fire handler.
+          pending.handler(input, key);
+          layer.pendingSequence = null;
+        } else {
+          // Still waiting for more keys — restart the timeout.
+          pending.timer = setTimeout(() => {
+            if (layer.pendingSequence === pending) layer.pendingSequence = null;
+          }, pending.timeout);
+        }
+        return true;
+      } else {
+        // Mismatch.
+        if (pending.options?.exclusive === true) {
+          // Exclusive mode: ignore the key, keep waiting.
+          return true;
+        } else {
+          // Non-exclusive (default): cancel the sequence and let the key
+          // fall through to normal bindings.
+          clearTimeout(pending.timer);
+          layer.pendingSequence = null;
+        }
+      }
+    }
+
+    // No pending sequence — try to start a new one from the first unblocked key.
+    if (layer.pendingSequence === null) {
+      // Check each unblocked key name (not just the first) to handle
+      // modifier combinations like 'ctrl+w' which appear after 'w'.
+      for (const keyName of unblocked) {
+        const candidates = layer.sequences.get(keyName);
+        if (!candidates || candidates.length === 0) continue;
+        // Filter by onlyThis and focusId constraints.
+        const selected = candidates.find(binding => {
+          if (binding.options?.onlyThis) {
+            if (isOverlay) return activeOverlayCount <= 1;
+            else return activeOverlayCount === 0;
+          }
+          if (binding.options?.focusId) {
+            return layer.currentFocusId === binding.options.focusId;
+          }
+          return true;
+        });
+        if (selected) {
+          const timeout = selected.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
+          const newSeq: PendingSequence = {
+            sequences: selected.keys,
+            nextIndex: 1,
+            handler: selected.handler,
+            timer: undefined as unknown as NodeJS.Timeout,
+            timeout,
+            options: selected.options,
+          };
+          const timer = setTimeout(() => {
+            if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+          }, timeout);
+          newSeq.timer = timer;
+          layer.pendingSequence = newSeq;
+          return true;
+        }
+      }
+    }
+  }
+
   // onlyThis semantics differ between screens and overlays:
   // - Screen: skip when any overlay is active (activeOverlayCount > 0)
   // - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
@@ -394,6 +474,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const prev = prevPathRef.current;
     for (const comp of prev) {
       if (!currentPath.includes(comp)) {
+        const layer = layersRef.current.get(comp);
+        if (layer?.pendingSequence) {
+          clearTimeout(layer.pendingSequence.timer);
+          layer.pendingSequence = null;
+        }
         layersRef.current.delete(comp);
       }
     }
@@ -408,6 +493,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     // Delete layers for overlays that no longer exist
     for (const key of layersRef.current.keys()) {
       if (typeof key === 'string' && !currentIds.has(key)) {
+        const layer = layersRef.current.get(key);
+        if (layer?.pendingSequence) {
+          clearTimeout(layer.pendingSequence.timer);
+          layer.pendingSequence = null;
+        }
         layersRef.current.delete(key);
       }
     }
@@ -440,6 +530,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           focusOrder: [],
           currentFocusId: null,
           actionKeysMap: new Map(),
+          sequences: new Map(),
+          pendingSequence: null,
         };
         layersRef.current.set(owner, layer);
       }
@@ -458,6 +550,17 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const notifyFocusChange = useCallback(() => {
     focusSubscribersRef.current.forEach(fn => fn());
+  }, []);
+
+  /**
+   * Clear the pending sequence timer on a layer, if one is active.
+   * Does nothing if the layer has no pending sequence.
+   */
+  const clearPendingSequence = useCallback((layer: ScreenKeyboardLayer) => {
+    if (layer.pendingSequence !== null) {
+      clearTimeout(layer.pendingSequence.timer);
+      layer.pendingSequence = null;
+    }
   }, []);
 
   const getOrCreateFocusTarget = useCallback(
@@ -837,6 +940,58 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
 
+  /**
+   * Register a multi-key sequence binding.
+   *
+   * When a sequence's first key is pressed, the layer enters a pending
+   * state waiting for subsequent keys.  If the full sequence is entered
+   * within the timeout, the handler fires.  Otherwise the sequence is
+   * cancelled.
+   *
+   * @param keys      The ordered key names that make up the sequence
+   *                  (e.g. `['g', 'g']`, `['c', 'w']`). Must have length ≥ 2.
+   * @param handler   Callback to invoke when the full sequence is matched.
+   * @param options   Optional: `timeout` (ms, default 500), `onlyThis`,
+   *                  `focusId`, `exclusive` (default false).
+   * @returns         An unbind function that removes the sequence binding.
+   */
+  const boundSequence = useCallback(
+    (
+      keys: string[],
+      handler: KeyHandler,
+      options?: SequenceOptions,
+    ): (() => void) => {
+      const owner = getCurrentOwner();
+      if (!owner) {
+        throw new Error(
+          '[Ink-Router-Kit] boundSequence() must be called inside a screen component or overlay.',
+        );
+      }
+      const layer = getLayer(owner);
+
+      const binding: SequenceBinding = {
+        keys,
+        handler,
+        timeout: options?.timeout,
+        options,
+      };
+
+      const firstKey = keys[0];
+      const existing = layer.sequences.get(firstKey) || [];
+      existing.push(binding);
+      layer.sequences.set(firstKey, existing);
+
+      return () => {
+        const arr = layer.sequences.get(firstKey);
+        if (arr) {
+          const idx = arr.indexOf(binding);
+          if (idx !== -1) arr.splice(idx, 1);
+          if (arr.length === 0) layer.sequences.delete(firstKey);
+        }
+      };
+    },
+    [getCurrentOwner, getLayer],
+  );
 
   const subscribeFocus = useCallback((listener: () => void) => {
     focusSubscribersRef.current.add(listener);
@@ -855,6 +1010,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           `Did you forget to wrap the screen in <KeyboardProvider>?`,
         );
       }
+      clearPendingSequence(layer);
       if (!layer.focusTargets.has(focusId)) {
         const available = layer.focusOrder.length > 0
           ? layer.focusOrder.map(id => `"${id}"`).join(', ')
@@ -869,7 +1025,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         notifyFocusChange();
       }
     },
-    [getCurrentOwner, notifyFocusChange],
+    [getCurrentOwner, notifyFocusChange, clearPendingSequence],
   );
 
   const focusNext = useCallback(() => {
@@ -878,12 +1034,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const layer = layersRef.current.get(owner);
     if (!layer || layer.focusOrder.length === 0) return;
 
+    clearPendingSequence(layer);
+
     const current = layer.currentFocusId;
     let idx = current ? layer.focusOrder.indexOf(current) : -1;
     idx = (idx + 1) % layer.focusOrder.length;
     layer.currentFocusId = layer.focusOrder[idx];
     notifyFocusChange();
-  }, [getCurrentOwner, notifyFocusChange]);
+  }, [getCurrentOwner, notifyFocusChange, clearPendingSequence]);
 
   const focusPrev = useCallback(() => {
     const owner = getCurrentOwner();
@@ -891,12 +1049,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const layer = layersRef.current.get(owner);
     if (!layer || layer.focusOrder.length === 0) return;
 
+    clearPendingSequence(layer);
+
     const current = layer.currentFocusId;
     let idx = current ? layer.focusOrder.indexOf(current) : -1;
     idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
     layer.currentFocusId = layer.focusOrder[idx];
     notifyFocusChange();
-  }, [getCurrentOwner, notifyFocusChange]);
+  }, [getCurrentOwner, notifyFocusChange, clearPendingSequence]);
 
   const focusCurrent = useCallback((): string | null => {
     const owner = getCurrentOwner();
@@ -1038,6 +1198,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       clearShortcutOperations,
       _pushOwner: pushOwner,
       _popOwner: popOwner,
+      boundSequence,
     }),
     [
       boundKeyboard,
@@ -1058,6 +1219,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       clearShortcutOperations,
       pushOwner,
       popOwner,
+      boundSequence,
     ],
   );
 

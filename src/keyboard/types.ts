@@ -97,6 +97,89 @@ export interface FocusTarget {
 }
 
 /**
+ * Options for {@link KeyboardContextValue.boundSequence}.
+ *
+ * Extends {@link BoundKeyboardOptions} with sequence-specific settings:
+ * a per-sequence timeout and an exclusive flag that controls behavior
+ * when a mismatched key is pressed during a pending sequence.
+ */
+export interface SequenceOptions extends BoundKeyboardOptions {
+  /**
+   * Maximum time in milliseconds between key presses within a sequence.
+   * The timer starts when the first key is pressed and resets on each
+   * matching key. If it expires before the full sequence is entered, the
+   * pending state is cancelled.
+   *
+   * @default 500
+   */
+  timeout?: number;
+
+  /**
+   * Controls behaviour when a key is pressed that does NOT match the
+   * next key expected by a pending sequence.
+   *
+   * - `false` (default): the mismatched key **cancels** the pending
+   *   sequence and falls through to normal `boundKeyboard` bindings.
+   * - `true`: the mismatched key is **silently consumed** — the sequence
+   *   keeps waiting until the timeout expires or the correct key arrives.
+   *   This allows the user to correct a mistaken key without triggering
+   *   side effects from normal bindings.
+   */
+  exclusive?: boolean;
+}
+
+/**
+ * Internal representation of a sequence that is currently being matched.
+ *
+ * Created when the first key of a registered `SequenceBinding` is pressed
+ * and stored on the layer's {@link ScreenKeyboardLayer.pendingSequence}.
+ * Tracked by a `timer` that cancels the pending state if the next key
+ * does not arrive within `timeout` milliseconds.
+ */
+export interface PendingSequence {
+  /** The full key sequence to match (copied from `SequenceBinding.keys`). */
+  sequences: string[];
+  /**
+   * Index of the next key to match within `sequences`.
+   * Starts at 1 after the first key is consumed.
+   */
+  nextIndex: number;
+  /** Callback to invoke when the full sequence is matched. */
+  handler: KeyHandler;
+  /** The timeout timer handle; cleared on match, mismatch, or cancellation. */
+  timer: NodeJS.Timeout;
+  /** Timeout duration in milliseconds. */
+  timeout: number;
+  /** Options from the original `SequenceBinding`. */
+  options?: SequenceOptions;
+}
+
+/**
+ * A registered multi-key sequence binding.
+ *
+ * Stored in {@link ScreenKeyboardLayer.sequences}, keyed by the first
+ * key in the sequence. When that key is pressed and no other sequence
+ * is already pending, the layer enters a pending state waiting for the
+ * remaining keys.
+ */
+export interface SequenceBinding {
+  /**
+   * Ordered key names making up the full sequence.
+   * Must have length ≥ 2 (the first key is the lookup key in the map).
+   */
+  keys: string[];
+  /** Callback to invoke when the full sequence is matched. */
+  handler: KeyHandler;
+  /**
+   * Per-binding timeout override (ms). Falls back to the global
+   * `DEFAULT_SEQUENCE_TIMEOUT` (500 ms) when omitted.
+   */
+  timeout?: number;
+  /** Binding options (exclusive mode, focusId, onlyThis, etc.). */
+  options?: SequenceOptions;
+}
+
+/**
  * Per-layer keyboard state: bindings, transparent keys, stop keys,
  * and focus targets.
  */
@@ -118,6 +201,15 @@ export interface ScreenKeyboardLayer {
   currentFocusId: string | null;
   /** Maps action IDs to the normalized keys that trigger them (screen-level, excludes focus targets). */
   actionKeysMap: Map<string, string[]>;
+
+  /**
+   * Registered sequence bindings, keyed by their first key.
+   * When that key is pressed, the matching `SequenceBinding` is used
+   * to create a {@link PendingSequence} on this layer.
+   */
+  sequences: Map<string, SequenceBinding[]>;
+  /** Currently active pending sequence, or `null` if none. */
+  pendingSequence: PendingSequence | null;
 }
 
 /**
@@ -127,7 +219,17 @@ export interface ScreenKeyboardLayer {
 export interface StopOptions {
   /** If provided, stops only within the named focus target. */
   focusId?: string;
-  /**Mask the Action mode, otherwise the stop method will treat the Action ID as a normal Key*/
+  /**
+   * When `true`, treats each entry in `keys` as a shortcut **action ID**
+   * and resolves it to the actual key names currently bound to that action
+   * (via the layer's or focus target's `actionKeysMap`).
+   *
+   * This keeps stopping logic decoupled from literal key names: if you
+   * later rebind the action to different keys, the stop still works.
+   *
+   * @throws If an action ID has no bound keys (never registered or already
+   *         unbound).
+   */
   stopAction?: boolean;
 }
 
