@@ -967,6 +967,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           '[Ink-Router-Kit] boundSequence() must be called inside a screen component or overlay.',
         );
       }
+      if (keys.length < 2) {
+        throw new Error(
+          '[Ink-Router-Kit] boundSequence() requires at least 2 keys in the sequence.'
+        )
+      }
       const layer = getLayer(owner);
 
       const binding: SequenceBinding = {
