@@ -189,7 +189,7 @@ const {
   focusUnregister, subscribeFocus,
   defineShortcutAction, addAction, hasAction,
   removeAction, modifyAction, clearShortcutOperations,
-  boundSequence,
+  boundSequence, enableWildcardPriority,
 } = useKeyboard();
 ```
 
@@ -442,6 +442,48 @@ useEffect(() => {
 ```
 
 **Layer isolation**: Each screen/overlay maintains its own pending sequence. Navigating away, switching focus, or closing an overlay automatically cancels any pending sequence.
+
+---
+
+### enableWildcardPriority
+
+```tsx
+enableWildcardPriority(): () => void;
+```
+
+Enable wildcard priority mode. Returns a disable function that restores the original priority when called.
+
+When enabled, wildcard `*` bindings take **absolute priority** over ALL other key handling — sequences, exact key matches, everything. Only normal character input (letters, numbers, symbols) is affected; special keys (Tab, Return, Escape, arrow keys, Ctrl combinations, etc.) are never matched by wildcard and always fall through to normal processing.
+
+**Use case**: TextInput components that need to capture all typing input without other key bindings on the same layer intercepting characters.
+
+```tsx
+function TextInput({ value, onChange, focusId }: TextInputProps) {
+  const { boundKeyboard, enableWildcardPriority } = useKeyboard();
+
+  useEffect(() => {
+    // Enable wildcard priority so our '*' binding captures all normal
+    // characters before any other exact key bindings on this layer
+    const disable = enableWildcardPriority();
+    const unbind = boundKeyboard(['*'], (input) => {
+      onChange(value + input);
+    }, { focusId });
+
+    return () => {
+      unbind();
+      disable(); // restore original priority
+    };
+  }, [focusId]);
+
+  return <Text>{value}</Text>;
+}
+```
+
+**Reference counting**: Multiple callers can call `enableWildcardPriority()` independently. Each returned disable function decrements an internal counter; the mode is only disabled when the counter reaches zero. This prevents interference between multiple components that each need wildcard priority.
+
+**Important notes**:
+- `isNormalCharacter` is still respected: only characters that pass this check trigger the wildcard, even in priority mode.
+- The mode is **global** (keyboard-wide): it affects all layers (screens, overlays, and focus targets) equally.
 
 ---
 

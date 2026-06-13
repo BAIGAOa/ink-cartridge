@@ -236,11 +236,52 @@ function handleLayer(
   notifyFocusChange: () => void,
   activeOverlayCount: number,
   isOverlay: boolean,
+  wildcardFirst: boolean,
 ): boolean {
   if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
 
   const blocked = layer.blockedKeys;
   const unblocked = eventNames.filter((n) => !blocked.includes(n));
+
+  // onlyThis semantics differ between screens and overlays:
+  // - Screen: skip when any overlay is active (activeOverlayCount > 0)
+  // - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
+  const shouldSkipOnlyThis = (b: BoundKeyEntry): boolean => {
+    if (!b.onlyThis) return false;
+    if (isOverlay) return activeOverlayCount > 1;
+    return activeOverlayCount > 0;
+  };
+
+  // Wildcard priority pre-check: when enabled, wildcard `*` bindings
+  // are evaluated before sequences, exact matches, and everything else.
+  // Only normal characters are affected — special keys fall through.
+  if (isTop && wildcardFirst && unblocked.length > 0) {
+    // Check focus-target wildcard first
+    if (layer.currentFocusId) {
+      const ft = layer.focusTargets.get(layer.currentFocusId);
+      if (ft) {
+        const fBlocked = ft.blockedKeys;
+        const fUnblocked = unblocked.filter(n => !fBlocked.includes(n));
+        if (fUnblocked.length > 0) {
+          const wb = ft.bindings.find(b => b.keys.includes('*'));
+          if (wb && isNormalCharacter(input, key)) {
+            if (!shouldSkipOnlyThis(wb)) {
+              wb.handler(input, key);
+              return true;
+            }
+          }
+        }
+      }
+    }
+    // Check screen-level wildcard
+    const wb = layer.bindings.find(b => b.keys.includes('*'));
+    if (wb && isNormalCharacter(input, key)) {
+      if (!shouldSkipOnlyThis(wb)) {
+        wb.handler(input, key);
+        return true;
+      }
+    }
+  }
 
   // Sequence matching: only for the top layer (isTop).
   // Sequences have priority over ordinary boundKeyboard bindings.
@@ -317,15 +358,6 @@ function handleLayer(
       }
     }
   }
-
-  // onlyThis semantics differ between screens and overlays:
-  // - Screen: skip when any overlay is active (activeOverlayCount > 0)
-  // - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
-  const shouldSkipOnlyThis = (b: BoundKeyEntry): boolean => {
-    if (!b.onlyThis) return false;
-    if (isOverlay) return activeOverlayCount > 1;
-    return activeOverlayCount > 0;
-  };
 
   if (isTop && layer.currentFocusId) {
     const ft = layer.focusTargets.get(layer.currentFocusId);
@@ -449,6 +481,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     executeWhenNoOverlay?: boolean
   }[]>([]);
   const focusSubscribersRef = useRef(new Set<() => void>());
+  const wildcardPriorityCountRef = useRef<number>(0);
 
   const shortcutOperationsRef = useRef(
     new Map<string, { action: () => void; keys?: string[] }>()
@@ -513,6 +546,16 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const popOwner = useCallback((owner: LayerOwner) => {
     ownerStackRef.current = ownerStackRef.current.filter(o => o !== owner);
+  }, []);
+
+  const enableWildcardPriority = useCallback(() => {
+    wildcardPriorityCountRef.current += 1;
+    let disabled = false;
+    return () => {
+      if (disabled) return;
+      disabled = true;
+      wildcardPriorityCountRef.current = Math.max(0, wildcardPriorityCountRef.current - 1);
+    };
   }, []);
 
   // ---- Core keyboard functions ----
@@ -1204,6 +1247,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       _pushOwner: pushOwner,
       _popOwner: popOwner,
       boundSequence,
+      enableWildcardPriority,
     }),
     [
       boundKeyboard,
@@ -1225,6 +1269,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       pushOwner,
       popOwner,
       boundSequence,
+      enableWildcardPriority,
     ],
   );
 
@@ -1289,7 +1334,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
     for (const overlay of activeOverlays) {
       const layer = layersRef.current.get(overlay.id);
-      if (layer && handleLayer(layer, eventNames, input, key, true, notifyFocusChange, activeCount, true)) {
+      if (layer && handleLayer(layer, eventNames, input, key, true, notifyFocusChange, activeCount, true, wildcardPriorityCountRef.current > 0)) {
         anyOverlayConsumed = true;
         // 不 break，继续下一个浮层
       }
@@ -1336,7 +1381,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const layer = layersRef.current.get(comp);
         if (!layer) continue;
         const isTop = i === path.length - 1;
-        if (handleLayer(layer, eventNames, input, key, isTop, notifyFocusChange, activeCount, false)) break;
+        if (handleLayer(layer, eventNames, input, key, isTop, notifyFocusChange, activeCount, false, wildcardPriorityCountRef.current > 0)) break;
       }
     }
   });

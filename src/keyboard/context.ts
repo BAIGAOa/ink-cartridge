@@ -264,6 +264,35 @@ export interface KeyboardContextValue {
     handler: KeyHandler,
     options?: SequenceOptions,
   ) => () => void;
+
+  /**
+   * Enable wildcard priority mode.
+   *
+   * When enabled, wildcard `*` bindings take absolute priority over ALL
+   * other key handling — sequences, exact key matches, everything. Only
+   * normal character input (as determined by `isNormalCharacter`) is
+   * affected — special keys (Tab, Return, Escape, arrow keys, modifiers,
+   * etc.) are never matched by wildcard and always fall through to normal
+   * processing.
+   *
+   * Uses reference counting: multiple callers can enable independently.
+   * Each returned disable function decrements the count; the mode is
+   * disabled when the count reaches zero.
+   *
+   * @returns A function that, when called, disables wildcard priority
+   *          for this caller. When all callers have disabled, original
+   *          priority is restored.
+   *
+   * @example
+   * ```tsx
+   * useEffect(() => {
+   *   const disable = enableWildcardPriority();
+   *   const unbind = boundKeyboard(['*'], handleInput, { focusId: 'input' });
+   *   return () => { unbind(); disable(); };
+   * }, []);
+   * ```
+   */
+  enableWildcardPriority: () => (() => void);
 }
 
 /**
