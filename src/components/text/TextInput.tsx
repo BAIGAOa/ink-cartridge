@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Text } from 'ink';
 import chalk from 'chalk';
 import { useKeyboard, useFocusState } from '../../keyboard/index.js';
@@ -95,12 +95,14 @@ export function TextInput({
   focusId,
 }: TextInputProps) {
   const isFocused = useFocusState(focusId);
-  const { boundKeyboard, focusUnregister } = useKeyboard();
+  const { boundKeyboard, focusUnregister, enableWildcardPriority } = useKeyboard();
 
   // 光标位置（字符索引）
   const [cursorOffset, setCursorOffset] = useState(originalValue.length);
   // 粘贴高亮宽度（一次插入的字符数）
   const [cursorWidth, setCursorWidth] = useState(0);
+  // 通配符优先模式的 disable 函数
+  const disablePriorityRef = useRef<(() => void) | null>(null);
 
   // 当外部 value 缩短时，修正光标位置避免越界
   useEffect(() => {
@@ -189,6 +191,11 @@ export function TextInput({
     const fid = focusId;
     const unbindList: Array<() => void> = [];
 
+    // 开启通配符最高优先级，确保所有普通字符输入优先被 TextInput 捕获
+    disablePriorityRef.current?.();
+    const disablePriority = enableWildcardPriority();
+    disablePriorityRef.current = disablePriority;
+
     // 左右移动光标
     unbindList.push(boundKeyboard(['left'], () => moveCursor(-1), { focusId: fid }));
     unbindList.push(boundKeyboard(['right'], () => moveCursor(1), { focusId: fid }));
@@ -201,10 +208,15 @@ export function TextInput({
       boundKeyboard(['delete'], () => modifyText(undefined, true), { focusId: fid }),
     );
 
-    // 回车提交
+    // 回车提交 — 提交时解除通配符最高优先级
     if (onSubmit) {
       unbindList.push(
-        boundKeyboard(['return'], () => onSubmit(originalValue), { focusId: fid }),
+        boundKeyboard(['return'], () => {
+          // 用户提交后解除通配符优先级，恢复正常按键分发
+          disablePriority();
+          disablePriorityRef.current = null;
+          onSubmit(originalValue);
+        }, { focusId: fid }),
       );
     }
 
@@ -213,9 +225,13 @@ export function TextInput({
       boundKeyboard(['*'], (input) => modifyText(input), { focusId: fid }),
     );
 
-    // 清理：解绑所有键盘回调（焦点目标生命周期由独立 effect 管理）
+    // 清理：解绑所有键盘回调并恢复通配符优先级
     return () => {
       unbindList.forEach((fn) => fn());
+      if (disablePriorityRef.current) {
+        disablePriorityRef.current();
+        disablePriorityRef.current = null;
+      }
     };
   }, [
     focusId,
@@ -224,6 +240,7 @@ export function TextInput({
     modifyText,
     onSubmit,
     originalValue,
+    enableWildcardPriority,
   ]);
 
   // 渲染最终显示的文本
