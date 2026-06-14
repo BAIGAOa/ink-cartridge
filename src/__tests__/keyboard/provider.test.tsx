@@ -818,6 +818,109 @@ describe('globalKeys + overlay 覆盖', () => {
   });
 });
 
+describe('globalKeys 四种 affectOverlay/cover 组合（有 overlay 时）', () => {
+  // 以下测试验证 checkGlobalKey 注释中的四种组合规则：
+  // [affectOverlay, cover] 在 overlay 激活时的覆盖行为
+  //
+  // - [true,  true] : overlay 可覆盖，屏幕栈不能覆盖
+  // - [true,  false]: 任何人都不能覆盖
+  // - [false, true] : 屏幕栈可覆盖
+  // - [false, false]: 任何人都不能覆盖
+  // @2026-06-14 v3.3.0
+
+  it('[true, true] 仅 overlay 可覆盖，屏幕栈不能覆盖', () => {
+    const globalFn = vi.fn();
+    const screenFn = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: globalFn, affectOverlay: true, cover: true },
+    ]);
+
+    // 打开不绑定 'x' 的 overlay，模拟 overlay 处于激活状态
+    act(() => getScreen()!.openOverlay('neutral-ovl', Notification, { message: 'test' }));
+
+    // 屏幕栈绑定同一个键 — 按规则屏幕栈不能覆盖 affectOverlay=true 的全局键
+    getKeyboard()!.boundKeyboard(['x'], screenFn);
+
+    pressKey('x', {});
+    expect(globalFn).toHaveBeenCalledTimes(1);
+    expect(screenFn).not.toHaveBeenCalled();
+  });
+
+  it('[true, false] 任何人都不能覆盖全局键', () => {
+    const globalFn = vi.fn();
+    const screenFn = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: globalFn, affectOverlay: true, cover: false },
+    ]);
+
+    act(() => getScreen()!.openOverlay('neutral-ovl', Notification, { message: 'test' }));
+
+    // 屏幕栈绑定同一个键 — 屏幕层可以注册但无权覆盖（cover:false 对 screen 的
+    // 抛错仅针对 affectOverlay=false 的全局键；affectOverlay=true 时 screen
+    // 走 continue 分支，不抛错也不添加到 globalKeyOverrides）
+    getKeyboard()!.boundKeyboard(['x'], screenFn);
+
+    pressKey('x', {});
+    expect(globalFn).toHaveBeenCalledTimes(1);
+    expect(screenFn).not.toHaveBeenCalled();
+  });
+
+  it('[false, true] 屏幕栈可覆盖全局键', () => {
+    const globalFn = vi.fn();
+    const screenFn = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: globalFn, affectOverlay: false, cover: true },
+    ]);
+
+    act(() => getScreen()!.openOverlay('neutral-ovl', Notification, { message: 'test' }));
+
+    // 屏幕栈绑定同一个键 → 全局键被覆盖，screen handler 触发
+    getKeyboard()!.boundKeyboard(['x'], screenFn);
+
+    pressKey('x', {});
+    expect(screenFn).toHaveBeenCalledTimes(1);
+    expect(globalFn).not.toHaveBeenCalled();
+  });
+
+  it('[false, false] 屏幕栈不能覆盖（绑定时抛错）', () => {
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: () => {}, affectOverlay: false, cover: false },
+    ]);
+
+    act(() => getScreen()!.openOverlay('neutral-ovl', Notification, { message: 'test' }));
+
+    // 屏幕栈尝试绑定 cover:false 的全局键 → 抛错
+    expect(() =>
+      getKeyboard()!.boundKeyboard(['x'], () => {}),
+    ).toThrow('cover: false');
+  });
+
+  it('overlay 绑定的键不能覆盖 affectOverlay=false 的全局键（两者都触发）', () => {
+    const globalFn = vi.fn();
+    const overlayFn = vi.fn();
+    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: globalFn, affectOverlay: false, cover: true },
+    ]);
+
+    // BindingOverlay 在 overlay 层绑定 'x' — overlay 不能覆盖
+    // affectOverlay=false 的全局键，所以两者都会触发（先 overlay，后全局键）
+    act(() => getScreen()!.openOverlay('test-ovl', BindingOverlay, { boundKey: 'x', onBound: overlayFn }));
+    pressKey('x', {});
+    expect(overlayFn).toHaveBeenCalledTimes(1);
+    expect(globalFn).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('boundKeyboard once 功能', () => {
   it('once=true 时绑定仅在首次触发时执行，再次按键不再响应', () => {
     const cb = vi.fn();

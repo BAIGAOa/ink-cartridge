@@ -14,12 +14,14 @@ import {
   ScreenKeyboardLayer,
   GlobalKeyEntry,
   GlobalSequenceEntry,
+  ResolvedGlobalSequenceEntry,
   BlockedKeyOptions,
   StopOptions,
   ShortcutOperationEntry,
   SequenceOptions,
   SequenceBinding,
   PendingSequence,
+  SequenceOperationEntry,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 
@@ -503,7 +505,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const wildcardPriorityCountRef = useRef<number>(0);
 
   // Global sequence state: registered entries and current pending state.
-  const globalSequencesRef = useRef<GlobalSequenceEntry[]>([]);
+  const globalSequencesRef = useRef<ResolvedGlobalSequenceEntry[]>([]);
   const globalPendingSeqRef = useRef<{
     sequences: string[];
     nextIndex: number;
@@ -520,6 +522,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const shortcutOperationsRef = useRef(
     new Map<string, { action: () => void; keys?: string[] }>()
   );
+  const sequenceOperationsRef = useRef(
+    new Map<string, {action: () => void, keys?: string[], timeout?: number}>
+  )
 
   // Owner stack: top of stack is the current "owner" for keyboard bindings.
   // When inside an overlay, the overlay ID is pushed. When outside, the
@@ -1034,10 +1039,38 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    */
   const boundSequence = useCallback(
     (
-      keys: string[],
-      handler: KeyHandler,
-      options?: SequenceOptions,
+      keysOrActionId: string[] | string,
+      handlerOrOptions?: KeyHandler | SequenceOptions,
+      maybeOptions?: SequenceOptions,
     ): (() => void) => {
+      // Overload: boundSequence(actionId: string, options?: SequenceOptions)
+      // Resolves the action's predefined keys and handler from sequenceOperationsRef.
+      if (typeof keysOrActionId === 'string' && (typeof handlerOrOptions === 'undefined' || typeof handlerOrOptions === 'object')) {
+        const actionId = keysOrActionId;
+        const options = handlerOrOptions as SequenceOptions | undefined;
+        const entry = sequenceOperationsRef.current.get(actionId);
+        if (!entry) {
+          throw new Error(
+            `[Ink-Router-Kit] Sequence action "${actionId}" is not registered.`,
+          );
+        }
+        if (!entry.keys || entry.keys.length === 0) {
+          throw new Error(
+            `[Ink-Router-Kit] Sequence action "${actionId}" does not have predefined keys. Please register with a keys field or call boundSequence with explicit keys.`,
+          );
+        }
+        // Use the action's timeout as default unless overridden by options.
+        const mergedOptions: SequenceOptions = {
+          ...(entry.timeout !== undefined ? { timeout: entry.timeout } : {}),
+          ...options,
+        };
+        return boundSequence(entry.keys, entry.action, mergedOptions);
+      }
+
+      const keys = keysOrActionId as string[];
+      const handler = handlerOrOptions as KeyHandler;
+      const options = maybeOptions;
+
       const owner = getCurrentOwner();
       if (!owner) {
         throw new Error(
@@ -1255,7 +1288,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    */
   const globalSequence = useCallback(
     (entries: GlobalSequenceEntry[], options?: { mode?: 'replace' | 'add' }) => {
-      for (const entry of entries) {
+      // Resolve string operate references to actual functions from
+      // sequenceOperationsRef, mirroring how globalKeys resolves
+      // shortcut action IDs.
+      const resolved: ResolvedGlobalSequenceEntry[] = entries.map((entry) => {
+        if (typeof entry.operate === 'string') {
+          const actionEntry = sequenceOperationsRef.current.get(entry.operate);
+          if (!actionEntry) {
+            throw new Error(
+              `[Ink-Router-Kit] You want to call the sequence action "${entry.operate}" in globalSequence, but it is not registered.`,
+            );
+          }
+          return { ...entry, operate: actionEntry.action };
+        }
+        // TS narrows entry.operate to () => void after the typeof check above.
+        return { ...entry, operate: entry.operate };
+      });
+
+      for (const entry of resolved) {
         if (entry.keys.length < 2) {
           throw new Error(
             '[Ink-Router-Kit] globalSequence() requires at least 2 keys per sequence.',
@@ -1264,14 +1314,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
 
       if (options?.mode === 'add') {
-        globalSequencesRef.current = [...globalSequencesRef.current, ...entries];
+        globalSequencesRef.current = [...globalSequencesRef.current, ...resolved];
       } else {
         // Clear any active pending sequence when replacing all entries.
         if (globalPendingSeqRef.current) {
           clearTimeout(globalPendingSeqRef.current.timer);
           globalPendingSeqRef.current = null;
         }
-        globalSequencesRef.current = entries;
+        globalSequencesRef.current = resolved;
       }
     },
     [],
@@ -1289,6 +1339,49 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     }
   }, [])
 
+  const defineSequenceAction = useCallback((entries: SequenceOperationEntry[]) => {
+    for(const each of entries){
+      if(sequenceOperationsRef.current.has(each.sequenceActionId)){
+        throw new Error(
+          `[Ink-Router-Kit]Sequence Action ${each.sequenceActionId} may not be defined repeatedly`
+        )
+      }
+      sequenceOperationsRef.current.set(each.sequenceActionId, {
+        action: each.action,
+        keys: each.keys,
+        timeout: each.timeout,
+      })
+    }
+  }, [] )
+
+
+  const modifySequenceAction = useCallback((actionId: string, keys: string[], timeout?: number) => {
+    const entry = sequenceOperationsRef.current.get(actionId)
+    if(!entry){
+      throw new Error(
+        `[Ink-Router-Kit]Key not registered to Sequence Action cannot be modified, target ID is ${actionId}`
+      )
+    }
+    if(entry.keys === undefined){
+      throw new Error(
+        `[Ink-Router-Kit]The target Sequence Action has no preset Keys. You cannot modify it. The ID is ${actionId}.`
+      )
+    }
+
+    entry.keys = keys
+    
+    if(timeout){
+      if(entry.timeout === undefined){
+        throw new Error(
+          `[Ink-Kit-Router]Target Sequence Action has no default Timeout, you cannot modify, ID is ${actionId}`
+        )
+      }
+      
+      entry.timeout = timeout
+    }
+    
+  }, [])
+
   const modifyAction = useCallback((actionId: string, keys: string[]) => {
     const entry = shortcutOperationsRef.current.get(actionId);
     if (!entry) {
@@ -1298,6 +1391,36 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       throw new Error(`[Ink-Router-Kit] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`);
     }
     entry.keys = keys;
+  }, []);
+
+  const addSequenceAction = useCallback((entry: SequenceOperationEntry) => {
+    if (sequenceOperationsRef.current.has(entry.sequenceActionId)) {
+      throw new Error(
+        `[Ink-Router-Kit] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`,
+      );
+    }
+    sequenceOperationsRef.current.set(entry.sequenceActionId, {
+      action: entry.action,
+      keys: entry.keys,
+      timeout: entry.timeout,
+    });
+  }, []);
+
+  const hasSequenceAction = useCallback((sequenceActionId: string): boolean => {
+    return sequenceOperationsRef.current.has(sequenceActionId);
+  }, []);
+
+  const removeSequenceAction = useCallback((sequenceActionId: string) => {
+    if (!sequenceOperationsRef.current.has(sequenceActionId)) {
+      throw new Error(
+        `[Ink-Router-Kit] Cannot remove sequence action "${sequenceActionId}": action not registered.`,
+      );
+    }
+    sequenceOperationsRef.current.delete(sequenceActionId);
+  }, []);
+
+  const clearSequenceOperations = useCallback(() => {
+    sequenceOperationsRef.current.clear();
   }, []);
 
   const addAction = useCallback((entry: ShortcutOperationEntry) => {
@@ -1344,6 +1467,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       removeAction,
       modifyAction,
       clearShortcutOperations,
+      defineSequenceAction,
+      addSequenceAction,
+      hasSequenceAction,
+      removeSequenceAction,
+      modifySequenceAction,
+      clearSequenceOperations,
       _pushOwner: pushOwner,
       _popOwner: popOwner,
       boundSequence,
@@ -1367,6 +1496,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       removeAction,
       modifyAction,
       clearShortcutOperations,
+      defineSequenceAction,
+      addSequenceAction,
+      hasSequenceAction,
+      removeSequenceAction,
+      modifySequenceAction,
+      clearSequenceOperations,
       pushOwner,
       popOwner,
       boundSequence,
@@ -1395,7 +1530,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     // Returns true when the event was consumed (first key matched).
     // @2026-06-13 v3.2.0
     const tryStartGlobalSequence = (
-      entries: GlobalSequenceEntry[],
+      entries: ResolvedGlobalSequenceEntry[],
       affectOverlay: boolean,
     ): boolean => {
       for (const entry of entries) {

@@ -162,6 +162,34 @@ If you later rebind save to meta+s, the stop call still works - it always resolv
 
 The actionKeysMap is populated automatically whenever boundKeyboard is called with a string handler, and cleaned up when the binding is removed. stopAction with an unregistered action ID throws an error.
 
+### Sequence Actions
+
+Sequence actions decouple multi-key sequence operation definition from key binding. Register named sequence operations with `defineSequenceAction`, then reference them by string ID in `globalSequence` and `boundSequence`:
+
+```tsx
+defineSequenceAction([
+  { sequenceActionId: 'quickSave', action: () => saveGame(), keys: ['ctrl+s', 'ctrl+s'] },
+]);
+
+// Global sequence referencing the action
+globalSequence([{ keys: ['ctrl+s', 'ctrl+s'], operate: 'quickSave' }]);
+
+// Screen-level sequence using the action's predefined keys
+boundSequence('quickSave');
+
+// Modify an existing action's keys dynamically
+modifySequenceAction('quickSave', ['ctrl+shift+s', 'ctrl+shift+s']);
+```
+
+Sequence actions support the same management APIs as shortcut actions:
+
+```tsx
+addSequenceAction({ sequenceActionId: 'dash', action: () => dash(), keys: ['d', 'd'] });
+hasSequenceAction('dash');           // true
+removeSequenceAction('dash');        // removes, throws if not found
+clearSequenceOperations();           // removes all
+```
+
 ---
 
 ## API Reference
@@ -189,6 +217,8 @@ const {
   focusUnregister, subscribeFocus,
   defineShortcutAction, addAction, hasAction,
   removeAction, modifyAction, clearShortcutOperations,
+  defineSequenceAction, addSequenceAction, hasSequenceAction,
+  removeSequenceAction, modifySequenceAction, clearSequenceOperations,
   boundSequence, enableWildcardPriority,
 } = useKeyboard();
 ```
@@ -604,6 +634,86 @@ if (hasAction('reload')) {
 }
 
 removeAction('obsolete-action');
+```
+
+---
+
+### Sequence Action Management
+
+Available from `useKeyboard()`. Mirrors `Shortcut Action Management` for sequence-based multi-key operations.
+
+#### defineSequenceAction
+
+```tsx
+defineSequenceAction(entries: SequenceOperationEntry[]): void;
+```
+
+Register named sequence actions. Each entry has a unique `sequenceActionId`, an `action` callback, optional preset `keys`, and optional `timeout`. Throws if a duplicate `sequenceActionId` is detected.
+
+```tsx
+defineSequenceAction([
+  { sequenceActionId: 'dash', action: () => dash(), keys: ['d', 'd'] },
+  { sequenceActionId: 'save', action: () => save(), keys: ['ctrl+s', 'ctrl+s'], timeout: 800 },
+]);
+```
+
+#### addSequenceAction
+
+```tsx
+addSequenceAction(entry: SequenceOperationEntry): void;
+```
+
+Dynamically register a single sequence action. Throws if the `sequenceActionId` already exists.
+
+#### hasSequenceAction
+
+```tsx
+hasSequenceAction(sequenceActionId: string): boolean;
+```
+
+Returns `true` if a sequence action with the given id is registered.
+
+#### removeSequenceAction
+
+```tsx
+removeSequenceAction(sequenceActionId: string): void;
+```
+
+Remove a registered sequence action. Throws if the id does not exist.
+
+#### modifySequenceAction
+
+```tsx
+modifySequenceAction(sequenceActionId: string, keys: string[], timeout?: number): void;
+```
+
+Change the default keys and optionally the timeout of an existing sequence action. Throws if the action does not exist, was not registered with a `keys` field, or if a `timeout` is provided but the action has no default timeout.
+
+#### clearSequenceOperations
+
+```tsx
+clearSequenceOperations(): void;
+```
+
+Remove all registered sequence operations. Primarily used for testing or full keyboard reset.
+
+```tsx
+// Dynamic sequence action management
+const {
+  defineSequenceAction, addSequenceAction, hasSequenceAction,
+  removeSequenceAction, modifySequenceAction, clearSequenceOperations,
+} = useKeyboard();
+
+defineSequenceAction([
+  { sequenceActionId: 'jump', action: () => jump(), keys: ['j', 'k'] },
+]);
+
+if (hasSequenceAction('jump')) {
+  modifySequenceAction('jump', ['j', 'j']);
+  boundSequence('jump');
+}
+
+removeSequenceAction('outdated-sequence');
 ```
 
 ---

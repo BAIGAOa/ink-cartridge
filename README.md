@@ -72,6 +72,25 @@ globalKeys([{ key: 'escape', operate: 'quit' }]);
 stop(['quit'], { stopAction: true });
 ```
 
+### Sequence Actions
+
+Decouple sequence operation definition from key binding with `defineSequenceAction`. Register named sequence operations once, then reference them by string ID in `globalSequence` and `boundSequence`:
+
+```tsx
+defineSequenceAction([
+  { sequenceActionId: 'save', action: () => saveFile(), keys: ['ctrl+s'] },
+]);
+
+// Global sequence referencing the action
+globalSequence([{ keys: ['ctrl+s'], operate: 'save' }]);
+
+// Screen-level sequence using the action's predefined keys
+boundSequence('save');
+
+// Modify an existing action's keys dynamically
+modifySequenceAction('save', ['ctrl+shift+s']);
+```
+
 ### Overlay System
 
 `openOverlay()` and `closeOverlay()` provide floating dialogs on top of the screen stack. Combined with the keyboard system, overlays intercept keys before they reach the underlying screen — ideal for confirmation dialogs, modals, and pop-up menus.

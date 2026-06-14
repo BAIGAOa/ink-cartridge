@@ -7,6 +7,7 @@ import type {
   GlobalKeyEntry,
   GlobalSequenceEntry,
   ShortcutOperationEntry,
+  SequenceOperationEntry,
   SequenceOptions,
 } from "./types.js";
 
@@ -228,6 +229,56 @@ export interface KeyboardContextValue {
   clearShortcutOperations: () => void;
 
   /**
+   * Register named sequence actions that can be referenced by sequence
+   * bindings using a string identifier instead of an inline callback.
+   *
+   * @param entries - Array of sequence operation definitions.
+   *                  Each entry must have a unique `sequenceActionId`.
+   * @throws {Error} If a `sequenceActionId` is duplicated.
+   */
+  defineSequenceAction: (entries: SequenceOperationEntry[]) => void;
+
+  /**
+   * Dynamically register a single sequence action.
+   *
+   * @param entry - The sequence operation definition to add.
+   * @throws {Error} If an action with the same `sequenceActionId` already exists.
+   */
+  addSequenceAction: (entry: SequenceOperationEntry) => void;
+
+  /**
+   * Check whether a sequence action with the given id exists.
+   *
+   * @param sequenceActionId - The action id to look up.
+   * @returns `true` if the action is registered, `false` otherwise.
+   */
+  hasSequenceAction: (sequenceActionId: string) => boolean;
+
+  /**
+   * Remove a registered sequence action.
+   *
+   * @param sequenceActionId - The action id to remove.
+   * @throws {Error} If no action with the given id exists.
+   */
+  removeSequenceAction: (sequenceActionId: string) => void;
+
+  /**
+   * Modify the default keys (and optionally timeout) of an existing sequence action.
+   *
+   * @param sequenceActionId - The unique identifier of the action.
+   * @param keys             - New key names to replace the previous default keys.
+   * @param timeout          - Optional new timeout value.
+   * @throws If the action does not exist or was not registered with a `keys` (or `timeout`) field.
+   */
+  modifySequenceAction: (sequenceActionId: string, keys: string[], timeout?: number) => void;
+
+  /**
+   * Clear all registered sequence operations.
+   * Primarily used for testing or full keyboard reset scenarios.
+   */
+  clearSequenceOperations: () => void;
+
+  /**
    * Internal: Push an owner onto the owner stack.
    * Used by useKeyboard() when rendering inside an overlay.
    */
@@ -296,11 +347,19 @@ export interface KeyboardContextValue {
    * }, []);
    * ```
    */
-  boundSequence: (
-    keys: string[],
-    handler: KeyHandler,
-    options?: SequenceOptions,
-  ) => () => void;
+  /**
+   * Register a multi-key sequence binding on the current screen layer.
+   *
+   * Overloads:
+   * 1. `(keys: string[], handler: KeyHandler, options?: SequenceOptions)` —
+   *    explicit keys and handler.
+   * 2. `(actionId: string, options?: SequenceOptions)` —
+   *    uses a registered sequence action's predefined keys and callback.
+   */
+  boundSequence: {
+    (keys: string[], handler: KeyHandler, options?: SequenceOptions): () => void;
+    (actionId: string, options?: SequenceOptions): () => void;
+  };
 
   /**
    * Enable wildcard priority mode.

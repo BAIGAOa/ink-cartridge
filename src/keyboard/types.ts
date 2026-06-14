@@ -328,8 +328,17 @@ export interface GlobalSequenceEntry {
    */
   keys: string[];
 
-  /** Callback to invoke when the full sequence is matched. */
-  operate: () => void;
+  /**
+   * Callback to invoke when the full sequence is matched.
+   *
+   * Can also be a string referencing a registered {@link SequenceOperationEntry}
+   * by its `sequenceActionId`. When a string is provided, the action's
+   * `action` callback is used. The action must be registered via
+   * {@link KeyboardContextValue.defineSequenceAction} or
+   * {@link KeyboardContextValue.addSequenceAction} before calling
+   * `globalSequence`.
+   */
+  operate: (() => void) | string;
 
   /**
    * Whether screen components are allowed to override this global sequence
@@ -404,4 +413,32 @@ export interface ShortcutOperationEntry {
    * You can directly specify the predetermined Keys of this Action
    */
   keys?: string[];
+}
+
+export interface SequenceOperationEntry {
+  /**
+   * Unique identification of this Action
+   */
+  sequenceActionId: string;
+  action: () => void;
+  /**
+   * Preset Key
+   */
+  keys?: string[];
+  /**
+   * Preset delay
+   */
+  timeout?: number;
+}
+
+/**
+ * Internal type: {@link GlobalSequenceEntry} after string `operate`
+ * references have been resolved to callable functions.
+ *
+ * Used by the keyboard provider's refs after `globalSequence()` resolves
+ * action IDs. Public API continues to accept `GlobalSequenceEntry` with
+ * `operate: string | (() => void)`.
+ */
+export interface ResolvedGlobalSequenceEntry extends Omit<GlobalSequenceEntry, 'operate'> {
+  operate: () => void;
 }

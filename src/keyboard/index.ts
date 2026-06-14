@@ -12,6 +12,7 @@ export type {
   GlobalKeyEntry,
   GlobalSequenceEntry,
   ShortcutOperationEntry,
+  SequenceOperationEntry,
   SequenceOptions,
   SequenceBinding,
   PendingSequence,

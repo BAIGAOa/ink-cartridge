@@ -48,6 +48,8 @@ export type {
   StopOptions,
   FocusTarget,
   SequenceOptions,
+  ShortcutOperationEntry,
+  SequenceOperationEntry,
 } from "./keyboard/index.js";
 export { useFocusState } from "./keyboard/index.js";
 
