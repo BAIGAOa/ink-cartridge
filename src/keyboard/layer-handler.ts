@@ -34,6 +34,16 @@ function keyMatchesRule(
  * Matches exact key names first, then falls back to the wildcard `"*"` binding
  * for normal character input (see {@link isNormalCharacter}).
  *
+ * A binding fires only when ALL of the following are satisfied (AND relationship):
+ *   1. `skipBinding` returns `false` / absent (covers `onlyThis`)
+ *   2. `when` returns `true` / absent (covers conditional enablement)
+ *   3. Key name matches one in `binding.keys`
+ *
+ * The short-circuit evaluation order is skipBinding → when → keyMatch.
+ * This order does NOT create priority among the conditions — they are
+ * logical AND peers. Whether skipBinding is checked before or after when,
+ * all must pass for the binding to fire.
+ *
  * @param bindings      Ordered list of key bindings to try.
  * @param unblockedKeys Normalized key names not blocked at this layer.
  * @param input         Raw character from Ink's useInput.
