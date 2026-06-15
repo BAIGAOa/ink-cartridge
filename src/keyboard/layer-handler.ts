@@ -3,10 +3,30 @@ import type {
   ScreenKeyboardLayer,
   BoundKeyEntry,
   PendingSequence,
+  KeyRule,
 } from './types.js';
 import { isNormalCharacter } from './keyNormalizer.js';
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
+
+/**
+ * Check whether a normalized key name is covered by a list of key rules.
+ *
+ * A key is covered when any rule's key matches, AND the rule either has no
+ * `when` condition or the condition evaluates to `true`. When all matching
+ * rules have `when` returning `false`, the key is NOT covered.
+ */
+function keyMatchesRule(
+  keyName: string,
+  rules: KeyRule[],
+): boolean {
+  for (const rule of rules) {
+    if (rule.key === keyName) {
+      if (!rule.when || rule.when()) return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Iterate through a list of bindings and fire the first matching handler.
@@ -33,6 +53,7 @@ export function tryMatchBindings(
 
   for (const binding of bindings) {
     if (skipBinding && skipBinding(binding)) continue;
+    if (binding.when?.() === false) continue;
     if (binding.keys.some((k) => unblockedKeys.includes(k))) {
       binding.handler(input, key);
       return true;
@@ -42,6 +63,7 @@ export function tryMatchBindings(
   const wildcardBinding = bindings.find(b => b.keys.includes('*'));
   if (wildcardBinding && isNormalCharacter(input, key)) {
     if (!skipBinding || !skipBinding(wildcardBinding)) {
+      if (wildcardBinding.when?.() === false) return false;
       wildcardBinding.handler(input, key);
       return true;
     }
@@ -106,7 +128,7 @@ export function handleLayer(
   if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
 
   const blocked = layer.blockedKeys;
-  const unblocked = eventNames.filter((n) => !blocked.includes(n));
+  const unblocked = eventNames.filter((n) => !keyMatchesRule(n, blocked));
 
   // onlyThis semantics differ between screens and overlays:
   // - Screen: skip when any overlay is active (activeOverlayCount > 0)
@@ -126,11 +148,12 @@ export function handleLayer(
       const ft = layer.focusTargets.get(layer.currentFocusId);
       if (ft) {
         const fBlocked = ft.blockedKeys;
-        const fUnblocked = unblocked.filter(n => !fBlocked.includes(n));
+        const fUnblocked = unblocked.filter(n => !keyMatchesRule(n, fBlocked));
         if (fUnblocked.length > 0) {
           const wb = ft.bindings.find(b => b.keys.includes('*'));
           if (wb && isNormalCharacter(input, key)) {
-            if (!shouldSkipOnlyThis(wb)) {
+            if (wb.when?.() === false) { /* skip */ }
+            else if (!shouldSkipOnlyThis(wb)) {
               wb.handler(input, key);
               return true;
             }
@@ -141,7 +164,8 @@ export function handleLayer(
     // Check screen-level wildcard
     const wb = layer.bindings.find(b => b.keys.includes('*'));
     if (wb && isNormalCharacter(input, key)) {
-      if (!shouldSkipOnlyThis(wb)) {
+      if (wb.when?.() === false) { /* skip */ }
+      else if (!shouldSkipOnlyThis(wb)) {
         wb.handler(input, key);
         return true;
       }
@@ -155,32 +179,40 @@ export function handleLayer(
 
     // We already have a pending sequence in progress.
     if (pending !== null) {
-      const expectedKey = pending.sequences[pending.nextIndex];
-      if (unblocked.includes(expectedKey)) {
-        // Matched the next key in the sequence.
+      // If the when condition changed to false mid-sequence, cancel
+      // the pending sequence and let the key fall through to normal processing.
+      if (pending.when?.() === false) {
         clearTimeout(pending.timer);
-        pending.nextIndex++;
-        if (pending.nextIndex === pending.sequences.length) {
-          // Full sequence matched — fire handler.
-          pending.handler(input, key);
-          layer.pendingSequence = null;
-        } else {
-          // Still waiting for more keys — restart the timeout.
-          pending.timer = setTimeout(() => {
-            if (layer.pendingSequence === pending) layer.pendingSequence = null;
-          }, pending.timeout);
-        }
-        return true;
+        layer.pendingSequence = null;
+        // Fall through to normal bindings — do NOT return true.
       } else {
-        // Mismatch.
-        if (pending.options?.exclusive === true) {
-          // Exclusive mode: ignore the key, keep waiting.
+        const expectedKey = pending.sequences[pending.nextIndex];
+        if (unblocked.includes(expectedKey)) {
+          // Matched the next key in the sequence.
+          clearTimeout(pending.timer);
+          pending.nextIndex++;
+          if (pending.nextIndex === pending.sequences.length) {
+            // Full sequence matched — fire handler.
+            pending.handler(input, key);
+            layer.pendingSequence = null;
+          } else {
+            // Still waiting for more keys — restart the timeout.
+            pending.timer = setTimeout(() => {
+              if (layer.pendingSequence === pending) layer.pendingSequence = null;
+            }, pending.timeout);
+          }
           return true;
         } else {
-          // Non-exclusive (default): cancel the sequence and let the key
-          // fall through to normal bindings.
-          clearTimeout(pending.timer);
-          layer.pendingSequence = null;
+          // Mismatch.
+          if (pending.options?.exclusive === true) {
+            // Exclusive mode: ignore the key, keep waiting.
+            return true;
+          } else {
+            // Non-exclusive (default): cancel the sequence and let the key
+            // fall through to normal bindings.
+            clearTimeout(pending.timer);
+            layer.pendingSequence = null;
+          }
         }
       }
     }
@@ -192,7 +224,7 @@ export function handleLayer(
       for (const keyName of unblocked) {
         const candidates = layer.sequences.get(keyName);
         if (!candidates || candidates.length === 0) continue;
-        // Filter by onlyThis and focusId constraints.
+        // Filter by onlyThis, focusId, and when constraints.
         const selected = candidates.find(binding => {
           if (binding.options?.onlyThis) {
             if (isOverlay) return activeOverlayCount <= 1;
@@ -201,6 +233,7 @@ export function handleLayer(
           if (binding.options?.focusId) {
             return layer.currentFocusId === binding.options.focusId;
           }
+          if (binding.when?.() === false) return false;
           return true;
         });
         if (selected) {
@@ -212,6 +245,7 @@ export function handleLayer(
             timer: undefined as unknown as NodeJS.Timeout,
             timeout,
             options: selected.options,
+            when: selected.when,
           };
           const timer = setTimeout(() => {
             if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
@@ -228,11 +262,11 @@ export function handleLayer(
     const ft = layer.focusTargets.get(layer.currentFocusId);
     if (ft) {
       const fBlocked = ft.blockedKeys;
-      const fUnblocked = unblocked.filter((n) => !fBlocked.includes(n));
+      const fUnblocked = unblocked.filter((n) => !keyMatchesRule(n, fBlocked));
 
       if (tryMatchBindings(ft.bindings, fUnblocked, input, key, shouldSkipOnlyThis)) return true;
 
-      if (eventNames.some((n) => ft.stoppedKeys.includes(n))) {
+      if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
         return true;
       }
     }
@@ -240,7 +274,7 @@ export function handleLayer(
 
   if (tryMatchBindings(layer.bindings, unblocked, input, key, shouldSkipOnlyThis)) return true;
 
-  if (isTop && eventNames.some((n) => layer.stoppedKeys.includes(n))) {
+  if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
     return true;
   }
 

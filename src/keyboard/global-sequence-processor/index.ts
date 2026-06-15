@@ -28,6 +28,7 @@ function tryStartGlobalSequence(
 ): boolean {
   for (const entry of entries) {
     if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
+    if (entry.when?.() === false) continue;
     if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay) continue;
     if (!ctx.topComponent) continue;
 
@@ -73,6 +74,7 @@ function tryStartGlobalSequence(
         cover: entry.cover ?? true,
         category: entry.category,
         executeWhenNoOverlay: entry.executeWhenNoOverlay,
+        when: entry.when,
       };
       const timer = setTimeout(() => {
         if (ctx.pendingSeqRef.current === pending) {
@@ -111,6 +113,12 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
   if (pending.affectOverlay !== affectOverlay) return false;
 
   if (pending.affectOverlay && ctx.activeCount === 0 && !pending.executeWhenNoOverlay) {
+    clearTimeout(pending.timer);
+    ctx.pendingSeqRef.current = null;
+    return false;
+  }
+
+  if (pending.when?.() === false) {
     clearTimeout(pending.timer);
     ctx.pendingSeqRef.current = null;
     return false;

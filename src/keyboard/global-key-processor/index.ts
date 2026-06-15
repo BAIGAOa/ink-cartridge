@@ -22,6 +22,9 @@ export function createGlobalKeyProcessor(config: {
       for (const entry of ctx.globalKeys) {
         if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
 
+        // when=false → entry treated as if not registered
+        if (entry.when?.() === false) continue;
+
         if (affectOverlay) {
           if (ctx.activeCount === 0 && !entry.executeWhenNoOverlay) continue;
 

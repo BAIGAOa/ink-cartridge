@@ -430,6 +430,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         applyGlobalKeyOverrides(keys, owner, layer, `focusId="${fid}"`);
 
         const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
+        entry.when = options?.when;
 
         target.bindings.push(entry);
 
@@ -481,6 +482,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       applyGlobalKeyOverrides(keys, owner, layer, 'boundKeyboard');
 
       const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
+      entry.when = options?.when;
 
       layer.bindings.push(entry);
 
@@ -541,36 +543,33 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         throw new Error('[Ink-Router-Kit] blockedKey() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
+      const compiledWhen = options?.when;
 
       if (options?.focusId) {
         const target = getOrCreateFocusTarget(layer, options.focusId);
         const added: string[] = [];
         for (const k of keys) {
-          if (!target.blockedKeys.includes(k)) {
-            target.blockedKeys.push(k);
+          const exists = target.blockedKeys.some((r) => r.key === k);
+          if (!exists) {
+            target.blockedKeys.push({ key: k, when: compiledWhen });
             added.push(k);
           }
         }
         return () => {
-          for (const k of added) {
-            const idx = target.blockedKeys.indexOf(k);
-            if (idx !== -1) target.blockedKeys.splice(idx, 1);
-          }
+          target.blockedKeys = target.blockedKeys.filter((r) => !added.includes(r.key));
         };
       }
 
       const added: string[] = [];
       for (const k of keys) {
-        if (!layer.blockedKeys.includes(k)) {
-          layer.blockedKeys.push(k);
+        const exists = layer.blockedKeys.some((r) => r.key === k);
+        if (!exists) {
+          layer.blockedKeys.push({ key: k, when: compiledWhen });
           added.push(k);
         }
       }
       return () => {
-        for (const k of added) {
-          const idx = layer.blockedKeys.indexOf(k);
-          if (idx !== -1) layer.blockedKeys.splice(idx, 1);
-        }
+        layer.blockedKeys = layer.blockedKeys.filter((r) => !added.includes(r.key));
       };
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
@@ -611,34 +610,32 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         effectiveKeys = merged;
       }
 
+      const compiledWhen = options?.when;
+
       if (options?.focusId) {
         const target = getOrCreateFocusTarget(layer, options.focusId);
         const added: string[] = [];
         for (const k of effectiveKeys) {
-          if (!target.stoppedKeys.includes(k)) {
-            target.stoppedKeys.push(k);
+          const exists = target.stoppedKeys.some((r) => r.key === k);
+          if (!exists) {
+            target.stoppedKeys.push({ key: k, when: compiledWhen });
             added.push(k);
           }
         }
         return () => {
-          for (const k of added) {
-            const idx = target!.stoppedKeys.indexOf(k);
-            if (idx !== -1) target!.stoppedKeys.splice(idx, 1);
-          }
+          target.stoppedKeys = target.stoppedKeys.filter((r) => !added.includes(r.key));
         };
       } else {
         const added: string[] = [];
         for (const k of effectiveKeys) {
-          if (!layer.stoppedKeys.includes(k)) {
-            layer.stoppedKeys.push(k);
+          const exists = layer.stoppedKeys.some((r) => r.key === k);
+          if (!exists) {
+            layer.stoppedKeys.push({ key: k, when: compiledWhen });
             added.push(k);
           }
         }
         return () => {
-          for (const k of added) {
-            const idx = layer.stoppedKeys.indexOf(k);
-            if (idx !== -1) layer.stoppedKeys.splice(idx, 1);
-          }
+          layer.stoppedKeys = layer.stoppedKeys.filter((r) => !added.includes(r.key));
         };
       }
     },
@@ -747,6 +744,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         handler,
         timeout: options?.timeout,
         options,
+        when: options?.when,
       };
 
       const existing = layer.sequences.get(firstKey) || [];
@@ -878,7 +876,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             affectOverlay: each.affectOverlay,
             times: each.times,
             pressCount: each.times !== undefined ? 0 : undefined,
-            executeWhenNoOverlay: each.executeWhenNoOverlay
+            executeWhenNoOverlay: each.executeWhenNoOverlay,
+            when: each.when,
           };
         }
         return {
@@ -889,7 +888,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           affectOverlay: each.affectOverlay,
           times: each.times,
           pressCount: each.times !== undefined ? 0 : undefined,
-          executeWhenNoOverlay: each.executeWhenNoOverlay
+          executeWhenNoOverlay: each.executeWhenNoOverlay,
+          when: each.when,
         };
       });
 

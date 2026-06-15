@@ -277,7 +277,7 @@ Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Key names to bind (e.g. ['s'], ['ctrl+q', 'return'])
 handler   | (input, key) => void or string | Callback or shortcut action ID
-options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number } | Optional behavior flags
+options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number; when?: () => boolean } | Optional behavior flags
 
 Returns an unbind function.
 
@@ -345,6 +345,22 @@ useEffect(() => {
 
 When the handler is a string (shortcut action ID), the binding is also tracked in an internal actionKeysMap. This enables stop to resolve action IDs to their bound key names.
 
+**when**: a callback `() => boolean` evaluated at each key press. If it returns `false`, the binding is skipped as if it doesn't exist — the event continues to the next binding or layer. This is an AND relationship with `onlyThis` and `focusId`; all must be satisfied for the binding to fire.
+
+When `when` returns `false`:
+- `once` is NOT consumed (the binding is preserved)
+- `times` counter is NOT incremented
+- The binding does NOT count as a "match" for stop/block purposes
+
+```tsx
+// Binding only active when editing
+useEffect(() => {
+  boundKeyboard(['return'], handleSubmit, {
+    when: () => isEditing && !isReadOnly,
+  });
+}, [isEditing, isReadOnly]);
+```
+
 ---
 
 ### blockedKey
@@ -360,7 +376,14 @@ Returns an unbind function that removes the keys from the transparent list when 
 Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Key names to make transparent
-options   | { focusId?: string } | If provided, blocks only within that focus target
+options   | { focusId?: string; when?: () => boolean } | If provided, blocks only within that focus target. When `when` is given, the key is only transparent when it returns `true`.
+
+```tsx
+// tab is pass-through only when in read-only mode
+useEffect(() => {
+  blockedKey(['tab'], { when: () => isReadOnly });
+}, [isReadOnly]);
+```
 
 ---
 
@@ -377,7 +400,7 @@ Returns an unstop function.
 Parameter | Type | Default | Description
 --------- | ---- | ------- | -----------
 keys      | string[] | - | Key names or action IDs (see stopAction)
-options   | { focusId?, stopAction? } | - | Optional targeting and action resolution
+options   | { focusId?, stopAction?, when? } | - | Optional targeting and action resolution. `when` makes the stop conditional — propagation is only blocked when the callback returns `true`.
 
 **focusId**: stops only within the named focus target.
 
@@ -397,6 +420,13 @@ stop(['save'], { stopAction: true, focusId: 'editor' });
 ```
 
 When stopAction is used with an action ID that has no bindings (never registered or already unbound), an error is thrown.
+
+```tsx
+// Escape prevents closing modal only when there are unsaved changes
+useEffect(() => {
+  stop(['escape'], { when: () => hasDirtyChanges });
+}, [hasDirtyChanges]);
+```
 
 ---
 
@@ -427,6 +457,7 @@ cover               | boolean | true | Whether screen components may override th
 affectOverlay       | boolean | false | Fire before (true) or after (false) the overlay
 category            | ComponentType[] or '*' or undefined | '*' | Screen whitelist; '*' = all, [] = disabled
 times               | number | undefined | Number of presses needed before handler fires (must be >= 1)
+when                | () => boolean | undefined | Condition callback; when `false`, the global key is skipped entirely (cover, category not evaluated)
 executeWhenNoOverlay | boolean | false | When `affectOverlay: true`, also execute when no overlay is open
 
 ---
@@ -468,6 +499,7 @@ cover                 | boolean  | true    | Whether `boundSequence` may overrid
 affectOverlay         | boolean  | false   | Fire before (true) or after (false) overlays
 category              | ComponentType[] or `'*'` or undefined | `'*'` | Screen whitelist
 timeout               | number   | 500     | Max time (ms) between key presses
+when                  | () => boolean | undefined | Condition callback checked before sequence start and each key press; when `false`, the global sequence is skipped or cancelled
 exclusive             | boolean  | false   | If true, mismatched keys consumed silently
 executeWhenNoOverlay  | boolean  | false   | When `affectOverlay: true`, fire without overlay
 
@@ -505,7 +537,7 @@ Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string[] | Ordered key names (e.g. `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2.
 handler   | (input, key) => void | Callback invoked when the full sequence is matched
-options   | `{ timeout?, onlyThis?, focusId?, exclusive? }` | Optional behavior flags
+options   | `{ timeout?, onlyThis?, focusId?, exclusive?, when? }` | Optional behavior flags
 
 Returns an unbind function.
 
@@ -530,6 +562,11 @@ useEffect(() => {
 useEffect(() => {
   boundSequence(['d', 'd'], deleteLine, { focusId: 'editor' });
 }, []);
+
+// Sequence only active when hasSelection is true
+useEffect(() => {
+  boundSequence(['d', 'd'], deleteLine, { when: () => hasSelection });
+}, [hasSelection]);
 ```
 
 **Layer isolation**: Each screen/overlay maintains its own pending sequence. Navigating away, switching focus, or closing an overlay automatically cancels any pending sequence.

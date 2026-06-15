@@ -2,6 +2,22 @@ import type { Key } from "ink";
 import type { OverlayEntry } from "../screen/types.js";
 
 /**
+ * A single key rule with an optional when condition.
+ *
+ * Used internally for blockedKeys and stoppedKeys to support
+ * conditional transparency and conditional propagation barriers.
+ */
+export interface KeyRule {
+  /** Normalized key name. */
+  key: string;
+  /**
+   * If provided, the rule only applies when this callback returns `true`.
+   * When `false` or omitted, the rule always applies.
+   */
+  when?: () => boolean;
+}
+
+/**
  * Keyboard callback, matching Ink's `useInput` signature.
  *
  * @param input  The raw character string (empty for special keys).
@@ -59,6 +75,19 @@ export interface BoundKeyboardOptions {
    * - `times: 3, once: true` → handler fires on the 3rd press and unbinds.
    */
   times?: number;
+
+  /**
+   * Optional condition callback. When provided, the binding only fires if
+   * this callback returns `true` at the moment of the key press.
+   *
+   * When `false`, the binding is skipped — the event continues to the next
+   * binding or layer. This is an AND relationship with `onlyThis` / `focusId`.
+   *
+   * Examples:
+   * - `when: () => isEditing` — binding only active during editing
+   * - `when: () => isEditing && !isReadOnly`
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -77,6 +106,14 @@ export interface BoundKeyEntry {
   times?: number;
   /** Current press count. Managed internally by the keyboard provider. */
   pressCount?: number;
+  /**
+   * Optional condition callback. When provided, the binding only fires if
+   * this callback returns `true` at the moment of the key press.
+   *
+   * When `false`, the binding is skipped as if it does not exist — the
+   * event continues to the next binding or layer.
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -89,10 +126,10 @@ export interface BoundKeyEntry {
 export interface FocusTarget {
   /** Registered key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
-  /** Keys marked as transparent on this target (pass-through). */
-  blockedKeys: string[];
-  /** Keys stopped on this target (propagation barrier). */
-  stoppedKeys: string[];
+  /** Key rules marked as transparent on this target (pass-through). */
+  blockedKeys: KeyRule[];
+  /** Key rules stopped on this target (propagation barrier). */
+  stoppedKeys: KeyRule[];
   /** Maps action IDs to the normalized keys that trigger them (for stopAction). */
   actionKeysMap: Map<string, string[]>;
 }
@@ -153,6 +190,11 @@ export interface PendingSequence {
   timeout: number;
   /** Options from the original `SequenceBinding`. */
   options?: SequenceOptions;
+  /**
+   * Optional condition callback (copied from SequenceBinding at start).
+   * Checked at each key press; if it returns `false`, the sequence is cancelled.
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -178,6 +220,11 @@ export interface SequenceBinding {
   timeout?: number;
   /** Binding options (exclusive mode, focusId, onlyThis, etc.). */
   options?: SequenceOptions;
+  /**
+   * Optional condition callback (extracted from options.when at registration).
+   * When provided, the sequence only starts and continues when this returns `true`.
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -187,10 +234,10 @@ export interface SequenceBinding {
 export interface ScreenKeyboardLayer {
   /** Registered screen-level key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
-  /** Keys marked as transparent at the screen level (pass-through). */
-  blockedKeys: string[];
-  /** Keys stopped at the screen level (propagation barrier). */
-  stoppedKeys: string[];
+  /** Key rules marked as transparent at the screen level (pass-through). */
+  blockedKeys: KeyRule[];
+  /** Key rules stopped at the screen level (propagation barrier). */
+  stoppedKeys: KeyRule[];
   /** Keys from globalKeys that this layer has overridden. */
   globalKeyOverrides: Set<string>;
 
@@ -232,6 +279,12 @@ export interface StopOptions {
    *         unbound).
    */
   stopAction?: boolean;
+  /**
+   * Optional condition callback. When provided, the key is only stopped
+   * (propagation barrier) when this returns `true`. When `false`, the
+   * stop rule is ignored and the key propagates normally.
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -241,6 +294,12 @@ export interface StopOptions {
 export interface BlockedKeyOptions {
   /** If provided, blocks only within the named focus target. */
   focusId?: string;
+  /**
+   * Optional condition callback. When provided, the key is only transparent
+   * (blocked) when this returns `true`. When `false`, the blocked-key rule
+   * is ignored and the key is not blocked.
+   */
+  when?: () => boolean;
 }
 
 /**
@@ -308,6 +367,13 @@ export interface GlobalKeyEntry {
    * This key also works when you have affectOverlay turned on, but you want to have no floating layer
    * You turn it on.
    */
+  /**
+   * Optional condition callback. When provided, the global key only fires
+   * if this returns `true` at the moment of the key press. When `false`,
+   * the entry is skipped entirely — `cover`, `category`, and other options
+   * are not evaluated.
+   */
+  when?: () => boolean;
   executeWhenNoOverlay?: boolean;
 }
 
@@ -394,6 +460,11 @@ export interface GlobalSequenceEntry {
    * screen stack instead). When `false` (default), `affectOverlay: true`
    * global sequences only fire when at least one overlay is active.
    */
+  /**
+   * Optional condition callback. When provided, the global sequence only
+   * starts and continues when this returns `true`.
+   */
+  when?: () => boolean;
   executeWhenNoOverlay?: boolean;
 }
 
@@ -462,6 +533,7 @@ export interface ResolvedGlobalKeyEntry {
   times?: number;
   pressCount?: number;
   executeWhenNoOverlay?: boolean;
+  when?: () => boolean;
 }
 
 /**
@@ -483,6 +555,7 @@ export interface GlobalPendingSequence {
   cover: boolean;
   category?: React.ComponentType<any>[] | '*';
   executeWhenNoOverlay?: boolean;
+  when?: () => boolean;
 }
 
 /**
