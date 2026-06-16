@@ -38,7 +38,16 @@ class Evaluator {
       case 'Identifier':
         return this.lookup(node.name);
       case 'UnaryOp':
-        return !this.evalValue(node.operand);
+        if (node.op === '!') {
+          return !this.evalValue(node.operand);
+        }
+        // node.op === '-'
+        return -(this.evalValue(node.operand) as number);
+      case 'BinaryArithmeticOp': {
+        const left = this.evalValue(node.left) as number;
+        const right = this.evalValue(node.right) as number;
+        return node.op === '+' ? left + right : left - right;
+      }
       case 'LogicalBinaryOp': {
         const left = this.evalValue(node.left);
         if (node.op === '&&') {

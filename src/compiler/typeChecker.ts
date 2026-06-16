@@ -37,6 +37,8 @@ class TypeChecker {
         return this.checkIdentifier(node.name);
       case 'UnaryOp':
         return this.checkUnaryOp(node);
+      case 'BinaryArithmeticOp':
+        return this.checkBinaryArithmeticOp(node);
       case 'LogicalBinaryOp':
         return this.checkLogicalBinaryOp(node);
       case 'Comparison':
@@ -52,14 +54,45 @@ class TypeChecker {
     return binding.type;
   }
 
-  private checkUnaryOp(node: { op: '!'; operand: ExprNode }): ValueType {
+  private checkUnaryOp(node: { op: '!' | '-'; operand: ExprNode }): ValueType {
     const operandType = this.check(node.operand);
-    if (operandType !== 'boolean') {
+    if (node.op === '!') {
+      if (operandType !== 'boolean') {
+        throw new Error(
+          `[ink-router-kit] Operator '!' requires a boolean operand, but got '${operandType}'`,
+        );
+      }
+      return 'boolean';
+    }
+    // node.op === '-'
+    if (operandType !== 'number') {
       throw new Error(
-        `[ink-router-kit] Operator '!' requires a boolean operand, but got '${operandType}'`,
+        `[ink-router-kit] Operator '-' requires a number operand, but got '${operandType}'`,
       );
     }
-    return 'boolean';
+    return 'number';
+  }
+
+  private checkBinaryArithmeticOp(node: {
+    op: '+' | '-';
+    left: ExprNode;
+    right: ExprNode;
+  }): ValueType {
+    const leftType = this.check(node.left);
+    if (leftType !== 'number') {
+      throw new Error(
+        `[ink-router-kit] Operator '${node.op}' requires number operands, ` +
+        `but left side is '${leftType}'`,
+      );
+    }
+    const rightType = this.check(node.right);
+    if (rightType !== 'number') {
+      throw new Error(
+        `[ink-router-kit] Operator '${node.op}' requires number operands, ` +
+        `but right side is '${rightType}'`,
+      );
+    }
+    return 'number';
   }
 
   private checkLogicalBinaryOp(node: {

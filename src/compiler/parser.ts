@@ -10,8 +10,9 @@ import type { ExprNode } from './ExprNode.js';
  * expression  → logicalOr
  * logicalOr   → logicalAnd ('||' logicalAnd)*
  * logicalAnd  → comparison ('&&' comparison)*
- * comparison  → unary (('==' | '!=' | '>' | '<' | '>=' | '<=') unary)?
- * unary       → '!' unary | primary
+ * comparison  → addition (('==' | '!=' | '>' | '<' | '>=' | '<=') addition)?
+ * addition    → unary (('+' | '-') unary)*
+ * unary       → '!' unary | '-' unary | primary
  * primary     → TRUE | FALSE | STRING | NUMBER | IDENT | '(' expression ')'
  * ```
  *
@@ -76,13 +77,23 @@ class Parser {
   }
 
   private parseComparison(): ExprNode {
-    const left = this.parseUnary();
+    const left = this.parseAddition();
     const opType = this.current.type;
     if (opType === 'EQ' || opType === 'NEQ' || opType === 'GT' ||
         opType === 'LT' || opType === 'GTE' || opType === 'LTE') {
       const op = this.advance().lexeme as '==' | '!=' | '>' | '<' | '>=' | '<=';
-      const right = this.parseUnary();
+      const right = this.parseAddition();
       return { type: 'Comparison', op, left, right };
+    }
+    return left;
+  }
+
+  private parseAddition(): ExprNode {
+    let left = this.parseUnary();
+    while (this.current.type === 'PLUS' || this.current.type === 'MINUS') {
+      const op = this.advance().lexeme as '+' | '-';
+      const right = this.parseUnary();
+      left = { type: 'BinaryArithmeticOp', op, left, right };
     }
     return left;
   }
@@ -90,6 +101,11 @@ class Parser {
   private parseUnary(): ExprNode {
     if (this.current.type === 'NOT') {
       const op = this.advance().lexeme as '!';
+      const operand = this.parseUnary();
+      return { type: 'UnaryOp', op, operand };
+    }
+    if (this.current.type === 'MINUS') {
+      const op = this.advance().lexeme as '-';
       const operand = this.parseUnary();
       return { type: 'UnaryOp', op, operand };
     }

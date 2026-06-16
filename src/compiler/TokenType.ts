@@ -21,6 +21,10 @@ export type TokenType =
   | 'OR'
   /** Logical NOT / negation operator `!`. */
   | 'NOT'
+  /** Unary or binary minus / subtraction operator `-`. */
+  | 'MINUS'
+  /** Binary plus / addition operator `+`. */
+  | 'PLUS'
   /** Equality comparison `==`. */
   | 'EQ'
   /** Inequality comparison `!=`. */

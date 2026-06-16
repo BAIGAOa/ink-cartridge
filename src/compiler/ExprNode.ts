@@ -17,6 +17,7 @@ export type ExprNode =
   | NumberLiteral
   | Identifier
   | UnaryOp
+  | BinaryArithmeticOp
   | LogicalBinaryOp
   | Comparison;
 
@@ -59,13 +60,28 @@ export interface Identifier {
   name: string;
 }
 
-/** Logical NOT / negation applied to a single operand. */
+/** Logical NOT (`!`) or arithmetic negation (`-`) applied to a single operand. */
 export interface UnaryOp {
   type: 'UnaryOp';
-  /** The operator, always `'!'`. */
-  op: '!';
-  /** The sub-expression to negate. Must evaluate to a boolean. */
+  /** The unary operator: `!` (logical not) or `-` (arithmetic negation). */
+  op: '!' | '-';
+  /** The sub-expression to operate on. `!` requires boolean; `-` requires number. */
   operand: ExprNode;
+}
+
+/**
+ * A binary arithmetic operation: addition or subtraction.
+ *
+ * Both operands must evaluate to numbers, and the result is a number.
+ */
+export interface BinaryArithmeticOp {
+  type: 'BinaryArithmeticOp';
+  /** The arithmetic operator. */
+  op: '+' | '-';
+  /** The left-hand sub-expression. */
+  left: ExprNode;
+  /** The right-hand sub-expression. */
+  right: ExprNode;
 }
 
 /**

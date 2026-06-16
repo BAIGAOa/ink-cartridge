@@ -129,6 +129,14 @@ export function tokenize(source: string): Token[] {
           pos++;
         }
         continue;
+      case '+':
+        tokens.push({ type: 'PLUS', lexeme: '+', position: pos });
+        pos++;
+        continue;
+      case '-':
+        tokens.push({ type: 'MINUS', lexeme: '-', position: pos });
+        pos++;
+        continue;
       case '(':
         tokens.push({ type: 'LPAREN', lexeme: '(', position: pos });
         pos++;

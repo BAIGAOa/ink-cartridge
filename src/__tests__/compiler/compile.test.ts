@@ -381,5 +381,320 @@ describe('WhenCompiler', () => {
         expect(lt()).toBe(false);
       });
     });
+
+    describe('unary minus (arithmetic negation)', () => {
+      it('negates a positive integer literal', () => {
+        const when = createContext()
+          .varNum('n', () => 5)
+          .compile('n == 5 && n > -1');
+        expect(when()).toBe(true);
+      });
+
+      it('negates a decimal literal', () => {
+        const when = createContext()
+          .varNum('n', () => -3.14)
+          .compile('n == -3.14');
+        expect(when()).toBe(true);
+      });
+
+      it('double negation returns the original value', () => {
+        const when = createContext()
+          .varNum('n', () => 5)
+          .compile('--n == 5');
+        expect(when()).toBe(true);
+      });
+
+      it('triple negation is equivalent to single negation', () => {
+        // ---5 → -(-(-5)) → -(5) → -5
+        const when = createContext()
+          .varNum('n', () => 5)
+          .compile('---n == -5');
+        expect(when()).toBe(true);
+      });
+
+      it('negates a variable', () => {
+        let val = 7;
+        const when = createContext()
+          .varNum('n', () => val)
+          .compile('-n == -7');
+        expect(when()).toBe(true);
+        val = -3;
+        expect(when()).toBe(false); // -(-3) == 3, not -7
+      });
+
+      it('negates a parenthesised expression', () => {
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 2)
+          .compile('-(a + b) == -5');
+        expect(when()).toBe(true);
+      });
+
+      it('negates zero', () => {
+        const when = createContext().compile('-0 == 0');
+        expect(when()).toBe(true);
+      });
+
+      it('negation combined with comparison', () => {
+        let count = 0;
+        const when = createContext()
+          .varNum('n', () => count)
+          .compile('-n >= 0');
+        expect(when()).toBe(true);
+        count = 1;
+        expect(when()).toBe(false);
+      });
+
+      it('throws when unary minus operand is not a number', () => {
+        const ctx = createContext().varBool('b', () => true);
+        expect(() => ctx.compile('-b')).toThrow(/number/);
+      });
+
+      it('throws when unary minus on string variable', () => {
+        const ctx = createContext().varStr('s', () => 'a');
+        expect(() => ctx.compile('-s')).toThrow(/number/);
+      });
+    });
+
+    describe('binary addition and subtraction', () => {
+      it('adds two numbers', () => {
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 4)
+          .compile('a + b == 7');
+        expect(when()).toBe(true);
+      });
+
+      it('subtracts two numbers', () => {
+        const when = createContext()
+          .varNum('a', () => 10)
+          .varNum('b', () => 3)
+          .compile('a - b == 7');
+        expect(when()).toBe(true);
+      });
+
+      it('subtraction resulting in negative', () => {
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 10)
+          .compile('a - b == -7');
+        expect(when()).toBe(true);
+      });
+
+      it('subtraction resulting in zero', () => {
+        const when = createContext()
+          .varNum('a', () => 5)
+          .varNum('b', () => 5)
+          .compile('a - b == 0');
+        expect(when()).toBe(true);
+      });
+
+      it('adding a negative number', () => {
+        const when = createContext()
+          .varNum('n', () => 5)
+          .compile('n + -3 == 2');
+        expect(when()).toBe(true);
+      });
+
+      it('subtracting a negative number (double negative)', () => {
+        // n - -3 == n + 3
+        const when = createContext()
+          .varNum('n', () => 5)
+          .compile('n - -3 == 8');
+        expect(when()).toBe(true);
+      });
+
+      it('chained addition and subtraction (left-associative)', () => {
+        // 10 - 3 + 2 - 1 → ((10-3)+2)-1 → 8
+        const when = createContext()
+          .varNum('a', () => 10)
+          .varNum('b', () => 3)
+          .varNum('c', () => 2)
+          .varNum('d', () => 1)
+          .compile('a - b + c - d == 8');
+        expect(when()).toBe(true);
+      });
+
+      it('multiple chained subtractions', () => {
+        // 100 - 10 - 58 - 1 → 31
+        const when = createContext().compile('100 - 10 - 58 - 1 == 31');
+        expect(when()).toBe(true);
+      });
+
+      it('adding zero does not change value', () => {
+        const when = createContext()
+          .varNum('n', () => 42)
+          .compile('n + 0 == 42');
+        expect(when()).toBe(true);
+      });
+
+      it('subtracting zero does not change value', () => {
+        const when = createContext()
+          .varNum('n', () => 42)
+          .compile('n - 0 == 42');
+        expect(when()).toBe(true);
+      });
+
+      it('re-evaluates arithmetic with changing variables', () => {
+        let a = 5;
+        let b = 3;
+        const when = createContext()
+          .varNum('a', () => a)
+          .varNum('b', () => b)
+          .compile('a + b > 5');
+        expect(when()).toBe(true);  // 8 > 5
+        a = 1;
+        expect(when()).toBe(false); // 4 > 5
+      });
+
+      it('throws when left operand of + is not a number', () => {
+        const ctx = createContext()
+          .varBool('b', () => true)
+          .varNum('n', () => 1);
+        expect(() => ctx.compile('b + n')).toThrow(/number/);
+      });
+
+      it('throws when right operand of - is not a number', () => {
+        const ctx = createContext()
+          .varNum('n', () => 1)
+          .varStr('s', () => 'a');
+        expect(() => ctx.compile('n - s')).toThrow(/number/);
+      });
+
+      it('throws when adding string variables', () => {
+        const ctx = createContext()
+          .varStr('a', () => 'x')
+          .varStr('b', () => 'y');
+        expect(() => ctx.compile('a + b')).toThrow(/number/);
+      });
+    });
+
+    describe('arithmetic precedence', () => {
+      it('unary minus binds tighter than binary minus', () => {
+        // a - -b  ≡  a - (-b), not (a -) b which is invalid
+        const when = createContext()
+          .varNum('a', () => 5)
+          .varNum('b', () => 3)
+          .compile('a - -b == 8');
+        expect(when()).toBe(true);
+      });
+
+      it('arithmetic binds tighter than comparison', () => {
+        // a + b > c  ≡  (a + b) > c, not a + (b > c)
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 4)
+          .varNum('c', () => 2)
+          .compile('a + b > c');
+        expect(when()).toBe(true);
+      });
+
+      it('arithmetic binds tighter than logical AND', () => {
+        // a - b < 0 && flag  ≡  ((a - b) < 0) && flag
+        let flag = true;
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 10)
+          .varBool('flag', () => flag)
+          .compile('a - b < 0 && flag');
+        expect(when()).toBe(true);
+      });
+
+      it('unary minus before addition in precedence', () => {
+        // -a + b  ≡  (-a) + b, not -(a + b)
+        const when = createContext()
+          .varNum('a', () => 3)
+          .varNum('b', () => 7)
+          .compile('-a + b == 4');
+        expect(when()).toBe(true);
+      });
+
+      it('comparison of two arithmetic results', () => {
+        // (a + b) < (c - d)
+        const when = createContext()
+          .varNum('a', () => 1)
+          .varNum('b', () => 2)
+          .varNum('c', () => 10)
+          .varNum('d', () => 3)
+          .compile('a + b < c - d');
+        expect(when()).toBe(true); // 3 < 7
+      });
+    });
+
+    describe('parentheses with arithmetic', () => {
+      it('parentheses group arithmetic before comparison', () => {
+        const when = createContext().compile('(10 - 5) > 2');
+        expect(when()).toBe(true);
+      });
+
+      it('parentheses override default left-associativity of subtraction', () => {
+        // left-assoc: (10 - 7) - 3 = 0;  parens: 10 - (7 - 3) = 6
+        let a = 10, b = 7, c = 3;
+        const without = createContext()
+          .varNum('a', () => a).varNum('b', () => b).varNum('c', () => c)
+          .compile('a - b - c == 0');
+        const withParens = createContext()
+          .varNum('a', () => a).varNum('b', () => b).varNum('c', () => c)
+          .compile('a - (b - c) == 6');
+        expect(without()).toBe(true);
+        expect(withParens()).toBe(true);
+      });
+    });
+
+    describe('edge values and mixed scenarios', () => {
+      it('handles large negative numbers', () => {
+        const when = createContext()
+          .varNum('n', () => -99999)
+          .compile('n > -100000');
+        expect(when()).toBe(true);
+      });
+
+      it('decimal arithmetic with all operations', () => {
+        const when = createContext()
+          .varNum('a', () => 3.5)
+          .varNum('b', () => 1.2)
+          .compile('a + b > 4.6 && a - b < 2.5');
+        expect(when()).toBe(true);
+      });
+
+      it('negative decimals in chained expressions', () => {
+        // -2.5 + 3.0 - 0.5 == 0.0
+        const when = createContext().compile('-2.5 + 3.0 - 0.5 == 0.0');
+        expect(when()).toBe(true);
+      });
+
+      it('mixing NOT with negation: !flag && -n < 0', () => {
+        let flag = true;
+        let n = 5;
+        const when = createContext()
+          .varBool('flag', () => flag)
+          .varNum('n', () => n)
+          .compile('!flag && -n < 0');
+        expect(when()).toBe(false); // !true → false, short-circuits
+      });
+
+      it('negation inside logical context with changing variables', () => {
+        let flag = false;
+        let n = 3;
+        const when = createContext()
+          .varBool('flag', () => flag)
+          .varNum('n', () => n)
+          .compile('flag || -n < -1');
+        expect(when()).toBe(true); // -3 < -1 → true
+        n = 0;
+        expect(when()).toBe(false); // -0 < -1 → false, flag is false
+      });
+
+      it('mixed arithmetic precedence: addition binds before comparison, AND before OR', () => {
+        let a = 10, b = 3, flag = true;
+        const when = createContext()
+          .varNum('a', () => a)
+          .varNum('b', () => b)
+          .varBool('flag', () => flag)
+          .compile('a - b > 5 && flag || b + 2 == 5');
+        // (10 - 3) > 5 && true  → 7 > 5 && true → true && true → true
+        expect(when()).toBe(true);
+      });
+    });
   });
 });
