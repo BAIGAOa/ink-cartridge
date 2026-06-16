@@ -134,3 +134,7 @@ export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/in
 // Binary Streaming Reader
 export { createStreamingReader, StreamCorruptError } from "./binary-storage/StreamingReader.js";
 export type { StreamingReaderOptions, StreamingReaderAPI } from "./binary-storage/StreamingReader.js";
+
+// When-expression Compiler
+export { createContext } from "./compiler/index.js";
+export type { WhenContext } from "./compiler/index.js";

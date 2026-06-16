@@ -133,6 +133,7 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 
 - **[Screen Management System](src/screen/README.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
 - **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
+- **[When-expression Compiler](src/compiler/README.md)** — `createContext`, DSL for embedding boolean expressions in JSON configs, with `varBool`/`varStr`/`varNum` variable bindings and compile-time type checking
 - **[Internationalization](src/language/README.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
 - **[Theme System](src/theme/README.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
 - **[Persistence System](src/storage/README.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
