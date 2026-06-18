@@ -269,13 +269,19 @@ Returns true when the given focusId is the currently active focus target. Reacti
 
 ```tsx
 boundKeyboard(keys, handler, options?): () => void;
+boundKeyboard(actionId, options): () => void;
 ```
 
 Bind one or more keys to a handler on the top-of-stack screen.
 
+**Overloads:**
+
+1. `(keys: string | string[], handler: KeyHandler | string, options?)` — explicit keys and handler. A single string is normalized to `[string]`.
+2. `(actionId: string, options: BoundKeyboardOptions)` — uses a registered shortcut action's predefined keys and callback.
+
 Parameter | Type | Description
 --------- | ---- | -----------
-keys      | string[] | Key names to bind (e.g. ['s'], ['ctrl+q', 'return'])
+keys      | string \| string[] | Key name(s) to bind (e.g. `'s'`, `['s']`, `['ctrl+q', 'return']`)
 handler   | (input, key) => void or string | Callback or shortcut action ID
 options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number; when?: () => boolean } | Optional behavior flags
 
@@ -286,8 +292,9 @@ The handler accepts two forms:
 2. **String** - an action ID registered via defineShortcutAction
 
 ```tsx
+boundKeyboard('s', () => skip(Game, {}));
 boundKeyboard(['s'], () => skip(Game, {}));
-boundKeyboard(['s'], 'start-game');
+boundKeyboard('s', 'start-game');
 boundKeyboard(['ctrl+s'], 'save', { focusId: 'editor' });
 ```
 
@@ -535,7 +542,7 @@ Register a multi-key sequence binding (Vim-style key chords like `gg`, `dd`, `cw
 
 Parameter | Type | Description
 --------- | ---- | -----------
-keys      | string[] | Ordered key names (e.g. `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2.
+keys      | string \| string[] | Ordered key names (e.g. `'ctrl+w'`, `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2. A single string is normalized to `[string]`.
 handler   | (input, key) => void | Callback invoked when the full sequence is matched
 options   | `{ timeout?, onlyThis?, focusId?, exclusive?, when? }` | Optional behavior flags
 

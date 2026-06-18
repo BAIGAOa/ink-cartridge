@@ -28,16 +28,21 @@ export interface KeyboardContextValue {
    * target instead of the screen-level bucket. Only the currently active
    * focus target receives events.
    *
-   * @param keys     Key names to bind (e.g. `["s", "ctrl+q", "return"]`).
+   * Overloads:
+   * 1. `(keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions)` —
+   *    explicit keys and handler. A single string is normalized to `[string]`.
+   * 2. `(actionId: string, options: BoundKeyboardOptions)` —
+   *    uses a registered shortcut action's predefined keys and callback.
+   *
+   * @param keys     Key name(s) to bind (e.g. `"s"`, `["s", "ctrl+q", "return"]`).
    * @param handler  Callback receiving the raw `input` and `key` from Ink.
-   * @param options  Optional binding behavior (`onlyThis`, `focusId`).
+   * @param options  Optional binding behavior (`onlyThis`, `focusId`, `once`, `times`, `when`).
    * @returns        An unbind function that removes this binding when called.
    */
-  boundKeyboard: (
-    keys: string[],
-    handler: KeyHandler,
-    options?: BoundKeyboardOptions,
-  ) => () => void;
+  boundKeyboard: {
+    (keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions): () => void;
+    (actionId: string, options: BoundKeyboardOptions): () => void;
+  };
 
   /**
    * Mark one or more keys as "transparent" on the current layer.
@@ -351,13 +356,14 @@ export interface KeyboardContextValue {
    * Register a multi-key sequence binding on the current screen layer.
    *
    * Overloads:
-   * 1. `(keys: string[], handler: KeyHandler, options?: SequenceOptions)` —
-   *    explicit keys and handler.
+   * 1. `(keys: string | string[], handler: KeyHandler, options?: SequenceOptions)` —
+   *    explicit keys and handler. A single string is normalized to `[string]`
+   *    (but the sequence still requires at least 2 keys).
    * 2. `(actionId: string, options?: SequenceOptions)` —
    *    uses a registered sequence action's predefined keys and callback.
    */
   boundSequence: {
-    (keys: string[], handler: KeyHandler, options?: SequenceOptions): () => void;
+    (keys: string | string[], handler: KeyHandler, options?: SequenceOptions): () => void;
     (actionId: string, options?: SequenceOptions): () => void;
   };
 

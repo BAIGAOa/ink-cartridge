@@ -298,8 +298,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * to the top screen component.
    *
    * Overloads:
-   * 1. (keys: string[], handler: KeyHandler | string, options?: BoundKeyboardOptions)
-   * 2. (actionId: string, options: BoundKeyboardOptions) -> uses the action's predefined keys
+   * 1. (keys: string | string[], handler: KeyHandler | string, options?: BoundKeyboardOptions)
+   *    — explicit keys and handler. A single string is normalized to [string].
+   * 2. (actionId: string, options: BoundKeyboardOptions)
+   *    — uses the action's predefined keys
    */
   const boundKeyboard = useCallback(
     (
@@ -403,7 +405,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       }
 
       // 原有调用方式
-      const keys = keysOrActionId as string[];
+      const keys = Array.isArray(keysOrActionId) ? keysOrActionId : [keysOrActionId];
       const handler = handlerOrOptions as KeyHandler | string;
       const options = maybeOptions;
 
@@ -687,7 +689,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         return boundSequence(entry.keys, entry.action, mergedOptions);
       }
 
-      const keys = keysOrActionId as string[];
+      const keys = Array.isArray(keysOrActionId) ? keysOrActionId : [keysOrActionId];
       const handler = handlerOrOptions as KeyHandler;
       const options = maybeOptions;
 
