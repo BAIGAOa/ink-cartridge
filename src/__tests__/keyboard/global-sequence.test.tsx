@@ -35,17 +35,17 @@ function pressKey(input: string, key: Partial<Key> = {}) {
 }
 
 function Menu() {
-  return React.createElement('div', null, 'Menu');
+  return <>'Menu'</>;
 }
 Menu.displayName = 'Menu';
 
 function GameLevel({ level }: { level: number }) {
-  return React.createElement('div', null, String(level));
+  return <>{String(level)}</>;
 }
 GameLevel.displayName = 'GameLevel';
 
 function Notification({ message }: { message: string }) {
-  return React.createElement('div', null, message);
+  return <>{message}</>;
 }
 Notification.displayName = 'Notification';
 
@@ -57,7 +57,7 @@ function BindingOverlay({ boundKey, onBound }: { boundKey: string; onBound?: () 
     boundSequence([boundKey, boundKey], onBound ?? (() => {}));
     boundKeyboard(['escape'], () => cl(overlayId!));
   }, []);
-  return React.createElement('div', null, boundKey);
+  return <>{boundKey}</>;
 }
 BindingOverlay.displayName = 'BindingOverlay';
 
@@ -90,15 +90,15 @@ function renderKeyboardTree(
       kbRef.current = kb;
       scRef.current = sc;
     }, [kb, sc]);
-    return React.createElement(CurrentScreen);
+    return <CurrentScreen />;
   }
 
   render(
-    React.createElement(
-      ScenarioManagementProvider,
-      { defaultScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(Spy)),
-    ),
+    <ScenarioManagementProvider defaultScreen={defaultScreen}>
+        <KeyboardProvider>
+          <Spy />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
   );
 
   return {

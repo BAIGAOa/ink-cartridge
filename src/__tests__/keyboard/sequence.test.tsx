@@ -33,22 +33,22 @@ function pressKey(input: string, key: Partial<Key> = {}) {
 }
 
 function Menu() {
-  return React.createElement('div', null, 'Menu');
+  return <>'Menu'</>;
 }
 Menu.displayName = 'Menu';
 
 function GameLevel({ level }: { level: number }) {
-  return React.createElement('div', null, String(level));
+  return <>{String(level)}</>;
 }
 GameLevel.displayName = 'GameLevel';
 
 function Notification({ message }: { message: string }) {
-  return React.createElement('div', null, message);
+  return <>{message}</>;
 }
 Notification.displayName = 'Notification';
 
 function SubScreen() {
-  return React.createElement('div', null, 'SubScreen');
+  return <>'SubScreen'</>;
 }
 SubScreen.displayName = 'SubScreen';
 
@@ -81,15 +81,15 @@ function renderKeyboardTree(
       kbRef.current = kb;
       scRef.current = sc;
     }, [kb, sc]);
-    return React.createElement('div', null);
+    return <></>;
   }
 
   render(
-    React.createElement(
-      ScenarioManagementProvider,
-      { defaultScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(Spy)),
-    ),
+    <ScenarioManagementProvider defaultScreen={defaultScreen}>
+        <KeyboardProvider>
+          <Spy />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
   );
 
   return {

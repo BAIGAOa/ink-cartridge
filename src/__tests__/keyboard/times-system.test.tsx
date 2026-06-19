@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { registerComponent, clearRegistry } from '../../screen/registry.js';
 import { ScenarioManagementProvider } from '../../screen/provider.js';
 import { useScreenSystem } from '../../screen/hook.js';
@@ -8,7 +8,6 @@ import { KeyboardProvider } from '../../keyboard/provider.js';
 import { useKeyboard } from '../../keyboard/hook.js';
 import type { Key } from 'ink';
 
-// ── 模拟 useInput ──────────────────────────────────────────
 let capturedInputHandler: ((input: string, key: Key) => void) | null = null;
 
 vi.mock('ink', async (importOriginal) => {
@@ -23,6 +22,7 @@ vi.mock('ink', async (importOriginal) => {
 
 function pressKey(input: string, key: Partial<Key> = {}) {
   if (!capturedInputHandler) throw new Error('useInput handler not captured');
+  // Safe: building a complete Key from a partial; all booleans defaulted to false
   capturedInputHandler(input, {
     upArrow: false, downArrow: false, leftArrow: false, rightArrow: false,
     return: false, escape: false, backspace: false, delete: false,
@@ -33,24 +33,23 @@ function pressKey(input: string, key: Partial<Key> = {}) {
   } as Key);
 }
 
-// ── 通用屏幕组件 ────────────────────────────────────────────
 function Menu() {
-  return React.createElement('div', null, 'Menu');
+  return <></>;
 }
 Menu.displayName = 'Menu';
 
 function GameLevel({ level }: { level: number }) {
-  return React.createElement('div', null, String(level));
+  return <></>;
 }
 GameLevel.displayName = 'GameLevel';
 
 function Notification({ message }: { message: string }) {
-  return React.createElement('div', null, message);
+  return <></>;
 }
 Notification.displayName = 'Notification';
 
 function SubScreen() {
-  return React.createElement('div', null, 'SubScreen');
+  return <></>;
 }
 SubScreen.displayName = 'SubScreen';
 
@@ -67,7 +66,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ── 渲染辅助 ───────────────────────────────────────────────
 function renderKeyboardTree(
   defaultScreen: React.ComponentType<any>,
 ): {
@@ -84,16 +82,15 @@ function renderKeyboardTree(
       kbRef.current = kb;
       scRef.current = sc;
     }, [kb, sc]);
-    return React.createElement('div', null);
+    return <></>;
   }
 
-  // React.createElement 需要显式 import useEffect
   render(
-    React.createElement(
-      ScenarioManagementProvider,
-      { defaultScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(Spy)),
-    ),
+    <ScenarioManagementProvider defaultScreen={defaultScreen}>
+      <KeyboardProvider>
+        <Spy />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
 
   return {
@@ -102,60 +99,28 @@ function renderKeyboardTree(
   };
 }
 
-// 由于顶层不再 import useEffect，需要在模块作用域内引用
-import { useEffect } from 'react';
-
-// ── 测试套件 ────────────────────────────────────────────────
-
-describe('times system — 基础功能', () => {
-  it('times: 2 — handler 在第 2、4、6 次触发', () => {
+describe('times — counting and reset', () => {
+  it.each([
+    { times: 1, desc: 'times=1 fires every press (boundary)' },
+    { times: 2, desc: 'times=2 fires on 2nd, 4th, 6th' },
+    { times: 3, desc: 'times=3 fires on 3rd, 6th' },
+  ])('$desc', ({ times }) => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a'], handler, { times: 2 });
+    getKeyboard()!.boundKeyboard(['a'], handler, { times });
 
-    pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('a'); // 第2次 → 触发
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    pressKey('a'); // 第4次 → 触发
-    expect(handler).toHaveBeenCalledTimes(2);
+    const rounds = times === 1 ? 3 : 2;
+    for (let r = 0; r < rounds; r++) {
+      for (let i = 1; i < times; i++) {
+        pressKey('a');
+        expect(handler).toHaveBeenCalledTimes(r);
+      }
+      pressKey('a');
+      expect(handler).toHaveBeenCalledTimes(r + 1);
+    }
   });
 
-  it('times: 3 — handler 在第 3、6 次触发', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a'], handler, { times: 3 });
-
-    pressKey('a');
-    pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('a'); // 第3次
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    pressKey('a');
-    pressKey('a');
-    pressKey('a'); // 第6次
-    expect(handler).toHaveBeenCalledTimes(2);
-  });
-
-  it('times: 1 — 与不设 times 行为一致', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a'], handler, { times: 1 });
-
-    pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(1);
-    pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(2);
-  });
-
-  it('不设 times — 每次按键都触发（向后兼容）', () => {
+  it('no times — fires every press (backward compat)', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler);
@@ -166,175 +131,93 @@ describe('times system — 基础功能', () => {
     expect(handler).toHaveBeenCalledTimes(2);
   });
 
-  it('多 key 绑定共享计数器 — [\'a\', \'b\'], times: 2', () => {
-    const handler = vi.fn();
+  it.each([
+    { times: 0, desc: 'times=0 throws' },
+    { times: -1, desc: 'times=-1 throws' },
+  ])('$desc', ({ times }) => {
     const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a', 'b'], handler, { times: 2 });
-
-    pressKey('a'); // count=1
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('b'); // count=2 → 触发
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    pressKey('a'); // count=1
-    pressKey('b'); // count=2 → 触发
-    expect(handler).toHaveBeenCalledTimes(2);
-  });
-
-  it('不同 binding 之间计数器独立', () => {
-    const handler1 = vi.fn();
-    const handler2 = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a'], handler1, { times: 2 });
-    getKeyboard()!.boundKeyboard(['b'], handler2, { times: 3 });
-
-    pressKey('a'); // h1: count=1
-    pressKey('b'); // h2: count=1
-    expect(handler1).toHaveBeenCalledTimes(0);
-    expect(handler2).toHaveBeenCalledTimes(0);
-
-    pressKey('a'); // h1: count=2 → 触发
-    expect(handler1).toHaveBeenCalledTimes(1);
-    expect(handler2).toHaveBeenCalledTimes(0);
-
-    pressKey('b'); // h2: count=2
-    pressKey('b'); // h2: count=3 → 触发
-    expect(handler2).toHaveBeenCalledTimes(1);
-  });
-
-  it('同一 key 多个 times binding — 按注册顺序匹配（先注册先消耗事件）', () => {
-    const handler2 = vi.fn(); // times: 2, 先注册
-    const handler3 = vi.fn(); // times: 3, 后注册
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['x'], handler2, { times: 2 });
-    getKeyboard()!.boundKeyboard(['x'], handler3, { times: 3 });
-
-    // 第一个 binding (times:2) 总是先匹配
-    pressKey('x'); // h2: count=1
-    pressKey('x'); // h2: count=2 → 触发 h2, 事件被消耗
-    expect(handler2).toHaveBeenCalledTimes(1);
-    expect(handler3).toHaveBeenCalledTimes(0);
-
-    pressKey('x'); // h2: count=1 (归零)
-    pressKey('x'); // h2: count=2 → 触发 h2
-    expect(handler2).toHaveBeenCalledTimes(2);
-    expect(handler3).toHaveBeenCalledTimes(0);
+    expect(() => {
+      getKeyboard()!.boundKeyboard(['a'], () => {}, { times });
+    }).toThrow('[Ink-Router-Kit] boundKeyboard() times option must be >= 1.');
   });
 });
 
 describe('times + once', () => {
-  it('times: 3 + once: true — 第3次触发后解绑', () => {
+  it('once: true unbinds after threshold reached', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler, { times: 3, once: true });
 
-    pressKey('a'); // count=1
-    pressKey('a'); // count=2
-    expect(handler).toHaveBeenCalledTimes(0);
+    pressKey('a');
+    pressKey('a');
+    expect(handler).not.toHaveBeenCalled();
 
-    pressKey('a'); // count=3 → 触发并解绑
+    pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
 
-    // 已解绑
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('times: 2 + once: true — handler 抛异常后绑定依然被移除', () => {
+  it('once: true — handler throws, binding still removed', () => {
     const handler = vi.fn(() => {
       throw new Error('test error');
     });
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler, { times: 2, once: true });
 
-    pressKey('a'); // count=1
-
-    // 第2次触发 handler，但抛出异常
+    pressKey('a');
     expect(() => pressKey('a')).toThrow('test error');
     expect(handler).toHaveBeenCalledTimes(1);
 
-    // 绑定已被移除
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('times: 2, once: false — 第2次触发后不解除绑定，计数器归零继续', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.boundKeyboard(['a'], handler, { times: 2 });
-
-    pressKey('a');
-    pressKey('a'); // 触发
-    expect(handler).toHaveBeenCalledTimes(1);
-
-    pressKey('a');
-    pressKey('a'); // 再次触发
-    expect(handler).toHaveBeenCalledTimes(2);
-  });
-
-  it('once: true (无 times) — 保持现有行为：首次触发即解绑', () => {
+  it('once: true without times — legacy: first press unbinds', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler, { once: true });
 
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
-
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('times — 错误处理', () => {
-  it('times: 0 抛出错误', () => {
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    expect(() => {
-      getKeyboard()!.boundKeyboard(['a'], () => {}, { times: 0 });
-    }).toThrow('[Ink-Router-Kit] boundKeyboard() times option must be >= 1.');
-  });
-
-  it('times: -1 抛出错误', () => {
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    expect(() => {
-      getKeyboard()!.boundKeyboard(['a'], () => {}, { times: -1 });
-    }).toThrow('[Ink-Router-Kit] boundKeyboard() times option must be >= 1.');
-  });
-});
-
-describe('times + focusId', () => {
-  it('focus target 上的 times binding 独立计数', () => {
+describe('times + focusId + once — pairwise core', () => {
+  it('focus target times binding works independently', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler, { times: 2, focusId: 'inp' });
 
     pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(0);
+    expect(handler).not.toHaveBeenCalled();
     pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('不同 focus target 上的 times binding 互不干扰', () => {
+  it('separate focus targets have isolated counters', () => {
     const handler1 = vi.fn();
     const handler2 = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler1, { times: 2, focusId: 'input1' });
     getKeyboard()!.boundKeyboard(['a'], handler2, { times: 3, focusId: 'input2' });
 
-    // 只有 input1 活跃
-    pressKey('a'); // input1: count=1
-    pressKey('a'); // input1: count=2 → 触发
+    pressKey('a');
+    pressKey('a');
     expect(handler1).toHaveBeenCalledTimes(1);
     expect(handler2).toHaveBeenCalledTimes(0);
   });
 
-  it('times + focusId + once 组合', () => {
+  it('times + focusId + once unbinds after threshold', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['a'], handler, { times: 2, focusId: 'inp', once: true });
 
     pressKey('a');
-    pressKey('a'); // 触发并解绑
+    pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
 
     pressKey('a');
@@ -342,191 +225,198 @@ describe('times + focusId', () => {
   });
 });
 
-describe('times + onlyThis', () => {
-  it('onlyThis 条件不满足时不消耗计数', () => {
+describe('times + onlyThis + overlay', () => {
+  it('onlyThis blocks counting when overlay is active, resumes after close', () => {
     const handler = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    // 导航到 GameLevel 并绑定
     act(() => getScreen()!.skip(GameLevel, { level: 1 }));
     getKeyboard()!.boundKeyboard(['a'], handler, { times: 2, onlyThis: true });
 
-    pressKey('a'); // count=1
-    expect(handler).toHaveBeenCalledTimes(0);
+    pressKey('a');
+    expect(handler).not.toHaveBeenCalled();
 
-    // 打开 overlay → onlyThis 条件不满足
     act(() => getScreen()!.openOverlay('test-ovl', Notification, { message: 'test' }));
-    pressKey('a'); // 应被跳过，不计入 counter
     pressKey('a');
-    expect(handler).toHaveBeenCalledTimes(0);
+    pressKey('a');
+    expect(handler).not.toHaveBeenCalled();
 
-    // 关闭 overlay → onlyThis 条件重新满足
     act(() => getScreen()!.closeOverlay('test-ovl'));
-    pressKey('a'); // count=2 → 触发
+    pressKey('a');
     expect(handler).toHaveBeenCalledTimes(1);
   });
+});
 
-  it('onlyThis 条件满足时正常计数', () => {
+describe('times — binding independence and priority', () => {
+  it('multi-key binding shares one counter', () => {
     const handler = vi.fn();
-    const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
-
-    act(() => getScreen()!.skip(GameLevel, { level: 1 }));
-    getKeyboard()!.boundKeyboard(['a'], handler, { times: 2, onlyThis: true });
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundKeyboard(['a', 'b'], handler, { times: 2 });
 
     pressKey('a');
-    pressKey('a');
+    expect(handler).not.toHaveBeenCalled();
+    pressKey('b');
     expect(handler).toHaveBeenCalledTimes(1);
+    pressKey('a');
+    pressKey('b');
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it('different bindings have independent counters', () => {
+    const h1 = vi.fn();
+    const h2 = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundKeyboard(['a'], h1, { times: 2 });
+    getKeyboard()!.boundKeyboard(['b'], h2, { times: 3 });
+
+    pressKey('a');
+    pressKey('b');
+    expect(h1).not.toHaveBeenCalled();
+    expect(h2).not.toHaveBeenCalled();
+
+    pressKey('a');
+    expect(h1).toHaveBeenCalledTimes(1);
+    expect(h2).not.toHaveBeenCalled();
+
+    pressKey('b');
+    pressKey('b');
+    expect(h2).toHaveBeenCalledTimes(1);
+  });
+
+  it('same key, two times bindings — first registered always wins', () => {
+    const h2 = vi.fn();
+    const h3 = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundKeyboard(['x'], h2, { times: 2 });
+    getKeyboard()!.boundKeyboard(['x'], h3, { times: 3 });
+
+    pressKey('x');
+    pressKey('x');
+    expect(h2).toHaveBeenCalledTimes(1);
+    expect(h3).not.toHaveBeenCalled();
+
+    pressKey('x');
+    pressKey('x');
+    expect(h2).toHaveBeenCalledTimes(2);
+    expect(h3).not.toHaveBeenCalled();
   });
 });
 
-describe('times + 事件分层（冒泡）', () => {
-  it('上层 times binding 即使未达阈值也消费事件，下层收不到', () => {
-    const topHandler = vi.fn();
-    const bottomHandler = vi.fn();
+describe('times — layer bubbling (sub-threshold consumption)', () => {
+  it('top layer times consumes events even below threshold, bottom never fires', () => {
+    const topH = vi.fn();
+    const bottomH = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    // Menu 作为底层，绑定普通 handler
-    getKeyboard()!.boundKeyboard(['x'], bottomHandler);
-
-    // 导航到 SubScreen 作为顶层，绑定 times
+    getKeyboard()!.boundKeyboard(['x'], bottomH);
     act(() => getScreen()!.skip(SubScreen, {}));
-    getKeyboard()!.boundKeyboard(['x'], topHandler, { times: 3 });
-
-    // 顶层收到事件（count=1,2），虽然未触发，但事件被消费
-    pressKey('x');
-    expect(topHandler).toHaveBeenCalledTimes(0);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    getKeyboard()!.boundKeyboard(['x'], topH, { times: 3 });
 
     pressKey('x');
-    expect(topHandler).toHaveBeenCalledTimes(0);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    pressKey('x');
+    expect(topH).not.toHaveBeenCalled();
+    expect(bottomH).not.toHaveBeenCalled();
 
-    pressKey('x'); // count=3 → 触发顶层
-    expect(topHandler).toHaveBeenCalledTimes(1);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    pressKey('x');
+    expect(topH).toHaveBeenCalledTimes(1);
+    expect(bottomH).not.toHaveBeenCalled();
   });
 
-  it('全部次数触发后，下次计数继续消费事件', () => {
-    const topHandler = vi.fn();
-    const bottomHandler = vi.fn();
+  it('after threshold fire + reset, next cycle still consumes events', () => {
+    const topH = vi.fn();
+    const bottomH = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    getKeyboard()!.boundKeyboard(['x'], bottomHandler);
-
+    getKeyboard()!.boundKeyboard(['x'], bottomH);
     act(() => getScreen()!.skip(SubScreen, {}));
-    getKeyboard()!.boundKeyboard(['x'], topHandler, { times: 2 });
+    getKeyboard()!.boundKeyboard(['x'], topH, { times: 2 });
 
-    // 第1次
     pressKey('x');
-    expect(topHandler).toHaveBeenCalledTimes(0);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    pressKey('x');
+    expect(topH).toHaveBeenCalledTimes(1);
+    expect(bottomH).not.toHaveBeenCalled();
 
-    // 第2次 → 触发顶层
     pressKey('x');
-    expect(topHandler).toHaveBeenCalledTimes(1);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
-
-    // 第3次 → 新的计数周期，count=1，仍然消费
-    pressKey('x');
-    expect(topHandler).toHaveBeenCalledTimes(1);
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    expect(topH).toHaveBeenCalledTimes(1);
+    expect(bottomH).not.toHaveBeenCalled();
   });
 });
 
-describe('times + blockedKey', () => {
-  it('blockedKey 穿透后下层 times 正常计数', () => {
-    const topHandler = vi.fn();
-    const bottomHandler = vi.fn();
+describe('times + blockedKey / stop', () => {
+  it('blockedKey penetration — lower layer times counts normally', () => {
+    const bottomH = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    // 底层：times binding
-    getKeyboard()!.boundKeyboard(['x'], bottomHandler, { times: 2 });
-
-    // 导航到 SubScreen 顶层
+    getKeyboard()!.boundKeyboard(['x'], bottomH, { times: 2 });
     act(() => getScreen()!.skip(SubScreen, {}));
-    // 顶层：block 'x' 让它穿透
     getKeyboard()!.blockedKey(['x']);
 
-    pressKey('x'); // 穿透到 Menu，count=1
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
-
-    pressKey('x'); // 穿透到 Menu，count=2 → 触发
-    expect(bottomHandler).toHaveBeenCalledTimes(1);
+    pressKey('x');
+    expect(bottomH).not.toHaveBeenCalled();
+    pressKey('x');
+    expect(bottomH).toHaveBeenCalledTimes(1);
   });
 
-  it('blockedKey + stop 组合：stop 阻止后下层 times 收不到', () => {
-    const bottomHandler = vi.fn();
+  it('stop prevents propagation — lower layer times never counts', () => {
+    const bottomH = vi.fn();
     const { getKeyboard, getScreen } = renderKeyboardTree(Menu);
 
-    getKeyboard()!.boundKeyboard(['x'], bottomHandler, { times: 2 });
-
+    getKeyboard()!.boundKeyboard(['x'], bottomH, { times: 2 });
     act(() => getScreen()!.skip(SubScreen, {}));
-    getKeyboard()!.stop(['x']); // stop 阻止传播到下层
+    getKeyboard()!.stop(['x']);
 
     pressKey('x');
     pressKey('x');
-    expect(bottomHandler).toHaveBeenCalledTimes(0);
+    expect(bottomH).not.toHaveBeenCalled();
   });
 });
 
-describe('times + 通配符 *', () => {
-  it('通配符 binding 支持 times', () => {
+describe('times — key type boundaries', () => {
+  it('wildcard * with times — any normal char advances counter', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['*'], handler, { times: 2 });
 
-    pressKey('a'); // count=1
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('b'); // count=2 → 触发
+    pressKey('a');
+    expect(handler).not.toHaveBeenCalled();
+    pressKey('b');
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith('b', expect.objectContaining({}));
   });
 
-  it('通配符 + times，特殊键不消耗计数', () => {
+  it('wildcard + times — special keys do not consume count', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['*'], handler, { times: 2 });
 
-    pressKey('a'); // count=1
-    // escape 不触发通配符，也不应消耗计数
+    pressKey('a');
     pressKey('', { escape: true });
-    expect(handler).toHaveBeenCalledTimes(0);
+    expect(handler).not.toHaveBeenCalled();
 
-    pressKey('b'); // count=2 → 触发
+    pressKey('b');
     expect(handler).toHaveBeenCalledTimes(1);
   });
-});
 
-describe('times + 修饰键', () => {
-  it('ctrl+字符支持 times', () => {
+  it('ctrl+char supports times', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['ctrl+d'], handler, { times: 2 });
 
     pressKey('d', { ctrl: true });
-    expect(handler).toHaveBeenCalledTimes(0);
-
+    expect(handler).not.toHaveBeenCalled();
     pressKey('d', { ctrl: true });
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('特殊键（escape/return）支持 times', () => {
+  it('special keys (escape) support times', () => {
     const handler = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
     getKeyboard()!.boundKeyboard(['escape'], handler, { times: 3 });
 
     pressKey('', { escape: true });
     pressKey('', { escape: true });
-    expect(handler).toHaveBeenCalledTimes(0);
-
+    expect(handler).not.toHaveBeenCalled();
     pressKey('', { escape: true });
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
-
-// Note: multi-overlay keyboard isolation with times is tested in
-// provider.test.tsx via the overlay layer isolation tests. In the
-// multi-overlay system, overlay key bindings must be registered from
-// within the overlay component using useKeyboard() so that the overlay
-// ID is pushed onto the owner stack.
