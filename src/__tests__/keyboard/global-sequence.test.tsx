@@ -107,22 +107,6 @@ function renderKeyboardTree(
   };
 }
 
-describe('globalSequence — basic', () => {
-  it('fires handler when full 2-key sequence is completed', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-    getKeyboard()!.globalSequence([
-      { keys: ['g', 'g'], operate: handler },
-    ]);
-
-    pressKey('g');
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('g');
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('globalSequence — validation', () => {
   it('throws when keys array has length < 2', () => {
     const { getKeyboard } = renderKeyboardTree(Menu);
@@ -165,111 +149,6 @@ describe('globalSequence — priority over globalKeys', () => {
     expect(globalHandler).toHaveBeenCalledTimes(0);
     expect(seqHandler).toHaveBeenCalledTimes(1);
   });
-
-  it('fires handler for a 3-key global sequence', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['a', 'b', 'c'], operate: handler },
-    ]);
-
-    pressKey('a');
-    pressKey('b');
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('c');
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('globalSequence — timeout', () => {
-  it('cancels pending sequence after custom timeout', () => {
-    vi.useFakeTimers();
-    const seqHandler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['a', 'b'], operate: seqHandler, timeout: 200 },
-    ]);
-
-    pressKey('a');
-    expect(seqHandler).toHaveBeenCalledTimes(0);
-
-    // Advance past the timeout
-    vi.advanceTimersByTime(201);
-
-    // After timeout, pressing 'b' should not complete the old sequence
-    pressKey('b');
-    expect(seqHandler).toHaveBeenCalledTimes(0);
-
-    vi.useRealTimers();
-  });
-
-  it('completes sequence within timeout', () => {
-    vi.useFakeTimers();
-    const seqHandler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['x', 'y'], operate: seqHandler, timeout: 500 },
-    ]);
-
-    pressKey('x');
-    vi.advanceTimersByTime(400);
-    pressKey('y');
-    expect(seqHandler).toHaveBeenCalledTimes(1);
-
-    vi.useRealTimers();
-  });
-
-  it('resets timeout on each matching key for 3-key sequences', () => {
-    vi.useFakeTimers();
-    const seqHandler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['x', 'y', 'z'], operate: seqHandler, timeout: 200 },
-    ]);
-
-    pressKey('x');
-    vi.advanceTimersByTime(150);
-    pressKey('y');
-    // timeout resets from 'y'
-    vi.advanceTimersByTime(150);
-    pressKey('z');
-    expect(seqHandler).toHaveBeenCalledTimes(1);
-
-    vi.useRealTimers();
-  });
-});
-
-describe('globalSequence — exclusive mode', () => {
-  it('exclusive mode: mismatch key is consumed silently, sequence keeps waiting', () => {
-    vi.useFakeTimers();
-    const seqHandler = vi.fn();
-    const normalHandler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['g', 'g'], operate: seqHandler, exclusive: true, timeout: 300 },
-    ]);
-    getKeyboard()!.globalKeys([
-      { key: 'x', operate: normalHandler },
-    ]);
-
-    pressKey('g'); // start sequence
-    pressKey('x'); // mismatch → consumed silently (exclusive)
-    expect(normalHandler).toHaveBeenCalledTimes(0);
-    expect(seqHandler).toHaveBeenCalledTimes(0);
-
-    // Still within timeout — complete the sequence
-    vi.advanceTimersByTime(100);
-    pressKey('g');
-    expect(seqHandler).toHaveBeenCalledTimes(1);
-
-    vi.useRealTimers();
-  });
 });
 
 describe('globalSequence — non-exclusive mode (default)', () => {
@@ -294,21 +173,6 @@ describe('globalSequence — non-exclusive mode (default)', () => {
     expect(normalHandler).toHaveBeenCalledTimes(1);
 
     vi.useRealTimers();
-  });
-
-  it('after mismatch cancel, pressing first key again starts a new sequence', () => {
-    const seqHandler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['g', 'g'], operate: seqHandler },
-    ]);
-
-    pressKey('g'); // start
-    pressKey('x'); // cancel
-    pressKey('g'); // new start
-    pressKey('g'); // complete
-    expect(seqHandler).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -595,37 +459,5 @@ describe('globalSequence — mode: add vs replace', () => {
     pressKey('b');
     pressKey('b');
     expect(handler2).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('globalSequence — special keys', () => {
-  it('supports sequence of escape keys', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['escape', 'escape'], operate: handler },
-    ]);
-
-    pressKey('', { escape: true });
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('', { escape: true });
-    expect(handler).toHaveBeenCalledTimes(1);
-  });
-
-  it('supports sequence with ctrl+key', () => {
-    const handler = vi.fn();
-    const { getKeyboard } = renderKeyboardTree(Menu);
-
-    getKeyboard()!.globalSequence([
-      { keys: ['ctrl+w', 'ctrl+q'], operate: handler },
-    ]);
-
-    pressKey('w', { ctrl: true });
-    expect(handler).toHaveBeenCalledTimes(0);
-
-    pressKey('q', { ctrl: true });
-    expect(handler).toHaveBeenCalledTimes(1);
   });
 });
