@@ -283,7 +283,7 @@ Parameter | Type | Description
 --------- | ---- | -----------
 keys      | string \| string[] | Key name(s) to bind (e.g. `'s'`, `['s']`, `['ctrl+q', 'return']`)
 handler   | (input, key) => void or string | Callback or shortcut action ID
-options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number; when?: () => boolean } | Optional behavior flags
+options   | { onlyThis?: boolean; focusId?: string; once?: boolean; times?: number; observer?: (remaining: number) => void; when?: () => boolean } | Optional behavior flags
 
 Returns an unbind function.
 
@@ -351,6 +351,27 @@ useEffect(() => {
 ```
 
 When the handler is a string (shortcut action ID), the binding is also tracked in an internal actionKeysMap. This enables stop to resolve action IDs to their bound key names.
+
+**observer**: a callback `(remaining: number) => void` invoked on every key press while counting toward `times`. Receives the number of remaining presses before the handler fires. Requires `times` to be set; throws a runtime error otherwise.
+
+```tsx
+// Show a countdown hint each time the user presses 'q'
+useEffect(() => {
+  boundKeyboard(['q'], () => process.exit(), {
+    times: 3,
+    observer: (remaining) => console.log(`${remaining} more presses to quit`),
+  });
+}, []);
+
+// Observer stops after once-triggered unbind
+useEffect(() => {
+  boundKeyboard(['escape'], closeModal, {
+    times: 2,
+    once: true,
+    observer: (remaining) => console.log(`remaining: ${remaining}`),
+  });
+}, []);
+```
 
 **when**: a callback `() => boolean` evaluated at each key press. If it returns `false`, the binding is skipped as if it doesn't exist — the event continues to the next binding or layer. This is an AND relationship with `onlyThis` and `focusId`; all must be satisfied for the binding to fire.
 
@@ -464,6 +485,7 @@ cover               | boolean | true | Whether screen components may override th
 affectOverlay       | boolean | false | Fire before (true) or after (false) the overlay
 category            | ComponentType[] or '*' or undefined | '*' | Screen whitelist; '*' = all, [] = disabled
 times               | number | undefined | Number of presses needed before handler fires (must be >= 1)
+observer            | (remaining: number) => void | undefined | Callback invoked on every press while counting toward `times`; receives remaining presses
 when                | () => boolean | undefined | Condition callback; when `false`, the global key is skipped entirely (cover, category not evaluated)
 executeWhenNoOverlay | boolean | false | When `affectOverlay: true`, also execute when no overlay is open
 
