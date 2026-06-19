@@ -53,14 +53,17 @@
         "@types/node": "^20.19.39",
         "@types/react": "^19.2.14",
         "ink": "^7.0.1",
+        "ink-testing-library": "^4.0.0",
         "jsdom": "^26.0.0",
         "react": "^19.2.4",
         "typescript": "^5.9.3",
-        "vitest": "^4.1.5",
-        "ink-testing-library": "^4.0.0"
+        "vitest": "^4.1.5"
     },
     "bugs": {
         "url": "https://github.com/BAIGAOa/ink-router-kit/issues"
     },
-    "homepage": "https://github.com/BAIGAOa/ink-router-kit#readme"
+    "homepage": "https://github.com/BAIGAOa/ink-router-kit#readme",
+    "dependencies": {
+        "zod": "^4.4.3"
+    }
 }

@@ -190,6 +190,60 @@ const theme = await config.read.str('theme', 'light');
 ```
 
 ---
+### storage.read.schema
+
+```ts
+storage.read.schema<T>(key: string, schema: ZodType<T>, defaultValue: T): Promise<T>;
+```
+
+Read a value and validate it against a **zod schema**. This is the most powerful read method — it can validate nested objects, enums, unions, refinements, and apply transforms/coercions.
+
+- **Missing key** → writes and returns `defaultValue`.
+- **Schema parse failure** (wrong shape, invalid enum, etc.) → overwrites the corrupt entry with `defaultValue` and returns it.
+- **Valid value** → returns the **parsed** data (including any zod transforms or coercions applied by the schema).
+
+```ts
+import { z } from 'zod';
+
+const userSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+});
+
+// Valid data → returns parsed value
+await storage.write.schema('user', { name: 'Alice', age: 30 });
+const user = await storage.read.schema('user', userSchema, { name: '?', age: 0 });
+// { name: 'Alice', age: 30 }
+
+// Wrong shape → returns default + auto-repair
+await storage.write.any('user', { name: 'Eve' }); // missing 'age'
+const fixed = await storage.read.schema('user', userSchema, { name: '?', age: 0 });
+// { name: '?', age: 0 } — file repaired
+
+// Coercion: string → number
+const num = await storage.read.schema('count', z.coerce.number(), 0);
+// If stored value was "42", returns 42 (number)
+```
+
+**Supported zod features:** All — `z.object()`, `z.string()`, `z.number()`, `z.enum()`, `z.union()`, `z.refine()`, `z.transform()`, `z.coerce.*()`, etc.
+
+**Tip:** Use `z.coerce.*()` schemas to gracefully upgrade legacy data. A field that was stored as the string `"42"` under a previous version can be read as a number with `z.coerce.number()`.
+
+---
+### storage.write.schema
+
+```ts
+storage.write.schema<T>(key: string, value: T): Promise<void>;
+```
+
+Write a value to a key. This is a thin alias for `write.any` — schemas are only validated on **read**, not write. It exists for API symmetry with `read.schema()`.
+
+```ts
+await storage.write.schema('user', { name: 'Bob', age: 25 });
+// Equivalent to: await storage.write.any('user', { name: 'Bob', age: 25 });
+```
+
+---
 
 ### storage.has
 

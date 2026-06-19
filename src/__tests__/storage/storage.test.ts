@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import { z } from 'zod';
 import { createStorage, StorageAPI } from '../../storage/index.js';
 
 function tmpDir(): string {
@@ -191,5 +192,84 @@ describe('multiple storage stations are independent', () => {
 
     expect(await a.read.str('key', '')).toBe('from-a');
     expect(await b.read.str('key', '')).toBe('from-b');
+  });
+});
+
+describe('zod schema', () => {
+  const userSchema = z.object({
+    name: z.string(),
+    age: z.number(),
+  });
+
+  it('round-trip: write.schema → read.schema returns stored value', async () => {
+    const user = { name: 'Alice', age: 30 };
+    await storage.write.schema('user', user);
+    const result = await storage.read.schema('user', userSchema, { name: '?', age: 0 });
+    expect(result).toEqual(user);
+  });
+
+  it('missing key returns default and writes it to disk', async () => {
+    const def = { name: 'Bob', age: 0 };
+    const result = await storage.read.schema('nobody', userSchema, def);
+    expect(result).toEqual(def);
+    expect(rawData()).toEqual({ nobody: def });
+  });
+
+  it('type mismatch → returns default + auto-repair', async () => {
+    await storage.write.any('user', { name: 123, age: 'not-a-number' });
+    const def = { name: '?', age: 0 };
+    const result = await storage.read.schema('user', userSchema, def);
+    expect(result).toEqual(def);
+    expect(rawData()).toEqual({ user: def });
+  });
+
+  it('wrong shape (missing property) → returns default + repair', async () => {
+    await storage.write.any('user', { name: 'Eve' });
+    const def = { name: '?', age: 0 };
+    const result = await storage.read.schema('user', userSchema, def);
+    expect(result).toEqual(def);
+    expect(rawData()).toEqual({ user: def });
+  });
+
+  it('complex nested schema round-trip', async () => {
+    const nestedSchema = z.object({
+      profile: z.object({
+        displayName: z.string(),
+        score: z.number(),
+      }),
+    });
+    const data = { profile: { displayName: 'Gamer', score: 999 } };
+    await storage.write.schema('data', data);
+    const result = await storage.read.schema('data', nestedSchema, { profile: { displayName: '?', score: 0 } });
+    expect(result).toEqual(data);
+  });
+
+  it('enum schema — valid value passes, invalid repairs', async () => {
+    const enumSchema = z.enum(['a', 'b', 'c']);
+    await storage.write.schema('mode', 'a' as const);
+    expect(await storage.read.schema('mode', enumSchema, 'b' as const)).toBe('a');
+
+    await storage.write.any('mode', 'invalid');
+    expect(await storage.read.schema('mode', enumSchema, 'b' as const)).toBe('b');
+    expect(rawData()).toEqual({ mode: 'b' });
+  });
+
+  it('coercion: string "42" parsed to number 42', async () => {
+    const coerceSchema = z.coerce.number();
+    await storage.write.any('count', '42');
+    const result = await storage.read.schema('count', coerceSchema, 0);
+    expect(result).toBe(42);
+    expect(typeof result).toBe('number');
+  });
+
+  it('backward compat: existing read.num() still works', async () => {
+    await storage.write.num('age', 25);
+    expect(await storage.read.num('age', 0)).toBe(25);
+  });
+
+  it('backward compat: existing read.str() auto-repair still works', async () => {
+    await storage.write.any('vol', 'not-a-number');
+    expect(await storage.read.num('vol', 100)).toBe(100);
+    expect(rawData()).toEqual({ vol: 100 });
   });
 });

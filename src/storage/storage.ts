@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import type { ZodType } from 'zod';
 import type { StorageOptions, StorageAPI, StoreData } from './types.js';
 
 /**
@@ -52,6 +53,8 @@ export class Storage implements StorageAPI {
     arr: <T>(key: string, value: T[]) => this.setValue(key, value),
     /** Persist any value under `key`. No type constraint. */
     any: (key: string, value: unknown) => this.setValue(key, value),
+    /** Persist any value under `key`. Symmetric alias for `any`. */
+    schema: <T>(key: string, value: T) => this.setValue(key, value),
   };
 
   /**
@@ -81,6 +84,9 @@ export class Storage implements StorageAPI {
     /** Read any value. Returns `defaultValue` if missing. No type validation. */
     any: <T>(key: string, defaultValue: T) =>
       this.getValue(key, defaultValue, 'any'),
+    /** Read a value validated against a zod schema. Auto-repairs on parse failure. */
+    schema: <T>(key: string, schema: ZodType<T>, defaultValue: T) =>
+      this.getValueWithSchema(key, schema, defaultValue),
   };
 
   /**
@@ -187,6 +193,37 @@ export class Storage implements StorageAPI {
     }
 
     return stored as T;
+  }
+
+  /**
+   * Read a value and validate it against a zod schema.
+   *
+   * On success the parsed value is returned (including any transforms
+   * or coercions the schema applies). On failure — missing key or
+   * schema parse error — `defaultValue` is written to disk and returned.
+   */
+  private async getValueWithSchema<T>(
+    key: string,
+    schema: ZodType<T>,
+    defaultValue: T,
+  ): Promise<T> {
+    await this.ensureLoaded();
+    const stored = this.data![key];
+
+    if (stored === undefined) {
+      this.data![key] = defaultValue;
+      await this.flush();
+      return defaultValue;
+    }
+
+    const result = schema.safeParse(stored);
+    if (result.success) {
+      return result.data;
+    }
+
+    this.data![key] = defaultValue;
+    await this.flush();
+    return defaultValue;
   }
 
   /**

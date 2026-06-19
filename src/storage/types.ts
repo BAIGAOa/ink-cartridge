@@ -1,3 +1,5 @@
+import type { ZodType } from 'zod';
+
 /**
  * Configuration for {@link createStorage}.
  *
@@ -77,6 +79,8 @@ export interface StorageAPI {
     arr<T>(key: string, value: T[]): Promise<void>;
     /** Write any value. No type constraint; use with `read.any`. */
     any(key: string, value: unknown): Promise<void>;
+    /** Write any value (alias for `any` — kept symmetric with `read.schema`). */
+    schema<T>(key: string, value: T): Promise<void>;
   };
 
   /**
@@ -99,6 +103,19 @@ export interface StorageAPI {
     arr<T>(key: string, defaultValue: T[]): Promise<T[]>;
     /** Read any value. Returns `defaultValue` on missing key (no type validation). */
     any<T>(key: string, defaultValue: T): Promise<T>;
+    /**
+     * Read a value validated against a zod schema.
+     *
+     * On success the parsed value is returned (including any zod transforms
+     * or coercions applied by the schema). On failure — missing key, schema
+     * parse error, or wrong shape — `defaultValue` is returned and the file
+     * is automatically repaired.
+     *
+     * @param key          The key to read.
+     * @param schema       A zod schema to validate the stored value against.
+     * @param defaultValue Fallback value used when validation fails.
+     */
+    schema<T>(key: string, schema: ZodType<T>, defaultValue: T): Promise<T>;
   };
 
   /**
