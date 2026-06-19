@@ -131,12 +131,12 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 
 ## Documentation
 
-- **[Screen Management System](src/screen/README.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
-- **[Keyboard System](src/keyboard/README.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
-- **[Internationalization](src/language/README.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
-- **[Theme System](src/theme/README.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
-- **[Persistence System](src/storage/README.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
-- **[Binary Storage System](src/binary-storage/README.md)** — `createBinaryStorage` for sequential typed binary streams with positional cursors, and `createStreamingReader` for memory-efficient streaming of large files (500 MB+) with backpressure support
+- **[Screen Management System](docs/screen.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
+- **[Keyboard System](docs/keyboard.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
+- **[Internationalization](docs/language.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
+- **[Theme System](docs/theme.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
+- **[Persistence System](docs/storage.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
+- **[Binary Storage System](docs/binary-storage.md)** — `createBinaryStorage` for sequential typed binary streams with positional cursors, and `createStreamingReader` for memory-efficient streaming of large files (500 MB+) with backpressure support
 
 ---
 
