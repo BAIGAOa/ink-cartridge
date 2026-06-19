@@ -121,6 +121,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     affectOverlay?: boolean;
     category?: React.ComponentType<any>[] | "*";
     times?: number;
+    observer?: (times: number) => void;
     pressCount?: number;
     executeWhenNoOverlay?: boolean
   }[]>([]);
@@ -423,6 +424,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         );
       }
 
+      if (options?.times === undefined && options?.observer){
+        throw new Error(
+          '[Ink-Router-Kit] boundKeyboard() observer option requires times option to be set.',
+        );
+      }
+
       const layer = getLayer(owner);
 
       if (options?.focusId) {
@@ -458,9 +465,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         if (options?.times !== undefined && options.times >= 1) {
           entry.times = options.times;
           entry.pressCount = 0;
+          entry.observer = options?.observer;
           const originalHandler = entry.handler;
           entry.handler = (input: string, key: Key) => {
             entry.pressCount! += 1;
+            entry.observer?.(entry.times! - entry.pressCount!);
             if (entry.pressCount! < entry.times!) {
               return;
             }
@@ -510,9 +519,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (options?.times !== undefined && options.times >= 1) {
         entry.times = options.times;
         entry.pressCount = 0;
+        entry.observer = options?.observer;
         const originalHandler = entry.handler;
         entry.handler = (input: string, key: Key) => {
           entry.pressCount! += 1;
+          entry.observer?.(entry.times! - entry.pressCount!);
           if (entry.pressCount! < entry.times!) {
             return;
           }
@@ -865,11 +876,19 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             '[Ink-Router-Kit] globalKeys() times option must be >= 1.',
           );
         }
+
+        if (each.times === undefined && each.observer) {
+          throw new Error(
+            '[Ink-Router-Kit] globalKeys() observer option requires times option to be set.',
+          );
+        }
+
         if (typeof each.operate === 'string') {
           const entry = shortcutOperationsRef.current.get(each.operate);
           if (!entry) {
             throw new Error(`[Ink-Kit-Router]You want to call the shortcut ${each.operate} in the global key, but it is not registered`);
           }
+          
           return {
             key: each.key,
             operate: entry.action,
@@ -878,6 +897,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             affectOverlay: each.affectOverlay,
             times: each.times,
             pressCount: each.times !== undefined ? 0 : undefined,
+            observer: each.observer,
             executeWhenNoOverlay: each.executeWhenNoOverlay,
             when: each.when,
           };
@@ -890,6 +910,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           affectOverlay: each.affectOverlay,
           times: each.times,
           pressCount: each.times !== undefined ? 0 : undefined,
+          observer: each.observer,
           executeWhenNoOverlay: each.executeWhenNoOverlay,
           when: each.when,
         };

@@ -88,6 +88,15 @@ export interface BoundKeyboardOptions {
    * - `when: () => isEditing && !isReadOnly`
    */
   when?: () => boolean;
+
+  /**
+   * Callback invoked on every key press while counting toward `times`.
+   * Receives the number of remaining presses before the handler fires.
+   * Requires `times` to be set; throws at registration otherwise.
+   *
+   * @param remaining - How many more presses are needed before the handler fires.
+   */
+  observer?: (remaining: number) => void;
 }
 
 /**
@@ -114,6 +123,12 @@ export interface BoundKeyEntry {
    * event continues to the next binding or layer.
    */
   when?: () => boolean;
+  /**
+   * Callback invoked on every key press while counting toward `times`.
+   * Receives the number of remaining presses before the handler fires.
+   * Requires `times` to be set; throws at registration otherwise.
+   */
+  observer?: (remaining: number) => void;
 }
 
 /**
@@ -375,6 +390,15 @@ export interface GlobalKeyEntry {
    */
   when?: () => boolean;
   executeWhenNoOverlay?: boolean;
+
+  /**
+   * Callback invoked on every key press while counting toward `times`.
+   * Receives the number of remaining presses before the handler fires.
+   * Requires `times` to be set; throws at registration otherwise.
+   *
+   * @param remaining - How many more presses are needed before the handler fires.
+   */
+  observer?: (remaining: number) => void;
 }
 
 /**
@@ -531,6 +555,7 @@ export interface ResolvedGlobalKeyEntry {
   affectOverlay?: boolean;
   category?: React.ComponentType<any>[] | '*';
   times?: number;
+  observer?: (times: number) => void;
   pressCount?: number;
   executeWhenNoOverlay?: boolean;
   when?: () => boolean;

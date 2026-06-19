@@ -55,6 +55,15 @@ export function createGlobalKeyProcessor(config: {
         if (checkGlobalKey(entry, ctx.eventNames, ctx.topComponent, ctx.layersRef)) {
           if (entry.times !== undefined && entry.times >= 1) {
             entry.pressCount! += 1;
+
+            // For times=3:
+            // 1st press: pressCount=1, observer(2), returns true (swallowed)
+            // 2nd press: pressCount=2, observer(1), returns true (swallowed)
+            // 3rd press: pressCount=3, observer(0), pressCount→0, handler fires
+            // Next press starts a new cycle: pressCount=1, observer(2)…
+            // @2026-06-19 v3.5.2
+            entry.observer?.(entry.times - entry.pressCount!);
+
             if (entry.pressCount! < entry.times!) {
               return true;
             }
