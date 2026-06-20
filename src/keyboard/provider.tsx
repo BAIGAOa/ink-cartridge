@@ -6,7 +6,15 @@ import React, {
   useRef,
 } from 'react';
 import { useInput, Key } from 'ink';
-import { KeyboardContext, LayerOwner } from './context.js';
+import {
+  KeyboardContext,
+  LayerOwner,
+  KeyboardDebugSnapshot,
+  DebugLayerSnapshot,
+  DebugBindingSnapshot,
+  DebugGlobalKeySnapshot,
+  DebugFocusTargetSnapshot,
+} from './context.js';
 import {
   KeyHandler,
   BoundKeyboardOptions,
@@ -123,13 +131,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     times?: number;
     observer?: (times: number) => void;
     pressCount?: number;
-    executeWhenNoOverlay?: boolean
+    executeWhenNoOverlay?: boolean;
+    when?: () => boolean;
   }[]>([]);
   const focusSubscribersRef = useRef(new Set<() => void>());
   const wildcardPriorityCountRef = useRef<number>(0);
 
   // Global sequence state: registered entries and current pending state.
-  const globalSequencesRef = useRef<ResolvedGlobalSequenceEntry[]>([]);
+  const globalSequencesRef = useRef<(ResolvedGlobalSequenceEntry & { when?: () => boolean })[]>([]);
   const globalPendingSeqRef = useRef<{
     sequences: string[];
     nextIndex: number;
@@ -218,6 +227,92 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (disabled) return;
       disabled = true;
       wildcardPriorityCountRef.current = Math.max(0, wildcardPriorityCountRef.current - 1);
+    };
+  }, []);
+
+  /**
+   * Build a read-only debug snapshot of all keyboard layers and global state.
+   *
+   * Converts mutable ref-based state into a serializable snapshot suitable for
+   * display in the DevTool panel. Handler functions and component references
+   * are replaced with descriptive metadata.
+   *
+   * @returns A snapshot of the current keyboard state.
+   */
+  const getDebugSnapshot = useCallback((): KeyboardDebugSnapshot => {
+    const layerSnapshots: DebugLayerSnapshot[] = [];
+
+    layersRef.current.forEach((layer, owner) => {
+      const ownerName =
+        typeof owner === 'string'
+          ? owner
+          : ((owner as any).displayName || owner.name || 'anonymous');
+
+      const bindings: DebugBindingSnapshot[] = layer.bindings.map((b) => ({
+        keys: b.keys,
+        onlyThis: b.onlyThis,
+        hasWhen: b.when !== undefined,
+        times: b.times,
+        once: false,
+      }));
+
+      const focusTargets: DebugFocusTargetSnapshot[] =
+        layer.focusOrder.map((fid) => {
+          const ft = layer.focusTargets.get(fid);
+          const ftBindings: DebugBindingSnapshot[] = ft
+            ? ft.bindings.map((b) => ({
+                keys: b.keys,
+                onlyThis: b.onlyThis,
+                hasWhen: b.when !== undefined,
+                times: b.times,
+                once: false,
+              }))
+            : [];
+          return {
+            id: fid,
+            bindings: ftBindings,
+            blockedKeysCount: ft?.blockedKeys.length ?? 0,
+            stoppedKeysCount: ft?.stoppedKeys.length ?? 0,
+          };
+        });
+
+      const sequences = Array.from(layer.sequences.values())
+        .flat()
+        .map((s) => ({ keys: s.keys }));
+
+      layerSnapshots.push({
+        owner: ownerName,
+        isOverlay: typeof owner === 'string',
+        bindings,
+        blockedKeysCount: layer.blockedKeys.length,
+        stoppedKeysCount: layer.stoppedKeys.length,
+        focusTargets,
+        currentFocusId: layer.currentFocusId,
+        sequences,
+        hasPendingSequence: layer.pendingSequence !== null,
+      });
+    });
+
+    const globalKeysSnapshots: DebugGlobalKeySnapshot[] =
+      globalKeysRef.current.map((gk) => ({
+        keys: gk.key,
+        affectOverlay: gk.affectOverlay ?? false,
+        cover: gk.cover ?? true,
+        hasWhen: gk.when !== undefined,
+        times: gk.times,
+      }));
+
+    const globalSequencesSnapshots = globalSequencesRef.current.map((gs) => ({
+      keys: gs.keys,
+      affectOverlay: gs.affectOverlay ?? false,
+      cover: gs.cover ?? true,
+      hasWhen: gs.when !== undefined,
+    }));
+
+    return {
+      layers: layerSnapshots,
+      globalKeys: globalKeysSnapshots,
+      globalSequences: globalSequencesSnapshots,
     };
   }, []);
 
@@ -1123,6 +1218,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       _popOwner: popOwner,
       boundSequence,
       enableWildcardPriority,
+      _getDebugSnapshot: getDebugSnapshot,
     }),
     [
       boundKeyboard,
@@ -1152,6 +1248,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       popOwner,
       boundSequence,
       enableWildcardPriority,
+      getDebugSnapshot,
     ],
   );
 

@@ -135,3 +135,7 @@ export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/in
 // Binary Streaming Reader
 export { createStreamingReader, StreamCorruptError } from "./binary-storage/StreamingReader.js";
 export type { StreamingReaderOptions, StreamingReaderAPI } from "./binary-storage/StreamingReader.js";
+
+// DevTool
+export { openDevTool, closeDevTool, DevTool, DEVTOOL_OVERLAY_ID } from "./dev/index.js";
+export type { DevToolProps } from "./dev/index.js";

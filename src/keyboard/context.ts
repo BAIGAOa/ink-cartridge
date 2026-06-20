@@ -18,6 +18,88 @@ import type {
 export type LayerOwner = React.ComponentType<any> | string;
 
 /**
+ * Snapshot of a single key binding for debug inspection.
+ */
+export interface DebugBindingSnapshot {
+  /** Normalized key names. */
+  keys: string[];
+  /** Whether this binding is restricted to the stack top. */
+  onlyThis: boolean;
+  /** Whether this binding has a `when` condition. */
+  hasWhen: boolean;
+  /** The `times` option value, if set. */
+  times?: number;
+  /** Whether this binding fires only once. */
+  once?: boolean;
+}
+
+/**
+ * Snapshot of a single focus target for debug inspection.
+ */
+export interface DebugFocusTargetSnapshot {
+  /** Focus target identifier. */
+  id: string;
+  /** Number of key bindings registered on this target. */
+  bindings: DebugBindingSnapshot[];
+  /** Number of blocked keys on this target. */
+  blockedKeysCount: number;
+  /** Number of stopped keys on this target. */
+  stoppedKeysCount: number;
+}
+
+/**
+ * Snapshot of a single keyboard layer for debug inspection.
+ */
+export interface DebugLayerSnapshot {
+  /** Display name of the owner (component name or overlay ID). */
+  owner: string;
+  /** Whether this layer belongs to an overlay (true) or a screen (false). */
+  isOverlay: boolean;
+  /** Screen-level key bindings (excludes focus-target bindings). */
+  bindings: DebugBindingSnapshot[];
+  /** Number of blocked keys on this layer. */
+  blockedKeysCount: number;
+  /** Number of stopped keys on this layer. */
+  stoppedKeysCount: number;
+  /** Named focus targets on this layer. */
+  focusTargets: DebugFocusTargetSnapshot[];
+  /** Currently active focus target id, or null. */
+  currentFocusId: string | null;
+  /** Registered sequence bindings. */
+  sequences: { keys: string[] }[];
+  /** Whether a sequence is currently pending on this layer. */
+  hasPendingSequence: boolean;
+}
+
+/**
+ * Snapshot of a global key entry for debug inspection.
+ */
+export interface DebugGlobalKeySnapshot {
+  /** Normalized key name(s). */
+  keys: string | string[];
+  /** Whether this global key fires before overlays. */
+  affectOverlay: boolean;
+  /** Whether screens can override this global key. */
+  cover: boolean;
+  /** Whether this entry has a `when` condition. */
+  hasWhen: boolean;
+  /** The `times` count, if set. */
+  times?: number;
+}
+
+/**
+ * Complete debug snapshot of the keyboard system state.
+ */
+export interface KeyboardDebugSnapshot {
+  /** Per-layer snapshots for all screens and overlays. */
+  layers: DebugLayerSnapshot[];
+  /** Registered global key entries. */
+  globalKeys: DebugGlobalKeySnapshot[];
+  /** Registered global sequence entries. */
+  globalSequences: { keys: string[]; affectOverlay: boolean; cover: boolean; hasWhen: boolean }[];
+}
+
+/**
  * Value provided by {@link KeyboardProvider} via React context.
  */
 export interface KeyboardContextValue {
@@ -395,6 +477,14 @@ export interface KeyboardContextValue {
    * ```
    */
   enableWildcardPriority: () => (() => void);
+
+  /**
+   * Internal: Return a read-only snapshot of all keyboard layers and global
+   * state for debug inspection (used by the DevTool panel).
+   *
+   * @returns A serializable snapshot of the current keyboard state.
+   */
+  _getDebugSnapshot: () => KeyboardDebugSnapshot;
 }
 
 /**

@@ -18,3 +18,11 @@ export type {
   SequenceBinding,
   PendingSequence,
 } from "./types.js";
+
+export type {
+  DebugBindingSnapshot,
+  DebugFocusTargetSnapshot,
+  DebugLayerSnapshot,
+  DebugGlobalKeySnapshot,
+  KeyboardDebugSnapshot,
+} from "./context.js";
