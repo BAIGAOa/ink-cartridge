@@ -65,7 +65,7 @@ This is `@baigao_h/ink-kit` — a React Ink component kit for building terminal 
 - **Key constraint**: `KeyboardProvider` must be nested inside `ScenarioManagementProvider`.
 
 **3. Component Library** (`src/components/`)
-- Independent components, each in its own folder with a `README.md`.
+- Independent components, documented under `docs/`.
 - All interactive components (SelectInput, TextInput, etc.) integrate with the keyboard focus system via `focusId`.
 - Form system (`Form` + `Field`) uses React context for validation state, supports Ctrl+Enter submit.
 - `ConfirmDialog` is designed for the overlay system.
@@ -74,6 +74,7 @@ This is `@baigao_h/ink-kit` — a React Ink component kit for building terminal 
 
 - **Theme System** (`src/theme/`): `ThemeProvider` + `useTheme` hook, with CLI codegen for type-safe themes.
 - **I18n System** (`src/language/`): `LanguageProvider` + `useI18n` hook, with `t()` translation, interpolation, and CLI codegen for type-safe translation keys.
+- **Dev Tool** (`src/dev/`): debugging overlay showing real-time screen path, overlay state, and repositionable via arrow keys. Docs: `docs/dev-tool.md`.
 - **CLI** (`src/cli/`): `ink-kit init` (scaffold), `initTheme`, `makeLanguageType`, `makeThemeType`.
 
 ### Output Structure
@@ -392,9 +393,9 @@ File naming conventions
 
 Documentation must stay in sync
 
-· When you change a public API (function signature, component prop, type export, class method), you must update the corresponding README.md or relevant documentation file.
+· When you change a public API (function signature, component prop, type export, class method), you must update the corresponding documentation file under `docs/` or the relevant README.
 · Do not leave documentation outdated – a user (or another agent) reading the docs should always see the current behaviour.
-· For components, update the component’s README.md in its folder (e.g., src/components/select/README.md).
+· For components and subsystems, update the corresponding file under `docs/` (e.g. `docs/keyboard.md`, `docs/dev-tool.md`).
 · For top‑level APIs, update README.md in the project root.
 · If a change does not affect any existing documentation (e.g., fixing a bug that was never documented), no doc update is required.
 

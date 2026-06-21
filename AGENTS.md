@@ -25,6 +25,7 @@ Layout
 · src/cli/ — ink-kit CLI (init, initTheme, makeLanguageType, makeThemeType)
 · src/language/ — i18n: LanguageProvider + useI18n hook
 · src/theme/ — theming: ThemeProvider + useTheme hook
+· src/dev/ — debugging overlay: DevScreen, openDevTool, closeDevTool (docs: docs/dev-tool.md)
 · src/index.ts — public API barrel export
 · src/__tests__/ — tests organized by subsystem
 · dist/ — build output (.gitignored)
@@ -305,9 +306,9 @@ File naming conventions
 
 Documentation must stay in sync
 
-· When you change a public API (function signature, component prop, type export, class method), you must update the corresponding README.md or relevant documentation file.
+· When you change a public API (function signature, component prop, type export, class method), you must update the corresponding documentation file under `docs/` or the relevant README.
 · Do not leave documentation outdated – a user (or another agent) reading the docs should always see the current behaviour.
-· For components, update the component’s README.md in its folder (e.g., src/components/select/README.md).
+· For components and subsystems, update the corresponding file under `docs/` (e.g. `docs/keyboard.md`, `docs/dev-tool.md`).
 · For top‑level APIs, update README.md in the project root.
 · If a change does not affect any existing documentation (e.g., fixing a bug that was never documented), no doc update is required.
 
