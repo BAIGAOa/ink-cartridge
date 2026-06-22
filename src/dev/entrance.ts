@@ -48,11 +48,9 @@ export function openDevTool({top, left}: DevProps){
  * Close the developer debugging modal.
  *
  * Calls {@link closeModal} for the fixed modal ID `_Dev-Tool_`.
- * Safe to call even if the modal is not currently open — the
- * underlying `closeModal` will throw in that case, so guard
- * with a flag when implementing a toggle.
- *
- * @throws If no modal with ID `_Dev-Tool_` exists.
+ * Safe to call even if the modal is not currently open — acts as
+ * a no-op in that case to support toggle patterns where the modal
+ * may have been closed by its own Escape binding.
  *
  * @example
  * ```ts
@@ -60,5 +58,11 @@ export function openDevTool({top, left}: DevProps){
  * ```
  */
 export function closeDevTool(){
-  closeModal('_Dev-Tool_')
+  try {
+    closeModal('_Dev-Tool_')
+  } catch {
+    // Modal already closed — no-op. This handles the case where
+    // the Escape key inside DevScreen closed the modal, leaving
+    // an external toggle ref stale.
+  }
 }

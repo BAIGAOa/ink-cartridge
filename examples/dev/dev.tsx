@@ -9,7 +9,7 @@ import {
   closeOverlay,
   openOverlay,
 } from '../../src/index.js';
-import { openDevTool, closeDevTool } from '../../src/dev/entrance.js';
+import { openDevTool } from '../../src/dev/entrance.js';
 
 
 // Registered screens for the navigation demo.
@@ -18,20 +18,15 @@ import { openDevTool, closeDevTool } from '../../src/dev/entrance.js';
 function Menu() {
   const { boundKeyboard, stop } = useKeyboard();
   const {rows} = useWindowSize()
-  const devOpenRef = useRef(false);
   const gameOpenRef = useRef(false)
 
   useEffect(() => {
     stop(['q']);
-    boundKeyboard(['ctrl+d'], () => {
-      if (devOpenRef.current) {
-        closeDevTool();
-        devOpenRef.current = false;
-      } else {
-        openDevTool({top: 0, left: 0});
-        devOpenRef.current = true;
-      }
-    });
+    // Ctrl+D opens DevScreen modal. Since modals block external keys,
+    // the Escape key inside DevScreen handles closing. openDevTool
+    // throws if already open — the try/catch in closeDevTool makes
+    // stale refs harmless, and openDevTool itself guards against duplicates.
+    boundKeyboard(['ctrl+d'], () => openDevTool({top: 0, left: 0}));
     boundKeyboard(['s'], () => {
       if(gameOpenRef.current){
         closeOverlay('console')

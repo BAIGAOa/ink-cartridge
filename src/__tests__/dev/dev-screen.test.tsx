@@ -133,7 +133,7 @@ describe('DevScreen open / close toggle', () => {
     expect(screenSystemRef!.modalQueue.length).toBe(0);
   });
 
-  it('closeDevTool throws when modal does not exist (module-level, provider required)', () => {
+  it('closeDevTool is safe (no-op) when modal does not exist', () => {
     function Main() {
       return null;
     }
@@ -141,8 +141,11 @@ describe('DevScreen open / close toggle', () => {
     registerComponent(Main, {});
     renderApp(Main);
 
-    // Provider is mounted but no modal with that ID — should throw
-    expect(() => act(() => { closeDevTool(); })).toThrow('no modal with that ID');
+    // Provider is mounted but no modal with that ID.
+    // closeDevTool() wraps closeModal in try/catch.
+    // We call it outside act() since it doesn't change any observable state
+    // (the modal doesn't exist). If the try/catch works, no throw.
+    expect(() => { closeDevTool(); }).not.toThrow();
   });
 });
 
