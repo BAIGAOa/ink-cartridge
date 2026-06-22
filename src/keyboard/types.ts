@@ -606,6 +606,8 @@ export interface PipelineContext {
   readonly activeCount: number;
   readonly wildcardFirst: boolean;
   readonly screenPath: React.ComponentType<any>[];
+  /** ID of the currently active modal, or null if none. */
+  readonly activeModalId: string | null;
 
   // --- Mutable refs (shared with provider) ---
   readonly layersRef: React.MutableRefObject<Map<React.ComponentType<any> | string, ScreenKeyboardLayer>>;

@@ -76,7 +76,7 @@ afterEach(() => {
 // ---- Tests ----
 
 describe('DevScreen open / close toggle', () => {
-  it('opens DevScreen overlay via openDevTool', () => {
+  it('opens DevScreen modal via openDevTool', () => {
     function Main() {
       const { boundKeyboard: bk } = useKeyboard();
       useEffect(() => {
@@ -89,8 +89,8 @@ describe('DevScreen open / close toggle', () => {
     renderApp(Main);
 
     act(() => pressKey('d', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(1);
-    expect(screenSystemRef!.displayedOverlays[0].id).toBe('_Dev-Tool_');
+    expect(screenSystemRef!.modalQueue.length).toBe(1);
+    expect(screenSystemRef!.activeModalId).toBe('_Dev-Tool_');
   });
 
   it('throws when opening DevScreen that is already open', () => {
@@ -106,23 +106,16 @@ describe('DevScreen open / close toggle', () => {
     renderApp(Main);
 
     act(() => pressKey('d', {}));
-    expect(() => act(() => pressKey('d', {}))).toThrow('already exists');
+    // Modal blocks all keys, so pressing 'd' again won't reach Main.
+    // Call openDevTool directly to test duplicate rejection.
+    expect(() => act(() => { openDevTool({ top: 0, left: 0 }); })).toThrow('already exists');
   });
 
-  it('toggle with ref pattern does not throw on repeated presses', () => {
-    const openRef = { current: false };
+  it('toggle via escape inside DevScreen closes the modal', () => {
     function Main() {
       const { boundKeyboard: bk } = useKeyboard();
       useEffect(() => {
-        bk(['d'], () => {
-          if (openRef.current) {
-            closeDevTool();
-            openRef.current = false;
-          } else {
-            openDevTool({ top: 0, left: 0 });
-            openRef.current = true;
-          }
-        });
+        bk(['d'], () => openDevTool({ top: 0, left: 0 }));
       }, []);
       return null;
     }
@@ -132,16 +125,15 @@ describe('DevScreen open / close toggle', () => {
 
     // Open
     act(() => pressKey('d', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(1);
-    // Close
-    act(() => pressKey('d', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(0);
-    // Open again — no throw
-    act(() => pressKey('d', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(1);
+    expect(screenSystemRef!.activeModalId).toBe('_Dev-Tool_');
+
+    // DevScreen binds escape to closeDevTool — press escape
+    act(() => pressKey('', { escape: true }));
+    expect(screenSystemRef!.activeModalId).toBeNull();
+    expect(screenSystemRef!.modalQueue.length).toBe(0);
   });
 
-  it('closeDevTool throws when overlay does not exist (module-level, provider required)', () => {
+  it('closeDevTool throws when modal does not exist (module-level, provider required)', () => {
     function Main() {
       return null;
     }
@@ -149,8 +141,8 @@ describe('DevScreen open / close toggle', () => {
     registerComponent(Main, {});
     renderApp(Main);
 
-    // Provider is mounted but no overlay with that ID — should throw
-    expect(() => act(() => { closeDevTool(); })).toThrow('no overlay with that ID');
+    // Provider is mounted but no modal with that ID — should throw
+    expect(() => act(() => { closeDevTool(); })).toThrow('no modal with that ID');
   });
 });
 
@@ -168,7 +160,7 @@ describe('DevScreen keyboard arrow movement', () => {
     renderApp(Main);
 
     act(() => pressKey('o', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(1);
+    expect(screenSystemRef!.activeModalId).toBe('_Dev-Tool_');
 
     // Arrow keys on DevScreen — should not throw
     expect(() => act(() => pressKey('', { upArrow: true }))).not.toThrow();
@@ -206,7 +198,7 @@ describe('DevScreen keyboard arrow movement', () => {
   });
 });
 
-describe('DevScreen displays overlay state', () => {
+describe('DevScreen displays overlay and modal state', () => {
   it('shows multiple overlays via displayedOverlays', () => {
     function SecondOverlay() {
       return null;
@@ -227,29 +219,35 @@ describe('DevScreen displays overlay state', () => {
     registerComponent(Main, {});
     renderApp(Main);
 
-    act(() => pressKey('1', {}));
+    // Open a second overlay before DevScreen (which is a modal)
+    act(() => pressKey('2', {}));
     expect(screenSystemRef!.displayedOverlays.length).toBe(1);
 
-    act(() => pressKey('2', {}));
-    expect(screenSystemRef!.displayedOverlays.length).toBe(2);
-    expect(screenSystemRef!.displayedOverlays.map(o => o.id)).toContain('second-ovl');
+    // Open DevScreen modal — it still sees the overlay
+    act(() => pressKey('1', {}));
+    expect(screenSystemRef!.displayedOverlays.length).toBe(1);
+    expect(screenSystemRef!.displayedOverlays[0].id).toBe('second-ovl');
+    expect(screenSystemRef!.activeModalId).toBe('_Dev-Tool_');
   });
 
-  it('activeOverlayIds distinguishes active from inactive overlays', () => {
-    function InactiveOverlay() {
+  it('shows modal queue via modalQueue', () => {
+    function OtherModal() {
       return null;
     }
-    InactiveOverlay.displayName = 'InactiveOverlay';
-    registerComponent(InactiveOverlay, {});
+    OtherModal.displayName = 'OtherModal';
+    registerComponent(OtherModal, {});
 
     function Main() {
-      const { boundKeyboard: bk, openOverlay } = useScreenSystem();
+      const { boundKeyboard: bk, openModal: ctxOpenModal } = useScreenSystem();
       const kb = useKeyboard();
       useEffect(() => {
-        // Open DevTool active
-        kb.boundKeyboard(['1'], () => openDevTool({ top: 0, left: 0 }));
-        // Open second overlay but deactivated
-        kb.boundKeyboard(['2'], () => openOverlay('inactive-ovl', InactiveOverlay, {}, { activate: false }));
+        kb.boundKeyboard(['1'], () => {
+          // Open the other modal first (zIndex=10), then DevScreen (zIndex=0).
+          // Since DevScreen opens second with lower zIndex, the other modal
+          // is active. DevScreen's renderNow makes it visible but not active.
+          ctxOpenModal('other-modal', OtherModal, {}, { zIndex: 10 });
+          openDevTool({ top: 0, left: 0 });
+        });
       }, []);
       return null;
     }
@@ -258,11 +256,11 @@ describe('DevScreen displays overlay state', () => {
     renderApp(Main);
 
     act(() => pressKey('1', {}));
-    act(() => pressKey('2', {}));
 
-    expect(screenSystemRef!.displayedOverlays.length).toBe(2);
-    // DevTool is active, the other is not
-    expect(screenSystemRef!.activeOverlayIds).toContain('_Dev-Tool_');
-    expect(screenSystemRef!.activeOverlayIds).not.toContain('inactive-ovl');
+    expect(screenSystemRef!.modalQueue.length).toBe(2);
+    expect(screenSystemRef!.modalQueue.map(m => m.id)).toContain('_Dev-Tool_');
+    expect(screenSystemRef!.modalQueue.map(m => m.id)).toContain('other-modal');
+    // other-modal has zIndex=10, DevScreen has zIndex=0 → other-modal is active
+    expect(screenSystemRef!.activeModalId).toBe('other-modal');
   });
 });

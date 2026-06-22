@@ -1,20 +1,24 @@
-import { closeOverlay, openOverlay } from "../screen/provider.js";
+import { closeModal, openModal } from "../screen/provider.js";
 import { DevScreen } from "./dev-screen.js";
 import { DevProps } from "./types.js";
 
 
 /**
- * Open the developer debugging overlay.
+ * Open the developer debugging modal.
  *
- * Calls {@link openOverlay} with the fixed overlay ID `_Dev-Tool_` and
- * the {@link DevScreen} component. Repeated calls while the overlay is
+ * Calls {@link openModal} with the fixed modal ID `_Dev-Tool_` and
+ * the {@link DevScreen} component. Repeated calls while the modal is
  * already open will throw — guard with a ref or state flag to implement
  * a toggle (see example).
+ *
+ * When open, DevScreen blocks all keyboard events from reaching
+ * overlays and screens. The modal provides its own close mechanism
+ * via the Escape key.
  *
  * @param top  - Initial vertical position in rows (0 = top of terminal).
  * @param left - Horizontal position in columns.
  *
- * @throws If `ScenarioManagementProvider` is not mounted, or the overlay
+ * @throws If `ScenarioManagementProvider` is not mounted, or the modal
  *         ID `_Dev-Tool_` is already open.
  *
  * @example
@@ -33,7 +37,7 @@ import { DevProps } from "./types.js";
  * ```
  */
 export function openDevTool({top, left}: DevProps){
-  openOverlay('_Dev-Tool_', DevScreen, {
+  openModal('_Dev-Tool_', DevScreen, {
     top: top,
     left: left
   })
@@ -41,14 +45,14 @@ export function openDevTool({top, left}: DevProps){
 
 
 /**
- * Close the developer debugging overlay.
+ * Close the developer debugging modal.
  *
- * Calls {@link closeOverlay} for the fixed overlay ID `_Dev-Tool_`.
- * Safe to call even if the overlay is not currently open — the
- * underlying `closeOverlay` will throw in that case, so guard
+ * Calls {@link closeModal} for the fixed modal ID `_Dev-Tool_`.
+ * Safe to call even if the modal is not currently open — the
+ * underlying `closeModal` will throw in that case, so guard
  * with a flag when implementing a toggle.
  *
- * @throws If no overlay with ID `_Dev-Tool_` exists.
+ * @throws If no modal with ID `_Dev-Tool_` exists.
  *
  * @example
  * ```ts
@@ -56,5 +60,5 @@ export function openDevTool({top, left}: DevProps){
  * ```
  */
 export function closeDevTool(){
-  closeOverlay('_Dev-Tool_')
+  closeModal('_Dev-Tool_')
 }

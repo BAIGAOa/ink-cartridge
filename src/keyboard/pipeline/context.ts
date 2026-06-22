@@ -20,6 +20,7 @@ export interface PipelineRefs {
   globalSequencesRef: React.MutableRefObject<ResolvedGlobalSequenceEntry[]>;
   activeOverlayIdsRef: React.MutableRefObject<Set<string>>;
   displayedOverlaysRef: React.MutableRefObject<OverlayEntry[]>;
+  activeModalIdRef: React.MutableRefObject<string | null>;
   layersRef: React.MutableRefObject<Map<LayerOwner, ScreenKeyboardLayer>>;
   globalPendingSeqRef: React.MutableRefObject<
     import('../types.js').GlobalPendingSequence | null
@@ -67,6 +68,7 @@ export function buildPipelineContext(
     activeCount,
     wildcardFirst,
     screenPath: path,
+    activeModalId: refs.activeModalIdRef.current,
     layersRef: refs.layersRef,
     pendingSeqRef: refs.globalPendingSeqRef,
     notifyFocusChange: refs.notifyFocusChange,

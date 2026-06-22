@@ -11,7 +11,11 @@ export {
   closeAllOverlays,
   activateOverlay,
   deactivateOverlay,
+  openModal,
+  closeModal,
+  closeAllModals,
   useScreenSystem,
+  ModalContext,
 } from "./screen/index.js";
 
 export type {
@@ -24,8 +28,13 @@ export type {
   CloseAllOverlaysFn,
   ActivateOverlayFn,
   DeactivateOverlayFn,
+  OpenModalFn,
+  CloseModalFn,
+  CloseAllModalsFn,
   OpenOverlayOptions,
+  OpenModalOptions,
   OverlayEntry,
+  ModalEntry,
   RegisterOptions,
   ScenarioManagementProviderProps,
 } from "./screen/index.js";

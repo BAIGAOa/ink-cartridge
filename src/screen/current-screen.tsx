@@ -2,17 +2,24 @@ import React from 'react';
 import { Box } from 'ink';
 import { useScreenSystem } from './hook.js';
 import { OverlayContext } from './OverlayContext.js';
+import { ModalContext } from './ModalContext.js';
 
 /**
- * Render the current screen and any active overlays.
+ * Render the current screen, overlays, and modals.
  *
  * Multiple overlays are rendered in zIndex order (ascending) so higher
  * zIndex overlays appear on top. Each overlay is wrapped in an
  * OverlayContext.Provider so the keyboard system can isolate per-overlay
  * keyboard layers by overlay ID.
+ *
+ * Modals are rendered after overlays so they always appear visually on top.
+ * Each modal is wrapped in a ModalContext.Provider so the keyboard system
+ * can isolate per-modal keyboard layers by modal ID.
+ *
+ * Architecturally symmetric between overlays and modals.
  */
 export function CurrentScreen(): React.ReactNode {
-  const { currentScreen, currentOverlays, displayedOverlays } = useScreenSystem();
+  const { currentScreen, currentOverlays, displayedOverlays, currentModals, renderedModalEntries } = useScreenSystem();
 
   // Build overlay elements with OverlayContext wrappers
   const wrappedOverlays = currentOverlays.map((overlayNode, i) => {
@@ -25,10 +32,23 @@ export function CurrentScreen(): React.ReactNode {
     );
   });
 
+  // Build modal elements with ModalContext wrappers (symmetric to overlays).
+  // Uses renderedModalEntries (parallel to currentModals) for correct ID matching.
+  const wrappedModals = currentModals.map((modalNode, i) => {
+    const entry = renderedModalEntries[i];
+    if (!entry) return modalNode;
+    return React.createElement(
+      ModalContext.Provider,
+      { value: entry.id, key: `mdl-ctx-${entry.id}` },
+      modalNode,
+    );
+  });
+
   return React.createElement(
     Box,
     { flexDirection: 'column', width: '100%', height: '100%' },
     currentScreen as React.ReactElement,
     ...wrappedOverlays.map((w) => w as React.ReactElement),
+    ...wrappedModals.map((w) => w as React.ReactElement),
   );
 }

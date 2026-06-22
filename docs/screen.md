@@ -1,6 +1,6 @@
 # Screen Management System
 
-`ink-kit` provides a tree-based screen navigation system with **tree walking**, **cross-branch jumping**, and **overlay** support, allowing you to manage terminal UI screens like pages.
+`ink-kit` provides a tree-based screen navigation system with **tree walking**, **cross-branch jumping**, **overlay**, and **modal** support, allowing you to manage terminal UI screens like pages.
 
 ---
 
@@ -76,7 +76,9 @@ Menu (root)
  `closeAllOverlays` | Close all open overlays at once                               |
  `activateOverlay` | Activate an overlay so it receives keyboard events           |
  `deactivateOverlay` | Deactivate an overlay so it stops receiving keyboard events|
-
+ `openModal`      | Open a blocking modal with a unique ID                        |
+ `closeModal`     | Close a specific modal by ID                                  |
+ `closeAllModals` | Close all open modals at once                                 |
 ---
 
 ## API Reference
@@ -134,10 +136,11 @@ Root context provider wrapping the entire application.
 <CurrentScreen />
 ```
 
-Renders the current top-of-stack screen and all displayed overlays.
+Renders the current top-of-stack screen, all displayed overlays, and all rendered modals.
 
-- No overlays: renders only the stack-top component.
+- No overlays/modals: renders only the stack-top component.
 - With overlays: renders the screen first, then overlays on top in zIndex order (lowest zIndex rendered first, highest rendered last — on top visually). Each overlay is wrapped in `OverlayContext.Provider` for keyboard isolation.
+- With modals: renders modals after overlays (always visually on top). Each modal is wrapped in `ModalContext.Provider` for keyboard isolation. By default only the active modal (highest zIndex) renders; pass `renderNow: true` to render non-active modals.
 
 ---
 
@@ -147,6 +150,7 @@ Renders the current top-of-stack screen and all displayed overlays.
 const {
   currentScreen,      // ReactNode — the currently rendered screen element
   currentOverlays,    // ReactNode[] — all rendered overlay elements (sorted by zIndex)
+  currentModals,      // ReactNode[] — all rendered modal elements (sorted by zIndex)
   currentPath,        // React.ComponentType[] — path from root to stack top
   skip,               // SkipFn
   back,               // BackFn
@@ -158,6 +162,12 @@ const {
   deactivateOverlay,  // DeactivateOverlayFn
   activeOverlayIds,   // string[] — IDs of overlays currently receiving keyboard events
   displayedOverlays,  // OverlayEntry[] — metadata for all displayed overlays
+  activeModalId,      // string | null — ID of the active modal (highest zIndex)
+  activeModal,        // ModalEntry | null — the active modal entry
+  modalQueue,         // ModalEntry[] — all open modals sorted by zIndex
+  openModal,          // OpenModalFn
+  closeModal,         // CloseModalFn
+  closeAllModals,     // CloseAllModalsFn
 } = useScreenSystem();
 ```
 
@@ -308,17 +318,87 @@ Throws if no overlay with the given ID exists.
 
 ---
 
-### Module-Level Functions
-
-`skip`, `back`, `gotoScreen`, `openOverlay`, `closeOverlay`, `closeAllOverlays`, `activateOverlay`, and `deactivateOverlay` can also be used as **module-level imports** without a React component context.
+### `openModal`
 
 ```tsx
-import { skip, back, gotoScreen, openOverlay, closeOverlay } from '@baigao_h/ink-kit';
+openModal(id, component, params, options?);
+```
+
+Open a blocking modal on top of all overlays. Modals have **absolute keyboard priority** — when a modal is active, no other layer (global keys, overlays, or screens) receives keyboard events.
+
+```tsx
+openModal('confirm-1', ConfirmDialog, { message: 'Delete this file?' });
+openModal('error-1', ErrorModal, { message: 'Network error' }, { zIndex: 10 });
+```
+
+| Parameter | Type                          | Description                                      |
+| --------- | ----------------------------- | ------------------------------------------------ |
+| id        | `string`                      | Unique identifier for this modal                 |
+| component | `React.ComponentType`         | Modal component (must be registered)             |
+| params    | `React.ComponentProps<C>`     | Props passed to the modal                        |
+| options   | `OpenModalOptions`            | Optional: `{ zIndex?: number, renderNow?: boolean }` |
+
+**Options**:
+- `zIndex` — Determines which modal is active. The modal with the highest zIndex is the active modal and receives all keyboard events. Defaults to the current modal count.
+- `renderNow` — Whether to render the modal even when it is not the active modal (default `false`). Non-active modals with `renderNow: true` are visible but do **not** receive keyboard events.
+
+**Key points**:
+- Only ONE modal is active at a time — the one with the highest zIndex (equal zIndex → most recently opened wins).
+- The active modal **blocks all keyboard events** from reaching global keys, overlays, and screens. Keys not bound in the modal are still consumed.
+- Use `ModalContext` inside the modal component to obtain the modal's ID.
+- Performing `skip` / `back` / `gotoScreen` **automatically closes all** modals.
+- Reusing an existing modal ID throws an error.
+
+**Modal vs Overlay**:
+
+|                  | Modal                     | Overlay                    |
+| ---------------- | ------------------------- | -------------------------- |
+| Keyboard priority | Absolute (blocks all)    | Broadcast to active ones   |
+| Active count     | Exactly one (highest zIndex) | Multiple (all activated) |
+| Activate/deactivate | ❌ (zIndex-driven only) | ✅ activateOverlay / deactivateOverlay |
+| Use case         | Blocking dialogs (confirm, alert, error) | Floating panels, tooltips, sidebars |
+
+---
+
+### `closeModal`
+
+```tsx
+closeModal(id);
+```
+
+Close a specific modal by its ID. The modal with the next highest zIndex automatically becomes active.
+
+```tsx
+closeModal('confirm-1');
+```
+
+Throws if no modal with the given ID exists.
+
+---
+
+### `closeAllModals`
+
+```tsx
+closeAllModals();
+```
+
+Close all open modals at once. Keyboard control returns to the layer below (overlay or screen).
+
+---
+
+### Module-Level Functions
+
+`skip`, `back`, `gotoScreen`, `openOverlay`, `closeOverlay`, `closeAllOverlays`, `activateOverlay`, `deactivateOverlay`, `openModal`, `closeModal`, and `closeAllModals` can also be used as **module-level imports** without a React component context.
+
+```tsx
+import { skip, back, gotoScreen, openOverlay, closeOverlay, openModal, closeModal } from '@baigao_h/ink-kit';
 
 // Use anywhere in .ts/.tsx files
 skip(Game, { level: 5 });
 openOverlay('pause', PauseMenu, {});
 closeOverlay('pause');
+openModal('confirm', ConfirmDialog, { message: 'OK?' });
+closeModal('confirm');
 ```
 
 **Note**: Module-level functions require `<ScenarioManagementProvider>` to be mounted. Calling them before the provider is mounted throws an error.
@@ -327,12 +407,13 @@ closeOverlay('pause');
 
 ## Type Safety
 
-All navigation functions are type-safe — `skip`, `gotoScreen`, and `openOverlay` automatically infer prop types from your component:
+All navigation functions are type-safe — `skip`, `gotoScreen`, `openOverlay`, and `openModal` automatically infer prop types from your component:
 
 ```tsx
 // Ok — type checks
 skip(Game, { level: 1 });
 openOverlay('dialog', ConfirmDialog, { message: 'Are you sure?' });
+openModal('confirm', ConfirmDialog, { message: 'Delete?' });
 
 // Type error: Game has no `title` prop
 skip(Game, { title: 'hello' });
@@ -353,3 +434,7 @@ skip(Game, { title: 'hello' });
  Cannot close overlay "xxx": no overlay with that ID exists.   | `closeOverlay` called with an unknown ID       |
  Cannot activate overlay "xxx": no overlay with that ID exists. | `activateOverlay` called with an unknown ID    |
  Cannot deactivate overlay "xxx": no overlay with that ID exists. | `deactivateOverlay` called with an unknown ID  |
+ Modal with id "xxx" already exists.                            | `openModal` called with an ID that is already in use |
+ Cannot close modal "xxx": no modal with that ID exists.        | `closeModal` called with an unknown ID         |
+ Cannot open modal "xxx": this ID is already in use by an overlay. | `openModal` called with an ID that matches an open overlay |
+ Cannot open overlay "xxx": this ID is already in use by a modal. | `openOverlay` called with an ID that matches an open modal |

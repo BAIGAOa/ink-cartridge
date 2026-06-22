@@ -6,15 +6,16 @@ The keyboard system provides **layered key event handling** for terminal UIs, re
 
 ---
 
-## Architecture: 6-Stage Pipeline
+## Architecture: 7-Stage Pipeline
 
-Every keystroke passes through 6 processor stages in order. The first stage to "consume" the event stops further processing:
+Every keystroke passes through 7 processor stages in order. The first stage to "consume" the event stops further processing:
 
 ```
 Key Event (useInput)
     │
     ▼
-┌─ ① GlobalSequence (affectOverlay: true) ─┐  Global multi-key sequences
+┌─ ⓪ Modal ─────────────────────────────────┐  Active modal (blocks all events)
+├─ ① GlobalSequence (affectOverlay: true) ─┐  Global multi-key sequences
 ├─ ② GlobalKey (affectOverlay: true) ──────┤  Global shortcuts (before overlays)
 ├─ ③ Overlay broadcast ────────────────────┤  Active overlays (ascending zIndex)
 ├─ ④ GlobalSequence (affectOverlay: false) ┤  Global sequences (after overlays)
@@ -25,7 +26,9 @@ Key Event (useInput)
  Dropped (no handler matched)
 ```
 
-### Why 6 Stages
+### Why 7 Stages
+
+Stage ⓪ (Modal) has **absolute priority** — when a modal is active, all keyboard events are consumed by the modal layer, blocking everything below. This enforces modal semantics: the user must interact with the modal before anything else.
 
 Stages ① and ② fire **before overlays** — register shortcuts that respond even when a dialog is open. The default `affectOverlay: false` variants (④ + ⑤) fire **after overlays** — only when no active overlay consumed the event.
 
@@ -105,7 +108,7 @@ Only the **active focus target's** bindings are evaluated. Layer-level bindings 
 
 ## Internal Event Flow per Layer
 
-When a key event reaches a screen layer (stage ⑥), `handleLayer` evaluates in this order:
+When a key event reaches a screen or modal layer, `handleLayer` evaluates in this order:
 
 ```
 1. Tab/Shift+Tab focus rotation     ← highest priority (stack-top only)

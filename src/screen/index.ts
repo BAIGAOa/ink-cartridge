@@ -9,11 +9,15 @@ export {
   closeAllOverlays,
   activateOverlay,
   deactivateOverlay,
+  openModal,
+  closeModal,
+  closeAllModals,
   clearDispatchers,
 } from './provider.js';
 export type { ScenarioManagementProviderProps } from './provider.js';
 export { useScreenSystem } from './hook.js';
 export { CurrentScreen } from './current-screen.js';
+export { ModalContext } from './ModalContext.js';
 export type {
   SkipOptions,
   SkipFn,
@@ -24,7 +28,12 @@ export type {
   CloseAllOverlaysFn,
   ActivateOverlayFn,
   DeactivateOverlayFn,
+  OpenModalFn,
+  CloseModalFn,
+  CloseAllModalsFn,
   OpenOverlayOptions,
+  OpenModalOptions,
   OverlayEntry,
+  ModalEntry,
   RegisterOptions,
 } from './types.js';

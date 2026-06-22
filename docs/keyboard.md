@@ -75,7 +75,7 @@ render(
 
 ## Important: Component Nesting Order
 
-KeyboardProvider must be nested inside ScenarioManagementProvider, because it depends on the screen context to obtain the current screen stack.
+KeyboardProvider must be nested inside ScenarioManagementProvider, because it depends on the screen context to obtain the current screen stack and modal state.
 
 ```tsx
 {/* Wrong */}
@@ -100,24 +100,30 @@ Every screen in the tree has its own keyboard layer. When a key is pressed, the 
 ```
 Key pressed
   |
-  +- 1. Global keys (affectOverlay: true)
+  +- 0. Active modal (if any) — blocks all events unconditionally
   |
-  +- 2. Active overlay layer
+  +- 1. GlobalSequence (affectOverlay: true)
+  |
+  +- 2. GlobalKey (affectOverlay: true)
+  |
+  +- 3. Active overlay broadcast (all active, zIndex ascending)
   |      +- Tab / Shift+Tab -> switch focus
   |      +- Sequence matching -> pending / advance / cancel
   |      +- Focus target (if active) -> blockedKey -> bindings -> stop
   |      +- Screen layer bindings -> blockedKey -> bindings -> stop
   |
-  +- 3. Global keys (affectOverlay: false, default)
+  +- 4. GlobalSequence (affectOverlay: false)
   |
-  +- 4. Screen stack (top to bottom)
+  +- 5. GlobalKey (affectOverlay: false, default)
+  |
+  +- 6. Screen stack (top to bottom)
   |      For each layer:
   |        +- Tab / Shift+Tab (top layer only) -> switch focus
   |        +- Sequence matching (top layer only) -> pending / advance / cancel
   |        +- Focus target (top layer only) -> blockedKey -> bindings -> stop
   |        +- Screen layer bindings -> blockedKey -> bindings -> stop
   |
-  +- 5. Dropped (unhandled)
+  +- 7. Dropped (unhandled)
 ```
 
 ### Screen-Level vs Focus-Level
@@ -953,10 +959,16 @@ function Settings() {
 ```
 Key pressed
   |
-  +- 1. Global keys (affectOverlay: true)
+  +- 0. Active modal (if any) — blocks all events unconditionally
+  |        matched or not -> consume, stop (nothing below receives)
+  |
+  +- 1. GlobalSequence (affectOverlay: true)
   |        matched -> consume, stop
   |
-  +- 2. Active overlay layer
+  +- 2. GlobalKey (affectOverlay: true)
+  |        matched -> consume, stop
+  |
+  +- 3. Active overlay broadcast (all active, zIndex ascending)
   |      +- Tab / Shift+Tab -> switch focus
   |      +- Pending sequence (if any)
   |      |    +- match next key? -> advance; full match? -> fire handler
@@ -971,12 +983,15 @@ Key pressed
   |      |    +- blockedKey -> skip bindings
   |      |    +- boundKeyboard matched? -> consume, stop
   |      |    +- stop keys matched? -> consume, block
-  |      +- (none matched) -> continue
+  |      +- (none matched) -> continue to next overlay
   |
-  +- 3. Global keys (affectOverlay: false, default)
+  +- 4. GlobalSequence (affectOverlay: false)
   |        matched -> consume, stop
   |
-  +- 4. Screen stack (top to bottom)
+  +- 5. GlobalKey (affectOverlay: false, default)
+  |        matched -> consume, stop
+  |
+  +- 6. Screen stack (top to bottom)
   |      for each layer:
   |        +- Tab / Shift+Tab (top layer only) -> switch focus
   |        +- Pending sequence (top layer only, if any)
@@ -994,7 +1009,7 @@ Key pressed
   |             +- (top layer only) stop keys matched? -> consume, block
   |        +- (none matched) -> continue to next layer
   |
-  +- 5. Dropped (no handler matched)
+  +- 7. Dropped (no handler matched)
 ```
 
 When stop is used with stopAction: true, the action IDs are resolved to key names via the layer's or focus target's actionKeysMap **before** any matching takes place. The resolution is invisible to the event chain - stop still operates on literal key names internally.

@@ -107,12 +107,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     currentPath,
     activeOverlayIds,
     displayedOverlays,
+    activeModalId,
+    displayedModals,
   } = useScreenSystem();
 
   // 使用 useRef 替代模块级全局变量，实现多实例隔离
   const pathRef = useRef<React.ComponentType<any>[]>(currentPath);
   const activeOverlayIdsRef = useRef<Set<string>>(new Set());
   const displayedOverlaysRef = useRef(displayedOverlays);
+  const activeModalIdRef = useRef<string | null>(null);
 
   const globalKeysRef = useRef<{
     key: string | string[];
@@ -159,6 +162,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   pathRef.current = currentPath;
   activeOverlayIdsRef.current = new Set(activeOverlayIds);
   displayedOverlaysRef.current = displayedOverlays;
+  activeModalIdRef.current = activeModalId;
 
   // layersRef now accepts both component types (for screens) and strings (for overlay IDs)
   const layersRef = useRef<Map<LayerOwner, ScreenKeyboardLayer>>(new Map());
@@ -186,20 +190,40 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   useEffect(() => {
     const currentIds = new Set(displayedOverlays.map(o => o.id));
 
-    // Delete layers for overlays that no longer exist
-    for (const key of layersRef.current.keys()) {
-      if (typeof key === 'string' && !currentIds.has(key)) {
-        const layer = layersRef.current.get(key);
+    // Only delete keys that were previously known overlay IDs,
+    // not all string keys (which may include modal IDs).
+    for (const prevId of prevOverlayIdsRef.current) {
+      if (!currentIds.has(prevId)) {
+        const layer = layersRef.current.get(prevId);
         if (layer?.pendingSequence) {
           clearTimeout(layer.pendingSequence.timer);
           layer.pendingSequence = null;
         }
-        layersRef.current.delete(key);
+        layersRef.current.delete(prevId);
       }
     }
 
     prevOverlayIdsRef.current = currentIds;
   }, [displayedOverlays]);
+
+  // Clean up layers for removed modals (symmetric to overlay cleanup)
+  const prevModalIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const currentIds = new Set(displayedModals.map(m => m.id));
+
+    for (const prevId of prevModalIdsRef.current) {
+      if (!currentIds.has(prevId)) {
+        const layer = layersRef.current.get(prevId);
+        if (layer?.pendingSequence) {
+          clearTimeout(layer.pendingSequence.timer);
+          layer.pendingSequence = null;
+        }
+        layersRef.current.delete(prevId);
+      }
+    }
+
+    prevModalIdsRef.current = currentIds;
+  }, [displayedModals]);
 
   // ---- Owner stack management (internal, used by useKeyboard) ----
 
@@ -1162,6 +1186,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       globalSequencesRef,
       activeOverlayIdsRef,
       displayedOverlaysRef,
+      activeModalIdRef,
       layersRef,
       globalPendingSeqRef,
       wildcardPriorityCountRef,

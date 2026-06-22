@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { OverlayContext } from "../screen/OverlayContext.js";
+import { ModalContext } from "../screen/ModalContext.js";
 
 /**
  * Access the keyboard API from within a React component.
@@ -12,6 +13,11 @@ import { OverlayContext } from "../screen/OverlayContext.js";
  * keyed by overlay ID. This enables multiple instances of the same component
  * to coexist as separate overlays with independent keyboard state.
  *
+ * When called inside a modal component (wrapped in ModalContext.Provider),
+ * the same isolation mechanism applies: bindings are scoped to the modal's
+ * own layer, keyed by modal ID. This is architecturally symmetric to overlay
+ * isolation.
+ *
  * Must be used inside a {@link KeyboardProvider}.
  *
  * @throws If no provider is found in the component tree.
@@ -19,6 +25,7 @@ import { OverlayContext } from "../screen/OverlayContext.js";
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
   const overlayId = useContext(OverlayContext);
+  const modalId = useContext(ModalContext);
 
   if (!ctx) {
     throw new Error(
@@ -39,6 +46,19 @@ export function useKeyboard(): KeyboardContextValue {
     }
     return;
   }, [overlayId, ctx._pushOwner, ctx._popOwner]);
+
+  // Manage the owner stack for modal isolation (symmetric to overlay).
+  // When inside a modal, push the modal ID as the current owner so that
+  // keyboard functions operate on the modal's own layer.
+  useEffect(() => {
+    if (modalId) {
+      ctx._pushOwner(modalId);
+      return () => {
+        ctx._popOwner(modalId);
+      };
+    }
+    return;
+  }, [modalId, ctx._pushOwner, ctx._popOwner]);
 
   return ctx;
 }

@@ -1,13 +1,15 @@
 import type { PipelineContext, PipelineProcessor } from '../types.js';
+import { createModalProcessor } from '../modal-processor/index.js';
 import { createGlobalSequenceProcessor } from '../global-sequence-processor/index.js';
 import { createGlobalKeyProcessor } from '../global-key-processor/index.js';
 import { createOverlayProcessor } from '../overlay-processor/index.js';
 import { createScreenStackProcessor } from '../screen-stack-processor/index.js';
 
 /**
- * Build the canonical 6-stage processor chain.
+ * Build the canonical 7-stage processor chain.
  *
  * Priority order (highest first):
+ *   ⓪ Modal                                    — active modal, always blocks
  *   ① GlobalSequence (affectOverlay: true)  — pending + start
  *   ② GlobalKey      (affectOverlay: true)  — fire before overlays
  *   ③ Overlay broadcast                      — all active overlays, zIndex asc
@@ -15,10 +17,11 @@ import { createScreenStackProcessor } from '../screen-stack-processor/index.js';
  *   ⑤ GlobalKey      (affectOverlay: false) — fire before screen stack
  *   ⑥ Screen stack                           — top → bottom, only if no overlay consumed
  *
- * @2026-06-14 v3.4.0
+ * @2026-06-22 v3.6.1
  */
 function buildProcessors(): PipelineProcessor[] {
   return [
+    createModalProcessor(),
     createGlobalSequenceProcessor({ affectOverlay: true }),
     createGlobalKeyProcessor({ affectOverlay: true }),
     createOverlayProcessor(),

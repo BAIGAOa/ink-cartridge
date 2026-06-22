@@ -12,8 +12,13 @@ import {
   CloseAllOverlaysFn,
   ActivateOverlayFn,
   DeactivateOverlayFn,
+  OpenModalFn,
+  CloseModalFn,
+  CloseAllModalsFn,
   OverlayEntry,
+  ModalEntry,
   OpenOverlayOptions,
+  OpenModalOptions,
 } from './types.js';
 import {
   getTemplate,
@@ -50,6 +55,19 @@ function getDispatch(): React.Dispatch<ScreenAction> {
  */
 function sortOverlays(overlays: OverlayEntry[]): OverlayEntry[] {
   return [...overlays].sort((a, b) => {
+    if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
+    return a.createdAt - b.createdAt;
+  });
+}
+
+/**
+ * Sort modals by zIndex ascending, then by createdAt for tie-breaking.
+ *
+ * The modal with the highest zIndex becomes the active modal.
+ * Architecturally symmetric to {@link sortOverlays}.
+ */
+function sortModals(modals: ModalEntry[]): ModalEntry[] {
+  return [...modals].sort((a, b) => {
     if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
     return a.createdAt - b.createdAt;
   });
@@ -183,6 +201,65 @@ export function deactivateOverlay(id: string): void {
   getDispatch()({ type: 'deactivateOverlay', id });
 }
 
+/**
+ * Open a modal on top of all overlays.
+ *
+ * Only one modal is active at a time (the one with the highest zIndex).
+ * The active modal receives absolute keyboard priority, consuming all
+ * keyboard events before they reach overlays or screens.
+ *
+ * @param id         Unique identifier for this modal.
+ * @param component  The modal component (must be registered).
+ * @param params     Props to pass to the modal component.
+ * @param options    Optional zIndex and renderNow settings.
+ *
+ * @throws If the provider is not mounted, the component is not registered,
+ *         or the ID is already in use.
+ */
+export function openModal<C extends React.ComponentType<any>>(
+  id: string,
+  component: C,
+  params: React.ComponentProps<C>,
+  options?: OpenModalOptions,
+): void {
+  if (!hasComponent(component)) {
+    throw new Error(
+      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+    );
+  }
+  getDispatch()({
+    type: 'openModal',
+    id,
+    component,
+    params: params as Record<string, unknown>,
+    zIndex: options?.zIndex,
+    renderNow: options?.renderNow,
+  });
+}
+
+/**
+ * Close a specific modal by its ID.
+ *
+ * When the active modal is closed, the modal with the next highest zIndex
+ * automatically becomes active.
+ *
+ * @param id  The ID of the modal to close.
+ *
+ * @throws If the provider is not mounted.
+ */
+export function closeModal(id: string): void {
+  getDispatch()({ type: 'closeModal', id });
+}
+
+/**
+ * Close all open modals.
+ *
+ * @throws If the provider is not mounted.
+ */
+export function closeAllModals(): void {
+  getDispatch()({ type: 'closeAllModals' });
+}
+
 
 
 /**
@@ -267,6 +344,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         pathParams: [...state.pathParams, mergedParams],
         overlays: [],
         activeOverlayIds: new Set<string>(),
+        modals: [],
+        activeModalId: null,
         counter,
       };
     }
@@ -287,6 +366,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         pathParams: state.pathParams.slice(0, -levels),
         overlays: [],
         activeOverlayIds: new Set<string>(),
+        modals: [],
+        activeModalId: null,
         counter: state.counter + 1,
       };
     }
@@ -323,6 +404,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         pathParams: newPathParams,
         overlays: [],
         activeOverlayIds: new Set<string>(),
+        modals: [],
+        activeModalId: null,
         counter: state.counter + 1,
       };
     }
@@ -331,6 +414,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       if (state.overlays.some(o => o.id === action.id)) {
         throw new Error(
           `[Ink-Router-Kit] Overlay with id "${action.id}" already exists. Use a unique id for each overlay.`,
+        );
+      }
+
+      if (state.modals.some(m => m.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot open overlay "${action.id}": this ID is already in use by a modal. Use a unique id.`,
         );
       }
 
@@ -414,6 +503,64 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
+    case 'openModal': {
+      if (state.modals.some(m => m.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Modal with id "${action.id}" already exists. Use a unique id for each modal.`,
+        );
+      }
+
+      if (state.overlays.some(o => o.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot open modal "${action.id}": this ID is already in use by an overlay. Use a unique id.`,
+        );
+      }
+
+      const newEntry: ModalEntry = {
+        id: action.id,
+        component: action.component,
+        props: action.params,
+        zIndex: action.zIndex ?? state.modals.length,
+        createdAt: Date.now(),
+        renderNow: action.renderNow ?? false,
+      };
+
+      const newModals = sortModals([...state.modals, newEntry]);
+      // The last element (highest zIndex) is the active modal
+      const activeId = newModals.length > 0 ? newModals[newModals.length - 1].id : null;
+
+      return {
+        ...state,
+        modals: newModals,
+        activeModalId: activeId,
+      };
+    }
+
+    case 'closeModal': {
+      if (!state.modals.some(m => m.id === action.id)) {
+        throw new Error(
+          `[Ink-Router-Kit] Cannot close modal "${action.id}": no modal with that ID exists.`,
+        );
+      }
+
+      const newModals = state.modals.filter(m => m.id !== action.id);
+      const activeId = newModals.length > 0 ? newModals[newModals.length - 1].id : null;
+
+      return {
+        ...state,
+        modals: newModals,
+        activeModalId: activeId,
+      };
+    }
+
+    case 'closeAllModals': {
+      return {
+        ...state,
+        modals: [],
+        activeModalId: null,
+      };
+    }
+
     default:
       return state;
   }
@@ -454,6 +601,8 @@ export function ScenarioManagementProvider({
     pathParams: [initialParams],
     overlays: [],
     activeOverlayIds: new Set<string>(),
+    modals: [],
+    activeModalId: null,
     counter: 0,
   });
 
@@ -486,6 +635,29 @@ export function ScenarioManagementProvider({
         }),
       ),
     [state.overlays],
+  );
+
+  // Determine which modals should be rendered: active modal
+  // (highest zIndex) plus any modals with renderNow: true.
+  const renderedModalEntries = useMemo(
+    () => state.modals.filter(
+      entry => entry.id === state.activeModalId || entry.renderNow,
+    ),
+    [state.modals, state.activeModalId],
+  );
+
+  // Render modal elements for the modals that should be displayed.
+  // Sorted by zIndex ascending so the last element (highest zIndex)
+  // renders on top.
+  const currentModals = useMemo(
+    () =>
+      renderedModalEntries.map((entry) =>
+        React.createElement(entry.component, {
+          ...entry.props,
+          key: entry.id,
+        }),
+      ),
+    [renderedModalEntries],
   );
 
   // Context 内的导航方法
@@ -573,15 +745,50 @@ export function ScenarioManagementProvider({
     [],
   );
 
+  const openModalInContext: OpenModalFn = useMemo(
+    () => (id, component, params, options) => {
+      if (!hasComponent(component)) {
+        throw new Error(
+          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+        );
+      }
+      dispatch({
+        type: 'openModal',
+        id,
+        component,
+        params: params as Record<string, unknown>,
+        zIndex: options?.zIndex,
+        renderNow: options?.renderNow,
+      });
+    },
+    [],
+  );
+
+  const closeModalInContext: CloseModalFn = useMemo(
+    () => (id: string) => dispatch({ type: 'closeModal', id }),
+    [],
+  );
+
+  const closeAllModalsInContext: CloseAllModalsFn = useMemo(
+    () => () => dispatch({ type: 'closeAllModals' }),
+    [],
+  );
+
   const activeOverlayIdsArray = useMemo(
     () => [...state.activeOverlayIds],
     [state.activeOverlayIds],
   );
 
+  // Compute activeModal from state
+  const activeModal = state.activeModalId
+    ? state.modals.find(m => m.id === state.activeModalId) ?? null
+    : null;
+
   const value = useMemo(
     () => ({
       currentScreen,
       currentOverlays,
+      currentModals,
       currentPath: state.path,
       skip: skipInContext,
       back: backInContext,
@@ -593,12 +800,24 @@ export function ScenarioManagementProvider({
       deactivateOverlay: deactivateOverlayInContext,
       activeOverlayIds: activeOverlayIdsArray,
       displayedOverlays: state.overlays,
+      displayedModals: state.modals,
+      renderedModalEntries,
+      activeModalId: state.activeModalId,
+      activeModal,
+      modalQueue: state.modals,
+      openModal: openModalInContext,
+      closeModal: closeModalInContext,
+      closeAllModals: closeAllModalsInContext,
     }),
     [
       currentScreen,
       currentOverlays,
+      currentModals,
       state.path,
       state.overlays,
+      state.modals,
+      renderedModalEntries,
+      activeModal,
       activeOverlayIdsArray,
       skipInContext,
       backInContext,
@@ -608,6 +827,9 @@ export function ScenarioManagementProvider({
       closeAllOverlaysInContext,
       activateOverlayInContext,
       deactivateOverlayInContext,
+      openModalInContext,
+      closeModalInContext,
+      closeAllModalsInContext,
     ],
   );
 

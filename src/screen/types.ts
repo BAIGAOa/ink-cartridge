@@ -27,6 +27,16 @@ export interface OpenOverlayOptions {
 }
 
 /**
+ * Options for {@link openModal}.
+ */
+export interface OpenModalOptions {
+  /** Visual stacking order. Smaller values render behind larger values. Defaults to the current modal count. */
+  zIndex?: number;
+  /** Whether to render the modal even when it is not the active modal (zIndex not highest). Defaults to false. */
+  renderNow?: boolean;
+}
+
+/**
  * A single overlay entry in the multi-overlay system.
  */
 export interface OverlayEntry {
@@ -43,6 +53,28 @@ export interface OverlayEntry {
 }
 
 /**
+ * A single modal entry in the modal system.
+ *
+ * Modals are architecturally symmetric to overlays but with absolute
+ * keyboard priority: the modal with the highest zIndex is the single
+ * active modal and consumes all keyboard events.
+ */
+export interface ModalEntry {
+  /** Unique identifier for this modal. */
+  id: string;
+  /** The modal component to render. */
+  component: React.ComponentType<any>;
+  /** Props passed to the modal component. */
+  props: Record<string, unknown>;
+  /** Visual stacking order (lower = behind, higher = front). Also determines activation order. */
+  zIndex: number;
+  /** Timestamp for tie-breaking when zIndex values are equal. */
+  createdAt: number;
+  /** Whether to render even when not the active modal. Defaults to false. */
+  renderNow: boolean;
+}
+
+/**
  * Internal state of the screen management provider.
  */
 export interface ScreenState {
@@ -54,6 +86,10 @@ export interface ScreenState {
   overlays: OverlayEntry[];
   /** Set of overlay IDs that are currently active (receiving keyboard events). */
   activeOverlayIds: Set<string>;
+  /** All open modals, sorted by zIndex (ascending). */
+  modals: ModalEntry[];
+  /** ID of the currently active modal (zIndex highest), or null if none. */
+  activeModalId: string | null;
   /** Auto-incrementing counter used as a React key to force remounts when needed. */
   counter: number;
 }
@@ -67,7 +103,10 @@ export type ScreenActionType =
   | 'closeOverlay'
   | 'closeAllOverlays'
   | 'activateOverlay'
-  | 'deactivateOverlay';
+  | 'deactivateOverlay'
+  | 'openModal'
+  | 'closeModal'
+  | 'closeAllModals';
 
 /** Action dispatched when navigating down to a child screen. */
 export interface SkipAction {
@@ -137,6 +176,33 @@ export interface DeactivateOverlayAction {
   id: string;
 }
 
+/** Action dispatched when opening a new modal. */
+export interface OpenModalAction {
+  type: 'openModal';
+  /** Unique identifier for this modal. */
+  id: string;
+  /** The modal component to render. */
+  component: React.ComponentType<any>;
+  /** Props to pass to the modal component. */
+  params: Record<string, unknown>;
+  /** Optional zIndex for visual stacking and activation order. */
+  zIndex?: number;
+  /** Whether to render even when not active. Defaults to false. */
+  renderNow?: boolean;
+}
+
+/** Action dispatched when closing a specific modal by ID. */
+export interface CloseModalAction {
+  type: 'closeModal';
+  /** The ID of the modal to close. */
+  id: string;
+}
+
+/** Action dispatched when closing all modals. */
+export interface CloseAllModalsAction {
+  type: 'closeAllModals';
+}
+
 /** Union of all possible screen actions. */
 export type ScreenAction =
   | SkipAction
@@ -146,7 +212,10 @@ export type ScreenAction =
   | CloseOverlayAction
   | CloseAllOverlaysAction
   | ActivateOverlayAction
-  | DeactivateOverlayAction;
+  | DeactivateOverlayAction
+  | OpenModalAction
+  | CloseModalAction
+  | CloseAllModalsAction;
 
 /**
  * Function signature for navigating to a direct child of the current screen.
@@ -204,3 +273,25 @@ export type ActivateOverlayFn = (id: string) => void;
 
 /** Function signature for deactivating an overlay by ID. */
 export type DeactivateOverlayFn = (id: string) => void;
+
+/**
+ * Function signature for opening a new modal.
+ *
+ * @typeParam C - The modal component type.
+ * @param id - Unique identifier for this modal.
+ * @param component - The modal component (must be registered).
+ * @param params - Props to pass to the modal.
+ * @param options - Optional zIndex and renderNow settings.
+ */
+export type OpenModalFn = <C extends React.ComponentType<any>>(
+  id: string,
+  component: C,
+  params: React.ComponentProps<C>,
+  options?: OpenModalOptions,
+) => void;
+
+/** Function signature for closing a specific modal by ID. */
+export type CloseModalFn = (id: string) => void;
+
+/** Function signature for closing all modals. */
+export type CloseAllModalsFn = () => void;
