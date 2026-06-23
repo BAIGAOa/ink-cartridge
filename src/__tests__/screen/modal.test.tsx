@@ -20,6 +20,10 @@ import { KeyboardProvider } from '../../keyboard/provider.js';
 import { useKeyboard } from '../../keyboard/hook.js';
 import { useModalMissListener } from '../../keyboard/hook.js';
 
+// TODO: There are still too few tests for the miss function, and it is better to cover it comprehensively.
+
+
+
 // ── useInput mock ──────────────────────────────────────────────
 
 let capturedInputHandler: ((input: string, key: Key) => void) | null = null;
