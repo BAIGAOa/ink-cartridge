@@ -838,11 +838,15 @@ type ModalMissEvent =
 - Tab / Shift+Tab focus navigation
 - Sequence intermediary keys (mid-sequence)
 - `times` counting presses
+- Stop declarations at the active focus target level
 
 And the following are **not** treated as handled (`miss=true`):
-- Stop declarations (`includeStop: false`)
-- BlockedKey declarations (`includeBlockedKey: false`)
+- Stop declarations (`includeStop: false`) — both layer-level and focus-target-level
+- BlockedKey declarations (`includeBlockedKey: false`), respecting `when()` conditions
 - Bindings that didn't fire because of `when`, `focusId`, `onlyThis`, etc.
+
+**Note**: Only one `useModalMissListener` callback is active per modal at a time.
+Calling the hook multiple times inside the same modal replaces the previous callback.
 
 **Example** — terminal bell on unbound keys:
 
