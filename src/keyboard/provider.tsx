@@ -21,6 +21,8 @@ import {
   SequenceOptions,
   SequenceBinding,
   SequenceOperationEntry,
+  ModalMissCallback,
+  ModalMissOptions,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 import { buildPipelineContext } from './pipeline/index.js';
@@ -292,6 +294,23 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       layer.pendingSequence = null;
     }
   }, []);
+
+  const useModalMissListener = useCallback(
+    (cb: ModalMissCallback, options?: ModalMissOptions): (() => void) => {
+      const owner = getCurrentOwner();
+      if (!owner) return () => {};
+      const layer = getLayer(owner);
+      layer.onMiss = cb;
+      layer.onMissOptions = options;
+      return () => {
+        if (layer.onMiss === cb) {
+          layer.onMiss = undefined;
+          layer.onMissOptions = undefined;
+        }
+      };
+    },
+    [getCurrentOwner, getLayer],
+  );
 
   const getOrCreateFocusTarget = useCallback(
     (layer: ScreenKeyboardLayer, focusId: string) => {
@@ -1147,6 +1166,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       _popOwner: popOwner,
       boundSequence,
       enableWildcardPriority,
+      useModalMissListener,
     }),
     [
       boundKeyboard,
@@ -1176,6 +1196,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       popOwner,
       boundSequence,
       enableWildcardPriority,
+      useModalMissListener,
     ],
   );
 

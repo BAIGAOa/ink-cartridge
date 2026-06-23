@@ -1,6 +1,6 @@
 export { KeyboardProvider } from "./provider.js";
 export type { KeyboardProviderProps } from "./provider.js";
-export { useKeyboard, useFocusState } from "./hook.js";
+export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
 export { normalizeKeyNames, isNormalCharacter } from "./keyNormalizer.js";
 export type {
   KeyHandler,
@@ -17,4 +17,7 @@ export type {
   SequenceOptions,
   SequenceBinding,
   PendingSequence,
+  ModalMissEvent,
+  ModalMissCallback,
+  ModalMissOptions,
 } from "./types.js";

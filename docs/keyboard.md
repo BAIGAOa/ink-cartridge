@@ -803,6 +803,80 @@ Available from useKeyboard(), operating on the current screen's focus targets.
 
 ---
 
+### useModalMissListener
+
+```tsx
+useModalMissListener(
+  cb: (evt: ModalMissEvent) => void,
+  options?: ModalMissOptions,
+): () => void;
+```
+
+Subscribe to unhandled key presses inside a modal. When the active modal receives a key that was not consumed by any binding, the callback is invoked.
+
+Only functions inside a modal component (where `ModalContext` is set). Outside a modal it is a silent no-op. Returns an unsubscribe function.
+
+**The callback receives a `ModalMissEvent`:**
+
+```tsx
+type ModalMissEvent =
+  | { miss: false }                                // key was handled
+  | { miss: true; key: Key; input: string; eventNames: string[] };  // key was NOT handled
+```
+
+**Options (`ModalMissOptions`)** control which mechanics count as "handled":
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `includeStop` | `false` | When `true`, keys matching `stop` are treated as handled (`miss=false`). |
+| `includeBlockedKey` | `false` | When `true`, keys matching `blockedKey` are treated as handled. |
+| `monitorWhen` | `false` | When `true`, keys matching a binding whose `when()` returns `false` are treated as a miss. |
+| `monitorFocusMismatch` | `false` | When `true`, keys bound to a non-active focus target are treated as a miss. |
+
+**By default** (all options `false`), the following are always treated as **handled** (`miss=false`):
+- `boundKeyboard` / `boundSequence` matches that actually fire the handler
+- Tab / Shift+Tab focus navigation
+- Sequence intermediary keys (mid-sequence)
+- `times` counting presses
+
+And the following are **not** treated as handled (`miss=true`):
+- Stop declarations (`includeStop: false`)
+- BlockedKey declarations (`includeBlockedKey: false`)
+- Bindings that didn't fire because of `when`, `focusId`, `onlyThis`, etc.
+
+**Example** — terminal bell on unbound keys:
+
+```tsx
+function ConfirmModal({ onConfirm }: { onConfirm: () => void }) {
+  const { boundKeyboard } = useKeyboard();
+
+  useModalMissListener((evt) => {
+    if (evt.miss) {
+      process.stdout.write('\x07'); // terminal bell
+    }
+  });
+
+  useEffect(() => {
+    boundKeyboard(['y'], onConfirm);
+    boundKeyboard(['n'], closeModal);
+  }, []);
+
+  return <Text>Are you sure? (y/n)</Text>;
+}
+```
+
+**Example** — show a hint when the user hits a key that needs a condition:
+
+```tsx
+useModalMissListener((evt) => {
+  if (evt.miss) {
+    showHint('Press y to confirm or n to cancel');
+  }
+}, { monitorWhen: true });
+```
+
+---
+
 ## Built-in Tab Navigation
 
 When a screen has one or more focus targets, the keyboard system intercepts tab and shift+tab at the top layer and rotates through targets in registration order.

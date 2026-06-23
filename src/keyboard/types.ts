@@ -273,6 +273,66 @@ export interface ScreenKeyboardLayer {
   sequences: Map<string, SequenceBinding[]>;
   /** Currently active pending sequence, or `null` if none. */
   pendingSequence: PendingSequence | null;
+  /**
+   * Callback invoked when the active modal receives a key that was not
+   * handled by any binding (registered via {@link useModalMissListener}).
+   */
+  onMiss?: ModalMissCallback;
+  /**
+   * Options controlling the granularity of miss detection.
+   * Set alongside {@link onMiss}.
+   */
+  onMissOptions?: ModalMissOptions;
+}
+
+/**
+ * Event object passed to the {@link ModalMissCallback}.
+ *
+ * When `miss` is `false`, the key was handled (by a binding, Tab
+ * navigation, sequence, or — depending on options — stop/blockedKey).
+ * When `miss` is `true`, the remaining fields describe the key that
+ * was not handled by any mechanism visible to the miss detector.
+ */
+export type ModalMissEvent =
+  | { miss: false }
+  | { miss: true; key: import('ink').Key; input: string; eventNames: string[] };
+
+/**
+ * Callback signature for {@link useModalMissListener}.
+ */
+export type ModalMissCallback = (evt: ModalMissEvent) => void;
+
+/**
+ * Options for {@link useModalMissListener}.
+ *
+ * Each option defaults to `false`, meaning only explicit `boundKeyboard`
+ * / `boundSequence` matches (and built-in Tab navigation) count as
+ * "handled". Enable flags to broaden the definition of a handled key.
+ */
+export interface ModalMissOptions {
+  /**
+   * When `true`, a key matching a binding whose `when()` returns `false`
+   * is treated as a **miss**. Default `false` (treated as handled).
+   */
+  monitorWhen?: boolean;
+
+  /**
+   * When `true`, a key matching a binding on a non-active focus target
+   * is treated as a **miss**. Default `false` (treated as handled).
+   */
+  monitorFocusMismatch?: boolean;
+
+  /**
+   * When `true`, keys matching `blockedKey` declarations are treated as
+   * **handled** (miss=false). Default `false` (treated as miss).
+   */
+  includeBlockedKey?: boolean;
+
+  /**
+   * When `true`, keys matching `stop` declarations are treated as
+   * **handled** (miss=false). Default `false` (treated as miss).
+   */
+  includeStop?: boolean;
 }
 
 /**

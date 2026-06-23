@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { OverlayContext } from "../screen/OverlayContext.js";
 import { ModalContext } from "../screen/ModalContext.js";
+import type { ModalMissCallback, ModalMissOptions } from "./types.js";
 
 /**
  * Access the keyboard API from within a React component.
@@ -88,4 +89,35 @@ export function useFocusState(focusId: string): boolean {
   }, [focusId, focusCurrent, subscribeFocus]);
 
   return isFocused;
+}
+
+/**
+ * Subscribe to unhandled key presses inside a modal.
+ *
+ * When the active modal receives a key that was not consumed by any
+ * binding, the callback is invoked. The definition of "consumed" is
+ * controlled by {@link ModalMissOptions}.
+ *
+ * Only functions when called inside a modal component (where
+ * {@link ModalContext} is set). Outside a modal the hook is a silent
+ * no-op — the callback is never invoked.
+ *
+ * @param cb      - Callback invoked on every key press in the modal.
+ * @param options - Controls which mechanics count as "handled".
+ * @returns An unsubscribe function.
+ */
+export function useModalMissListener(
+  cb: ModalMissCallback,
+  options?: ModalMissOptions,
+): () => void {
+  const ctx = useContext(KeyboardContext);
+  const modalId = useContext(ModalContext);
+
+  useEffect(() => {
+    if (!ctx || !modalId) return;
+    const unsub = ctx.useModalMissListener(cb, options);
+    return unsub;
+  }, [ctx, modalId, cb, options]);
+
+  return () => {};
 }

@@ -9,6 +9,8 @@ import type {
   ShortcutOperationEntry,
   SequenceOperationEntry,
   SequenceOptions,
+  ModalMissCallback,
+  ModalMissOptions,
 } from "./types.js";
 
 /**
@@ -395,6 +397,27 @@ export interface KeyboardContextValue {
    * ```
    */
   enableWildcardPriority: () => (() => void);
+
+  /**
+   * Subscribe to unhandled key presses inside a modal.
+   *
+   * When the active modal receives a key that was not consumed by any
+   * binding (according to the specified {@link ModalMissOptions}), the
+   * callback is invoked with either `{ miss: true, key, input, eventNames }`
+   * or `{ miss: false }`.
+   *
+   * Only functions inside a modal component (where {@link ModalContext} is
+   * set). Returns an unsubscribe function. Calling outside a modal is a
+   * silent no-op.
+   *
+   * @param cb      - Callback invoked on every key press in the modal.
+   * @param options - Controls which mechanics count as "handled".
+   * @returns An unsubscribe function.
+   */
+  useModalMissListener: (
+    cb: ModalMissCallback,
+    options?: ModalMissOptions,
+  ) => () => void;
 }
 
 /**

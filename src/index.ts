@@ -60,6 +60,9 @@ export type {
   SequenceOptions,
   ShortcutOperationEntry,
   SequenceOperationEntry,
+  ModalMissEvent,
+  ModalMissCallback,
+  ModalMissOptions,
 } from "./keyboard/index.js";
 export { useFocusState } from "./keyboard/index.js";
 
