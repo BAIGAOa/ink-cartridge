@@ -5,38 +5,38 @@ import type {
   ScreenKeyboardLayer,
   BoundKeyEntry,
 } from '../types.js';
-import { handleLayer } from '../layer-handler.js';
-
-/**
- * Check whether any key rule (blocked/stopped) covers a key name.
- * Simple key-name match without when evaluation — used for miss detection.
- */
-function keyNameMatchesAnyRule(
-  keyName: string,
-  rules: Array<{ key: string; when?: () => boolean }>,
-): boolean {
-  return rules.some((r) => r.key === keyName);
-}
+import { handleLayer, keyMatchesRule } from '../layer-handler.js';
 
 /**
  * Check whether the event was consumed by a stop declaration
- * rather than a real binding handler.
+ * rather than a real binding handler. Checks both layer-level
+ * and active focus target stoppedKeys.
  */
 function consumedByStop(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
 ): boolean {
-  return eventNames.some((n) => keyNameMatchesAnyRule(n, layer.stoppedKeys));
+  if (eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
+    return true;
+  }
+  if (layer.currentFocusId) {
+    const ft = layer.focusTargets.get(layer.currentFocusId);
+    if (ft && eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
  * Check whether the event matches a blockedKey declaration.
+ * Evaluates `when` conditions, matching the behaviour of handleLayer.
  */
 function matchesBlockedKey(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
 ): boolean {
-  return eventNames.some((n) => keyNameMatchesAnyRule(n, layer.blockedKeys));
+  return eventNames.some((n) => keyMatchesRule(n, layer.blockedKeys));
 }
 
 /**
@@ -88,8 +88,6 @@ function invokeMissIfNeeded(
   const opts = layer.onMissOptions ?? {};
 
   if (handled) {
-    // When includeStop is false and the key matched a stop declaration,
-    // treat it as a miss (stop doesn't fire a user-visible handler).
     if (!opts.includeStop && consumedByStop(layer, eventNames)) {
       layer.onMiss({ miss: true, key, input, eventNames });
       return true;

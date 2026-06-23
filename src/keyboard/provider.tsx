@@ -300,6 +300,9 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = getCurrentOwner();
       if (!owner) return () => {};
       const layer = getLayer(owner);
+      // Per-layer singleton — the most recent caller wins.
+      // If multiple components in the same modal call this hook,
+      // only the last one's callback is active.
       layer.onMiss = cb;
       layer.onMissOptions = options;
       return () => {

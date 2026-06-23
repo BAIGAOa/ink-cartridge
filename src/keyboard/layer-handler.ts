@@ -16,7 +16,7 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
  * `when` condition or the condition evaluates to `true`. When all matching
  * rules have `when` returning `false`, the key is NOT covered.
  */
-function keyMatchesRule(
+export function keyMatchesRule(
   keyName: string,
   rules: KeyRule[],
 ): boolean {
