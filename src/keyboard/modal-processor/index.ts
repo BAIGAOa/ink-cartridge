@@ -5,52 +5,8 @@ import type {
   ScreenKeyboardLayer,
   BoundKeyEntry,
 } from '../types.js';
-import { handleLayer, keyMatchesRule } from '../layer-handler.js';
+import { handleLayer } from '../layer-handler.js';
 
-/**
- * Check whether the event was consumed by a stop declaration
- * rather than a real binding handler. Checks both layer-level
- * and active focus target stoppedKeys.
- */
-function consumedByStop(
-  layer: ScreenKeyboardLayer,
-  eventNames: string[],
-): boolean {
-  if (layer.currentFocusId) {
-    const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft && eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
-      return true;
-    }
-  }
-
-  if (eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
-    return true;
-  }
-  
-  return false;
-}
-
-/**
- * Check whether the event matches a blockedKey declaration.
- * Evaluates `when` conditions, matching the behaviour of handleLayer.
- */
-function matchesBlockedKey(
-  layer: ScreenKeyboardLayer,
-  eventNames: string[],
-): boolean {
-  if(layer.currentFocusId) {
-    const ft = layer.focusTargets.get(layer.currentFocusId);
-    if(ft && eventNames.some((n) => keyMatchesRule(n, ft.blockedKeys))){
-      return true
-    }
-  }
-  
-  if(eventNames.some((n) => keyMatchesRule(n, layer.blockedKeys))){
-    return true
-  }
-
-  return false
-}
 
 /**
  * Check whether a list of bindings contains one whose `keys` match
@@ -91,7 +47,7 @@ function matchesOtherFocusTarget(
  */
 function invokeMissIfNeeded(
   layer: ScreenKeyboardLayer,
-  handled: boolean,
+  handled: boolean, 
   key: Key,
   input: string,
   eventNames: string[],
@@ -100,21 +56,18 @@ function invokeMissIfNeeded(
 
   const opts = layer.onMissOptions ?? {};
 
+  // fix: The stop API and blockedKey API cases are no longer handled.
+  // Instead, it is left to handlerLayer to handle natural
+  // So the expectation is that, So the Stop API returns miss: false, but the BlockedKeys API returns miss: true
+  // TODO: You need to modify the corresponding test and do it later.
+  // @2026-06-23 3.6.1
+
   if (handled) {
-    if (!opts.includeStop && consumedByStop(layer, eventNames)) {
-      layer.onMiss({ miss: true, key, input, eventNames });
-      return true;
-    }
     layer.onMiss({ miss: false });
     return false;
   }
 
   // handled === false — key was not consumed by handleLayer.
-
-  if (opts.includeBlockedKey && matchesBlockedKey(layer, eventNames)) {
-    layer.onMiss({ miss: false });
-    return false;
-  }
 
   if (opts.monitorWhen && hasWhenFalseBinding(layer.bindings, eventNames)) {
     layer.onMiss({ miss: true, key, input, eventNames });

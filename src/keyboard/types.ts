@@ -321,18 +321,6 @@ export interface ModalMissOptions {
    * is treated as a **miss**. Default `false` (treated as handled).
    */
   monitorFocusMismatch?: boolean;
-
-  /**
-   * When `true`, keys matching `blockedKey` declarations are treated as
-   * **handled** (miss=false). Default `false` (treated as miss).
-   */
-  includeBlockedKey?: boolean;
-
-  /**
-   * When `true`, keys matching `stop` declarations are treated as
-   * **handled** (miss=false). Default `false` (treated as miss).
-   */
-  includeStop?: boolean;
 }
 
 /**

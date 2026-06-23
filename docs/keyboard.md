@@ -828,8 +828,6 @@ type ModalMissEvent =
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `includeStop` | `false` | When `true`, keys matching `stop` are treated as handled (`miss=false`). |
-| `includeBlockedKey` | `false` | When `true`, keys matching `blockedKey` are treated as handled. |
 | `monitorWhen` | `false` | When `true`, keys matching a binding whose `when()` returns `false` are treated as a miss. |
 | `monitorFocusMismatch` | `false` | When `true`, keys bound to a non-active focus target are treated as a miss. |
 
@@ -838,11 +836,10 @@ type ModalMissEvent =
 - Tab / Shift+Tab focus navigation
 - Sequence intermediary keys (mid-sequence)
 - `times` counting presses
-- Stop declarations at the active focus target level
+- Stop declarations (both layer-level and focus-target-level) — `handleLayer` returns `true` for stopped keys
 
 And the following are **not** treated as handled (`miss=true`):
-- Stop declarations (`includeStop: false`) — both layer-level and focus-target-level
-- BlockedKey declarations (`includeBlockedKey: false`), respecting `when()` conditions
+- BlockedKey declarations — `handleLayer` filters blocked keys from binding matching, returning `false`
 - Bindings that didn't fire because of `when`, `focusId`, `onlyThis`, etc.
 
 **Note**: Only one `useModalMissListener` callback is active per modal at a time.

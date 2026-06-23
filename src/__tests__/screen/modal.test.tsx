@@ -691,10 +691,11 @@ describe('cross-type ID validation', () => {
 // ─── Miss listener ──────────────────────────────────────────────
 interface MissListenerModalProps {
   onMiss?: (evt: { miss: boolean; key?: Key; input?: string }) => void;
-  extraBindings?: 'stop' | 'blocked' | 'when-false' | 'other-focus';
+  extraBindings?: 'stop' | 'blocked' | 'when-false' | 'other-focus' | 'when-false-focus';
+  missOptions?: { monitorWhen?: boolean; monitorFocusMismatch?: boolean };
 }
 
-function MissListenerModal({ onMiss, extraBindings }: MissListenerModalProps) {
+function MissListenerModal({ onMiss, extraBindings, missOptions }: MissListenerModalProps) {
   const modalId = useContext(ModalContext);
   const { closeModal } = useScreenSystem();
   const { boundKeyboard, blockedKey, stop, focusSet } = useKeyboard();
@@ -708,6 +709,10 @@ function MissListenerModal({ onMiss, extraBindings }: MissListenerModalProps) {
     }
     if (extraBindings === 'when-false') {
       boundKeyboard(['x'], () => {}, { when: () => false });
+    }
+    if (extraBindings === 'when-false-focus') {
+      boundKeyboard(['x'], () => {}, { focusId: 'btn', when: () => false });
+      focusSet('btn');
     }
     if (extraBindings === 'other-focus') {
       // Create both focus targets first, then switch to 'main'
@@ -727,6 +732,7 @@ function MissListenerModal({ onMiss, extraBindings }: MissListenerModalProps) {
         }
       }
     },
+    missOptions,
   );
 
   useEffect(() => {
@@ -774,16 +780,17 @@ describe('useModalMissListener', () => {
     // We'll just verify with existing knowledge: handleLayer returns true for sequence starts
   });
 
-  it('fires miss=true for stop with includeStop=false (default)', () => {
+  it('fires miss=false for stop (handled by handleLayer)', () => {
     const onMiss = vi.fn();
     const { getScreen } = renderSystem(Home);
     act(() => { getScreen().openModal('m1', MissListenerModal, { onMiss, extraBindings: 'stop' }); });
 
     act(() => pressKey('x', {}));
-    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+    // stop returns true from handleLayer → handled → miss: false
+    expect(onMiss).toHaveBeenCalledWith({ miss: false });
   });
 
-  it('fires miss=true for blockedKey with includeBlockedKey=false (default)', () => {
+  it('fires miss=true for blockedKey (passes through handleLayer)', () => {
     const onMiss = vi.fn();
     const { getScreen } = renderSystem(Home);
     act(() => { getScreen().openModal('m1', MissListenerModal, { onMiss, extraBindings: 'blocked' }); });
@@ -828,5 +835,106 @@ describe('useModalMissListener', () => {
     // No modal active — callback should not fire
     act(() => pressKey('z', {}));
     expect(onMiss).not.toHaveBeenCalled();
+  });
+
+  // ── monitorWhen=true × when-false layer binding ─────────────────
+  it('fires miss=true for when-false layer binding with monitorWhen=true', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Home);
+    act(() => {
+      getScreen().openModal('m1', MissListenerModal, {
+        onMiss,
+        extraBindings: 'when-false',
+        missOptions: { monitorWhen: true },
+      });
+    });
+
+    act(() => pressKey('x', {}));
+    // monitorWhen=true catches the when-false binding → miss with details
+    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+    expect(onMiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ── when-false focus-target binding (default options) ───────────
+  it('fires miss=true for when-false focus-target binding with monitorWhen=false (default)', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Home);
+    act(() => {
+      getScreen().openModal('m1', MissListenerModal, {
+        onMiss,
+        extraBindings: 'when-false-focus',
+      });
+    });
+
+    act(() => pressKey('x', {}));
+    // Default options — fallthrough miss
+    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+    expect(onMiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ── monitorWhen=true × when-false focus-target binding ──────────
+  it('fires miss=true for when-false focus-target binding with monitorWhen=true', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Home);
+    act(() => {
+      getScreen().openModal('m1', MissListenerModal, {
+        onMiss,
+        extraBindings: 'when-false-focus',
+        missOptions: { monitorWhen: true },
+      });
+    });
+
+    act(() => pressKey('x', {}));
+    // monitorWhen=true checks focus target's bindings → miss with details
+    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+    expect(onMiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ── monitorFocusMismatch=true × focus-mismatch ──────────────────
+  it('fires miss=true for focus mismatch with monitorFocusMismatch=true', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Home);
+    act(() => {
+      getScreen().openModal('m1', MissListenerModal, {
+        onMiss,
+        extraBindings: 'other-focus',
+        missOptions: { monitorFocusMismatch: true },
+      });
+    });
+
+    act(() => pressKey('x', {}));
+    // Key 'x' is bound to 'other' focus target, not current 'main'
+    // monitorFocusMismatch=true catches this
+    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+    expect(onMiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Both options true — no double-fire (early return guard) ─────
+  it('fires miss=true exactly once when both options are true (no double-fire)', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Home);
+    act(() => {
+      getScreen().openModal('m1', MissListenerModal, {
+        onMiss,
+        extraBindings: 'when-false',
+        missOptions: { monitorWhen: true, monitorFocusMismatch: true },
+      });
+    });
+
+    act(() => pressKey('x', {}));
+    // Only line 72 fires (first match). Lines 77-86 and 88-94 never reached.
+    expect(onMiss).toHaveBeenCalledTimes(1);
+    expect(onMiss).toHaveBeenCalledWith({ miss: true, key: expect.any(Object), input: 'x' });
+  });
+
+  // ── No onMiss callback — no throw ───────────────────────────────
+  it('does not throw when no onMiss callback is registered', () => {
+    const { getScreen } = renderSystem(Home);
+    // ModalA does NOT set onMiss
+    act(() => { getScreen().openModal('m1', ModalA, {}); });
+
+    expect(() => {
+      act(() => pressKey('z', {}));
+    }).not.toThrow();
   });
 });
