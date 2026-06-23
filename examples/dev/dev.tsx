@@ -8,6 +8,7 @@ import {
   KeyboardProvider,
   closeOverlay,
   openOverlay,
+  useScreenSystem,
 } from '../../src/index.js';
 import { openDevTool } from '../../src/dev/entrance.js';
 
@@ -16,18 +17,19 @@ import { openDevTool } from '../../src/dev/entrance.js';
 // DevScreen tracks the screen navigation path in real time.
 
 function Menu() {
-  const { boundKeyboard, stop } = useKeyboard();
+  const {skip} = useScreenSystem()
+  const { boundKeyboard, stop, boundSequence } = useKeyboard();
   const {rows} = useWindowSize()
   const gameOpenRef = useRef(false)
 
   useEffect(() => {
-    stop(['q']);
+    const s1 = stop(['q']);
     // Ctrl+D opens DevScreen modal. Since modals block external keys,
     // the Escape key inside DevScreen handles closing. openDevTool
     // throws if already open — the try/catch in closeDevTool makes
     // stale refs harmless, and openDevTool itself guards against duplicates.
-    boundKeyboard(['ctrl+d'], () => openDevTool({top: 0, left: 0}));
-    boundKeyboard(['s'], () => {
+    const u1 = boundKeyboard(['ctrl+d'], () => openDevTool({top: 0, left: 0}));
+    const u2 = boundKeyboard(['s'], () => {
       if(gameOpenRef.current){
         closeOverlay('console')
         gameOpenRef.current = false
@@ -41,6 +43,19 @@ function Menu() {
         gameOpenRef.current = true
       }
     })
+    boundSequence(['d', 'v'], () => skip(Setting, {
+      
+      }
+    ),
+    {
+      exclusive: true
+    })
+    return () => {
+      s1()
+      u2()
+      // Do not release ctrl + d , Because we want the settings interface to naturally use the development panel as well.
+      // But the best practice is to use the globalKeys API override
+    }
     
   }, []);
   return (
@@ -52,6 +67,36 @@ function Menu() {
   );
 }
 registerComponent(Menu, {});
+
+
+function Setting(){
+  const {rows} =useWindowSize()
+  const {boundKeyboard} = useKeyboard()
+  const {back} = useScreenSystem()
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['escape'], () => back())
+
+    return () => u1()
+  }, [])
+
+  return(
+    <Box
+      height={rows}
+      width='100%'
+      justifyContent='center'
+      alignContent='center'
+    >
+      <Text bold color='yellow'>
+        HI YOU OPEN THE SETTING
+      </Text>
+    </Box>
+  )
+}
+
+registerComponent(Setting, {}, {
+  parent: Menu
+})
 
 
 function Console({top, left}: {top: number, left:number}){
