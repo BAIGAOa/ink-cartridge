@@ -16,15 +16,17 @@ function consumedByStop(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
 ): boolean {
-  if (eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
-    return true;
-  }
   if (layer.currentFocusId) {
     const ft = layer.focusTargets.get(layer.currentFocusId);
     if (ft && eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
       return true;
     }
   }
+
+  if (eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
+    return true;
+  }
+  
   return false;
 }
 
@@ -36,7 +38,18 @@ function matchesBlockedKey(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
 ): boolean {
-  return eventNames.some((n) => keyMatchesRule(n, layer.blockedKeys));
+  if(layer.currentFocusId) {
+    const ft = layer.focusTargets.get(layer.currentFocusId);
+    if(ft && eventNames.some((n) => keyMatchesRule(n, ft.blockedKeys))){
+      return true
+    }
+  }
+  
+  if(eventNames.some((n) => keyMatchesRule(n, layer.blockedKeys))){
+    return true
+  }
+
+  return false
 }
 
 /**
