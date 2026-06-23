@@ -1,7 +1,7 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Box, Text, useWindowSize } from "ink";
 import { useScreenSystem } from "../screen/hook.js";
-import { useKeyboard } from "../keyboard/hook.js";
+import { useKeyboard, useModalMissListener } from "../keyboard/hook.js";
 import { ModalContext } from "../screen/ModalContext.js";
 import { DevProps } from "./types.js";
 import { registerComponent } from "../screen/registry.js";
@@ -56,12 +56,34 @@ export function DevScreen({top: initialTop, left}: DevProps){
   const {rows} = useWindowSize()
 
   const [offsetTop, setOffsetTop] = useState(initialTop)
+  const [flashBorder, setFlashBorder] = useState(false)
+  const flashTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Stable ref so the []-deps keyboard effect always reads the latest
   // rows-based clamp, preventing a stale-closure on the initial size.
   const clampTopRef = useRef((next: number) => next)
   clampTopRef.current = (next: number) =>
     Math.max(0, Math.min(next, rows - PANEL_HEIGHT))
+
+  useModalMissListener(
+    useCallback((evt) => {
+      if (evt.miss) {
+        setFlashBorder(true);
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(() => {
+          setFlashBorder(false);
+          flashTimerRef.current = null;
+        }, 200);
+      }
+    }, []),
+  );
+
+  // Cleanup flash timer on unmount
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const u1 = boundKeyboard(['up'], () =>
@@ -88,7 +110,7 @@ export function DevScreen({top: initialTop, left}: DevProps){
 
   return(
     <Box
-      borderColor='blue'
+      borderColor={flashBorder ? 'yellow' : 'blue'}
       borderStyle='round'
       position="absolute"
       top={offsetTop}
