@@ -16,7 +16,7 @@ import {
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(path.join(tmpdir(), 'ink-kit-theme-test-'));
+  tmpDir = mkdtempSync(path.join(tmpdir(), 'ink-cartridge-theme-test-'));
 });
 
 afterEach(() => {
@@ -107,8 +107,8 @@ describe('generateTypesContent', () => {
 
 describe('generateRuntimeContent', () => {
   it('imports from the given package name', () => {
-    const content = generateRuntimeContent('@baigao_h/ink-kit');
-    expect(content).toContain("import { useTheme as rawUseTheme } from '@baigao_h/ink-kit'");
+    const content = generateRuntimeContent('ink-cartridge');
+    expect(content).toContain("import { useTheme as rawUseTheme } from 'ink-cartridge'");
     expect(content).toContain("import type { ThemeColorKey, ThemeStyleKey } from './theme-types.js'");
   });
 
@@ -155,7 +155,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -193,7 +193,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -213,7 +213,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -239,7 +239,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -260,7 +260,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -287,7 +287,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');

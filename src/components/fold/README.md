@@ -1,11 +1,11 @@
 # Fold
 
-A collapsible panel component integrated with the ink-kit keyboard and focus system.
+A collapsible panel component integrated with the ink-cartridge keyboard and focus system.
 
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -20,7 +20,7 @@ import {
   KeyboardProvider,
   Fold,
   TextInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function App() {
   return (

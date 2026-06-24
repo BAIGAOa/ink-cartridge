@@ -323,7 +323,7 @@ describe('observer — boundary conditions', () => {
     expect(() => {
       // Deliberately bypassing types to test runtime error for observer without times
       getKeyboard()!.boundKeyboard(['a'], () => {}, { observer: () => {} } as any);
-    }).toThrow('[Ink-Router-Kit] boundKeyboard() observer option requires times option to be set.');
+    }).toThrow('[Ink-Cartridge] boundKeyboard() observer option requires times option to be set.');
   });
 
   it('observer without times on globalKeys throws', () => {
@@ -331,7 +331,7 @@ describe('observer — boundary conditions', () => {
     expect(() => {
       // Deliberately bypassing types to test runtime error for observer without times
       getKeyboard()!.globalKeys([{ key: 'a', operate: () => {}, observer: () => {} } as any]);
-    }).toThrow('[Ink-Router-Kit] globalKeys() observer option requires times option to be set.');
+    }).toThrow('[Ink-Cartridge] globalKeys() observer option requires times option to be set.');
   });
 
   it('counter resets across rounds: times=2 pressed 5 times, handler on 2nd and 4th', () => {

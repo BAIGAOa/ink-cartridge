@@ -6,7 +6,7 @@ import type { FormProps, Validator } from './types.js';
 /**
  * Form container — manages field values, validation, and submission.
  *
- * Integrates with ink-kit's keyboard and focus system:
+ * Integrates with ink-cartridge's keyboard and focus system:
  * - **Ctrl+Enter** triggers `submitForm()` (avoids conflicting with TextInput's Enter)
  * - On validation failure, calls `focusSet()` on the first error field
  *

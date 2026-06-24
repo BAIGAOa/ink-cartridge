@@ -44,7 +44,7 @@ export function clearDispatchers(): void {
 function getDispatch(): React.Dispatch<ScreenAction> {
   if (_dispatchers.size === 0) {
     throw new Error(
-      '[Ink-Router-Kit] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
+      '[Ink-Cartridge] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
     );
   }
   return [..._dispatchers][_dispatchers.size - 1];
@@ -83,7 +83,7 @@ export function skip<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
@@ -100,7 +100,7 @@ export function skip<C extends React.ComponentType<any>>(
 export function back(levels: number = 1): void {
   if (levels < 1) {
     throw new Error(
-      '[Ink-Router-Kit] back() levels must be >= 1.',
+      '[Ink-Cartridge] back() levels must be >= 1.',
     );
   }
   getDispatch()({ type: 'back', levels });
@@ -115,7 +115,7 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
@@ -146,7 +146,7 @@ export function openOverlay<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
@@ -224,7 +224,7 @@ export function openModal<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
@@ -284,7 +284,7 @@ function findCommonAncestor(
   }
 
   throw new Error(
-    `[Ink-Router-Kit] Cannot find common ancestor. The target component may not be in the same tree.`,
+    `[Ink-Cartridge] Cannot find common ancestor. The target component may not be in the same tree.`,
   );
 }
 
@@ -303,7 +303,7 @@ function buildPathFrom(
   }
   if (!node) {
     throw new Error(
-      `[Ink-Router-Kit] Target component is not a descendant of the ancestor.`,
+      `[Ink-Cartridge] Target component is not a descendant of the ancestor.`,
     );
   }
   path.reverse();
@@ -327,7 +327,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       if (!isChildOf(action.component, current)) {
         throw new Error(
-          `[Ink-Router-Kit] "${action.component.displayName || action.component.name || 'anonymous'}" is not a child of "${current.displayName || current.name || 'anonymous'}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
+          `[Ink-Cartridge] "${action.component.displayName || action.component.name || 'anonymous'}" is not a child of "${current.displayName || current.name || 'anonymous'}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
         );
       }
 
@@ -356,8 +356,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       if (state.path.length <= levels) {
         throw new Error(
           levels === 1
-            ? '[Ink-Router-Kit] back() failed: already at the root node, cannot go back.'
-            : `[Ink-Router-Kit] back(${levels}) failed: current depth is ${state.path.length}, cannot go back ${levels} levels.`,
+            ? '[Ink-Cartridge] back() failed: already at the root node, cannot go back.'
+            : `[Ink-Cartridge] back(${levels}) failed: current depth is ${state.path.length}, cannot go back ${levels} levels.`,
         );
       }
 
@@ -378,7 +378,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       if (ancestorIndex === -1) {
         throw new Error(
-          `[Ink-Router-Kit] gotoScreen failed: cannot locate common ancestor.`,
+          `[Ink-Cartridge] gotoScreen failed: cannot locate common ancestor.`,
         );
       }
 
@@ -413,13 +413,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'openOverlay': {
       if (state.overlays.some(o => o.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Overlay with id "${action.id}" already exists. Use a unique id for each overlay.`,
+          `[Ink-Cartridge] Overlay with id "${action.id}" already exists. Use a unique id for each overlay.`,
         );
       }
 
       if (state.modals.some(m => m.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot open overlay "${action.id}": this ID is already in use by a modal. Use a unique id.`,
+          `[Ink-Cartridge] Cannot open overlay "${action.id}": this ID is already in use by a modal. Use a unique id.`,
         );
       }
 
@@ -448,7 +448,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'closeOverlay': {
       if (!state.overlays.some(o => o.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot close overlay "${action.id}": no overlay with that ID exists.`,
+          `[Ink-Cartridge] Cannot close overlay "${action.id}": no overlay with that ID exists.`,
         );
       }
 
@@ -474,7 +474,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'activateOverlay': {
       if (!state.overlays.some(o => o.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot activate overlay "${action.id}": no overlay with that ID exists.`,
+          `[Ink-Cartridge] Cannot activate overlay "${action.id}": no overlay with that ID exists.`,
         );
       }
 
@@ -490,7 +490,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'deactivateOverlay': {
       if (!state.overlays.some(o => o.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot deactivate overlay "${action.id}": no overlay with that ID exists.`,
+          `[Ink-Cartridge] Cannot deactivate overlay "${action.id}": no overlay with that ID exists.`,
         );
       }
 
@@ -506,13 +506,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'openModal': {
       if (state.modals.some(m => m.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Modal with id "${action.id}" already exists. Use a unique id for each modal.`,
+          `[Ink-Cartridge] Modal with id "${action.id}" already exists. Use a unique id for each modal.`,
         );
       }
 
       if (state.overlays.some(o => o.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot open modal "${action.id}": this ID is already in use by an overlay. Use a unique id.`,
+          `[Ink-Cartridge] Cannot open modal "${action.id}": this ID is already in use by an overlay. Use a unique id.`,
         );
       }
 
@@ -539,7 +539,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     case 'closeModal': {
       if (!state.modals.some(m => m.id === action.id)) {
         throw new Error(
-          `[Ink-Router-Kit] Cannot close modal "${action.id}": no modal with that ID exists.`,
+          `[Ink-Cartridge] Cannot close modal "${action.id}": no modal with that ID exists.`,
         );
       }
 
@@ -589,7 +589,7 @@ export function ScenarioManagementProvider({
 }: ScenarioManagementProviderProps) {
   if (!hasComponent(defaultScreen)) {
     throw new Error(
-      `[Ink-Router-Kit] defaultScreen "${defaultScreen.displayName || defaultScreen.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] defaultScreen "${defaultScreen.displayName || defaultScreen.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
     );
   }
 
@@ -665,7 +665,7 @@ export function ScenarioManagementProvider({
     () => (component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
@@ -682,7 +682,7 @@ export function ScenarioManagementProvider({
     () => (levels: number = 1) => {
       if (levels < 1) {
         throw new Error(
-          '[Ink-Router-Kit] back() levels must be >= 1.',
+          '[Ink-Cartridge] back() levels must be >= 1.',
         );
       }
       dispatch({ type: 'back', levels });
@@ -694,7 +694,7 @@ export function ScenarioManagementProvider({
     () => (component, params) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
@@ -710,7 +710,7 @@ export function ScenarioManagementProvider({
     () => (id, component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({
@@ -749,7 +749,7 @@ export function ScenarioManagementProvider({
     () => (id, component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Router-Kit] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
         );
       }
       dispatch({

@@ -90,7 +90,7 @@ describe('模块级 dispatch 多实例隔离', () => {
     r.unmount();
 
     expect(() => skip(ScreenB, {})).toThrow(
-      '[Ink-Router-Kit] Navigation function called before Provider is mounted.',
+      '[Ink-Cartridge] Navigation function called before Provider is mounted.',
     );
   });
 

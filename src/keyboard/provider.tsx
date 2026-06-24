@@ -368,7 +368,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           const entry = shortcutOperationsRef.current.get(handler);
           if (!entry) {
             throw new Error(
-              `[Ink-Router-Kit] The shortcut key you used does not exist with ID ${handler}`,
+              `[Ink-Cartridge] The shortcut key you used does not exist with ID ${handler}`,
             );
           }
           return { keys, handler: entry.action, onlyThis, owner };
@@ -411,7 +411,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             if (!affectOverlay) continue;
             if (!cover) {
               throw new Error(
-                `[Ink-Router-Kit] Overlay "${owner}" ` +
+                `[Ink-Cartridge] Overlay "${owner}" ` +
                 `attempted to bind "${matchingKeys[0]}" via ${bindingContext}, ` +
                 `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
               );
@@ -423,7 +423,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             if (!cover) {
               const ownerName = owner.displayName || owner.name || 'anonymous';
               throw new Error(
-                `[Ink-Router-Kit] Component "${ownerName}" ` +
+                `[Ink-Cartridge] Component "${ownerName}" ` +
                 `attempted to bind "${matchingKeys[0]}" via ${bindingContext}, ` +
                 `but this key is already declared in globalKeys with cover: false, so overriding is not allowed.`,
               );
@@ -442,11 +442,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const options = handlerOrOptions as BoundKeyboardOptions;
         const entry = shortcutOperationsRef.current.get(actionId);
         if (!entry) {
-          throw new Error(`[Ink-Router-Kit] Action "${actionId}" is not registered.`);
+          throw new Error(`[Ink-Cartridge] Action "${actionId}" is not registered.`);
         }
         if (!entry.keys || entry.keys.length === 0) {
           throw new Error(
-            `[Ink-Router-Kit] Action "${actionId}" does not have predefined keys. Please register with keys field or call boundKeyboard with explicit keys.`,
+            `[Ink-Cartridge] Action "${actionId}" does not have predefined keys. Please register with keys field or call boundKeyboard with explicit keys.`,
           );
         }
         return boundKeyboard(entry.keys, actionId, options);
@@ -460,20 +460,20 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = getCurrentOwner();
       if (!owner) {
         throw new Error(
-          '[Ink-Router-Kit] boundKeyboard() must be called inside a screen component or overlay. There is currently no active screen.',
+          '[Ink-Cartridge] boundKeyboard() must be called inside a screen component or overlay. There is currently no active screen.',
         );
       }
 
       // 校验 times 参数
       if (options?.times !== undefined && options.times < 1) {
         throw new Error(
-          '[Ink-Router-Kit] boundKeyboard() times option must be >= 1.',
+          '[Ink-Cartridge] boundKeyboard() times option must be >= 1.',
         );
       }
 
       if (options?.times === undefined && options?.observer){
         throw new Error(
-          '[Ink-Router-Kit] boundKeyboard() observer option requires times option to be set.',
+          '[Ink-Cartridge] boundKeyboard() observer option requires times option to be set.',
         );
       }
 
@@ -600,7 +600,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     (keys: string[], options?: BlockedKeyOptions): (() => void) => {
       const owner = getCurrentOwner();
       if (!owner) {
-        throw new Error('[Ink-Router-Kit] blockedKey() must be called inside a screen component or overlay.');
+        throw new Error('[Ink-Cartridge] blockedKey() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
       const compiledWhen = options?.when;
@@ -642,7 +642,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     (keys: string[], options?: StopOptions): (() => void) => {
       const owner = getCurrentOwner();
       if (!owner) {
-        throw new Error('[Ink-Router-Kit] stop() must be called inside a screen component or overlay.');
+        throw new Error('[Ink-Cartridge] stop() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
 
@@ -658,7 +658,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           const boundKeys = map.get(actionId);
           if (!boundKeys) {
             throw new Error(
-              `[Ink-Router-Kit] stop(["${actionId}"], { stopAction: true }) on "${ownerName}": ` +
+              `[Ink-Cartridge] stop(["${actionId}"], { stopAction: true }) on "${ownerName}": ` +
               `action "${actionId}" is not registered or has no keys bound. ` +
               `Register it with defineShortcutAction() and bind it with boundKeyboard() first.`,
             );
@@ -731,12 +731,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         const entry = sequenceOperationsRef.current.get(actionId);
         if (!entry) {
           throw new Error(
-            `[Ink-Router-Kit] Sequence action "${actionId}" is not registered.`,
+            `[Ink-Cartridge] Sequence action "${actionId}" is not registered.`,
           );
         }
         if (!entry.keys || entry.keys.length === 0) {
           throw new Error(
-            `[Ink-Router-Kit] Sequence action "${actionId}" does not have predefined keys. Please register with a keys field or call boundSequence with explicit keys.`,
+            `[Ink-Cartridge] Sequence action "${actionId}" does not have predefined keys. Please register with a keys field or call boundSequence with explicit keys.`,
           );
         }
         // Use the action's timeout as default unless overridden by options.
@@ -754,12 +754,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = getCurrentOwner();
       if (!owner) {
         throw new Error(
-          '[Ink-Router-Kit] boundSequence() must be called inside a screen component or overlay.',
+          '[Ink-Cartridge] boundSequence() must be called inside a screen component or overlay.',
         );
       }
       if (keys.length < 2) {
         throw new Error(
-          '[Ink-Router-Kit] boundSequence() requires at least 2 keys in the sequence.'
+          '[Ink-Cartridge] boundSequence() requires at least 2 keys in the sequence.'
         )
       }
 
@@ -790,7 +790,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         }
         const ownerName = isOverlayOwner ? owner : (owner.displayName || owner.name || 'anonymous');
         throw new Error(
-          `[Ink-Router-Kit] ${isOverlayOwner ? `Overlay "${ownerName}"` : `Component "${ownerName}"`} ` +
+          `[Ink-Cartridge] ${isOverlayOwner ? `Overlay "${ownerName}"` : `Component "${ownerName}"`} ` +
           `attempted to bind sequence [${keys.join(', ')}] via boundSequence, ` +
           `but the first key "${firstKey}" is already declared in globalSequence ` +
           `with cover: false, so overriding is not allowed.`,
@@ -920,20 +920,20 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const processed = entries.map((each) => {
         if (each.times !== undefined && each.times < 1) {
           throw new Error(
-            '[Ink-Router-Kit] globalKeys() times option must be >= 1.',
+            '[Ink-Cartridge] globalKeys() times option must be >= 1.',
           );
         }
 
         if (each.times === undefined && each.observer) {
           throw new Error(
-            '[Ink-Router-Kit] globalKeys() observer option requires times option to be set.',
+            '[Ink-Cartridge] globalKeys() observer option requires times option to be set.',
           );
         }
 
         if (typeof each.operate === 'string') {
           const entry = shortcutOperationsRef.current.get(each.operate);
           if (!entry) {
-            throw new Error(`[Ink-Kit-Router]You want to call the shortcut ${each.operate} in the global key, but it is not registered`);
+            throw new Error(`[Ink-Cartridge]You want to call the shortcut ${each.operate} in the global key, but it is not registered`);
           }
           
           return {
@@ -999,7 +999,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           const actionEntry = sequenceOperationsRef.current.get(entry.operate);
           if (!actionEntry) {
             throw new Error(
-              `[Ink-Router-Kit] You want to call the sequence action "${entry.operate}" in globalSequence, but it is not registered.`,
+              `[Ink-Cartridge] You want to call the sequence action "${entry.operate}" in globalSequence, but it is not registered.`,
             );
           }
           return { ...entry, operate: actionEntry.action };
@@ -1011,7 +1011,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       for (const entry of resolved) {
         if (entry.keys.length < 2) {
           throw new Error(
-            '[Ink-Router-Kit] globalSequence() requires at least 2 keys per sequence.',
+            '[Ink-Cartridge] globalSequence() requires at least 2 keys per sequence.',
           );
         }
       }
@@ -1033,7 +1033,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const defineShortcutAction = useCallback((entries: ShortcutOperationEntry[]) => {
     for (const each of entries) {
       if (shortcutOperationsRef.current.has(each.actionId)) {
-        throw new Error(`[Ink-Router-Kit]Duplicate shortcut cannot be defined with ID ${each.actionId}`)
+        throw new Error(`[Ink-Cartridge]Duplicate shortcut cannot be defined with ID ${each.actionId}`)
       }
       shortcutOperationsRef.current.set(each.actionId, {
         action: each.action,
@@ -1046,7 +1046,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     for(const each of entries){
       if(sequenceOperationsRef.current.has(each.sequenceActionId)){
         throw new Error(
-          `[Ink-Router-Kit]Sequence Action ${each.sequenceActionId} may not be defined repeatedly`
+          `[Ink-Cartridge]Sequence Action ${each.sequenceActionId} may not be defined repeatedly`
         )
       }
       sequenceOperationsRef.current.set(each.sequenceActionId, {
@@ -1062,12 +1062,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     const entry = sequenceOperationsRef.current.get(actionId)
     if(!entry){
       throw new Error(
-        `[Ink-Router-Kit]Key not registered to Sequence Action cannot be modified, target ID is ${actionId}`
+        `[Ink-Cartridge]Key not registered to Sequence Action cannot be modified, target ID is ${actionId}`
       )
     }
     if(entry.keys === undefined){
       throw new Error(
-        `[Ink-Router-Kit]The target Sequence Action has no preset Keys. You cannot modify it. The ID is ${actionId}.`
+        `[Ink-Cartridge]The target Sequence Action has no preset Keys. You cannot modify it. The ID is ${actionId}.`
       )
     }
 
@@ -1076,7 +1076,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     if(timeout){
       if(entry.timeout === undefined){
         throw new Error(
-          `[Ink-Kit-Router]Target Sequence Action has no default Timeout, you cannot modify, ID is ${actionId}`
+          `[Ink-Cartridge]Target Sequence Action has no default Timeout, you cannot modify, ID is ${actionId}`
         )
       }
       
@@ -1088,10 +1088,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const modifyAction = useCallback((actionId: string, keys: string[]) => {
     const entry = shortcutOperationsRef.current.get(actionId);
     if (!entry) {
-      throw new Error(`[Ink-Router-Kit] Cannot modify action "${actionId}": action not registered.`);
+      throw new Error(`[Ink-Cartridge] Cannot modify action "${actionId}": action not registered.`);
     }
     if (entry.keys === undefined) {
-      throw new Error(`[Ink-Router-Kit] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`);
+      throw new Error(`[Ink-Cartridge] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`);
     }
     entry.keys = keys;
   }, []);
@@ -1099,7 +1099,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const addSequenceAction = useCallback((entry: SequenceOperationEntry) => {
     if (sequenceOperationsRef.current.has(entry.sequenceActionId)) {
       throw new Error(
-        `[Ink-Router-Kit] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`,
+        `[Ink-Cartridge] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`,
       );
     }
     sequenceOperationsRef.current.set(entry.sequenceActionId, {
@@ -1116,7 +1116,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const removeSequenceAction = useCallback((sequenceActionId: string) => {
     if (!sequenceOperationsRef.current.has(sequenceActionId)) {
       throw new Error(
-        `[Ink-Router-Kit] Cannot remove sequence action "${sequenceActionId}": action not registered.`,
+        `[Ink-Cartridge] Cannot remove sequence action "${sequenceActionId}": action not registered.`,
       );
     }
     sequenceOperationsRef.current.delete(sequenceActionId);
@@ -1128,7 +1128,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const addAction = useCallback((entry: ShortcutOperationEntry) => {
     if (shortcutOperationsRef.current.has(entry.actionId)) {
-      throw new Error(`[Ink-Router-Kit] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
+      throw new Error(`[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
     }
     shortcutOperationsRef.current.set(entry.actionId, {
       action: entry.action,
@@ -1142,7 +1142,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const removeAction = useCallback((actionId: string) => {
     if (!shortcutOperationsRef.current.has(actionId)) {
-      throw new Error(`[Ink-Router-Kit] Cannot remove action "${actionId}": action not registered.`);
+      throw new Error(`[Ink-Cartridge] Cannot remove action "${actionId}": action not registered.`);
     }
     shortcutOperationsRef.current.delete(actionId);
   }, []);

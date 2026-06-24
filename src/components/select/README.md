@@ -1,11 +1,11 @@
 # SelectInput
 
-A single-select list component deeply integrated with the `ink-router-kit` keyboard and focus system.
+A single-select list component deeply integrated with the `ink-cartridge` keyboard and focus system.
 
 ## Install
 
 ```bash
-npm install @baigao_h/ink-router-kit
+npm install @baigao_h/ink-cartridge
 ```
 
 ## Quick Start
@@ -20,7 +20,7 @@ import {
   useKeyboard,
   KeyboardProvider,
   SelectInput,
-} from '@baigao_h/ink-router-kit';
+} from '@baigao_h/ink-cartridge';
 
 function App() {
   const { boundKeyboard } = useKeyboard();
@@ -138,7 +138,7 @@ All key bindings are automatically registered on the focus target identified by 
 
 ## Focus Integration
 
-SelectInput is designed to work with `ink-router-kit`'s keyboard and focus system — no extra setup required.
+SelectInput is designed to work with `ink-cartridge`'s keyboard and focus system — no extra setup required.
 
 - Each instance registers a **focus target** on the current screen's keyboard layer via its `focusId`.
 - When the component is **unfocused**, its items are visually dimmed and **no key events are delivered** — arrow keys and Enter are ignored.

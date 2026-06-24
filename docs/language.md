@@ -1,6 +1,6 @@
 # Internationalization (i18n)
 
-`ink-kit` provides a lightweight i18n system via `LanguageProvider` and the `useI18n` hook. Supports JSON resource files or inline objects, parameter interpolation, nested keys, and real-time language switching.
+`ink-cartridge` provides a lightweight i18n system via `LanguageProvider` and the `useI18n` hook. Supports JSON resource files or inline objects, parameter interpolation, nested keys, and real-time language switching.
 
 ---
 
@@ -9,7 +9,7 @@
 ```tsx
 import React from 'react';
 import { Box, Text, render } from 'ink';
-import { LanguageProvider, useI18n } from '@baigao_h/ink-kit';
+import { LanguageProvider, useI18n } from 'ink-cartridge';
 
 function MyApp() {
   const { t, setLanguage, currentLanguage } = useI18n();
@@ -33,7 +33,7 @@ render(
 
 ## Installation
 
-No additional dependencies — built into `@baigao_h/ink-kit`.
+No additional dependencies — built into `ink-cartridge`.
 
 ---
 
@@ -317,16 +317,16 @@ function Settings() {
 
 ## Typed i18n Bindings
 
-> Requires `@baigao_h/ink-kit` v2.8+
+> Requires `ink-cartridge` v2.8+
 
 The raw `t()` accepts any string key, so typos and missing params are only caught at runtime.  
-Use the `ink-kit makeLanguageType` CLI to generate **compile-time type safety** for your translation keys.
+Use the `ink-cartridge makeLanguageType` CLI to generate **compile-time type safety** for your translation keys.
 
 ### Quick Start
 
 ```bash
 # Generate typed bindings from your locale files
-npx ink-kit makeLanguageType ./locales ./i18n-types
+npx ink-cartridge makeLanguageType ./locales ./i18n-types
 ```
 
 This produces two files in `./i18n-types/`:
@@ -340,7 +340,7 @@ Import the typed versions — they share the same runtime as the originals:
 
 ```tsx
 // ❌ Raw (no type safety)
-import { t } from '@baigao_h/ink-kit';
+import { t } from 'ink-cartridge';
 t('title');                          // Any string accepted
 t('game.info', { params: { wrong: 1 }}); // No param validation
 
@@ -355,7 +355,7 @@ t('game.info', { params: { level: 3 } });
 ### CLI Usage
 
 ```bash
-ink-kit makeLanguageType <source-dir> <output-dir> [options]
+ink-cartridge makeLanguageType <source-dir> <output-dir> [options]
 ```
 
 | Argument | Description |
@@ -369,7 +369,7 @@ ink-kit makeLanguageType <source-dir> <output-dir> [options]
 |------|---------|-------------|
 | `--watch` | — | Re-generate when a `.json` file changes |
 | `--debounce <ms>` | `500` | Debounce delay in watch mode |
-| `--from <pkg>` | `@baigao_h/ink-kit` | Package to import the original `t` / `useI18n` from |
+| `--from <pkg>` | `ink-cartridge` | Package to import the original `t` / `useI18n` from |
 
 ### How It Works
 
@@ -386,7 +386,7 @@ ink-kit makeLanguageType <source-dir> <output-dir> [options]
 
 ```bash
 # Re-generate on every locale file change (e.g. while translating)
-npx ink-kit makeLanguageType ./locales ./i18n-types --watch --debounce 300
+npx ink-cartridge makeLanguageType ./locales ./i18n-types --watch --debounce 300
 ```
 
 TypeScript picks up the updated `.d.ts` file immediately, so you get instant feedback on new keys.
@@ -397,7 +397,7 @@ If a key exists in only some language files, it is **excluded** from the generat
 and a warning is printed:
 
 ```
-[ink-kit] Warning: key "extra.key" is missing in [en-US, zh-CN] — excluded from type
+[ink-cartridge] Warning: key "extra.key" is missing in [en-US, zh-CN] — excluded from type
 ```
 
 This prevents runtime `undefined` errors from missing translations.
@@ -420,15 +420,15 @@ my-project/
 
 ```bash
 # Generate once
-npx ink-kit makeLanguageType ./locales ./src/i18n-types
+npx ink-cartridge makeLanguageType ./locales ./src/i18n-types
 
 # Or watch during development
-npx ink-kit makeLanguageType ./locales ./src/i18n-types --watch
+npx ink-cartridge makeLanguageType ./locales ./src/i18n-types --watch
 ```
 
 ```tsx
 // src/App.tsx
-import { LanguageProvider } from '@baigao_h/ink-kit';
+import { LanguageProvider } from 'ink-cartridge';
 import { t, useI18n } from './i18n-types/i18n.js';
 
 function Greeting() {

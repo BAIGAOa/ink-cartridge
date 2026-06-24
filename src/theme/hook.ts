@@ -15,7 +15,7 @@ export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     throw new Error(
-      '[Ink-Router-Kit] useTheme() must be called inside a <ThemeProvider>.',
+      '[Ink-Cartridge] useTheme() must be called inside a <ThemeProvider>.',
     );
   }
   return ctx;

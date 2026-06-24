@@ -5,7 +5,7 @@ A shortcut key hint bar — renders a row of `[key] description` pairs. Use it t
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @baigao_h/ink-kit
 ```tsx
 import React from 'react';
 import { Box, render } from 'ink';
-import { KeyHint } from '@baigao_h/ink-kit';
+import { KeyHint } from 'ink-cartridge';
 
 function Demo() {
   return (

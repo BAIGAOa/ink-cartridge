@@ -6,7 +6,7 @@ import { createBinaryStorage, createStreamingReader } from '../../binary-storage
 import { StreamCorruptError } from '../../binary-storage/StreamingReader.js';
 
 function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-kit-stream-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-stream-'));
 }
 
 let testDir: string;

@@ -57,7 +57,7 @@ function Demo() {
       <Box marginTop={1}>
         <Fold focusId="about-fold" label="About This Game" preview={<Text dimColor>Click to learn more</Text>}>
           <Box flexDirection="column" gap={1} marginTop={1}>
-            <Text>Ink-Kit Fold Component Demo</Text>
+            <Text>Ink-Cartridge Fold Component Demo</Text>
             <Text dimColor>Each Fold is a collapsible section with:
             </Text>
             <Text dimColor>• Space to toggle expand/collapse</Text>

@@ -18,7 +18,7 @@ export function useFormContext(): FormContextValue {
   const ctx = useContext(FormContext);
   if (!ctx) {
     throw new Error(
-      '[Ink-Kit] useFormContext() must be used inside a <Form> component.',
+      '[Ink-Cartridge] useFormContext() must be used inside a <Form> component.',
     );
   }
   return ctx;

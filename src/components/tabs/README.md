@@ -1,11 +1,11 @@
 # Tabs
 
-A tabbed panel component integrated with the ink-kit keyboard and focus system.
+A tabbed panel component integrated with the ink-cartridge keyboard and focus system.
 
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -20,7 +20,7 @@ import {
   KeyboardProvider,
   Tabs,
   TextInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function App() {
   const [tab, setTab] = useState('login');
@@ -92,7 +92,7 @@ interface Tab {
 
 ## Focus System Integration
 
-Tabs is designed to work naturally with the ink-kit focus system:
+Tabs is designed to work naturally with the ink-cartridge focus system:
 
 - The tab bar registers a focus target via `focusId`
 - Each tab's content can contain its own focus targets (TextInputs, SelectInputs, etc.)

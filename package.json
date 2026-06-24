@@ -1,12 +1,12 @@
 {
-    "name": "@baigao_h/ink-kit",
+    "name": "ink-cartridge",
     "version": "3.6.1",
     "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "bin": {
-        "ink-kit": "./dist/cli/index.js"
+        "ink-cartridge": "./dist/cli/index.js"
     },
     "exports": {
         ".": {
@@ -21,7 +21,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/BAIGAOa/ink-router-kit.git"
+        "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
         "build": "tsc --locale zh-CN",
@@ -62,9 +62,9 @@
         "vitest": "^4.1.5"
     },
     "bugs": {
-        "url": "https://github.com/BAIGAOa/ink-router-kit/issues"
+        "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
     },
-    "homepage": "https://github.com/BAIGAOa/ink-router-kit#readme",
+    "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme",
     "dependencies": {
         "zod": "^4.4.3"
     }

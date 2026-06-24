@@ -5,7 +5,7 @@ A lightweight animated spinner component for Ink applications. Pure visual — n
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @baigao_h/ink-kit
 ```tsx
 import React from 'react';
 import { Box, Text, render } from 'ink';
-import { Spinner } from '@baigao_h/ink-kit';
+import { Spinner } from 'ink-cartridge';
 
 function Demo() {
   return (

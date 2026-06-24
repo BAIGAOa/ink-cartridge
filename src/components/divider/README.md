@@ -5,7 +5,7 @@ A horizontal divider / separator line for terminal UIs. Supports an optional cen
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @baigao_h/ink-kit
 ```tsx
 import React from 'react';
 import { Box, Text, render } from 'ink';
-import { Divider } from '@baigao_h/ink-kit';
+import { Divider } from 'ink-cartridge';
 
 function Demo() {
   return (

@@ -5,7 +5,7 @@ A search input field built on top of `TextInput`. Provides a 🔍 icon, clear-on
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -19,7 +19,7 @@ import {
   CurrentScreen,
   KeyboardProvider,
   SearchInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function App() {
   const [query, setQuery] = useState('');

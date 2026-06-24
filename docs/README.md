@@ -1,4 +1,4 @@
-# ink-kit Keyboard System
+# ink-cartridge Keyboard System
 
 ## Overview
 

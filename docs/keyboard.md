@@ -1,6 +1,6 @@
 # Keyboard System
 
-ink-kit provides a **layered keyboard event system** built on top of the screen management tree. Instead of a single global `useInput` with messy `if-else` chains, you get **per-screen-layer** key bindings with transparent keys, propagation barriers, global shortcuts, and **within-screen focus management**.
+ink-cartridge provides a **layered keyboard event system** built on top of the screen management tree. Instead of a single global `useInput` with messy `if-else` chains, you get **per-screen-layer** key bindings with transparent keys, propagation barriers, global shortcuts, and **within-screen focus management**.
 
 ---
 
@@ -16,7 +16,7 @@ import {
   useScreenSystem,
   KeyboardProvider,
   useKeyboard,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function Menu() {
   const { skip } = useScreenSystem();

@@ -138,7 +138,7 @@ describe('times — counting and reset', () => {
     const { getKeyboard } = renderKeyboardTree(Menu);
     expect(() => {
       getKeyboard()!.boundKeyboard(['a'], () => {}, { times });
-    }).toThrow('[Ink-Router-Kit] boundKeyboard() times option must be >= 1.');
+    }).toThrow('[Ink-Cartridge] boundKeyboard() times option must be >= 1.');
   });
 });
 

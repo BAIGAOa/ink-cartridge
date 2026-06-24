@@ -7,7 +7,7 @@ A modal confirmation dialog with two buttons (confirm / cancel), designed to be 
 1. **Register** the dialog so it can be used with `overlay()`:
 
 ```tsx
-import { registerComponent, ConfirmDialog } from '@baigao_h/ink-kit';
+import { registerComponent, ConfirmDialog } from 'ink-cartridge';
 
 registerComponent(ConfirmDialog, {
   title: '',
@@ -20,7 +20,7 @@ registerComponent(ConfirmDialog, {
 2. **Show the dialog** from any screen or module:
 
 ```tsx
-import { overlay, closeOverlay } from '@baigao_h/ink-kit';
+import { overlay, closeOverlay } from 'ink-cartridge';
 
 overlay(ConfirmDialog, {
   title: t('confirm.title'),
@@ -82,7 +82,7 @@ No additional focus configuration is needed – just register the component and 
 **Typical pattern inside a screen component:**
 
 ```tsx
-import { overlay, closeOverlay, ConfirmDialog } from '@baigao_h/ink-kit';
+import { overlay, closeOverlay, ConfirmDialog } from 'ink-cartridge';
 
 function Editor() {
   const { boundKeyboard } = useKeyboard();
@@ -136,7 +136,7 @@ import {
   overlay,
   closeOverlay,
   ConfirmDialog,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 registerComponent(ConfirmDialog, {
   title: '',

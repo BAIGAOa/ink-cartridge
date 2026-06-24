@@ -1,13 +1,13 @@
 # Persistence System
 
-ink-kit provides a **zero-config key-value persistence system** backed by JSON files. You get typed read/write methods with automatic type validation, default-value fallback, atomic writes, and built-in concurrency control — all without touching `fs` directly.
+ink-cartridge provides a **zero-config key-value persistence system** backed by JSON files. You get typed read/write methods with automatic type validation, default-value fallback, atomic writes, and built-in concurrency control — all without touching `fs` directly.
 
 ---
 
 ## Quick Start
 
 ```ts
-import { createStorage } from '@baigao_h/ink-kit';
+import { createStorage } from 'ink-cartridge';
 
 const config = createStorage();
 
@@ -333,7 +333,7 @@ async function saveConfig(cfg: AppConfig): Promise<void> {
 ### Batch Writes (Disable Flush)
 
 ```ts
-import { createStorage } from '@baigao_h/ink-kit';
+import { createStorage } from 'ink-cartridge';
 
 const store = createStorage({ file: 'batch.json', flush: false });
 
@@ -421,4 +421,4 @@ Each storage station is a single JSON file with a flat key-value object at the t
 
 ## Independence
 
-This module has **zero dependencies on React, Ink, or any other part of ink-kit**. It uses only Node.js built-in modules (`fs`, `path`). You can import and use it in plain `.ts` files without any React context.
+This module has **zero dependencies on React, Ink, or any other part of ink-cartridge**. It uses only Node.js built-in modules (`fs`, `path`). You can import and use it in plain `.ts` files without any React context.

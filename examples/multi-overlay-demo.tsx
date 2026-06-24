@@ -2,7 +2,7 @@
  * Multi-Overlay Demo with Absolute Positioning
  *
  * Demonstrates Ink 7.0.1+ absolute coordinate support combined with
- * ink-kit's multi-overlay system. Multiple floating panels can be
+ * ink-cartridge's multi-overlay system. Multiple floating panels can be
  * opened simultaneously, each positioned independently on screen.
  *
  * Run:
@@ -180,7 +180,7 @@ const PANELS: PanelDef[] = [
   {
     id: 'info',
     title: 'System Info',
-    content: `Platform: ${process.platform}\nNode: ${process.version}\nInk: 7.0.3\nink-kit: 3.2.0\n\nTerminal:\n${process.env.TERM || 'unknown'}\n\nColumns: ${process.stdout.columns || '?'}\nRows: ${process.stdout.rows || '?'}`,
+    content: `Platform: ${process.platform}\nNode: ${process.version}\nInk: 7.0.3\nink-cartridge: 3.2.0\n\nTerminal:\n${process.env.TERM || 'unknown'}\n\nColumns: ${process.stdout.columns || '?'}\nRows: ${process.stdout.rows || '?'}`,
     top: 1,
     left: 50,
     width: 34,
@@ -309,7 +309,7 @@ function MainScreen() {
         >
           <Box>
             <Text bold color="blue">
-              Ink-Kit Multi-Overlay Demo
+              Ink-Cartridge Multi-Overlay Demo
             </Text>
           </Box>
           <Box gap={2}>

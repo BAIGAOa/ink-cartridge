@@ -70,7 +70,7 @@ enum ParseState {
  */
 export class StreamCorruptError extends Error {
   constructor(message: string, public readonly offset: number) {
-    super(`[Ink-Router-Kit] StreamingReader: ${message} at byte ${offset}.`);
+    super(`[Ink-Cartridge] StreamingReader: ${message} at byte ${offset}.`);
     this.name = 'StreamCorruptError';
   }
 }
@@ -543,7 +543,7 @@ class StreamingReader implements StreamingReaderAPI {
  *
  * @example
  * ```ts
- * import { createStreamingReader } from '@baigao_h/ink-kit';
+ * import { createStreamingReader } from 'ink-cartridge';
  *
  * const reader = createStreamingReader('large.bin');
  *

@@ -1,6 +1,6 @@
 # Dev Tool
 
-Developer debugging modal for the ink-router-kit screen system. Renders an absolutely-positioned panel showing real-time navigation state, overlay activity, modal activity, and position controls.
+Developer debugging modal for the ink-cartridge screen system. Renders an absolutely-positioned panel showing real-time navigation state, overlay activity, modal activity, and position controls.
 
 When open, DevScreen is a **modal** — it blocks all keyboard events from reaching overlays and screens. The panel provides its own Escape key to close.
 
@@ -10,8 +10,8 @@ When open, DevScreen is a **modal** — it blocks all keyboard events from reach
 
 ```tsx
 import React, { useEffect, useRef } from 'react';
-import { openDevTool, closeDevTool } from '@baigao_h/ink-kit/dev';
-import { useKeyboard } from '@baigao_h/ink-kit';
+import { openDevTool, closeDevTool } from 'ink-cartridge/dev';
+import { useKeyboard } from 'ink-cartridge';
 
 function MyScreen() {
   const { boundKeyboard } = useKeyboard();

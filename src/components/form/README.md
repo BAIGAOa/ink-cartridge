@@ -5,7 +5,7 @@ A React Context‑powered form system built on top of ink‑kit's keyboard and f
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -21,7 +21,7 @@ import {
   Form,
   Field,
   TextInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 // Validation rule: returns error message or undefined
 function required(value: any, values: Record<string, any>): string | undefined {

@@ -5,7 +5,7 @@ A simple terminal progress bar component. Pure render — no state or side effec
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install @baigao_h/ink-kit
 ```tsx
 import React from 'react';
 import { Box, Text, render } from 'ink';
-import { ProgressBar } from '@baigao_h/ink-kit';
+import { ProgressBar } from 'ink-cartridge';
 
 function Demo() {
   return (

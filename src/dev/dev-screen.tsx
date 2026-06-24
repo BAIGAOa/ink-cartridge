@@ -11,7 +11,7 @@ import { closeDevTool } from "./entrance.js";
 const PANEL_HEIGHT = 30;
 
 /**
- * Developer debugging modal for the ink-router-kit screen system.
+ * Developer debugging modal for the ink-cartridge screen system.
  *
  * Renders as an absolutely-positioned panel showing real-time navigation
  * state: the current screen path as a breadcrumb, a list of open overlays
@@ -37,7 +37,7 @@ const PANEL_HEIGHT = 30;
  * @example
  * ```ts
  * // Open from any screen or keyboard handler:
- * import { openDevTool } from '@baigao_h/ink-kit/dev';
+ * import { openDevTool } from 'ink-cartridge/dev';
  * openDevTool({ top: 0, left: 0 });
  * ```
  *

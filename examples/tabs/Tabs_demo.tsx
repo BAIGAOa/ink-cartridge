@@ -81,7 +81,7 @@ function Demo() {
             { id: 'about', label: 'About',
               content: (
                 <Box flexDirection="column" marginTop={1} gap={1}>
-                  <Text>Ink-Kit Tabs Demo</Text>
+                  <Text>Ink-Cartridge Tabs Demo</Text>
                   <Text dimColor>Version 2.3.2</Text>
                   <Text dimColor>Built with React Ink + Focus System</Text>
                 </Box>

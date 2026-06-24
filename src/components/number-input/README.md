@@ -1,11 +1,11 @@
 # NumberInput
 
-A numeric input component integrated with the ink-kit keyboard and focus system. Arrow keys increment/decrement the value, `Tab` switches focus between inputs.
+A numeric input component integrated with the ink-cartridge keyboard and focus system. Arrow keys increment/decrement the value, `Tab` switches focus between inputs.
 
 ## Install
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ## Quick Start
@@ -19,7 +19,7 @@ import {
   CurrentScreen,
   KeyboardProvider,
   NumberInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function App() {
   const [age, setAge] = useState(25);

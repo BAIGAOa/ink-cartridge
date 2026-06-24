@@ -1,13 +1,13 @@
 # TextInput
 
-A controlled / uncontrolled text input component integrated with the ink-kit keyboard and focus system.
+A controlled / uncontrolled text input component integrated with the ink-cartridge keyboard and focus system.
 
 ## Quick Start
 
 ```tsx
 import React, { useState } from 'react';
 import { render } from 'ink';
-import { TextInput } from '@baigao_h/ink-kit';
+import { TextInput } from 'ink-cartridge';
 
 function App() {
   const [name, setName] = useState('');
@@ -26,7 +26,7 @@ function App() {
 Uncontrolled variant — manages internal state automatically:
 
 ```tsx
-import { UncontrolledTextInput } from '@baigao_h/ink-kit';
+import { UncontrolledTextInput } from 'ink-cartridge';
 
 <UncontrolledTextInput
   focusId="search"
@@ -166,5 +166,5 @@ Press **Tab** to switch focus between the email and password fields.
 ## TypeScript
 
 ```ts
-import type { TextInputProps, UncontrolledTextInputProps } from '@baigao_h/ink-kit';
+import type { TextInputProps, UncontrolledTextInputProps } from 'ink-cartridge';
 ```

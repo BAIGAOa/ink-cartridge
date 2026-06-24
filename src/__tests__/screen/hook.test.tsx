@@ -40,7 +40,7 @@ describe('useScreenSystem', () => {
 
     expect(() => {
       render(React.createElement(TestConsumer, { onValue: () => {} }));
-    }).toThrow('[Ink-Router-Kit] useScreenSystem()');
+    }).toThrow('[Ink-Cartridge] useScreenSystem()');
 
     consoleError.mockRestore();
   });

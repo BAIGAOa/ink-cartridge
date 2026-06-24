@@ -56,7 +56,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 /**
- * Multi-select list component integrated with the ink-kit keyboard and
+ * Multi-select list component integrated with the ink-cartridge keyboard and
  * focus system.
  *
  * Users navigate with arrow keys (or vim-style j/k), toggle items with

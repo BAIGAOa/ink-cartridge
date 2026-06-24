@@ -16,7 +16,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
 
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-kit-demo-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-demo-'));
 const filePath = path.join(tmpDir, 'events.bin');
 
 async function main() {

@@ -1,6 +1,6 @@
 # MultiSelectInput
 
-Multi-select list component for [Ink](https://github.com/vadimdemedes/ink), integrated with the ink-kit keyboard and focus system.
+Multi-select list component for [Ink](https://github.com/vadimdemedes/ink), integrated with the ink-cartridge keyboard and focus system.
 
 Users navigate with arrow keys (or vim-style `j`/`k`), toggle items with **Space**, and confirm with **Enter**. Number keys `1`–`9` toggle the corresponding visible item directly.
 
@@ -14,7 +14,7 @@ import {
   CurrentScreen,
   KeyboardProvider,
   MultiSelectInput,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 const items = [
   { label: 'Red',   value: 'red' },

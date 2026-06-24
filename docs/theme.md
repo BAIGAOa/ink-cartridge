@@ -1,6 +1,6 @@
 # Theme System
 
-`ink-kit` provides a lightweight theming system via `ThemeProvider` and the `useTheme` hook. Supports JSON theme files or inline objects, multi-theme switching, and hot-reloading via `mergeTheme`. Combine with `ink-kit makeThemeType` CLI for compile-time type-safe theme keys.
+`ink-cartridge` provides a lightweight theming system via `ThemeProvider` and the `useTheme` hook. Supports JSON theme files or inline objects, multi-theme switching, and hot-reloading via `mergeTheme`. Combine with `ink-cartridge makeThemeType` CLI for compile-time type-safe theme keys.
 
 ---
 
@@ -9,7 +9,7 @@
 ```tsx
 import React, { useState } from 'react';
 import { Box, Text, render, useInput } from 'ink';
-import { ThemeProvider, useTheme } from '@baigao_h/ink-kit';
+import { ThemeProvider, useTheme } from 'ink-cartridge';
 
 function MyApp() {
   const { color, style, themeId, themes, setTheme } = useTheme();
@@ -48,7 +48,7 @@ render(
 
 ## Installation
 
-No additional dependencies — built into `@baigao_h/ink-kit`.
+No additional dependencies — built into `ink-cartridge`.
 
 ---
 
@@ -349,16 +349,16 @@ Only `primary` and `bg` are overridden; all other keys from the base dark theme 
 
 ## Typed Theme Bindings
 
-> Requires `@baigao_h/ink-kit` v2.8+
+> Requires `ink-cartridge` v2.8+
 
 The raw `useTheme()` accepts any string key for `color()` and `style()`, so typos are only caught at runtime.
-Use the `ink-kit makeThemeType` CLI to generate **compile-time type safety** for your theme keys.
+Use the `ink-cartridge makeThemeType` CLI to generate **compile-time type safety** for your theme keys.
 
 ### Quick Start
 
 ```bash
 # Generate typed bindings from your theme files
-npx ink-kit makeThemeType ./themes ./theme-types
+npx ink-cartridge makeThemeType ./themes ./theme-types
 ```
 
 This produces two files in `./theme-types/`:
@@ -372,7 +372,7 @@ Import the typed version — it shares the same runtime as the original:
 
 ```tsx
 // ❌ Raw (no type safety)
-import { useTheme } from '@baigao_h/ink-kit';
+import { useTheme } from 'ink-cartridge';
 color('primry');  // Typo not caught — returns undefined at runtime
 
 // ✅ Typed (compile-time errors)
@@ -385,7 +385,7 @@ style('primary'); // ❌ Compile error — 'primary' is a color key, not a style
 ### CLI Usage
 
 ```bash
-ink-kit makeThemeType <source-dir> <output-dir> [options]
+ink-cartridge makeThemeType <source-dir> <output-dir> [options]
 ```
 
 | Argument | Description |
@@ -399,7 +399,7 @@ ink-kit makeThemeType <source-dir> <output-dir> [options]
 |------|---------|-------------|
 | `--watch` | — | Re-generate when a `.json` file changes |
 | `--debounce <ms>` | `500` | Debounce delay in watch mode |
-| `--from <pkg>` | `@baigao_h/ink-kit` | Package to import the original `useTheme` from |
+| `--from <pkg>` | `ink-cartridge` | Package to import the original `useTheme` from |
 
 ### How It Works
 
@@ -413,7 +413,7 @@ ink-kit makeThemeType <source-dir> <output-dir> [options]
 
 ```bash
 # Re-generate on every theme file change (e.g. while designing themes)
-npx ink-kit makeThemeType ./themes ./theme-types --watch --debounce 300
+npx ink-cartridge makeThemeType ./themes ./theme-types --watch --debounce 300
 ```
 
 ### Interactive Theme Scaffold
@@ -421,7 +421,7 @@ npx ink-kit makeThemeType ./themes ./theme-types --watch --debounce 300
 Create theme files interactively:
 
 ```bash
-npx ink-kit initTheme --output ./themes
+npx ink-cartridge initTheme --output ./themes
 ```
 
 This prompts for:
@@ -450,15 +450,15 @@ my-project/
 
 ```bash
 # Generate once
-npx ink-kit makeThemeType ./themes ./src/theme-types
+npx ink-cartridge makeThemeType ./themes ./src/theme-types
 
 # Or watch during development
-npx ink-kit makeThemeType ./themes ./src/theme-types --watch
+npx ink-cartridge makeThemeType ./themes ./src/theme-types --watch
 ```
 
 ```tsx
 // src/App.tsx
-import { ThemeProvider } from '@baigao_h/ink-kit';
+import { ThemeProvider } from 'ink-cartridge';
 import { useTheme } from './theme-types/theme.js';
 
 function Greeting() {

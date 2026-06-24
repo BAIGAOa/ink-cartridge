@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createStorage, StorageAPI } from '../../storage/index.js';
 
 function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-kit-storage-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-storage-'));
 }
 
 let testDir: string;

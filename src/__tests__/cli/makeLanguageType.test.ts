@@ -21,7 +21,7 @@ import {
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = mkdtempSync(path.join(tmpdir(), 'ink-kit-test-'));
+  tmpDir = mkdtempSync(path.join(tmpdir(), 'ink-cartridge-test-'));
 });
 
 afterEach(() => {
@@ -308,8 +308,8 @@ describe('generateTypesContent', () => {
 
 describe('generateRuntimeContent', () => {
   it('imports from the given package', () => {
-    const output = generateRuntimeContent('@baigao_h/ink-kit');
-    expect(output).toContain("import { t as rawT, useI18n as rawUseI18n } from '@baigao_h/ink-kit'");
+    const output = generateRuntimeContent('ink-cartridge');
+    expect(output).toContain("import { t as rawT, useI18n as rawUseI18n } from 'ink-cartridge'");
   });
 
   it('imports from custom package', () => {
@@ -318,17 +318,17 @@ describe('generateRuntimeContent', () => {
   });
 
   it('imports i18n-types from relative path', () => {
-    const output = generateRuntimeContent('@baigao_h/ink-kit');
+    const output = generateRuntimeContent('ink-cartridge');
     expect(output).toContain("from './i18n-types.js'");
   });
 
   it('exports typed t function with generic K', () => {
-    const output = generateRuntimeContent('@baigao_h/ink-kit');
+    const output = generateRuntimeContent('ink-cartridge');
     expect(output).toContain('export function t<K extends TranslationKey>');
   });
 
   it('exports typed useI18n hook', () => {
-    const output = generateRuntimeContent('@baigao_h/ink-kit');
+    const output = generateRuntimeContent('ink-cartridge');
     expect(output).toContain('export function useI18n()');
   });
 
@@ -354,7 +354,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();
@@ -383,7 +383,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();
@@ -415,7 +415,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();
@@ -445,7 +445,7 @@ describe('makeLanguageType integration', () => {
         outputDir: path.join(tmpDir, 'out4'),
         watch: false,
         debounceMs: 500,
-        packageName: '@baigao_h/ink-kit',
+        packageName: 'ink-cartridge',
       });
     }).toThrow('FAKE_EXIT');
 
@@ -468,7 +468,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();
@@ -516,7 +516,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();
@@ -538,7 +538,7 @@ describe('makeLanguageType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: '@baigao_h/ink-kit',
+      packageName: 'ink-cartridge',
     });
 
     stderrSpy.mockRestore();

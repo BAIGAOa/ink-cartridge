@@ -12,7 +12,7 @@ function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(
-      `[Ink-Router-Kit] LanguageProvider failed to read directory "${dirPath}": ${msg}`,
+      `[Ink-Cartridge] LanguageProvider failed to read directory "${dirPath}": ${msg}`,
     );
   }
   for (const file of files) {
@@ -25,7 +25,7 @@ function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         throw new Error(
-          `[Ink-Router-Kit] LanguageProvider failed to read "${fullPath}": ${msg}`,
+          `[Ink-Cartridge] LanguageProvider failed to read "${fullPath}": ${msg}`,
         );
       }
       try {
@@ -33,7 +33,7 @@ function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         throw new Error(
-          `[Ink-Router-Kit] LanguageProvider failed to parse "${file}" as JSON: ${msg}`,
+          `[Ink-Cartridge] LanguageProvider failed to parse "${file}" as JSON: ${msg}`,
         );
       }
     }
@@ -166,7 +166,7 @@ export function LanguageProvider({
         setLang(newLang);
       } else {
         throw new Error(
-          `[Ink-Router-Kit] Language "${newLang}" is not available. ` +
+          `[Ink-Cartridge] Language "${newLang}" is not available. ` +
           `Available languages: ${languages.join(', ')}`,
         );
       }

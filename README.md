@@ -1,9 +1,9 @@
-# ink-router-kit
+# ink-cartridge
 
 > Ready-to-use Ink components and tools for building terminal UI applications.
 
-[![CI](https://github.com/BAIGAOa/ink-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-trc/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@baigao_h/ink-kit.svg)](https://www.npmjs.com/package/@baigao_h/ink-kit)
+[![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-trc/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/ink-cartridge.svg)](https://www.npmjs.com/package/ink-cartridge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -14,7 +14,7 @@
 ### Quick Start (scaffold a new project)
 
 ```bash
-npx @baigao_h/ink-kit init my-tui
+npx ink-cartridge init my-tui
 cd my-tui
 npm start
 ```
@@ -22,7 +22,7 @@ npm start
 ### Install in existing project
 
 ```bash
-npm install @baigao_h/ink-kit
+npm install ink-cartridge
 ```
 
 ### Requirements
@@ -37,15 +37,15 @@ npm install @baigao_h/ink-kit
 
 ## Design Philosophy
 
-ink-kit aims to make **screen management** and **keyboard event handling** in Ink applications composable, maintainable, and type-safe.
+ink-cartridge aims to make **screen management** and **keyboard event handling** in Ink applications composable, maintainable, and type-safe.
 
 ### Screen as Component
 
-In ink-kit, **every React component is a "screen"**. Register them into a **screen tree** via `registerComponent`, then navigate the tree with `skip` / `back` / `gotoScreen`. This design makes screen navigation predictable and eliminates the chaos of hand-written conditional rendering (`if-else` / `switch`).
+In ink-cartridge, **every React component is a "screen"**. Register them into a **screen tree** via `registerComponent`, then navigate the tree with `skip` / `back` / `gotoScreen`. This design makes screen navigation predictable and eliminates the chaos of hand-written conditional rendering (`if-else` / `switch`).
 
 ### Layered Keyboard Events
 
-No more global `useInput` cluttered with `if-else` chains. ink-kit's keyboard system maintains **per-screen-layer** key bindings. Events bubble from **top to bottom** through the stack, with four key mechanisms:
+No more global `useInput` cluttered with `if-else` chains. ink-cartridge's keyboard system maintains **per-screen-layer** key bindings. Events bubble from **top to bottom** through the stack, with four key mechanisms:
 
 - **Sequence (`boundSequence`)** — Multi-key chords (e.g. `gg`, `dd`, `cw`) with timeout and exclusive/non-exclusive modes. Sequences take priority over ordinary bindings.
 - **Blocked Key (`blockedKey`)** — Let a key pass through the current layer to be handled below
@@ -133,7 +133,7 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 
 - **[Screen Management System](docs/screen.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
 - **[Keyboard System](docs/keyboard.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
-- **[Internationalization](docs/language.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-kit makeLanguageType`** CLI for compile-time type-safe translation keys
+- **[Internationalization](docs/language.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-cartridge makeLanguageType`** CLI for compile-time type-safe translation keys
 - **[Theme System](docs/theme.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
 - **[Persistence System](docs/storage.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
 - **[Binary Storage System](docs/binary-storage.md)** — `createBinaryStorage` for sequential typed binary streams with positional cursors, and `createStreamingReader` for memory-efficient streaming of large files (500 MB+) with backpressure support
@@ -183,7 +183,7 @@ import {
   KeyboardProvider,
   useKeyboard,
   ConfirmDialog,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 // ── Register screens ──
 function Menu() {

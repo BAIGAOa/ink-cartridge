@@ -22,7 +22,7 @@ Layout
 · src/components/ — SelectInput, MultiSelectInput, TextInput, NumberInput, SearchInput, ConfirmDialog, Spinner, ProgressBar, Divider, Badge, KeyHint, Tabs, Fold, Form (Field + context)
 · src/storage/ — typed JSON key-value persistence (createStorage)
 · src/binary-storage/ — sequential binary FIFO persistence (createBinaryStorage)
-· src/cli/ — ink-kit CLI (init, initTheme, makeLanguageType, makeThemeType)
+· src/cli/ — ink-cartridge CLI (init, initTheme, makeLanguageType, makeThemeType)
 · src/language/ — i18n: LanguageProvider + useI18n hook
 · src/theme/ — theming: ThemeProvider + useTheme hook
 · src/dev/ — debugging overlay: DevScreen, openDevTool, closeDevTool (docs: docs/dev-tool.md)
@@ -201,7 +201,7 @@ Error handling
 
 · All asynchronous operations must handle errors. Use try/catch with .catch() or proper catch blocks.
 · Provide meaningful error messages that help the user understand what went wrong and, if possible, how to fix it.
-· Use a consistent error prefix: [ink-router-kit] (note: the project name is ink-router-kit, not ink-kit – align with existing error prefixes in the codebase).
+· Use a consistent error prefix: [ink-cartridge] (note: the project name is ink-cartridge, not ink-cartridge – align with existing error prefixes in the codebase).
 · For edge‑case errors where the correct behaviour is ambiguous (e.g., should we throw, log, or silently recover?), ask the user which behaviour they prefer before writing the error handling code.
 
 ✅ Correct (caught and reported)
@@ -211,7 +211,7 @@ try {
   await riskyOperation();
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  throw new Error(`[ink-router-kit] Failed to load config: ${message}`);
+  throw new Error(`[ink-cartridge] Failed to load config: ${message}`);
 }
 ```
 

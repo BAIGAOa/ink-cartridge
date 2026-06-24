@@ -14,7 +14,7 @@ export interface InitThemeOptions {
  * then writes one {id}.json file per theme with identical key sets.
  *
  * @example
- *   npx ink-kit initTheme --output ./my-themes
+ *   npx ink-cartridge initTheme --output ./my-themes
  */
 export function initTheme(options: InitThemeOptions): void {
   const rl = readline.createInterface({
@@ -27,7 +27,7 @@ export function initTheme(options: InitThemeOptions): void {
 
   (async () => {
     console.log('');
-    console.log('  ink-kit theme scaffold');
+    console.log('  ink-cartridge theme scaffold');
     console.log('  ─────────────────────');
     console.log('');
 

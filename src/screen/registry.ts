@@ -31,7 +31,7 @@ export function registerComponent<C extends React.ComponentType<any>>(
 ): void {
   if (registry.has(component)) {
     throw new Error(
-      `[Ink-Router-Kit] Component "${component.displayName || component.name || "anonymous"}" is already registered. Duplicate registration is not allowed.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is already registered. Duplicate registration is not allowed.`,
     );
   }
 
@@ -51,7 +51,7 @@ export function registerComponent<C extends React.ComponentType<any>>(
         (options.parent as any).name ||
         "anonymous";
       throw new Error(
-        `[Ink-Router-Kit] registerComponent("${compName}"): parent component "${parentName}" is not registered. ` +
+        `[Ink-Cartridge] registerComponent("${compName}"): parent component "${parentName}" is not registered. ` +
         `Register the parent first with registerComponent(${parentName}, template).`,
       );
     }

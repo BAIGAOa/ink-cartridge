@@ -30,7 +30,7 @@ export function useKeyboard(): KeyboardContextValue {
 
   if (!ctx) {
     throw new Error(
-      "[Ink-Router-Kit] useKeyboard() must be called inside a <KeyboardProvider>.",
+      "[Ink-Cartridge] useKeyboard() must be called inside a <KeyboardProvider>.",
     );
   }
 

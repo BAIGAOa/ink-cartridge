@@ -26,7 +26,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 /**
- * A single-select list component integrated with the ink-kit keyboard and
+ * A single-select list component integrated with the ink-cartridge keyboard and
  * focus system.
  *
  * Each instance registers a focus target identified by {@link SelectInputProps.focusId}

@@ -44,7 +44,7 @@ import type { BinaryStorageOptions, BinaryStorageAPI } from './types.js';
  *
  * @example
  * ```ts
- * import { createBinaryStorage } from '@baigao_h/ink-kit';
+ * import { createBinaryStorage } from 'ink-cartridge';
  *
  * const bin = createBinaryStorage({ file: 'replay.bin' });
  *

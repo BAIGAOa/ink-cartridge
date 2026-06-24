@@ -39,7 +39,7 @@ registerComponent(Game, {}, { parent: Menu });
 
 ## Architecture Overview
 
-This is `@baigao_h/ink-kit` — a React Ink component kit for building terminal UIs. Built with **no third-party state management library** — all state is React context + `useReducer`/`useRef`.
+This is `ink-cartridge` — a React Ink component kit for building terminal UIs. Built with **no third-party state management library** — all state is React context + `useReducer`/`useRef`.
 
 ### Core Systems (3 pillars)
 
@@ -75,7 +75,7 @@ This is `@baigao_h/ink-kit` — a React Ink component kit for building terminal 
 - **Theme System** (`src/theme/`): `ThemeProvider` + `useTheme` hook, with CLI codegen for type-safe themes.
 - **I18n System** (`src/language/`): `LanguageProvider` + `useI18n` hook, with `t()` translation, interpolation, and CLI codegen for type-safe translation keys.
 - **Dev Tool** (`src/dev/`): debugging overlay showing real-time screen path, overlay state, and repositionable via arrow keys. Docs: `docs/dev-tool.md`.
-- **CLI** (`src/cli/`): `ink-kit init` (scaffold), `initTheme`, `makeLanguageType`, `makeThemeType`.
+- **CLI** (`src/cli/`): `ink-cartridge init` (scaffold), `initTheme`, `makeLanguageType`, `makeThemeType`.
 
 ### Output Structure
 
@@ -110,7 +110,7 @@ Layout
 · src/components/ — SelectInput, MultiSelectInput, TextInput, NumberInput, SearchInput, ConfirmDialog, Spinner, ProgressBar, Divider, Badge, KeyHint, Tabs, Fold, Form (Field + context)
 · src/storage/ — typed JSON key-value persistence (createStorage)
 · src/binary-storage/ — sequential binary FIFO persistence (createBinaryStorage)
-· src/cli/ — ink-kit CLI (init, initTheme, makeLanguageType, makeThemeType)
+· src/cli/ — ink-cartridge CLI (init, initTheme, makeLanguageType, makeThemeType)
 · src/language/ — i18n: LanguageProvider + useI18n hook
 · src/theme/ — theming: ThemeProvider + useTheme hook
 · src/index.ts — public API barrel export
@@ -288,7 +288,7 @@ Error handling
 
 · All asynchronous operations must handle errors. Use try/catch with .catch() or proper catch blocks.
 · Provide meaningful error messages that help the user understand what went wrong and, if possible, how to fix it.
-· Use a consistent error prefix: [ink-router-kit] (note: the project name is ink-router-kit, not ink-kit – align with existing error prefixes in the codebase).
+· Use a consistent error prefix: [ink-cartridge] (note: the project name is ink-cartridge, not ink-cartridge – align with existing error prefixes in the codebase).
 · For edge‑case errors where the correct behaviour is ambiguous (e.g., should we throw, log, or silently recover?), ask the user which behaviour they prefer before writing the error handling code.
 
 ✅ Correct (caught and reported)
@@ -298,7 +298,7 @@ try {
   await riskyOperation();
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  throw new Error(`[ink-router-kit] Failed to load config: ${message}`);
+  throw new Error(`[ink-cartridge] Failed to load config: ${message}`);
 }
 ```
 

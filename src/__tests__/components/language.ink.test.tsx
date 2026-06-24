@@ -159,7 +159,7 @@ describe('语言切换', () => {
       </LanguageProvider>,
     );
     await new Promise((r) => setTimeout(r, 10));
-    expect(stripAnsi(lastFrame())).toContain('[Ink-Router-Kit]');
+    expect(stripAnsi(lastFrame())).toContain('[Ink-Cartridge]');
     expect(stripAnsi(lastFrame())).toContain('en-US');
   });
 });
@@ -217,7 +217,7 @@ describe('path 模式', () => {
         </LanguageProvider>
       </ErrorCatcher>,
     );
-    expect(stripAnsi(lastFrame())).toContain('[Ink-Router-Kit]');
+    expect(stripAnsi(lastFrame())).toContain('[Ink-Cartridge]');
   });
 });
 
@@ -443,7 +443,7 @@ describe('useI18n 不在 Provider 内', () => {
         <Bad />
       </ErrorCatcher>,
     );
-    expect(stripAnsi(lastFrame())).toContain('[Ink-Router-Kit]');
+    expect(stripAnsi(lastFrame())).toContain('[Ink-Cartridge]');
   });
 });
 

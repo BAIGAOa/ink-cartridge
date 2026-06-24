@@ -1,6 +1,6 @@
 # Screen Management System
 
-`ink-kit` provides a tree-based screen navigation system with **tree walking**, **cross-branch jumping**, **overlay**, and **modal** support, allowing you to manage terminal UI screens like pages.
+`ink-cartridge` provides a tree-based screen navigation system with **tree walking**, **cross-branch jumping**, **overlay**, and **modal** support, allowing you to manage terminal UI screens like pages.
 
 ---
 
@@ -14,7 +14,7 @@ import {
   ScenarioManagementProvider,
   CurrentScreen,
   useScreenSystem,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 // 1. Register screen components
 function Menu() {
@@ -391,7 +391,7 @@ Close all open modals at once. Keyboard control returns to the layer below (over
 `skip`, `back`, `gotoScreen`, `openOverlay`, `closeOverlay`, `closeAllOverlays`, `activateOverlay`, `deactivateOverlay`, `openModal`, `closeModal`, and `closeAllModals` can also be used as **module-level imports** without a React component context.
 
 ```tsx
-import { skip, back, gotoScreen, openOverlay, closeOverlay, openModal, closeModal } from '@baigao_h/ink-kit';
+import { skip, back, gotoScreen, openOverlay, closeOverlay, openModal, closeModal } from 'ink-cartridge';
 
 // Use anywhere in .ts/.tsx files
 skip(Game, { level: 5 });

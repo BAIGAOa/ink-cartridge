@@ -185,7 +185,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   seekRead(pos: number): void {
     if (pos < 0 || pos > this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: seekRead(${pos}) out of range ` +
+        `[Ink-Cartridge] BinaryStorage: seekRead(${pos}) out of range ` +
         `(0..${this.writePos}).`
       );
     }
@@ -203,7 +203,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   async seekWrite(pos: number): Promise<void> {
     if (pos < 0) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: seekWrite(${pos}) must be >= 0.`
+        `[Ink-Cartridge] BinaryStorage: seekWrite(${pos}) must be >= 0.`
       );
     }
     await this.enqueue(async () => {
@@ -431,7 +431,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   private readTag(): number {
     if (this.readPos >= this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: end of stream at byte ${this.readPos} — ` +
+        `[Ink-Cartridge] BinaryStorage: end of stream at byte ${this.readPos} — ` +
         `no more values to read.`
       );
     }
@@ -447,7 +447,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   private readUInt32LE(): number {
     if (this.readPos + LEN_SIZE > this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
+        `[Ink-Cartridge] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
         `while reading length prefix.`
       );
     }
@@ -476,7 +476,7 @@ export class BinaryStorage implements BinaryStorageAPI {
       const expectedName = TAG_NAMES[expected];
       const actualName = TAG_NAMES[tag as TypeTag] ?? `unknown(0x${tag.toString(16)})`;
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: type mismatch at byte ${this.readPos}. ` +
+        `[Ink-Cartridge] BinaryStorage: type mismatch at byte ${this.readPos}. ` +
         `Expected ${expectedName}, got ${actualName}.`
       );
     }
@@ -493,7 +493,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   private readNumPayload(): number {
     if (this.readPos + NUM_SIZE > this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
+        `[Ink-Cartridge] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
         `while reading number (need ${NUM_SIZE} bytes).`
       );
     }
@@ -512,7 +512,7 @@ export class BinaryStorage implements BinaryStorageAPI {
     const len = this.readUInt32LE();
     if (this.readPos + len > this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: unexpected end of stream at byte ${this.readPos}. ` +
+        `[Ink-Cartridge] BinaryStorage: unexpected end of stream at byte ${this.readPos}. ` +
         `Expected ${len} bytes of string data, only ${this.writePos - this.readPos} available.`
       );
     }
@@ -529,7 +529,7 @@ export class BinaryStorage implements BinaryStorageAPI {
   private readBoolPayload(): boolean {
     if (this.readPos + BOOL_SIZE > this.writePos) {
       throw new Error(
-        `[Ink-Router-Kit] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
+        `[Ink-Cartridge] BinaryStorage: unexpected end of stream at byte ${this.readPos} ` +
         `while reading boolean.`
       );
     }
@@ -572,7 +572,7 @@ export class BinaryStorage implements BinaryStorageAPI {
       case TypeTag.Null:    return null;
       default:
         throw new Error(
-          `[Ink-Router-Kit] BinaryStorage: unknown type tag 0x${tag.toString(16)} ` +
+          `[Ink-Cartridge] BinaryStorage: unknown type tag 0x${tag.toString(16)} ` +
           `at byte ${this.readPos - TAG_SIZE}. File may be corrupt.`
         );
     }

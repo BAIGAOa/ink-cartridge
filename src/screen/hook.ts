@@ -16,7 +16,7 @@ export function useScreenSystem(): ScreenSystemContextValue {
   const ctx = useContext(ScreenSystemContext);
   if (!ctx) {
     throw new Error(
-      '[Ink-Router-Kit] useScreenSystem() must be called inside a <ScenarioManagementProvider>.',
+      '[Ink-Cartridge] useScreenSystem() must be called inside a <ScenarioManagementProvider>.',
     );
   }
   return ctx;

@@ -5,7 +5,7 @@ import * as os from 'node:os';
 import { createBinaryStorage, BinaryStorageAPI } from '../../binary-storage/index.js';
 
 function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-kit-bin-int-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-bin-int-'));
 }
 
 let testDir: string;

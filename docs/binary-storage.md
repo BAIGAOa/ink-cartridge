@@ -1,6 +1,6 @@
 # Binary Storage System
 
-ink-kit provides **two binary storage modes** for ordered, typed data: an in-memory random-access mode and a streaming mode for large files. Both use the same binary encoding format (1-byte type tag + type-specific payload), so files written by one mode can be read by the other.
+ink-cartridge provides **two binary storage modes** for ordered, typed data: an in-memory random-access mode and a streaming mode for large files. Both use the same binary encoding format (1-byte type tag + type-specific payload), so files written by one mode can be read by the other.
 
 ---
 
@@ -34,11 +34,11 @@ ink-kit provides **two binary storage modes** for ordered, typed data: an in-mem
 
 ### Installation
 
-The streaming reader is part of `@baigao_h/ink-kit` — no extra dependency.
+The streaming reader is part of `ink-cartridge` — no extra dependency.
 
 ```ts
-import { createStreamingReader } from '@baigao_h/ink-kit';
-import type { StreamingReaderOptions } from '@baigao_h/ink-kit';
+import { createStreamingReader } from 'ink-cartridge';
+import type { StreamingReaderOptions } from 'ink-cartridge';
 ```
 
 ### How it works
@@ -189,7 +189,7 @@ setTimeout(() => {
 ### Complete lifecycle example
 
 ```ts
-import { createBinaryStorage, createStreamingReader } from '@baigao_h/ink-kit';
+import { createBinaryStorage, createStreamingReader } from 'ink-cartridge';
 
 async function demo() {
   // ── Write phase ──
@@ -273,7 +273,7 @@ The ReadStream reads sequentially, so the disk head never seeks. On HDDs this gi
 For full documentation of the in-memory random-access mode, see the [`BinaryStorage` source](./BinaryStorage.ts).
 
 ```ts
-import { createBinaryStorage } from '@baigao_h/ink-kit';
+import { createBinaryStorage } from 'ink-cartridge';
 
 const bin = createBinaryStorage({ file: 'checkpoint.bin' });
 await bin.write.num(Date.now());

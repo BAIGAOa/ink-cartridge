@@ -11,15 +11,15 @@ const subcommand = args[0];
 
 function printHelp(): void {
   console.log('');
-  console.log('  ink-kit init <project-name>              Scaffold a new project');
-  console.log('  ink-kit initTheme [--output <dir>]        Interactive theme scaffold');
-  console.log('  ink-kit makeLanguageType <source> <out>   Generate typed i18n bindings');
-  console.log('  ink-kit makeThemeType <source> <out>      Generate typed theme bindings');
+  console.log('  ink-cartridge init <project-name>              Scaffold a new project');
+  console.log('  ink-cartridge initTheme [--output <dir>]        Interactive theme scaffold');
+  console.log('  ink-cartridge makeLanguageType <source> <out>   Generate typed i18n bindings');
+  console.log('  ink-cartridge makeThemeType <source> <out>      Generate typed theme bindings');
   console.log('');
   console.log('Options for makeLanguageType / makeThemeType:');
   console.log('  --watch          Re-generate on every file change');
   console.log('  --debounce <ms>  Debounce delay (default 500)');
-  console.log('  --from <pkg>     Package name to import from (default @baigao_h/ink-kit)');
+  console.log('  --from <pkg>     Package name to import from (default ink-cartridge)');
   console.log('');
 }
 
@@ -43,7 +43,7 @@ if (fs.existsSync(root)) {
   process.exit(1);
 }
 
-console.log(`Creating ink-kit project: ${projectName}`);
+console.log(`Creating ink-cartridge project: ${projectName}`);
 
 fs.mkdirSync(path.join(root, 'src'), { recursive: true });
 
@@ -59,7 +59,7 @@ const pkg = {
     test: 'echo "No tests yet"',
   },
   dependencies: {
-    '@baigao_h/ink-kit': 'latest',
+    'ink-cartridge': 'latest',
     ink: '^7.0.1',
     react: '^19.2.4',
   },
@@ -108,7 +108,7 @@ import {
   useScreenSystem,
   KeyboardProvider,
   useKeyboard,
-} from '@baigao_h/ink-kit';
+} from 'ink-cartridge';
 
 function Menu() {
   const { skip } = useScreenSystem();
@@ -121,7 +121,7 @@ function Menu() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>ink-kit Demo</Text>
+      <Text bold>ink-cartridge Demo</Text>
       <Text>[S] Start  [Q] Quit</Text>
     </Box>
   );
@@ -191,7 +191,7 @@ if (subcommand === 'makeLanguageType') {
   const outputDir = args[2];
 
   if (!sourceDir || !outputDir) {
-    console.error('Error: ink-kit makeLanguageType <source-dir> <output-dir> [options]');
+    console.error('Error: ink-cartridge makeLanguageType <source-dir> <output-dir> [options]');
     process.exit(1);
   }
 
@@ -199,7 +199,7 @@ if (subcommand === 'makeLanguageType') {
   const debounceIndex = args.indexOf('--debounce');
   const debounceMs = debounceIndex !== -1 ? parseInt(args[debounceIndex + 1], 10) : 500;
   const fromIndex = args.indexOf('--from');
-  const packageName = fromIndex !== -1 ? args[fromIndex + 1] : '@baigao_h/ink-kit';
+  const packageName = fromIndex !== -1 ? args[fromIndex + 1] : 'ink-cartridge';
 
   if (isNaN(debounceMs) || debounceMs < 0) {
     console.error('Error: --debounce must be a non-negative number');
@@ -223,7 +223,7 @@ if (subcommand === 'makeThemeType') {
   const outputDir = args[2];
 
   if (!sourceDir || !outputDir) {
-    console.error('Error: ink-kit makeThemeType <source-dir> <output-dir> [options]');
+    console.error('Error: ink-cartridge makeThemeType <source-dir> <output-dir> [options]');
     process.exit(1);
   }
 
@@ -231,7 +231,7 @@ if (subcommand === 'makeThemeType') {
   const debounceIndex = args.indexOf('--debounce');
   const debounceMs = debounceIndex !== -1 ? parseInt(args[debounceIndex + 1], 10) : 500;
   const fromIndex = args.indexOf('--from');
-  const packageName = fromIndex !== -1 ? args[fromIndex + 1] : '@baigao_h/ink-kit';
+  const packageName = fromIndex !== -1 ? args[fromIndex + 1] : 'ink-cartridge';
 
   if (isNaN(debounceMs) || debounceMs < 0) {
     console.error('Error: --debounce must be a non-negative number');
