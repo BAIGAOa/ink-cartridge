@@ -14,6 +14,7 @@ import {
   ScreenKeyboardLayer,
   GlobalKeyEntry,
   GlobalSequenceEntry,
+  ResolvedGlobalKeyEntry,
   ResolvedGlobalSequenceEntry,
   BlockedKeyOptions,
   StopOptions,
@@ -972,6 +973,16 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   );
 
   /**
+   * Return a shallow snapshot of the current global key list.
+   * Safe for read-only inspection; mutating the returned array has no
+   * effect on the live bindings.
+   */
+  const getGlobalKeys = useCallback(
+    (): ResolvedGlobalKeyEntry[] => [...globalKeysRef.current],
+    [],
+  );
+
+  /**
    * Register global sequence key bindings.
    *
    * Validates each entry (keys length ≥ 2), clears any active global pending
@@ -1146,6 +1157,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       blockedKey: penetration,
       stop,
       globalKeys,
+      getGlobalKeys,
       globalSequence,
       focusSet,
       focusNext,
@@ -1176,6 +1188,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       penetration,
       stop,
       globalKeys,
+      getGlobalKeys,
       globalSequence,
       focusSet,
       focusNext,

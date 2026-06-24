@@ -11,6 +11,7 @@ import type {
   SequenceOptions,
   ModalMissCallback,
   ModalMissOptions,
+  ResolvedGlobalKeyEntry,
 } from "./types.js";
 
 /**
@@ -91,6 +92,18 @@ export interface KeyboardContextValue {
     entries: GlobalKeyEntry[],
     options?: { mode?: "replace" | "add" },
   ) => void;
+
+  /**
+   * Return a snapshot of all currently registered global key entries.
+   *
+   * Each entry includes the resolved `operate` callback (actions resolved
+   * from action IDs), plus metadata: `key`, `cover`, `affectOverlay`,
+   * `category`, `times`, `pressCount`, `observer`, `executeWhenNoOverlay`,
+   * and `when`.
+   *
+   * @returns A shallow copy of the current global keys array.
+   */
+  getGlobalKeys: () => ResolvedGlobalKeyEntry[];
 
   /**
    * Register global sequence key bindings.

@@ -445,3 +445,72 @@ describe('boundSequence — special keys', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('boundSequence — modifier key vs bare-key sequence', () => {
+  it('ctrl+key does not start a bare-key sequence', () => {
+    const seqHandler = vi.fn();
+    const kbHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['d', 'v'], seqHandler);
+    getKeyboard()!.boundKeyboard(['ctrl+d'], kbHandler);
+
+    // Press ctrl+d — this should trigger boundKeyboard, not the ['d', 'v'] sequence
+    pressKey('d', { ctrl: true });
+
+    expect(seqHandler).toHaveBeenCalledTimes(0);
+    expect(kbHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('meta+key does not start a bare-key sequence', () => {
+    const seqHandler = vi.fn();
+    const kbHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['d', 'v'], seqHandler);
+    getKeyboard()!.boundKeyboard(['meta+d'], kbHandler);
+
+    pressKey('d', { meta: true });
+
+    expect(seqHandler).toHaveBeenCalledTimes(0);
+    expect(kbHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('bare key still starts a bare-key sequence', () => {
+    const seqHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['d', 'v'], seqHandler);
+
+    // Press bare 'd' — sequence should start normally
+    pressKey('d');
+
+    // Sequence hasn't completed, but it has started.
+    // We verify this by pressing the second key and checking the handler fires.
+    pressKey('v');
+    expect(seqHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('ctrl+key starts a ctrl-prefixed sequence', () => {
+    const handler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['ctrl+w', 'ctrl+q'], handler);
+
+    pressKey('w', { ctrl: true });
+    expect(handler).toHaveBeenCalledTimes(0);
+
+    pressKey('q', { ctrl: true });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('shift+key starts a bare-key sequence (shift changes character)', () => {
+    const handler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    // shift+d produces 'D', so a ['d', 'v'] sequence with a bare 'd' start
+    // key won't match shift+D at all. Test ['D', 'v'] instead to confirm
+    // shift does NOT suppress bare-key matching for its own character.
+    getKeyboard()!.boundSequence(['D', 'v'], handler);
+
+    pressKey('D', { shift: true });
+
+    pressKey('v');
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+});

@@ -13,11 +13,15 @@ import {
 import React, {
   useContext,
   useEffect,
+  useRef,
+  useState,
 } from 'react';
 import type {
   Key,
 } from 'ink';
 import { OverlayContext } from '../screen/OverlayContext.js';
+import { ModalContext } from '../screen/ModalContext.js';
+import { useModalMissListener } from '../keyboard/hook.js';
 
 import { CurrentScreen } from '../screen/current-screen.js';
 import {
@@ -186,6 +190,154 @@ function SeqOverlay({ onSeqSpy }: SeqOverlayProps) {
 }
 SeqOverlay.displayName = 'SeqOverlay';
 
+// Modal that binds keys and uses miss listener to report unhandled keys.
+interface ModalPanelProps {
+  onMiss?: (evt: { miss: boolean; key?: Key; input?: string }) => void;
+  onModalKey?: () => void;
+  missOptions?: { monitorWhen?: boolean; monitorFocusMismatch?: boolean };
+}
+
+function ModalPanel({ onMiss, onModalKey, missOptions }: ModalPanelProps) {
+  const modalId = useContext(ModalContext);
+  const { closeModal } = useScreenSystem();
+  const { boundKeyboard } = useKeyboard();
+
+  useModalMissListener(
+    (evt) => {
+      onMiss?.(evt);
+    },
+    missOptions,
+  );
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['escape'], () => closeModal(modalId!));
+    const u2 = boundKeyboard(['m'], () => onModalKey?.());
+    return () => { u1(); u2(); };
+  }, []);
+
+  return React.createElement('div', null, 'ModalPanel');
+}
+ModalPanel.displayName = 'ModalPanel';
+
+// Screen that can open a modal via keyboard.
+interface ModalScreenProps {
+  onGlobalKey?: () => void;
+  onScreenKey?: () => void;
+  modalProps?: ModalPanelProps;
+}
+
+function ModalScreen({ onGlobalKey, onScreenKey, modalProps }: ModalScreenProps) {
+  const { skip } = useScreenSystem();
+  const { boundKeyboard, globalKeys } = useKeyboard();
+
+  useEffect(() => {
+    // Global key registered at this screen level.
+    // globalKeys returns void — entries are persisted in a ref.
+    if (onGlobalKey) {
+      globalKeys([
+        { key: 'g', operate: () => onGlobalKey(), cover: true },
+      ], { mode: 'add' });
+    }
+  }, []);
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['o'], () => skip(ModalScreen, {}));
+    if (onScreenKey) {
+      const u2 = boundKeyboard(['s'], () => onScreenKey());
+      return () => { u1(); u2(); };
+    }
+    return () => { u1(); };
+  }, []);
+
+  return React.createElement('div', null, 'ModalScreen');
+}
+ModalScreen.displayName = 'ModalScreen';
+
+// Screen that manages multiple overlays.
+interface MultiOverlayScreenProps {
+  overlay1Id?: string;
+  overlay2Id?: string;
+}
+
+function MultiOverlayScreen({ overlay1Id = 'ov1', overlay2Id = 'ov2' }: MultiOverlayScreenProps) {
+  const { openOverlay, closeOverlay } = useScreenSystem();
+  const { boundKeyboard } = useKeyboard();
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['1'], () => openOverlay(overlay1Id, SimpleOverlay, { label: 'A' }));
+    const u2 = boundKeyboard(['2'], () => openOverlay(overlay2Id, SimpleOverlay, { label: 'B' }));
+    const u3 = boundKeyboard(['q'], () => {
+      closeOverlay(overlay1Id);
+      closeOverlay(overlay2Id);
+    });
+    return () => { u1(); u2(); u3(); };
+  }, []);
+
+  return React.createElement('div', null, 'MultiOverlayScreen');
+}
+MultiOverlayScreen.displayName = 'MultiOverlayScreen';
+
+interface SimpleOverlayProps {
+  label?: string;
+}
+
+function SimpleOverlay({ label }: SimpleOverlayProps) {
+  const overlayId = useContext(OverlayContext);
+  const { closeOverlay } = useScreenSystem();
+  const { boundKeyboard } = useKeyboard();
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['x'], () => closeOverlay(overlayId!));
+    return () => u1();
+  }, []);
+
+  return React.createElement('div', null, label ?? 'SimpleOverlay');
+}
+SimpleOverlay.displayName = 'SimpleOverlay';
+
+// Screen using globalKeys with category filtering.
+interface CategoryScreenProps {
+  onCategoryMatch?: () => void;
+  onNoMatch?: () => void;
+}
+
+function CategoryScreen({ onCategoryMatch }: CategoryScreenProps) {
+  const { boundKeyboard, globalKeys } = useKeyboard();
+
+  useEffect(() => {
+    globalKeys([
+      { key: 'c', operate: () => onCategoryMatch?.(), category: [CategoryScreen], cover: true },
+    ], { mode: 'add' });
+  }, []);
+
+  useEffect(() => {
+    const u1 = boundKeyboard(['t'], () => onCategoryMatch?.());
+    return () => u1();
+  }, []);
+
+  return React.createElement('div', null, 'CategoryScreen');
+}
+CategoryScreen.displayName = 'CategoryScreen';
+
+// VimMenu variant that also supports ctrl+d and boundSequence together.
+interface VimCtrlScreenProps {
+  onCtrlD?: () => void;
+  onSeqDone?: () => void;
+}
+
+function VimCtrlScreen({ onCtrlD, onSeqDone }: VimCtrlScreenProps) {
+  const { boundKeyboard, boundSequence } = useKeyboard();
+
+  useEffect(() => {
+    boundSequence(['d', 'v'], () => onSeqDone?.());
+    boundKeyboard(['ctrl+d'], () => onCtrlD?.());
+    boundKeyboard(['d'], () => {}); // bare 'd' has a handler but shouldn't fire on ctrl+d
+  }, []);
+
+  return React.createElement('div', null, 'VimCtrlScreen');
+}
+VimCtrlScreen.displayName = 'VimCtrlScreen';
+
 // Render helper — mounts both providers and captures hook APIs via refs.
 // CurrentScreen is rendered so that screen component effects actually run.
 
@@ -233,6 +385,12 @@ beforeEach(() => {
   registerComponent(PauseOverlay, {});
   registerComponent(VimMenu, {}, { parent: Menu });
   registerComponent(SeqOverlay, {});
+  registerComponent(ModalPanel, {});
+  registerComponent(ModalScreen, {}, { parent: Menu });
+  registerComponent(MultiOverlayScreen, {}, { parent: Menu });
+  registerComponent(SimpleOverlay, {});
+  registerComponent(CategoryScreen, {}, { parent: Menu });
+  registerComponent(VimCtrlScreen, {}, { parent: Menu });
 });
 
 afterEach(() => {
@@ -534,5 +692,253 @@ describe('场景 10：boundSequence + blockedKey / stop 交互', () => {
     act(() => pressKey('g', {}));
     act(() => pressKey('g', {}));
     expect(ggSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+// Complex integration scenarios — multi-system interaction tests.
+
+describe('场景 11：Modal + globalKeys / boundKeyboard 优先级', () => {
+  it('modal 打开时 globalKeys 不触发，modal 关闭后恢复', () => {
+    const globalFn = vi.fn();
+    const modalKey = vi.fn();
+    const { getScreen, getKeyboard } = renderSystem(Menu);
+
+    getKeyboard()!.globalKeys([
+      { key: 'g', operate: globalFn, cover: true },
+    ]);
+
+    // Before modal: global key works
+    act(() => pressKey('g', {}));
+    expect(globalFn).toHaveBeenCalledTimes(1);
+
+    // Open modal
+    act(() => {
+      getScreen()!.openModal('m1', ModalPanel, { onModalKey: modalKey });
+    });
+
+    // Modal blocks globalKeys
+    globalFn.mockClear();
+    act(() => pressKey('g', {}));
+    expect(globalFn).not.toHaveBeenCalled();
+
+    // Close modal with escape
+    act(() => pressKey('', { escape: true }));
+
+    // Global key recovers
+    act(() => pressKey('g', {}));
+    expect(globalFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('modal 内部 boundKeyboard 正常工作，外部 boundKeyboard 被阻断', () => {
+    const modalKey = vi.fn();
+    const screenKey = vi.fn();
+    const { getScreen } = renderSystem(ModalScreen, {
+      onScreenKey: screenKey,
+    });
+
+    // Bind a screen-level key
+    act(() => pressKey('s', {}));
+    expect(screenKey).toHaveBeenCalledTimes(1);
+
+    // Open modal via screen system
+    act(() => {
+      getScreen()!.openModal('m1', ModalPanel, {
+        onModalKey: modalKey,
+      });
+    });
+
+    // Now 's' is blocked by modal
+    screenKey.mockClear();
+    act(() => pressKey('s', {}));
+    expect(screenKey).not.toHaveBeenCalled();
+
+    // 'm' works in modal
+    act(() => pressKey('m', {}));
+    expect(modalKey).toHaveBeenCalledTimes(1);
+
+    // 'escape' closes modal
+    act(() => pressKey('', { escape: true }));
+    // Modal closed — verify by checking screen key works again
+    screenKey.mockClear();
+    act(() => pressKey('s', {}));
+    expect(screenKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('modal miss listener 报告未绑定的键', () => {
+    const onMiss = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    act(() => {
+      getScreen()!.openModal('m1', ModalPanel, {
+        onMiss,
+        onModalKey: () => {},
+      });
+    });
+
+    // 'z' is not bound in modal → miss
+    act(() => pressKey('z', {}));
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: true }),
+    );
+
+    // 'm' is bound in modal → not a miss
+    onMiss.mockClear();
+    act(() => pressKey('m', {}));
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: false }),
+    );
+  });
+});
+
+describe('场景 12：Modal 与 Overlay 共存', () => {
+  it('modal 打开时 overlay 的按键被阻断', () => {
+    const overlayCloseSpy = vi.fn();
+    const { getScreen } = renderSystem(MultiOverlayScreen);
+
+    // Open an overlay first
+    act(() => pressKey('1', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
+
+    // Open modal on top
+    act(() => {
+      getScreen()!.openModal('m1', ModalPanel, { onModalKey: overlayCloseSpy });
+    });
+
+    // Overlay's 'x' key should be blocked by modal
+    // (modal consumes all events)
+    act(() => pressKey('x', {}));
+    // Overlay should still be open
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
+
+    // Close modal with escape
+    act(() => pressKey('', { escape: true }));
+
+    // Now overlay's 'x' works
+    act(() => pressKey('x', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
+  });
+});
+
+describe('场景 13：多 Overlay + globalKeys(affectOverlay) 优先级', () => {
+  it('affectOverlay: true 的 globalKeys 在 overlay 阶段触发，无 overlay 时不触发', () => {
+    const globalAffectFn = vi.fn();
+    const globalNoAffectFn = vi.fn();
+    const { getScreen, getKeyboard } = renderSystem(MultiOverlayScreen);
+
+    getKeyboard()!.globalKeys([
+      { key: 'g', operate: globalAffectFn, cover: true, affectOverlay: true },
+    ], { mode: 'add' });
+    getKeyboard()!.globalKeys([
+      { key: 'h', operate: globalNoAffectFn, cover: true, affectOverlay: false },
+    ], { mode: 'add' });
+
+    // No overlay → affectOverlay: true does NOT fire
+    act(() => pressKey('g', {}));
+    expect(globalAffectFn).not.toHaveBeenCalled();
+
+    // No overlay → affectOverlay: false fires in screen stage
+    act(() => pressKey('h', {}));
+    expect(globalNoAffectFn).toHaveBeenCalledTimes(1);
+
+    // Open an overlay
+    act(() => pressKey('1', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
+
+    // affectOverlay: true → fires when overlay is active
+    act(() => pressKey('g', {}));
+    expect(globalAffectFn).toHaveBeenCalledTimes(1);
+
+    // Close overlay
+    act(() => pressKey('x', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
+
+    // Overlay gone → affectOverlay: true stops firing again
+    globalAffectFn.mockClear();
+    act(() => pressKey('g', {}));
+    expect(globalAffectFn).not.toHaveBeenCalled();
+  });
+
+  it('多个 overlay 打开时，按键广播到所有 overlay，一次按键全部关闭', () => {
+    const { getScreen } = renderSystem(MultiOverlayScreen);
+
+    // Open two overlays
+    act(() => pressKey('1', {}));
+    act(() => pressKey('2', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(2);
+
+    // Both overlays bind 'x' to close themselves. The overlay processor
+    // broadcasts to all overlays, so both consume 'x' and close.
+    act(() => pressKey('x', {}));
+    expect(getScreen()!.displayedOverlays.length).toBe(0);
+  });
+});
+
+describe('场景 14：ctrl/meta 修饰符 + boundSequence 集成', () => {
+  it('ctrl+d 不触发裸键序列 ["d","v"]，触发 boundKeyboard(["ctrl+d"])', () => {
+    const ctrlDSpy = vi.fn();
+    const seqSpy = vi.fn();
+    const { getScreen } = renderSystem(VimCtrlScreen, {
+      onCtrlD: ctrlDSpy,
+      onSeqDone: seqSpy,
+    });
+
+    // Press ctrl+d — should fire boundKeyboard, not the sequence
+    act(() => pressKey('d', { ctrl: true }));
+    expect(ctrlDSpy).toHaveBeenCalledTimes(1);
+    expect(seqSpy).not.toHaveBeenCalled();
+  });
+
+  it('meta+d 不触发裸键序列', () => {
+    const ctrlDSpy = vi.fn();
+    const seqSpy = vi.fn();
+    const { getScreen } = renderSystem(VimCtrlScreen, {
+      onCtrlD: ctrlDSpy,
+      onSeqDone: seqSpy,
+    });
+
+    // Note: VimCtrlScreen binds ctrl+d, not meta+d.
+    // meta+d goes through unbind → miss. But the sequence should NOT start.
+    act(() => pressKey('d', { meta: true }));
+    expect(seqSpy).not.toHaveBeenCalled();
+
+    // Follow up with 'v' — should not complete sequence
+    act(() => pressKey('v', {}));
+    expect(seqSpy).not.toHaveBeenCalled();
+  });
+
+  it('裸键 "d","v" 序列在无修饰符时正常完成', () => {
+    const ctrlDSpy = vi.fn();
+    const seqSpy = vi.fn();
+    const { getScreen } = renderSystem(VimCtrlScreen, {
+      onCtrlD: ctrlDSpy,
+      onSeqDone: seqSpy,
+    });
+
+    // Bare 'd' starts sequence, then 'v' completes
+    act(() => pressKey('d', {}));
+    act(() => pressKey('v', {}));
+    expect(seqSpy).toHaveBeenCalledTimes(1);
+    expect(ctrlDSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('场景 15：globalKeys category + 屏幕导航', () => {
+  it('category 过滤的 globalKeys 只在匹配的屏幕触发', () => {
+    const categoryFn = vi.fn();
+    const { getScreen } = renderSystem(Menu);
+
+    // Navigate to CategoryScreen
+    act(() => getScreen()!.skip(CategoryScreen, { onCategoryMatch: categoryFn }));
+
+    // Global key 'c' with category=[CategoryScreen] fires here
+    act(() => pressKey('c', {}));
+    expect(categoryFn).toHaveBeenCalledTimes(1);
+
+    // Navigate back to Menu — category key should not fire
+    act(() => getScreen()!.back());
+    categoryFn.mockClear();
+
+    act(() => pressKey('c', {}));
+    expect(categoryFn).not.toHaveBeenCalled();
   });
 });

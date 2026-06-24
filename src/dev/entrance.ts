@@ -36,10 +36,13 @@ import { DevProps } from "./types.js";
  * });
  * ```
  */
-export function openDevTool({top, left}: DevProps){
+export function openDevTool({ top, left, zindex }: DevProps & { zindex?: number }) {
   openModal('_Dev-Tool_', DevScreen, {
     top: top,
     left: left
+  }, {
+    zIndex: zindex,
+    renderNow: true
   })
 }
 
@@ -57,7 +60,7 @@ export function openDevTool({top, left}: DevProps){
  * boundKeyboard(['escape'], () => closeDevTool());
  * ```
  */
-export function closeDevTool(){
+export function closeDevTool() {
   try {
     closeModal('_Dev-Tool_')
   } catch {

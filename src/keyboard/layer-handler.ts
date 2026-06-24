@@ -232,6 +232,17 @@ export function handleLayer(
       // Check each unblocked key name (not just the first) to handle
       // modifier combinations like 'ctrl+w' which appear after 'w'.
       for (const keyName of unblocked) {
+        // When ctrl/meta modifier is held (but not shift), a bare key name
+        // (without '+') does not represent the keystroke the user intended.
+        // normalizeKeyNames expands ctrl+d into ['d', 'ctrl+d']; matching 'd'
+        // here would incorrectly start a ['d', 'v'] sequence instead of
+        // letting boundKeyboard(['ctrl+d'], ...) consume the event.
+        // Shift is exempt because it changes the character (d → D), so the
+        // bare key name 'D' faithfully represents shift+d.
+        // @2026-06-23 v3.6.1
+        if ((key.ctrl || key.meta) && !keyName.includes('+')) {
+          continue;
+        }
         const candidates = layer.sequences.get(keyName);
         if (!candidates || candidates.length === 0) continue;
         // Filter by onlyThis, focusId, and when constraints.

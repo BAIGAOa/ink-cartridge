@@ -20,4 +20,5 @@ export type {
   ModalMissEvent,
   ModalMissCallback,
   ModalMissOptions,
+  ResolvedGlobalKeyEntry,
 } from "./types.js";

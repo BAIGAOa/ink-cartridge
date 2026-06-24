@@ -63,6 +63,7 @@ export type {
   ModalMissEvent,
   ModalMissCallback,
   ModalMissOptions,
+  ResolvedGlobalKeyEntry,
 } from "./keyboard/index.js";
 export { useFocusState } from "./keyboard/index.js";
 
@@ -147,3 +148,7 @@ export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/in
 // Binary Streaming Reader
 export { createStreamingReader, StreamCorruptError } from "./binary-storage/StreamingReader.js";
 export type { StreamingReaderOptions, StreamingReaderAPI } from "./binary-storage/StreamingReader.js";
+
+// Dev Tool
+export { openDevTool, closeDevTool } from "./dev/entrance.js";
+export type { DevProps } from "./dev/types.js";
