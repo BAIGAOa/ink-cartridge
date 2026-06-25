@@ -6,6 +6,7 @@ import { ModalContext } from "../screen/ModalContext.js";
 import { DevProps } from "./types.js";
 import { registerComponent } from "../screen/registry.js";
 import { closeDevTool } from "./entrance.js";
+import GlobalKeyDisplayBox from "./globalKey-display.js";
 
 
 const PANEL_HEIGHT = 30;
@@ -43,7 +44,7 @@ const PANEL_HEIGHT = 30;
  *
  * @2026-06-23 3.6.1
  */
-export function DevScreen({top: initialTop, left}: DevProps){
+export function DevScreen({ top: initialTop, left}: DevProps) {
   const {
     currentPath,
     displayedOverlays,
@@ -51,9 +52,10 @@ export function DevScreen({top: initialTop, left}: DevProps){
     modalQueue,
     activeModalId,
   } = useScreenSystem()
-  const {boundKeyboard} = useKeyboard()
+  const { boundKeyboard } = useKeyboard()
   const modalId = useContext(ModalContext)
-  const {rows} = useWindowSize()
+  const { rows } = useWindowSize()
+  const { openModal } = useScreenSystem()
 
   const [offsetTop, setOffsetTop] = useState(initialTop)
   const [flashBorder, setFlashBorder] = useState(false)
@@ -95,10 +97,21 @@ export function DevScreen({top: initialTop, left}: DevProps){
     const u3 = boundKeyboard(['escape'], () => {
       if (modalId) closeDevTool();
     })
+    const u4 = boundKeyboard(['ctrl+g'], () => {
+      openModal('__global-display__', GlobalKeyDisplayBox, {
+        top: initialTop + 3,
+        // Add three to prevent complete coverage of the DevBox from fragmenting the visual experience
+        left: left
+      })
+      // Actually, we don't need to pass in zindex here.
+      // Because the current mechanism is that when no zindex is passed, the following modal box overwrites the preceding modal box by default
+      // And our automatic activation mechanism ensures that it is also the one in the highest mode box.
+    })
     return () => {
       u1()
       u2()
       u3()
+      u4()
     }
   }, [modalId])
 
@@ -108,7 +121,7 @@ export function DevScreen({top: initialTop, left}: DevProps){
     setOffsetTop(prev => clampTopRef.current(prev))
   }, [rows])
 
-  return(
+  return (
     <Box
       borderColor={flashBorder ? 'yellow' : 'blue'}
       borderStyle='round'
@@ -187,7 +200,7 @@ export function DevScreen({top: initialTop, left}: DevProps){
       {/* Info area */}
       <Box flexDirection="column">
         <Text dimColor>
-          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc Close
+          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc CloseI | Ctrl + G GlobalKeys Display
         </Text>
         <Text dimColor>
           Top: {offsetTop}/{rows - PANEL_HEIGHT}
@@ -197,4 +210,4 @@ export function DevScreen({top: initialTop, left}: DevProps){
   )
 }
 
-registerComponent(DevScreen, {top: 0, left: 0})
+registerComponent(DevScreen, { top: 0, left: 0 })

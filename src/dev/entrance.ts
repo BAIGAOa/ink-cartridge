@@ -36,7 +36,7 @@ import { DevProps } from "./types.js";
  * });
  * ```
  */
-export function openDevTool({ top, left, zindex }: DevProps & { zindex?: number }) {
+export function openDevTool({ top, left, zindex }: DevProps) {
   openModal('_Dev-Tool_', DevScreen, {
     top: top,
     left: left

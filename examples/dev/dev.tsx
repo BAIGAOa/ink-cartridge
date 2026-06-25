@@ -116,12 +116,56 @@ function Console({top, left}: {top: number, left:number}){
   )
 }
 
+
+function GlobalKeys(){
+  const {globalKeys} =useKeyboard()
+
+  useEffect(() => {
+    globalKeys([
+      {
+        key: ['ctrl+e'],
+        operate: () => process.exit(0),
+        category: '*',
+        times: 2
+      },
+      {
+        key: ['ctrl+r'],
+        operate: () => {},
+        category: '*',
+        affectOverlay: true,
+      },
+      {
+        key: ['f1'],
+        operate: () => {},
+        category: [Menu],
+        executeWhenNoOverlay: true,
+      },
+      {
+        key: ['ctrl+w', 'ctrl+q'],
+        operate: () => {},
+        category: '*',
+        times: 3,
+        affectOverlay: true,
+      },
+      {
+        key: 'tab',
+        operate: () => {},
+        category: [],
+        cover: false,
+      },
+    ])
+  }, [])
+
+  return null
+}
+
 registerComponent(Console, {top: 0, left: 0})
 
 function App() {
   return (
     <KeyboardProvider>
       <Box flexDirection="column">
+        <GlobalKeys />
         <CurrentScreen />
       </Box>
     </KeyboardProvider>

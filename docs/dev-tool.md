@@ -62,9 +62,35 @@ The modal component itself. Auto-registered via `registerComponent` at module lo
 |-----|--------|
 | `↑` | Move the panel up 1 row, clamped to terminal bounds. |
 | `↓` | Move the panel down 1 row, clamped to terminal bounds. |
+| `Ctrl+G` | Open the GlobalKeys Inspector modal. |
 | `Escape` | Close the DevScreen modal. |
 
 The position automatically re-clamps when the terminal is resized — no keypress needed.
+
+### Ctrl+G — GlobalKeys Inspector
+
+While DevScreen is open, press `Ctrl+G` to open the **GlobalKeys Inspector** modal. It lists all registered global key bindings with their metadata.
+
+**Keyboard controls**:
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move the selection highlight through the list (when SelectInput has focus). |
+| `Tab` | Switch focus between the list (`global-key-list`) and panel movement (`globalKey-control`). After collapsing from detail view, press Tab to restore the list highlight. |
+| `Enter` | Expand the selected entry to show a full detail card. |
+| `Enter` (detail) | Collapse the detail card back to the list. |
+| `Escape` | Close the GlobalKeys Inspector and return to DevScreen. |
+
+**List view** — compact cards showing:
+
+- Key name(s) with attribute badges: `[ao]` (affectOverlay), `[xno]` (executeWhenNoOverlay), `[×N]` (times).
+- Scrolling activates when more than 5 entries are present.
+
+**Detail view** — full field breakdown with coloured boolean values (green = true, red = false):
+
+- Cover, AffectOverlay, ExecuteWhenNoOverlay, Times, Category, When, Observer.
+
+**Note**: After collapsing from a detail card back to the list, press `Tab` if the selection highlight does not reappear — this is a known quirk of the focus target lifecycle.
 
 **Display sections**:
 
@@ -75,6 +101,16 @@ The position automatically re-clamps when the terminal is resized — no keypres
 - **Top** — current vertical offset and the maximum (e.g. `3/10`).
 
 ## Props
+
+### DevProps
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `top` | `number` | `0` | Initial vertical position in rows. |
+| `left` | `number` | `0` | Horizontal position in columns. |
+| `zindex` | `number` | — | Optional modal zIndex. |
+
+### GlobalProps
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
