@@ -194,11 +194,6 @@ export default function GlobalKeyDisplayBox({ top: initialTop, left }: GlobalPro
             : 'Tab: switch focus  |  Enter: details  |  Esc: close'}
         </Text>
       </Box>
-      {!expandedEntry && (
-        <Box>
-          <Text dimColor>After collapsing from detail, press Tab to restore the selection highlight.</Text>
-        </Box>
-      )}
     </Box>
   );
 }

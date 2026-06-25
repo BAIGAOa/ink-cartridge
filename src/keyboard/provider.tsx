@@ -234,8 +234,32 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     ownerStackRef.current = [...ownerStackRef.current, owner];
   }, []);
 
+  // fix: _popOwner used `filter(o => o !== owner)` which deletes EVERY
+  // occurrence of owner from the stack.  When multiple components inside
+  // the same modal/overlay each call `useKeyboard()`, they all push the
+  // same owner ID — e.g. GlobalKeyDisplayBox, SelectInput, and
+  // useFocusState() each push `modalId`, creating [modalId, modalId, modalId].
+  //
+  // When a nested component unmounts, its _popOwner cleanup would wipe
+  // ALL three entries, emptying the stack while the outer component is
+  // still mounted.  This makes `getCurrentOwner()` return null, causing:
+  //   - focusUnregister() to silently no-op (stale focus state remains)
+  //   - focusCurrent/focusSet/focusNext/focusPrev all blind to the layer
+  //   - re-mounting components (e.g. SelectInput after collapsing a
+  //     detail view) unable to restore keyboard focus
+  //
+  // Switch to `lastIndexOf` + slice so only the LAST occurrence (the
+  // caller's own push) is removed — proper LIFO stack behaviour.
+  // @2026-06-25 v3.7.0
   const popOwner = useCallback((owner: LayerOwner) => {
-    ownerStackRef.current = ownerStackRef.current.filter(o => o !== owner);
+    const stack = ownerStackRef.current;
+    const idx = stack.lastIndexOf(owner);
+    if (idx !== -1) {
+      ownerStackRef.current = [
+        ...stack.slice(0, idx),
+        ...stack.slice(idx + 1),
+      ];
+    }
   }, []);
 
   const enableWildcardPriority = useCallback(() => {
