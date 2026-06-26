@@ -145,6 +145,12 @@ export interface FocusTarget {
   blockedKeys: KeyRule[];
   /** Key rules stopped on this target (propagation barrier). */
   stoppedKeys: KeyRule[];
+  /**
+   * Key rules allowed to pass through the modal barrier, scoped to
+   * this focus target. Only meaningful on modal layers.
+   * Registered via {@link KeyboardContextValue.allowModal} with a `focusId`.
+   */
+  allowedKeys: KeyRule[];
   /** Maps action IDs to the normalized keys that trigger them (for stopAction). */
   actionKeysMap: Map<string, string[]>;
 }
@@ -210,6 +216,14 @@ export interface PendingSequence {
    * Checked at each key press; if it returns `false`, the sequence is cancelled.
    */
   when?: () => boolean;
+  /**
+   * When multiple sequences share the same first key (non-exclusive
+   * mode), stores all eligible {@link SequenceBinding} candidates so
+   * that subsequent keys can disambiguate. Set to `undefined` once
+   * the pending sequence resolves to a single binding, or in exclusive
+   * mode where only the first candidate is kept.
+   */
+  candidates?: SequenceBinding[];
 }
 
 /**
@@ -243,16 +257,35 @@ export interface SequenceBinding {
 }
 
 /**
+ * The kind of keyboard layer — determines how it participates in
+ * the event pipeline.
+ */
+export type LayerKind = 'screen' | 'overlay' | 'modal';
+
+/**
  * Per-layer keyboard state: bindings, transparent keys, stop keys,
  * and focus targets.
  */
 export interface ScreenKeyboardLayer {
+  /** What kind of layer this is. Set on first creation by {@link KeyboardProvider}. */
+  kind: LayerKind;
   /** Registered screen-level key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
   /** Key rules marked as transparent at the screen level (pass-through). */
   blockedKeys: KeyRule[];
   /** Key rules stopped at the screen level (propagation barrier). */
   stoppedKeys: KeyRule[];
+  /**
+   * Key rules that are allowed to pass through the modal barrier.
+   *
+   * Only meaningful on modal layers. When the active modal processes a key
+   * that matches an entry in this list, the key is NOT consumed by the modal
+   * processor — it falls through to the next pipeline stage (global keys,
+   * overlays, or screens).
+   *
+   * Registered via {@link KeyboardContextValue.allowModal}.
+   */
+  allowedKeys: KeyRule[];
   /** Keys from globalKeys that this layer has overridden. */
   globalKeyOverrides: Set<string>;
 
@@ -363,6 +396,15 @@ export interface BlockedKeyOptions {
    * is ignored and the key is not blocked.
    */
   when?: () => boolean;
+}
+
+/**
+ * Options for {@link KeyboardContextValue.allowModal} when allowing keys
+ * to pass through the modal barrier within a specific focus target.
+ */
+export interface AllowModalOptions {
+  /** If provided, allows only within the named focus target. */
+  focusId?: string;
 }
 
 /**

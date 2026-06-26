@@ -9,6 +9,23 @@ import { handleLayer } from '../layer-handler.js';
 
 
 /**
+ * Check whether a key event matches any entry in the allow-list of
+ * the active focus target or the layer itself.
+ */
+function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[]): boolean {
+  if (layer.allowedKeys.some((r) => eventNames.includes(r.key))) {
+    return true;
+  }
+  if (layer.currentFocusId) {
+    const ft = layer.focusTargets.get(layer.currentFocusId);
+    if (ft?.allowedKeys.some((r) => eventNames.includes(r.key))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Check whether a list of bindings contains one whose `keys` match
  * the event but whose `when` returns `false`.
  */
@@ -131,6 +148,13 @@ export function createModalProcessor(): PipelineProcessor {
           true,  // isOverlay — modal is treated as a floating layer for onlyThis semantics
           ctx.wildcardFirst,
         );
+      }
+
+      // If the key was not handled by any modal binding but it is in
+      // the allow-list (layer-level or active focus target), pass it
+      // through to the next pipeline stage instead of blocking.
+      if (!handled && layer && isAllowed(layer, ctx.eventNames)) {
+        return false;
       }
 
       if (layer) {

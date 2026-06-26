@@ -201,6 +201,14 @@ export function handleLayer(
           // Matched the next key in the sequence.
           clearTimeout(pending.timer);
           pending.nextIndex++;
+          // Narrow candidates to only those whose next key also matches.
+          if (pending.candidates && pending.candidates.length > 1) {
+            const nextIdx = pending.nextIndex - 1;
+            const narrowed = pending.candidates.filter(
+              c => c.keys.length > nextIdx && unblocked.includes(c.keys[nextIdx]),
+            );
+            pending.candidates = narrowed.length <= 1 ? undefined : narrowed;
+          }
           if (pending.nextIndex === pending.sequences.length) {
             // Full sequence matched — fire handler.
             pending.handler(input, key);
@@ -217,9 +225,45 @@ export function handleLayer(
           if (pending.options?.exclusive === true) {
             // Exclusive mode: ignore the key, keep waiting.
             return true;
+          }
+          if (pending.candidates && pending.candidates.length > 1) {
+            // Non-exclusive with multiple candidates: try the current key
+            // against every candidate's next expected key to disambiguate.
+            const nextIdx = pending.nextIndex;
+            const stillPossible = pending.candidates.filter(
+              c => unblocked.includes(c.keys[nextIdx]),
+            );
+            if (stillPossible.length === 0) {
+              // No candidate matches — cancel all and fall through.
+              clearTimeout(pending.timer);
+              layer.pendingSequence = null;
+            } else {
+              // One or more candidates match — lock in the first match
+              // and restart the sequence from it.
+              const chosen = stillPossible[0];
+              clearTimeout(pending.timer);
+              const timeout = chosen.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
+              const newSeq: PendingSequence = {
+                sequences: chosen.keys,
+                nextIndex: nextIdx + 1,
+                handler: chosen.handler,
+                timer: undefined as unknown as NodeJS.Timeout,
+                timeout,
+                options: chosen.options,
+                when: chosen.when,
+                candidates: stillPossible.length === 1 ? undefined : stillPossible,
+              };
+              if (newSeq.nextIndex === newSeq.sequences.length) {
+                chosen.handler(input, key);
+              } else {
+                newSeq.timer = setTimeout(() => {
+                  if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+                }, timeout);
+              }
+              layer.pendingSequence = newSeq;
+            }
           } else {
-            // Non-exclusive (default): cancel the sequence and let the key
-            // fall through to normal bindings.
+            // No candidates (single binding): cancel and fall through.
             clearTimeout(pending.timer);
             layer.pendingSequence = null;
           }
@@ -246,7 +290,7 @@ export function handleLayer(
         const candidates = layer.sequences.get(keyName);
         if (!candidates || candidates.length === 0) continue;
         // Filter by onlyThis, focusId, and when constraints.
-        const selected = candidates.find(binding => {
+        const matching = candidates.filter(binding => {
           if (binding.options?.onlyThis) {
             if (isOverlay) return activeOverlayCount <= 1;
             else return activeOverlayCount === 0;
@@ -257,24 +301,35 @@ export function handleLayer(
           if (binding.when?.() === false) return false;
           return true;
         });
-        if (selected) {
-          const timeout = selected.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
-          const newSeq: PendingSequence = {
-            sequences: selected.keys,
-            nextIndex: 1,
-            handler: selected.handler,
-            timer: undefined as unknown as NodeJS.Timeout,
-            timeout,
-            options: selected.options,
-            when: selected.when,
-          };
+        if (matching.length === 0) continue;
+        // Pick the first match as the initial sequence state.
+        const selected = matching[0];
+        const timeout = selected.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
+        const newSeq: PendingSequence = {
+          sequences: selected.keys,
+          nextIndex: 1,
+          handler: selected.handler,
+          timer: undefined as unknown as NodeJS.Timeout,
+          timeout,
+          options: selected.options,
+          when: selected.when,
+          // Store all matching candidates so subsequent keys can
+          // disambiguate between sequences sharing the same first key.
+          // In exclusive mode or when there is only one candidate, the
+          // field is omitted so the mismatch path behaves as before.
+          candidates: selected.options?.exclusive === true
+            ? undefined
+            : (() => {
+                const nonExclusive = matching.filter(c => c.options?.exclusive !== true);
+                return nonExclusive.length <= 1 ? undefined : nonExclusive;
+              })(),
+        };
           const timer = setTimeout(() => {
             if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
           }, timeout);
           newSeq.timer = timer;
           layer.pendingSequence = newSeq;
           return true;
-        }
       }
     }
   }

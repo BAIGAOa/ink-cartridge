@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { render, Box, Text, useWindowSize } from 'ink';
 import {
   registerComponent,
@@ -9,6 +9,8 @@ import {
   closeOverlay,
   openOverlay,
   useScreenSystem,
+  ModalContext,
+  openModal,
 } from '../../src/index.js';
 import { openDevTool } from '../../src/dev/entrance.js';
 
@@ -17,9 +19,9 @@ import { openDevTool } from '../../src/dev/entrance.js';
 // DevScreen tracks the screen navigation path in real time.
 
 function Menu() {
-  const {skip} = useScreenSystem()
+  const { skip } = useScreenSystem()
   const { boundKeyboard, stop, boundSequence } = useKeyboard();
-  const {rows} = useWindowSize()
+  const { rows } = useWindowSize()
   const gameOpenRef = useRef(false)
 
   useEffect(() => {
@@ -28,9 +30,9 @@ function Menu() {
     // the Escape key inside DevScreen handles closing. openDevTool
     // throws if already open — the try/catch in closeDevTool makes
     // stale refs harmless, and openDevTool itself guards against duplicates.
-    const u1 = boundKeyboard(['ctrl+d'], () => openDevTool({top: 0, left: 0}));
+    const u1 = boundKeyboard(['ctrl+d'], () => openDevTool({ top: 0, left: 0 }));
     const u2 = boundKeyboard(['s'], () => {
-      if(gameOpenRef.current){
+      if (gameOpenRef.current) {
         closeOverlay('console')
         gameOpenRef.current = false
       } else {
@@ -38,17 +40,17 @@ function Menu() {
           top: 10,
           left: 0
         }, {
-            activate: false
-          })
+          activate: false
+        })
         gameOpenRef.current = true
       }
     })
-    boundSequence(['d', 'v'], () => skip(Setting, {
-      
-      }
-    ),
-    {
-      exclusive: true
+    boundSequence(['d', 'v'], () => skip(Setting, {}), {})
+    boundSequence(['d', 'c'], () => {
+      openModal('console', ConsoleModal, {
+        top: 30,
+        left: 0
+      })
     })
     return () => {
       s1()
@@ -56,7 +58,7 @@ function Menu() {
       // Do not release ctrl + d , Because we want the settings interface to naturally use the development panel as well.
       // But the best practice is to use the globalKeys API override
     }
-    
+
   }, []);
   return (
     <Box flexDirection="column" height={rows} width='100%'>
@@ -69,10 +71,55 @@ function Menu() {
 registerComponent(Menu, {});
 
 
-function Setting(){
-  const {rows} =useWindowSize()
-  const {boundKeyboard} = useKeyboard()
-  const {back} = useScreenSystem()
+function ConsoleModal({top, left}: {top: number, left: number}) {
+  const { boundSequence, allowModal } = useKeyboard()
+  const { closeModal } = useScreenSystem()
+  const modalId = useContext(ModalContext)
+  useEffect(() => {
+    const sAllow = allowModal(['d'])
+
+    return () => {
+      sAllow()
+    }
+  }, [])
+
+  useEffect(() => {
+    const uClose = boundSequence(['c', 'c'], () => {
+      if (modalId) {
+        closeModal(modalId)
+      }
+    })
+
+    return () => {
+      uClose()
+    }
+
+  }, [])
+
+  return (
+    <Box
+      position='absolute'
+      top={top}
+      left={left}
+      borderStyle='round'
+      borderColor='magenta'
+      alignItems='center'
+      justifyContent='center'
+      height={30}
+      width='100%'
+    >
+      <Text bold color='cyan'>
+        YOU OPEN THE CONSOLE
+      </Text>
+    </Box>
+  )
+}
+registerComponent(ConsoleModal, {top: 0, left: 0})
+
+function Setting() {
+  const { rows } = useWindowSize()
+  const { boundKeyboard } = useKeyboard()
+  const { back } = useScreenSystem()
 
   useEffect(() => {
     const u1 = boundKeyboard(['escape'], () => back())
@@ -80,7 +127,7 @@ function Setting(){
     return () => u1()
   }, [])
 
-  return(
+  return (
     <Box
       height={rows}
       width='100%'
@@ -99,8 +146,8 @@ registerComponent(Setting, {}, {
 })
 
 
-function Console({top, left}: {top: number, left:number}){
-  return(
+function Console({ top, left }: { top: number, left: number }) {
+  return (
     <Box
       borderStyle='bold'
       borderColor='magenta'
@@ -117,8 +164,8 @@ function Console({top, left}: {top: number, left:number}){
 }
 
 
-function GlobalKeys(){
-  const {globalKeys} =useKeyboard()
+function GlobalKeys() {
+  const { globalKeys } = useKeyboard()
 
   useEffect(() => {
     globalKeys([
@@ -130,26 +177,26 @@ function GlobalKeys(){
       },
       {
         key: ['ctrl+r'],
-        operate: () => {},
+        operate: () => { },
         category: '*',
         affectOverlay: true,
       },
       {
         key: ['f1'],
-        operate: () => {},
+        operate: () => { },
         category: [Menu],
         executeWhenNoOverlay: true,
       },
       {
         key: ['ctrl+w', 'ctrl+q'],
-        operate: () => {},
+        operate: () => { },
         category: '*',
         times: 3,
         affectOverlay: true,
       },
       {
         key: 'tab',
-        operate: () => {},
+        operate: () => { },
         category: [],
         cover: false,
       },
@@ -159,7 +206,7 @@ function GlobalKeys(){
   return null
 }
 
-registerComponent(Console, {top: 0, left: 0})
+registerComponent(Console, { top: 0, left: 0 })
 
 function App() {
   return (

@@ -101,6 +101,8 @@ Every screen in the tree has its own keyboard layer. When a key is pressed, the 
 Key pressed
   |
   +- 0. Active modal (if any) — blocks all events unconditionally
+  |      UNLESS the key is in the modal's allow-list (see allowModal)
+  |      → allowed keys bypass the modal and continue to lower stages
   |
   +- 1. GlobalSequence (affectOverlay: true)
   |
@@ -226,6 +228,7 @@ const {
   defineSequenceAction, addSequenceAction, hasSequenceAction,
   removeSequenceAction, modifySequenceAction, clearSequenceOperations,
   boundSequence, enableWildcardPriority,
+  allowModal, useModalMissListener,
 } = useKeyboard();
 ```
 
@@ -460,6 +463,50 @@ When stopAction is used with an action ID that has no bindings (never registered
 useEffect(() => {
   stop(['escape'], { when: () => hasDirtyChanges });
 }, [hasDirtyChanges]);
+```
+
+---
+
+### allowModal
+
+```tsx
+allowModal(keys: string[], options?: AllowModalOptions): () => void;
+```
+
+Allow specific keys to pass through the modal barrier. By default, an active modal consumes **every** key event — even unbound keys — blocking all lower pipeline stages. `allowModal` opens the barrier for selected keys, letting them fall through to global keys, overlays, and screens.
+
+Only functions inside a modal component (where `ModalContext` is set). Throws if called outside a modal. Returns an unbind function.
+
+Parameter | Type | Description
+--------- | ---- | -----------
+keys      | string[] | Key names to allow through the modal barrier.
+options   | { focusId?: string } | If provided, restricts the allowance to a specific focus target.
+
+```tsx
+function MyModal() {
+  const { allowModal, boundKeyboard } = useKeyboard();
+  const { closeModal } = useScreenSystem();
+  const modalId = useContext(ModalContext);
+
+  useEffect(() => {
+    // Allow Escape through — a global key handler can close the modal
+    return allowModal(['escape']);
+  }, []);
+
+  useEffect(() => {
+    boundKeyboard(['y'], () => confirm());
+    boundKeyboard(['n'], () => closeModal(modalId));
+  }, [modalId]);
+}
+```
+
+**focusId**: when provided, the allowance applies only within the named focus target. The active focus target's `allowedKeys` are checked; inactive targets are ignored.
+
+```tsx
+useEffect(() => {
+  // Allow ctrl+f through only when the 'search-input' focus target is active
+  return allowModal(['ctrl+f'], { focusId: 'search-input' });
+}, []);
 ```
 
 ---
@@ -1012,6 +1059,8 @@ function Editor() {
 }
 ```
 
+**Sequence disambiguation**: Non-exclusive sequences sharing the same first key are disambiguated by the second key. For example, `['d', 'v']` and `['d', 'c']` both start with `d`: pressing `d` enters a pending state waiting for the second key, and pressing `v` or `c` selects the matching sequence. Exclusive sequences do not participate in disambiguation — only the first registered match is used.
+
 ### Multiple Controls on One Screen
 
 ```tsx
@@ -1035,6 +1084,8 @@ function Settings() {
 Key pressed
   |
   +- 0. Active modal (if any) — blocks all events unconditionally
+  |        UNLESS the key is in the modal's allow-list (see allowModal)
+  |        → allowed keys fall through to the next stage
   |        matched or not -> consume, stop (nothing below receives)
   |
   +- 1. GlobalSequence (affectOverlay: true)

@@ -18,6 +18,7 @@ import {
   ResolvedGlobalSequenceEntry,
   BlockedKeyOptions,
   StopOptions,
+  AllowModalOptions,
   ShortcutOperationEntry,
   SequenceOptions,
   SequenceBinding,
@@ -119,6 +120,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const activeOverlayIdsRef = useRef<Set<string>>(new Set());
   const displayedOverlaysRef = useRef(displayedOverlays);
   const activeModalIdRef = useRef<string | null>(null);
+  const displayedModalsRef = useRef(displayedModals);
 
   const globalKeysRef = useRef<{
     key: string | string[];
@@ -166,6 +168,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   activeOverlayIdsRef.current = new Set(activeOverlayIds);
   displayedOverlaysRef.current = displayedOverlays;
   activeModalIdRef.current = activeModalId;
+  displayedModalsRef.current = displayedModals;
 
   // layersRef now accepts both component types (for screens) and strings (for overlay IDs)
   const layersRef = useRef<Map<LayerOwner, ScreenKeyboardLayer>>(new Map());
@@ -278,10 +281,23 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     (owner: LayerOwner) => {
       let layer = layersRef.current.get(owner);
       if (!layer) {
+        // Determine layer kind from the owner identity.
+        // Ref-based reads in a []-deps callback are deliberate:
+        // the refs are stable; only .current changes at call time.
+        let kind: 'screen' | 'overlay' | 'modal' = 'screen';
+        if (typeof owner === 'string') {
+          if (displayedModalsRef.current.some(m => m.id === owner)) {
+            kind = 'modal';
+          } else if (displayedOverlaysRef.current.some(o => o.id === owner)) {
+            kind = 'overlay';
+          }
+        }
         layer = {
+          kind,
           bindings: [],
           blockedKeys: [],
           stoppedKeys: [],
+          allowedKeys: [],
           globalKeyOverrides: new Set(),
           focusTargets: new Map(),
           focusOrder: [],
@@ -325,6 +341,12 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const owner = getCurrentOwner();
       if (!owner) return () => {};
       const layer = getLayer(owner);
+
+      if(layer.kind !== 'modal'){
+        throw new Error(
+          '[Ink-Cartridge] useModalMissListener() can only be used on a modal layer.',
+        );
+      }
       // Per-layer singleton — the most recent caller wins.
       // If multiple components in the same modal call this hook,
       // only the last one's callback is active.
@@ -348,6 +370,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           bindings: [],
           blockedKeys: [],
           stoppedKeys: [],
+          allowedKeys: [],
           actionKeysMap: new Map(),
         };
         layer.focusTargets.set(focusId, target);
@@ -360,6 +383,48 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       return target;
     },
     [notifyFocusChange],
+  );
+
+  const allowModal = useCallback(
+    (keys: string[], options?: AllowModalOptions): (() => void) => {
+      const owner = getCurrentOwner();
+      if (!owner) {
+        throw new Error('[Ink-Cartridge] allowModal() must be called inside a modal component.');
+      }
+      const layer = getLayer(owner);
+
+      if (layer.kind !== 'modal') {
+        throw new Error(
+          '[Ink-Cartridge] allowModal() can only be used on a modal layer.',
+        );
+      }
+
+      if (options?.focusId) {
+        const target = getOrCreateFocusTarget(layer, options.focusId);
+        const added: string[] = [];
+        for (const k of keys) {
+          if (!target.allowedKeys.some(r => r.key === k)) {
+            target.allowedKeys.push({ key: k });
+            added.push(k);
+          }
+        }
+        return () => {
+          target.allowedKeys = target.allowedKeys.filter(r => !added.includes(r.key));
+        };
+      }
+
+      const added: string[] = [];
+      for (const key of keys) {
+        if (!layer.allowedKeys.some(r => r.key === key)) {
+          layer.allowedKeys.push({ key });
+          added.push(key);
+        }
+      }
+      return () => {
+        layer.allowedKeys = layer.allowedKeys.filter(r => !added.includes(r.key));
+      };
+    },
+    [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
 
   /**
@@ -1206,6 +1271,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       boundSequence,
       enableWildcardPriority,
       useModalMissListener,
+      allowModal,
     }),
     [
       boundKeyboard,
@@ -1237,6 +1303,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       boundSequence,
       enableWildcardPriority,
       useModalMissListener,
+      allowModal,
     ],
   );
 

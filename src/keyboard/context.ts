@@ -4,6 +4,7 @@ import type {
   BoundKeyboardOptions,
   BlockedKeyOptions,
   StopOptions,
+  AllowModalOptions,
   GlobalKeyEntry,
   GlobalSequenceEntry,
   ShortcutOperationEntry,
@@ -74,6 +75,35 @@ export interface KeyboardContextValue {
    *                 stop list.
    */
   stop: (keys: string[], options?: StopOptions) => () => void;
+
+  /**
+   * Allow specific keys to pass through the modal barrier.
+   *
+   * By default, the active modal consumes **every** key event —
+   * even unbound keys — blocking all lower pipeline stages (global keys,
+   * overlays, screen stack). Adding a key to the allow-list makes the
+   * modal processor release that key, letting it fall through to the
+   * next pipeline stage as if the modal were not present.
+   *
+   * Only meaningful when called inside a modal component (where
+   * {@link ModalContext} is set). Throws if called outside a modal.
+   *
+   * @param keys     Key names to allow through the modal barrier.
+   * @param options  If `focusId` is provided, allows only within that
+   *                 focus target.
+   * @returns        An unbind function that removes the keys from the
+   *                 allow list when called.
+   *
+   * @example
+   * ```tsx
+   * // Allow Escape to close the modal by passing through to a
+   * // global-key handler, while everything else stays blocked.
+   * useEffect(() => {
+   *   return allowModal(['escape']);
+   * }, []);
+   * ```
+   */
+  allowModal: (keys: string[], options?: AllowModalOptions) => () => void;
 
   /**
    * Register global key bindings.

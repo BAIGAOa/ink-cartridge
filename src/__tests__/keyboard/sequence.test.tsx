@@ -342,7 +342,7 @@ describe('boundSequence — focusId', () => {
 });
 
 describe('boundSequence — multiple sequences with same first key', () => {
-  it('first registered sequence wins', () => {
+  it('first registered sequence wins when second key matches both (g after g)', () => {
     const handler1 = vi.fn();
     const handler2 = vi.fn();
     const { getKeyboard } = renderKeyboardTree(Menu);
@@ -353,6 +353,93 @@ describe('boundSequence — multiple sequences with same first key', () => {
     pressKey('g');
     expect(handler1).toHaveBeenCalledTimes(1);
     expect(handler2).toHaveBeenCalledTimes(0);
+  });
+
+  it('disambiguates to second sequence when second key only matches the second', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['g', 'g'], handler1);
+    getKeyboard()!.boundSequence(['g', 'x'], handler2);
+
+    pressKey('g');
+    pressKey('x');
+    expect(handler1).not.toHaveBeenCalled();
+    expect(handler2).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels all when second key matches neither sequence', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const normalHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['g', 'g'], handler1);
+    getKeyboard()!.boundSequence(['g', 'x'], handler2);
+    getKeyboard()!.boundKeyboard(['z'], normalHandler);
+
+    pressKey('g');
+    pressKey('z'); // matches neither g nor x
+    expect(handler1).not.toHaveBeenCalled();
+    expect(handler2).not.toHaveBeenCalled();
+    // The 'z' key should fall through to normal bindings
+    expect(normalHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('exclusive mode on one sequence does not participate in disambiguation', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const normalHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    // Non-exclusive first
+    getKeyboard()!.boundSequence(['g', 'g'], handler1);
+    // Exclusive second — will be ignored by disambiguation
+    getKeyboard()!.boundSequence(['g', 'x'], handler2, { exclusive: true });
+    getKeyboard()!.boundKeyboard(['x'], normalHandler);
+
+    pressKey('g');
+    pressKey('x');
+    // Neither sequence fires: handler1 expected 'g' (mismatch),
+    // handler2 is exclusive so it wasn't added to candidates.
+    // The key falls through to normal binding.
+    expect(handler1).not.toHaveBeenCalled();
+    expect(handler2).not.toHaveBeenCalled();
+    expect(normalHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('disambiguates among three sequences sharing the same first key', () => {
+    const hA = vi.fn();
+    const hB = vi.fn();
+    const hC = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['d', 'v'], hA);
+    getKeyboard()!.boundSequence(['d', 'c'], hB);
+    getKeyboard()!.boundSequence(['d', 'd'], hC);
+
+    pressKey('d');
+    pressKey('c');
+    expect(hA).not.toHaveBeenCalled();
+    expect(hB).toHaveBeenCalledTimes(1);
+    expect(hC).not.toHaveBeenCalled();
+  });
+
+  it('repeating the same first-key sequence works after disambiguation', () => {
+    const hA = vi.fn();
+    const hB = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+    getKeyboard()!.boundSequence(['d', 'v'], hA);
+    getKeyboard()!.boundSequence(['d', 'c'], hB);
+
+    // First attempt: d v
+    pressKey('d');
+    pressKey('v');
+    expect(hA).toHaveBeenCalledTimes(1);
+    expect(hB).not.toHaveBeenCalled();
+
+    // Second attempt: d c
+    pressKey('d');
+    pressKey('c');
+    expect(hA).toHaveBeenCalledTimes(1); // still 1
+    expect(hB).toHaveBeenCalledTimes(1);
   });
 });
 

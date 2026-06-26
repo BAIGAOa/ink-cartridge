@@ -55,7 +55,9 @@ export type {
 
 export type {
   BlockedKeyOptions,
+  AllowModalOptions,
   StopOptions,
+  LayerKind,
   FocusTarget,
   SequenceOptions,
   ShortcutOperationEntry,
