@@ -25,6 +25,7 @@ import {
   SequenceOperationEntry,
   ModalMissCallback,
   ModalMissOptions,
+  KeyRule,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 import { buildPipelineContext } from './pipeline/index.js';
@@ -73,6 +74,116 @@ function removeKeysFromActionMap(
 }
 
 /**
+ * Minimal shape shared by {@link ScreenKeyboardLayer} and {@link FocusTarget}
+ * — any object that holds `allowedKeys`, `blockedKeys`, and `stoppedKeys`
+ * as {@link KeyRule} arrays.
+ */
+interface KeyRuleContainer {
+  allowedKeys: KeyRule[];
+  blockedKeys: KeyRule[];
+  stoppedKeys: KeyRule[];
+}
+
+/**
+ * Push key entries into a rule array on `container`, deduplicating by key
+ * name, and return a cleanup function that removes exactly the entries that
+ * were added by this call.
+ *
+ * Used by {@link allowModal}, {@link penetration}, and {@link stop} to
+ * eliminate the repeated bookkeeping pattern across focus-target and
+ * layer-level branches.
+ *
+ * @param container   The object holding the target array (a layer or focus target).
+ * @param property    Which array to operate on.
+ * @param keys        Normalized key names to add.
+ * @param createEntry Factory that builds a {@link KeyRule} for a given key.
+ * @returns           A cleanup callback that removes the added entries.
+ */
+function pushKeyEntries(
+  container: KeyRuleContainer,
+  property: 'allowedKeys' | 'blockedKeys' | 'stoppedKeys',
+  keys: string[],
+  createEntry: (key: string) => KeyRule,
+): () => void {
+  const array = container[property];
+  const added: string[] = [];
+  for (const k of keys) {
+    if (!array.some((r) => r.key === k)) {
+      array.push(createEntry(k));
+      added.push(k);
+    }
+  }
+  return () => {
+    container[property] = array.filter(
+      (r) => !added.includes(r.key),
+    );
+  };
+}
+
+// ── Pure helpers for shortcut / sequence action CRUD ──────────────────
+// Both shortcutOperationsRef and sequenceOperationsRef share the same
+// Map<string, { action, keys?, timeout? }> shape.  The CRUD callbacks
+// below differ only in which ref they target and the error-message label.
+// These three functions eliminate that duplication.
+// @2026-06-27 v3.8.0
+
+/**
+ * Insert a value into the map, throwing if the id already exists.
+ * Used by addAction / addSequenceAction and the inner loops of
+ * defineShortcutAction / defineSequenceAction.
+ */
+function setIfAbsent<T>(
+  map: Map<string, T>,
+  id: string,
+  value: T,
+  duplicateMessage: string,
+): void {
+  if (map.has(id)) {
+    throw new Error(duplicateMessage);
+  }
+  map.set(id, value);
+}
+
+/**
+ * Delete an entry from the map, throwing if the id is not registered.
+ * Used by removeAction / removeSequenceAction.
+ */
+function deleteIfPresent(
+  map: Map<string, unknown>,
+  id: string,
+  notFoundMessage: string,
+): void {
+  if (!map.has(id)) {
+    throw new Error(notFoundMessage);
+  }
+  map.delete(id);
+}
+
+/**
+ * Retrieve an entry and overwrite its keys, throwing when the entry or
+ * its preset keys are missing.  Returns the entry so callers can apply
+ * additional mutations (e.g. timeout for sequence actions).
+ * Used by modifyAction / modifySequenceAction.
+ */
+function modifyEntryKeys<T extends { keys?: string[] }>(
+  map: Map<string, T>,
+  id: string,
+  keys: string[],
+  notFoundMessage: string,
+  noKeysMessage: string,
+): T {
+  const entry = map.get(id);
+  if (!entry) {
+    throw new Error(notFoundMessage);
+  }
+  if (entry.keys === undefined) {
+    throw new Error(noKeysMessage);
+  }
+  entry.keys = keys;
+  return entry;
+}
+
+/**
  * Clear all registered shortcut operations.
  *
  * NOTE: Since the refactoring to per-instance useRef state, this function
@@ -85,6 +196,86 @@ function removeKeysFromActionMap(
  */
 export function clearShortcutOperations(): void {
   // No-op: state is now per-instance via useRef inside KeyboardProvider
+}
+
+/**
+ * Finalize a bound keyboard entry: register action-key mappings (when the
+ * handler is a string action ID), create an unbind closure that cleans up
+ * the binding and global-key overrides, and optionally wrap the handler with
+ * times/once lifecycle.
+ *
+ * Extracted from {@link boundKeyboard} to eliminate the duplicate 36‑line
+ * block that previously appeared identically in both the focus‑target and
+ * layer‑level branches.
+ *
+ * @param bindingsArray  The array the entry was pushed into
+ *                       ({@link ScreenKeyboardLayer.bindings} or
+ *                       focus‑target bindings).
+ * @param actionKeysMap  The corresponding action‑keys map.
+ * @param layer          The enclosing screen keyboard layer.
+ * @param entry          The binding entry just created.
+ * @param handler        Original handler (function or action‑ID string).
+ * @param keys           Normalized key names.
+ * @param options        Original {@link BoundKeyboardOptions}.
+ * @returns              An unbind function that reverses the registration.
+ * @2026-06-27 v3.8.0
+ */
+function finalizeBoundKeyboard(
+  bindingsArray: BoundKeyEntry[],
+  actionKeysMap: Map<string, string[]>,
+  layer: ScreenKeyboardLayer,
+  entry: BoundKeyEntry,
+  handler: KeyHandler | string,
+  keys: string[],
+  options?: BoundKeyboardOptions,
+): () => void {
+  // If handler is a string (actionId), register the keys in the
+  // actionKeysMap so that stop({ stopAction: true }) and modifyAction()
+  // can later resolve the action to its bound keys.
+  if (typeof handler === 'string') {
+    const existing = actionKeysMap.get(handler) || [];
+    for (const k of keys) {
+      if (!existing.includes(k)) existing.push(k);
+    }
+    actionKeysMap.set(handler, existing);
+  }
+
+  const doUnbind = () => {
+    const idx = bindingsArray.indexOf(entry);
+    if (idx !== -1) bindingsArray.splice(idx, 1);
+    cleanupGlobalKeyOverrides(layer, entry.keys);
+    if (typeof handler === 'string') {
+      removeKeysFromActionMap(actionKeysMap, handler, keys);
+    }
+  };
+
+  // Wrap handler with times / once lifecycle when requested.
+  if (options?.times !== undefined && options.times >= 1) {
+    entry.times = options.times;
+    entry.pressCount = 0;
+    entry.observer = options?.observer;
+    const originalHandler = entry.handler;
+    entry.handler = (input: string, key: Key) => {
+      entry.pressCount! += 1;
+      entry.observer?.(entry.times! - entry.pressCount!);
+      if (entry.pressCount! < entry.times!) {
+        return;
+      }
+      entry.pressCount = 0;
+      if (options?.once) {
+        doUnbind();
+      }
+      originalHandler(input, key);
+    };
+  } else if (options?.once) {
+    const originalHandler = entry.handler;
+    entry.handler = (input: string, key: Key) => {
+      doUnbind();
+      originalHandler(input, key);
+    };
+  }
+
+  return doUnbind;
 }
 
 export interface KeyboardProviderProps {
@@ -399,30 +590,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         );
       }
 
-      if (options?.focusId) {
-        const target = getOrCreateFocusTarget(layer, options.focusId);
-        const added: string[] = [];
-        for (const k of keys) {
-          if (!target.allowedKeys.some(r => r.key === k)) {
-            target.allowedKeys.push({ key: k });
-            added.push(k);
-          }
-        }
-        return () => {
-          target.allowedKeys = target.allowedKeys.filter(r => !added.includes(r.key));
-        };
-      }
-
-      const added: string[] = [];
-      for (const key of keys) {
-        if (!layer.allowedKeys.some(r => r.key === key)) {
-          layer.allowedKeys.push({ key });
-          added.push(key);
-        }
-      }
-      return () => {
-        layer.allowedKeys = layer.allowedKeys.filter(r => !added.includes(r.key));
-      };
+      const container: KeyRuleContainer = options?.focusId
+        ? getOrCreateFocusTarget(layer, options.focusId)
+        : layer;
+      return pushKeyEntries(container, 'allowedKeys', keys, (key) => ({ key }));
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
@@ -440,6 +611,14 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * 2. (actionId: string, options: BoundKeyboardOptions)
    *    — uses the action's predefined keys
    */
+  // Ref-based self-reference: the actionId overload resolves & recurses
+  // back into boundKeyboard itself.  A plain useCallback cannot reference
+  // its own binding (react-hooks/immutability), so we keep the latest
+  // callback identity in a ref and call through it.
+  const boundKeyboardSelfRef = useRef<
+    (keysOrActionId: string | string[], handlerOrOptions: KeyHandler | string | BoundKeyboardOptions, maybeOptions?: BoundKeyboardOptions) => () => void
+  >(undefined);
+
   const boundKeyboard = useCallback(
     (
       keysOrActionId: string | string[],
@@ -538,7 +717,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
             `[Ink-Cartridge] Action "${actionId}" does not have predefined keys. Please register with keys field or call boundKeyboard with explicit keys.`,
           );
         }
-        return boundKeyboard(entry.keys, actionId, options);
+        return boundKeyboardSelfRef.current!(entry.keys, actionId, options);
       }
 
       // 原有调用方式
@@ -579,51 +758,15 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
         target.bindings.push(entry);
 
-        // 如果 handler 是字符串（actionId），将 keys 注册到 focus target 的 actionKeysMap
-        if (typeof handler === 'string') {
-          const existing = target.actionKeysMap.get(handler) || [];
-          for (const k of keys) {
-            if (!existing.includes(k)) existing.push(k);
-          }
-          target.actionKeysMap.set(handler, existing);
-        }
-
-        const doUnbind = () => {
-          const idx = target!.bindings.indexOf(entry);
-          if (idx !== -1) target!.bindings.splice(idx, 1);
-          cleanupGlobalKeyOverrides(layer, entry.keys);
-          if (typeof handler === 'string') {
-            removeKeysFromActionMap(target!.actionKeysMap, handler, keys);
-          }
-        };
-
-        // Apply times and/or once wrappers
-        if (options?.times !== undefined && options.times >= 1) {
-          entry.times = options.times;
-          entry.pressCount = 0;
-          entry.observer = options?.observer;
-          const originalHandler = entry.handler;
-          entry.handler = (input: string, key: Key) => {
-            entry.pressCount! += 1;
-            entry.observer?.(entry.times! - entry.pressCount!);
-            if (entry.pressCount! < entry.times!) {
-              return;
-            }
-            entry.pressCount = 0;
-            if (options?.once) {
-              doUnbind();
-            }
-            originalHandler(input, key);
-          };
-        } else if (options?.once) {
-          const originalHandler = entry.handler;
-          entry.handler = (input: string, key: Key) => {
-            doUnbind();
-            originalHandler(input, key);
-          };
-        }
-
-        return doUnbind;
+        return finalizeBoundKeyboard(
+          target.bindings,
+          target.actionKeysMap,
+          layer,
+          entry,
+          handler,
+          keys,
+          options,
+        );
       }
 
       applyGlobalKeyOverrides(keys, owner, layer, 'boundKeyboard');
@@ -633,54 +776,20 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
       layer.bindings.push(entry);
 
-      // 如果 handler 是字符串（actionId），将 keys 注册到 layer 的 actionKeysMap
-      if (typeof handler === 'string') {
-        const existing = layer.actionKeysMap.get(handler) || [];
-        for (const k of keys) {
-          if (!existing.includes(k)) existing.push(k);
-        }
-        layer.actionKeysMap.set(handler, existing);
-      }
-
-      const doUnbind = () => {
-        const idx = layer.bindings.indexOf(entry);
-        if (idx !== -1) layer.bindings.splice(idx, 1);
-        cleanupGlobalKeyOverrides(layer, entry.keys);
-        if (typeof handler === 'string') {
-          removeKeysFromActionMap(layer.actionKeysMap, handler, keys);
-        }
-      };
-
-      // Apply times and/or once wrappers
-      if (options?.times !== undefined && options.times >= 1) {
-        entry.times = options.times;
-        entry.pressCount = 0;
-        entry.observer = options?.observer;
-        const originalHandler = entry.handler;
-        entry.handler = (input: string, key: Key) => {
-          entry.pressCount! += 1;
-          entry.observer?.(entry.times! - entry.pressCount!);
-          if (entry.pressCount! < entry.times!) {
-            return;
-          }
-          entry.pressCount = 0;
-          if (options?.once) {
-            doUnbind();
-          }
-          originalHandler(input, key);
-        };
-      } else if (options?.once) {
-        const originalHandler = entry.handler;
-        entry.handler = (input: string, key: Key) => {
-          doUnbind();
-          originalHandler(input, key);
-        };
-      }
-
-      return doUnbind;
+      return finalizeBoundKeyboard(
+        layer.bindings,
+        layer.actionKeysMap,
+        layer,
+        entry,
+        handler,
+        keys,
+        options,
+      );
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
+
+  boundKeyboardSelfRef.current = boundKeyboard;
 
   /**
    * Mark keys as transparent on the current layer.
@@ -694,32 +803,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const layer = getLayer(owner);
       const compiledWhen = options?.when;
 
-      if (options?.focusId) {
-        const target = getOrCreateFocusTarget(layer, options.focusId);
-        const added: string[] = [];
-        for (const k of keys) {
-          const exists = target.blockedKeys.some((r) => r.key === k);
-          if (!exists) {
-            target.blockedKeys.push({ key: k, when: compiledWhen });
-            added.push(k);
-          }
-        }
-        return () => {
-          target.blockedKeys = target.blockedKeys.filter((r) => !added.includes(r.key));
-        };
-      }
-
-      const added: string[] = [];
-      for (const k of keys) {
-        const exists = layer.blockedKeys.some((r) => r.key === k);
-        if (!exists) {
-          layer.blockedKeys.push({ key: k, when: compiledWhen });
-          added.push(k);
-        }
-      }
-      return () => {
-        layer.blockedKeys = layer.blockedKeys.filter((r) => !added.includes(r.key));
-      };
+      const container: KeyRuleContainer = options?.focusId
+        ? getOrCreateFocusTarget(layer, options.focusId)
+        : layer;
+      return pushKeyEntries(container, 'blockedKeys', keys, (key) => ({
+        key,
+        when: compiledWhen,
+      }));
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
@@ -761,32 +851,13 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
       const compiledWhen = options?.when;
 
-      if (options?.focusId) {
-        const target = getOrCreateFocusTarget(layer, options.focusId);
-        const added: string[] = [];
-        for (const k of effectiveKeys) {
-          const exists = target.stoppedKeys.some((r) => r.key === k);
-          if (!exists) {
-            target.stoppedKeys.push({ key: k, when: compiledWhen });
-            added.push(k);
-          }
-        }
-        return () => {
-          target.stoppedKeys = target.stoppedKeys.filter((r) => !added.includes(r.key));
-        };
-      } else {
-        const added: string[] = [];
-        for (const k of effectiveKeys) {
-          const exists = layer.stoppedKeys.some((r) => r.key === k);
-          if (!exists) {
-            layer.stoppedKeys.push({ key: k, when: compiledWhen });
-            added.push(k);
-          }
-        }
-        return () => {
-          layer.stoppedKeys = layer.stoppedKeys.filter((r) => !added.includes(r.key));
-        };
-      }
+      const container: KeyRuleContainer = options?.focusId
+        ? getOrCreateFocusTarget(layer, options.focusId)
+        : layer;
+      return pushKeyEntries(container, 'stoppedKeys', effectiveKeys, (key) => ({
+        key,
+        when: compiledWhen,
+      }));
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
@@ -806,6 +877,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    *                  `focusId`, `exclusive` (default false).
    * @returns         An unbind function that removes the sequence binding.
    */
+  // Same ref-based self-reference pattern as boundKeyboard above.
+  const boundSequenceSelfRef = useRef<
+    (keysOrActionId: string[] | string, handlerOrOptions?: KeyHandler | SequenceOptions, maybeOptions?: SequenceOptions) => () => void
+  >(undefined);
+
   const boundSequence = useCallback(
     (
       keysOrActionId: string[] | string,
@@ -833,7 +909,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           ...(entry.timeout !== undefined ? { timeout: entry.timeout } : {}),
           ...options,
         };
-        return boundSequence(entry.keys, entry.action, mergedOptions);
+        return boundSequenceSelfRef.current!(entry.keys, entry.action, mergedOptions);
       }
 
       const keys = Array.isArray(keysOrActionId) ? keysOrActionId : [keysOrActionId];
@@ -911,6 +987,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     },
     [getCurrentOwner, getLayer],
   );
+
+  boundSequenceSelfRef.current = boundSequence;
 
   const subscribeFocus = useCallback((listener: () => void) => {
     focusSubscribersRef.current.add(listener);
@@ -1121,81 +1199,58 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
 
   const defineShortcutAction = useCallback((entries: ShortcutOperationEntry[]) => {
     for (const each of entries) {
-      if (shortcutOperationsRef.current.has(each.actionId)) {
-        throw new Error(`[Ink-Cartridge]Duplicate shortcut cannot be defined with ID ${each.actionId}`)
-      }
-      shortcutOperationsRef.current.set(each.actionId, {
+      setIfAbsent(shortcutOperationsRef.current, each.actionId, {
         action: each.action,
         keys: each.keys,
-      })
+      }, `[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${each.actionId}`);
     }
-  }, [])
+  }, []);
 
   const defineSequenceAction = useCallback((entries: SequenceOperationEntry[]) => {
-    for(const each of entries){
-      if(sequenceOperationsRef.current.has(each.sequenceActionId)){
-        throw new Error(
-          `[Ink-Cartridge]Sequence Action ${each.sequenceActionId} may not be defined repeatedly`
-        )
-      }
-      sequenceOperationsRef.current.set(each.sequenceActionId, {
+    for (const each of entries) {
+      setIfAbsent(sequenceOperationsRef.current, each.sequenceActionId, {
         action: each.action,
         keys: each.keys,
         timeout: each.timeout,
-      })
+      }, `[Ink-Cartridge] Sequence Action ${each.sequenceActionId} may not be defined repeatedly`);
     }
-  }, [] )
+  }, []);
 
 
   const modifySequenceAction = useCallback((actionId: string, keys: string[], timeout?: number) => {
-    const entry = sequenceOperationsRef.current.get(actionId)
-    if(!entry){
-      throw new Error(
-        `[Ink-Cartridge]Key not registered to Sequence Action cannot be modified, target ID is ${actionId}`
-      )
-    }
-    if(entry.keys === undefined){
-      throw new Error(
-        `[Ink-Cartridge]The target Sequence Action has no preset Keys. You cannot modify it. The ID is ${actionId}.`
-      )
-    }
-
-    entry.keys = keys
-    
-    if(timeout){
-      if(entry.timeout === undefined){
+    const entry = modifyEntryKeys(
+      sequenceOperationsRef.current,
+      actionId,
+      keys,
+      `[Ink-Cartridge] Key not registered to Sequence Action cannot be modified, target ID is ${actionId}`,
+      `[Ink-Cartridge] The target Sequence Action has no preset Keys. You cannot modify it. The ID is ${actionId}.`,
+    );
+    if (timeout) {
+      if (entry.timeout === undefined) {
         throw new Error(
-          `[Ink-Cartridge]Target Sequence Action has no default Timeout, you cannot modify, ID is ${actionId}`
-        )
+          `[Ink-Cartridge] Target Sequence Action has no default Timeout, you cannot modify, ID is ${actionId}`,
+        );
       }
-      
-      entry.timeout = timeout
+      entry.timeout = timeout;
     }
-    
-  }, [])
+  }, []);
 
   const modifyAction = useCallback((actionId: string, keys: string[]) => {
-    const entry = shortcutOperationsRef.current.get(actionId);
-    if (!entry) {
-      throw new Error(`[Ink-Cartridge] Cannot modify action "${actionId}": action not registered.`);
-    }
-    if (entry.keys === undefined) {
-      throw new Error(`[Ink-Cartridge] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`);
-    }
-    entry.keys = keys;
+    modifyEntryKeys(
+      shortcutOperationsRef.current,
+      actionId,
+      keys,
+      `[Ink-Cartridge] Cannot modify action "${actionId}": action not registered.`,
+      `[Ink-Cartridge] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`,
+    );
   }, []);
 
   const addSequenceAction = useCallback((entry: SequenceOperationEntry) => {
-    if (sequenceOperationsRef.current.has(entry.sequenceActionId)) {
-      throw new Error(
-        `[Ink-Cartridge] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`,
-      );
-    }
-    sequenceOperationsRef.current.set(entry.sequenceActionId, {
+    setIfAbsent(sequenceOperationsRef.current, entry.sequenceActionId, {
       action: entry.action,
       keys: entry.keys,
       timeout: entry.timeout,
-    });
+    }, `[Ink-Cartridge] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`);
   }, []);
 
   const hasSequenceAction = useCallback((sequenceActionId: string): boolean => {
@@ -1203,12 +1258,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, []);
 
   const removeSequenceAction = useCallback((sequenceActionId: string) => {
-    if (!sequenceOperationsRef.current.has(sequenceActionId)) {
-      throw new Error(
-        `[Ink-Cartridge] Cannot remove sequence action "${sequenceActionId}": action not registered.`,
-      );
-    }
-    sequenceOperationsRef.current.delete(sequenceActionId);
+    deleteIfPresent(sequenceOperationsRef.current, sequenceActionId, `[Ink-Cartridge] Cannot remove sequence action "${sequenceActionId}": action not registered.`);
   }, []);
 
   const clearSequenceOperations = useCallback(() => {
@@ -1216,13 +1266,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, []);
 
   const addAction = useCallback((entry: ShortcutOperationEntry) => {
-    if (shortcutOperationsRef.current.has(entry.actionId)) {
-      throw new Error(`[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
-    }
-    shortcutOperationsRef.current.set(entry.actionId, {
+    setIfAbsent(shortcutOperationsRef.current, entry.actionId, {
       action: entry.action,
       keys: entry.keys,
-    });
+    }, `[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
   }, []);
 
   const hasAction = useCallback((actionId: string): boolean => {
@@ -1230,10 +1277,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   }, []);
 
   const removeAction = useCallback((actionId: string) => {
-    if (!shortcutOperationsRef.current.has(actionId)) {
-      throw new Error(`[Ink-Cartridge] Cannot remove action "${actionId}": action not registered.`);
-    }
-    shortcutOperationsRef.current.delete(actionId);
+    deleteIfPresent(shortcutOperationsRef.current, actionId, `[Ink-Cartridge] Cannot remove action "${actionId}": action not registered.`);
   }, []);
 
   const clearShortcutOperations = useCallback(() => {
