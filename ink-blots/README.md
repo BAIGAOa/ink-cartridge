@@ -11,15 +11,6 @@ The name comes from the **Rorschach inkblot test**: you stare at the blot (the a
 
 Examples teach. Ink-blots break things.
 
-## What each project targets
-
-| Project | Primary | Also hits |
-|---|---|---|
-| **snake** | rapid input, lifecycle | overlay (pause), ConfirmDialog |
-| **form-wizard** | Form + Field + validation | NumberInput edges, ConfirmDialog |
-| **dungeon** | deep nav, gotoScreen | back(levels), overlay |
-| **text-adventure** | SearchInput, sequences | disambiguation, nav |
-| **tower-defense** | everything at once | — |
 
 Each project's README logs bugs found, how to reproduce, and whether they're fixed.
 
