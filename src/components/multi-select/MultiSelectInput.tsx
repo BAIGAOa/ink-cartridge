@@ -312,7 +312,7 @@ export function MultiSelectInput<T, I extends Item<T> = Item<T>>({
   // Unregister old focus target when focusId changes
   useEffect(() => {
     return () => focusUnregister(focusId);
-  }, [focusId]);
+  }, [focusId, focusUnregister]);
 
   // 注册键盘绑定
   useEffect(() => {

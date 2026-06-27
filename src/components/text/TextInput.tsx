@@ -184,7 +184,7 @@ export function TextInput({
   // 焦点目标生命周期 — focusId 变化时注销旧的，新的由绑定 effect 创建
   useEffect(() => {
     return () => focusUnregister(focusId);
-  }, [focusId]);
+  }, [focusId, focusUnregister]);
 
   // 注册键盘绑定（仅在获得焦点时生效）
   useEffect(() => {

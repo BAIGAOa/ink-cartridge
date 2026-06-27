@@ -7,9 +7,74 @@ import { DevProps } from "./types.js";
 import { registerComponent } from "../screen/registry.js";
 import { closeDevTool } from "./entrance.js";
 import GlobalKeyDisplayBox from "./globalKey-display.js";
+import LayerKeyDisplayBox from "./layerKey-display.js";
 
 
 const PANEL_HEIGHT = 30;
+
+// ---- Inline keyboard-layer summary displayed inside DevScreen ----
+
+interface LayerSummaryProps {
+  topComponent: React.ComponentType<any>;
+  readLayer: (owner: React.ComponentType<any> | string) => import('../keyboard/types.js').ScreenKeyboardLayer | undefined;
+}
+
+function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
+  const layer = readLayer(topComponent);
+  if (!layer) {
+    return (
+      <Box paddingY={1}>
+        <Text color="gray">No keyboard layer for this screen.</Text>
+      </Box>
+    );
+  }
+
+  const bindKeys = layer.bindings.map(b => b.keys.join(',')).join(' ');
+  const seqCount = [...layer.sequences.values()].reduce((s, a) => s + a.length, 0);
+  const seqFirstKeys = [...layer.sequences.keys()].join(' ');
+  const stopped = layer.stoppedKeys.map(r =>
+    Array.isArray(r.key) ? (r.key as string[]).join(',') : r.key
+  ).join(' ');
+  const blocked = layer.blockedKeys.map(r =>
+    Array.isArray(r.key) ? (r.key as string[]).join(',') : r.key
+  ).join(' ');
+
+  return (
+    <Box flexDirection="column" paddingY={1}>
+      <Box flexDirection="row" paddingBottom={1}>
+        <Text color="cyan">Focus: </Text>
+        <Text color={layer.currentFocusId ? 'green' : 'gray'}>
+          {layer.currentFocusId || 'none'}
+        </Text>
+      </Box>
+      <Box flexDirection="row">
+        <Text color="cyan">Bind ({layer.bindings.length}): </Text>
+        <Text dimColor>{bindKeys || '—'}</Text>
+      </Box>
+      {seqCount > 0 && (
+        <Box flexDirection="row">
+          <Text color="cyan">Seq ({seqCount}): </Text>
+          <Text dimColor>{seqFirstKeys}</Text>
+          {layer.pendingSequence && (
+            <Text color="yellow">  [pending: {layer.pendingSequence.sequences.join(',')}]</Text>
+          )}
+        </Box>
+      )}
+      {stopped && (
+        <Box flexDirection="row">
+          <Text color="red">Stopped: </Text>
+          <Text dimColor>{stopped}</Text>
+        </Box>
+      )}
+      {blocked && (
+        <Box flexDirection="row">
+          <Text color="gray">Blocked: </Text>
+          <Text dimColor>{blocked}</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
 
 /**
  * Developer debugging modal for the ink-cartridge screen system.
@@ -52,7 +117,7 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
     modalQueue,
     activeModalId,
   } = useScreenSystem()
-  const { boundKeyboard } = useKeyboard()
+  const { boundKeyboard, readLayer } = useKeyboard()
   const modalId = useContext(ModalContext)
   const { rows } = useWindowSize()
   const { openModal } = useScreenSystem()
@@ -66,6 +131,11 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
   const clampTopRef = useRef((next: number) => next)
   clampTopRef.current = (next: number) =>
     Math.max(0, Math.min(next, rows - PANEL_HEIGHT))
+
+  // Keep a stable ref to currentPath so the []-deps keyboard effect
+  // always reads the latest screen for Ctrl+K layer inspection.
+  const currentPathRef = useRef(currentPath)
+  currentPathRef.current = currentPath
 
   useModalMissListener(
     useCallback((evt) => {
@@ -100,18 +170,24 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
     const u4 = boundKeyboard(['ctrl+g'], () => {
       openModal('__global-display__', GlobalKeyDisplayBox, {
         top: initialTop + 3,
-        // Add three to prevent complete coverage of the DevBox from fragmenting the visual experience
         left: left
       })
-      // Actually, we don't need to pass in zindex here.
-      // Because the current mechanism is that when no zindex is passed, the following modal box overwrites the preceding modal box by default
-      // And our automatic activation mechanism ensures that it is also the one in the highest mode box.
+    })
+    const u5 = boundKeyboard(['ctrl+k'], () => {
+      const path = currentPathRef.current;
+      const topComponent = path[path.length - 1];
+      openModal('__layer-display__', LayerKeyDisplayBox, {
+        top: initialTop + 3,
+        left: left,
+        screenComponent: topComponent,
+      })
     })
     return () => {
       u1()
       u2()
       u3()
       u4()
+      u5()
     }
   }, [modalId])
 
@@ -197,10 +273,13 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
         <Text color="blue" dimColor>{"─".repeat(60)}</Text>
       </Box>
 
+      {/* Keyboard layer summary */}
+      <LayerSummary topComponent={currentPath[currentPath.length - 1]} readLayer={readLayer} />
+
       {/* Info area */}
       <Box flexDirection="column">
         <Text dimColor>
-          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc CloseI | Ctrl + G GlobalKeys Display
+          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc Close | Ctrl+G GlobalKeys | Ctrl+K LayerKeys
         </Text>
         <Text dimColor>
           Top: {offsetTop}/{rows - PANEL_HEIGHT}

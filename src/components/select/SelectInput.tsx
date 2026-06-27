@@ -142,7 +142,7 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
   // Unregister old focus target when focusId changes
   useEffect(() => {
     return () => focusUnregister(focusId);
-  }, [focusId]);
+  }, [focusId, focusUnregister]);
 
   useEffect(() => {
     const fid = focusId;

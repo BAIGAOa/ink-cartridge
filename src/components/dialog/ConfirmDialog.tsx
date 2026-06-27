@@ -66,7 +66,7 @@ export function ConfirmDialog({
       focusUnregister('dialog-confirm');
       focusUnregister('dialog-cancel');
     };
-  }, []);
+  }, [boundKeyboard, focusSet, focusUnregister]);
 
   return (
     <Box

@@ -23,7 +23,7 @@ export function SearchInput({
   useEffect(() => {
     const unEsc = boundKeyboard(['escape'], () => onChange(''), { focusId });
     return () => { unEsc(); };
-  }, [focusId, onChange]);
+  }, [focusId, onChange, boundKeyboard]);
 
   return (
     <Box>

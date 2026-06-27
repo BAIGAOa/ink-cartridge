@@ -39,7 +39,7 @@ export function Field({ name, children, rules, defaultValue, focusId }: FieldPro
   useEffect(() => {
     registerField(name, defaultValue, rules, effectiveFocusId);
     return () => unregisterField(name);
-  }, [name, registerField, unregisterField]);
+  }, [name, defaultValue, rules, effectiveFocusId, registerField, unregisterField]);
 
   /**
    * Stable onChange handler — calls Form's setFieldValue,
@@ -57,16 +57,17 @@ export function Field({ name, children, rules, defaultValue, focusId }: FieldPro
    * components on the initial render.
    */
   const resolvedValue = values[name] !== undefined ? values[name] : (defaultValue ?? '');
+  const error = errors[name];
 
   /** Memoize the render props to avoid unnecessary re-renders. */
   const fieldProps = useMemo(
     () => ({
       value: resolvedValue,
-      error: errors[name],
+      error,
       onChange,
       focusId: effectiveFocusId,
     }),
-    [resolvedValue, errors[name], onChange, effectiveFocusId],
+    [resolvedValue, error, onChange, effectiveFocusId],
   );
 
   return <>{children(fieldProps)}</>;

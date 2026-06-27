@@ -45,6 +45,7 @@ function Menu() {
         gameOpenRef.current = true
       }
     })
+    const u3 = boundKeyboard(['1'], () => skip(Scene1, {}))
     boundSequence(['d', 'v'], () => skip(Setting, {}), {})
     boundSequence(['d', 'c'], () => {
       openModal('console', ConsoleModal, {
@@ -55,6 +56,7 @@ function Menu() {
     return () => {
       s1()
       u2()
+      u3()
       // Do not release ctrl + d , Because we want the settings interface to naturally use the development panel as well.
       // But the best practice is to use the globalKeys API override
     }
@@ -63,7 +65,7 @@ function Menu() {
   return (
     <Box flexDirection="column" height={rows} width='100%'>
       <Text bold>Main Menu</Text>
-      <Text>[S] Start Game  [O] Settings</Text>
+      <Text>[1] Scene1 (Global Sequence Disambiguation)  [S] Start Game  [O] Settings</Text>
       <Text dimColor>[Ctrl+D] Toggle Dev Panel</Text>
     </Box>
   );
@@ -144,6 +146,54 @@ function Setting() {
 registerComponent(Setting, {}, {
   parent: Menu
 })
+
+
+function Scene1(){
+  const { rows } = useWindowSize()
+  const { back } = useScreenSystem()
+  const { globalSequence, boundKeyboard } = useKeyboard()
+  const [message, setMessage] = React.useState<string | null>(null)
+
+  useEffect(() => {
+    // Two global sequences sharing the same first key 'g' —
+    // the disambiguation mechanism picks the right one based
+    // on the second key pressed.
+    globalSequence([
+      { keys: ['g', 'g'], operate: () => setMessage('YOU PRESS GG') },
+      { keys: ['g', 'b'], operate: () => setMessage('YOU PRESS GB') },
+    ])
+    // globalSequence returns void — clear on unmount with empty array.
+
+    const uBack = boundKeyboard(['escape'], () => back())
+    
+    return () => {
+      globalSequence([])
+      uBack()
+    }
+  }, [])
+
+  return(
+    <Box
+      borderStyle='bold'
+      borderColor='cyan'
+      height={rows}
+      width='100%'
+      justifyContent='center'
+      alignItems='center'
+      flexDirection='column'
+    >
+      <Text bold color='cyan'>Scene1 — Global Sequence Disambiguation</Text>
+      <Text dimColor>Press [g, g] or [g, b]</Text>
+      {message && (
+        <Box marginTop={1} borderStyle='round' borderColor='green' paddingX={2}>
+          <Text bold color='green'>{message}</Text>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+registerComponent(Scene1, {}, { parent: Menu })
 
 
 function Console({ top, left }: { top: number, left: number }) {

@@ -13,6 +13,7 @@ import type {
   ModalMissCallback,
   ModalMissOptions,
   ResolvedGlobalKeyEntry,
+  ScreenKeyboardLayer,
 } from "./types.js";
 
 /**
@@ -461,6 +462,22 @@ export interface KeyboardContextValue {
     cb: ModalMissCallback,
     options?: ModalMissOptions,
   ) => () => void;
+
+  /**
+   * Read the keyboard layer for a given owner without creating one.
+   *
+   * Returns the {@link ScreenKeyboardLayer} associated with the component
+   * type (for screens) or string ID (for overlays / modals), or `undefined`
+   * if no layer has been created for that owner yet.
+   *
+   * Unlike the internal `getLayer`, this is a pure read — it never creates
+   * a new layer. This bypasses the owner stack, so callers can inspect any
+   * layer regardless of their current overlay / modal context.
+   *
+   * @param owner - A component type or overlay/modal string ID.
+   * @returns The layer data, or `undefined`.
+   */
+  readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
 }
 
 /**

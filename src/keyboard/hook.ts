@@ -38,28 +38,33 @@ export function useKeyboard(): KeyboardContextValue {
   // When inside an overlay, push the overlay ID as the current owner so
   // that boundKeyboard, blockedKey, stop, and focus functions operate on
   // the overlay's own keyboard layer instead of the screen's layer.
+  //
+  // Destructuring _pushOwner / _popOwner to local variables gives ESLint a
+  // simple identifier to include in the dependency array (avoiding the need
+  // to list `ctx` as a whole, which would broaden the effect trigger).
+  const { _pushOwner, _popOwner } = ctx;
   useEffect(() => {
     if (overlayId) {
-      ctx._pushOwner(overlayId);
+      _pushOwner(overlayId);
       return () => {
-        ctx._popOwner(overlayId);
+        _popOwner(overlayId);
       };
     }
     return;
-  }, [overlayId, ctx._pushOwner, ctx._popOwner]);
+  }, [overlayId, _pushOwner, _popOwner]);
 
   // Manage the owner stack for modal isolation (symmetric to overlay).
   // When inside a modal, push the modal ID as the current owner so that
   // keyboard functions operate on the modal's own layer.
   useEffect(() => {
     if (modalId) {
-      ctx._pushOwner(modalId);
+      _pushOwner(modalId);
       return () => {
-        ctx._popOwner(modalId);
+        _popOwner(modalId);
       };
     }
     return;
-  }, [modalId, ctx._pushOwner, ctx._popOwner]);
+  }, [modalId, _pushOwner, _popOwner]);
 
   return ctx;
 }

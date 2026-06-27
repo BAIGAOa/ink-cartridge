@@ -461,3 +461,123 @@ describe('globalSequence — mode: add vs replace', () => {
     expect(handler2).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('globalSequence — disambiguation (multiple sequences with same first key)', () => {
+  it('second key matches first sequence, first fires', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['g', 'g'], operate: handler1 },
+      { keys: ['g', 'x'], operate: handler2 },
+    ]);
+
+    pressKey('g');
+    pressKey('g');
+    expect(handler1).toHaveBeenCalledTimes(1);
+    expect(handler2).toHaveBeenCalledTimes(0);
+  });
+
+  it('second key matches second sequence, disambiguates to second', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['g', 'g'], operate: handler1 },
+      { keys: ['g', 'x'], operate: handler2 },
+    ]);
+
+    pressKey('g');
+    pressKey('x');
+    expect(handler1).toHaveBeenCalledTimes(0);
+    expect(handler2).toHaveBeenCalledTimes(1);
+  });
+
+  it('second key matches neither, both cancelled and key falls through to globalKeys', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const globalKeyHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['g', 'g'], operate: handler1 },
+      { keys: ['g', 'x'], operate: handler2 },
+    ]);
+    getKeyboard()!.globalKeys([
+      { key: 'z', operate: globalKeyHandler },
+    ]);
+
+    pressKey('g');
+    pressKey('z');
+    expect(handler1).toHaveBeenCalledTimes(0);
+    expect(handler2).toHaveBeenCalledTimes(0);
+    expect(globalKeyHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('exclusive sequence does NOT participate in candidate disambiguation', () => {
+    const handler1 = vi.fn();
+    const handler2 = vi.fn();
+    const globalKeyHandler = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['g', 'g'], operate: handler1 },
+      { keys: ['g', 'x'], operate: handler2, exclusive: true },
+    ]);
+    getKeyboard()!.globalKeys([
+      { key: 'x', operate: globalKeyHandler },
+    ]);
+
+    pressKey('g');
+    // handler2 is exclusive, so not in candidates.
+    // 'x' mismatches handler1, no candidates → cancel.
+    // 'x' falls through to globalKeys.
+    pressKey('x');
+    expect(handler1).toHaveBeenCalledTimes(0);
+    expect(handler2).toHaveBeenCalledTimes(0);
+    expect(globalKeyHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('three sequences disambiguate correctly', () => {
+    const hA = vi.fn();
+    const hB = vi.fn();
+    const hC = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['d', 'v'], operate: hA },
+      { keys: ['d', 'c'], operate: hB },
+      { keys: ['d', 'd'], operate: hC },
+    ]);
+
+    pressKey('d');
+    pressKey('c');
+    expect(hA).not.toHaveBeenCalled();
+    expect(hB).toHaveBeenCalledTimes(1);
+    expect(hC).not.toHaveBeenCalled();
+  });
+
+  it('after successful completion, same first key can start a new sequence', () => {
+    const hA = vi.fn();
+    const hB = vi.fn();
+    const { getKeyboard } = renderKeyboardTree(Menu);
+
+    getKeyboard()!.globalSequence([
+      { keys: ['d', 'v'], operate: hA },
+      { keys: ['d', 'c'], operate: hB },
+    ]);
+
+    // First attempt: d v
+    pressKey('d');
+    pressKey('v');
+    expect(hA).toHaveBeenCalledTimes(1);
+
+    // Second attempt: d c
+    pressKey('d');
+    pressKey('c');
+    expect(hB).toHaveBeenCalledTimes(1);
+    expect(hA).toHaveBeenCalledTimes(1); // unchanged
+  });
+});

@@ -231,7 +231,7 @@ export function handleLayer(
             // against every candidate's next expected key to disambiguate.
             const nextIdx = pending.nextIndex;
             const stillPossible = pending.candidates.filter(
-              c => unblocked.includes(c.keys[nextIdx]),
+              c => c.keys.length > nextIdx && unblocked.includes(c.keys[nextIdx]),
             );
             if (stillPossible.length === 0) {
               // No candidate matches — cancel all and fall through.

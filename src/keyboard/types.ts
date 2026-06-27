@@ -671,6 +671,14 @@ export interface GlobalPendingSequence {
   category?: React.ComponentType<any>[] | '*';
   executeWhenNoOverlay?: boolean;
   when?: () => boolean;
+  /**
+   * When multiple global sequences share the same first key (non-exclusive
+   * mode), stores all eligible {@link ResolvedGlobalSequenceEntry} candidates
+   * so that subsequent keys can disambiguate. Set to `undefined` once the
+   * pending sequence resolves to a single binding, or in exclusive mode
+   * where only the first candidate is kept.
+   */
+  candidates?: ResolvedGlobalSequenceEntry[];
 }
 
 /**

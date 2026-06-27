@@ -830,6 +830,7 @@ export function ScenarioManagementProvider({
       openModalInContext,
       closeModalInContext,
       closeAllModalsInContext,
+      state.activeModalId,
     ],
   );
 

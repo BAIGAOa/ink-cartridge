@@ -25,7 +25,7 @@ export function NumberInput({
   // Unregister old focus target when focusId changes
   useEffect(() => {
     return () => focusUnregister(focusId);
-  }, [focusId]);
+  }, [focusId, focusUnregister]);
 
   useEffect(() => {
     const up = boundKeyboard(['up', 'right'], () => {
@@ -55,7 +55,7 @@ export function NumberInput({
       down();
       wildcard();
     };
-  }, [focusId, value, min, max, step, onChange]);
+  }, [focusId, value, min, max, step, onChange, boundKeyboard]);
 
   const text = isFocused ? `${value}█` : String(value);
 

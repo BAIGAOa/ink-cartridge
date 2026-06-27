@@ -1240,6 +1240,11 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
     shortcutOperationsRef.current.clear();
   }, []);
 
+  const readLayer = useCallback(
+    (owner: LayerOwner) => layersRef.current.get(owner),
+    [],
+  );
+
   const value = useMemo(
     () => ({
       boundKeyboard,
@@ -1272,6 +1277,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       enableWildcardPriority,
       useModalMissListener,
       allowModal,
+      readLayer,
     }),
     [
       boundKeyboard,
@@ -1304,6 +1310,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       enableWildcardPriority,
       useModalMissListener,
       allowModal,
+      readLayer,
     ],
   );
 

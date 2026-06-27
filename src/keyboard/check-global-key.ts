@@ -31,6 +31,7 @@ export function checkGlobalKey(
 
   const cat = entry.category;
   if (cat === undefined || cat === '*') {
+    // Pass — matches all categories, no filtering needed.
   } else if (Array.isArray(cat) && cat.length === 0) {
     return false;
   } else if (Array.isArray(cat)) {

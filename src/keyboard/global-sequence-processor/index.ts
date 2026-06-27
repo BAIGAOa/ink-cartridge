@@ -26,6 +26,13 @@ function tryStartGlobalSequence(
   affectOverlay: boolean,
   ctx: PipelineContext,
 ): boolean {
+  // Collect all entries that pass every filter AND whose first key
+  // matches the current event. When multiple entries share the same
+  // first key, they are stored as candidates on the pending sequence
+  // so that subsequent keys can disambiguate.
+  // @2026-06-27 v3.8.0
+  const matching: ResolvedGlobalSequenceEntry[] = [];
+
   for (const entry of entries) {
     if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
     if (entry.when?.() === false) continue;
@@ -39,8 +46,6 @@ function tryStartGlobalSequence(
     }
 
     // Cover check: only boundSequence can override a global sequence.
-    // boundKeyboard is never checked — its keys are single-key bindings
-    // that the sequence system always consumes first.
     if (entry.cover !== false) {
       const firstKey = entry.keys[0];
       if (affectOverlay) {
@@ -62,31 +67,47 @@ function tryStartGlobalSequence(
     }
 
     if (ctx.eventNames.includes(entry.keys[0])) {
-      const timeout = entry.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
-      const pending: GlobalPendingSequence = {
-        sequences: entry.keys,
-        nextIndex: 1,
-        handler: entry.operate,
-        timer: undefined as unknown as ReturnType<typeof setTimeout>,
-        timeout,
-        exclusive: entry.exclusive ?? false,
-        affectOverlay,
-        cover: entry.cover ?? true,
-        category: entry.category,
-        executeWhenNoOverlay: entry.executeWhenNoOverlay,
-        when: entry.when,
-      };
-      const timer = setTimeout(() => {
-        if (ctx.pendingSeqRef.current === pending) {
-          ctx.pendingSeqRef.current = null;
-        }
-      }, timeout);
-      pending.timer = timer;
-      ctx.pendingSeqRef.current = pending;
-      return true;
+      matching.push(entry);
     }
   }
-  return false;
+
+  if (matching.length === 0) return false;
+
+  // Use the first matching entry as the initial pending state.
+  // Candidates are stored for disambiguation when multiple non-exclusive
+  // entries share the same first key — same logic as layer-level
+  // boundSequence in layer-handler.ts.
+  const selected = matching[0];
+  const timeout = selected.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
+  const candidates = selected.exclusive === true
+    ? undefined
+    : (() => {
+        const nonExclusive = matching.filter(c => c.exclusive !== true);
+        return nonExclusive.length <= 1 ? undefined : nonExclusive;
+      })();
+
+  const pending: GlobalPendingSequence = {
+    sequences: selected.keys,
+    nextIndex: 1,
+    handler: selected.operate,
+    timer: undefined as unknown as ReturnType<typeof setTimeout>,
+    timeout,
+    exclusive: selected.exclusive ?? false,
+    affectOverlay,
+    cover: selected.cover ?? true,
+    category: selected.category,
+    executeWhenNoOverlay: selected.executeWhenNoOverlay,
+    when: selected.when,
+    candidates,
+  };
+  const timer = setTimeout(() => {
+    if (ctx.pendingSeqRef.current === pending) {
+      ctx.pendingSeqRef.current = null;
+    }
+  }, timeout);
+  pending.timer = timer;
+  ctx.pendingSeqRef.current = pending;
+  return true;
 }
 
 /**
@@ -128,6 +149,17 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
   if (ctx.eventNames.includes(expectedKey)) {
     clearTimeout(pending.timer);
     pending.nextIndex++;
+
+    // Narrow candidates to only those whose next key also matches.
+    // Same pattern as layer-handler.ts.
+    if (pending.candidates && pending.candidates.length > 1) {
+      const nextIdx = pending.nextIndex - 1;
+      const narrowed = pending.candidates.filter(
+        c => c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
+      );
+      pending.candidates = narrowed.length <= 1 ? undefined : narrowed;
+    }
+
     if (pending.nextIndex === pending.sequences.length) {
       pending.handler();
       ctx.pendingSeqRef.current = null;
@@ -145,7 +177,58 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
     // Exclusive mode: silently consume the mismatched key, keep waiting.
     return true;
   }
-  // Non-exclusive (default): cancel the sequence, key falls through.
+
+  if (pending.candidates && pending.candidates.length > 1) {
+    // Non-exclusive with multiple candidates: try the current key
+    // against every candidate's next expected key to disambiguate.
+    // Same pattern as layer-handler.ts.
+    const nextIdx = pending.nextIndex;
+    const stillPossible = pending.candidates.filter(
+      c => c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
+    );
+    if (stillPossible.length === 0) {
+      // No candidate matches — cancel all and let the key fall through.
+      clearTimeout(pending.timer);
+      ctx.pendingSeqRef.current = null;
+      return false;
+    }
+    // One or more candidates match — lock in the first match and
+    // restart the sequence from it. The current key is consumed as
+    // the next key of the chosen candidate.
+    const chosen = stillPossible[0];
+    clearTimeout(pending.timer);
+    const timeout = chosen.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
+    const newPending: GlobalPendingSequence = {
+      sequences: chosen.keys,
+      nextIndex: nextIdx + 1,
+      handler: chosen.operate,
+      timer: undefined as unknown as ReturnType<typeof setTimeout>,
+      timeout,
+      exclusive: chosen.exclusive ?? false,
+      affectOverlay: pending.affectOverlay,
+      cover: chosen.cover ?? true,
+      category: chosen.category,
+      executeWhenNoOverlay: chosen.executeWhenNoOverlay,
+      when: chosen.when,
+      candidates: stillPossible.length === 1 ? undefined : stillPossible,
+    };
+    if (newPending.nextIndex === newPending.sequences.length) {
+      // Full sequence matched — fire handler.
+      chosen.operate();
+      ctx.pendingSeqRef.current = null;
+    } else {
+      // Still waiting for more keys — restart the timeout.
+      newPending.timer = setTimeout(() => {
+        if (ctx.pendingSeqRef.current === newPending) {
+          ctx.pendingSeqRef.current = null;
+        }
+      }, timeout);
+      ctx.pendingSeqRef.current = newPending;
+    }
+    return true;
+  }
+
+  // No candidates (single binding): cancel and let the key fall through.
   clearTimeout(pending.timer);
   ctx.pendingSeqRef.current = null;
   return false;

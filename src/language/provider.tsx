@@ -116,15 +116,22 @@ export function LanguageProvider({
   const [mergedResources, setMergedResources] = useState<Record<string, Record<string, string>> | null>(null);
   const effectiveResources = mergedResources ?? rawResources;
 
-  const [mergeCounter, setMergeCounter] = useState(0);
+  // Counter bumped on every mergeLanguage call so consumers that depend on
+  // the language list (e.g. useMemo over Object.keys) re-compute.
+  const [, setMergeCounter] = useState(0);
 
-  const languages = useMemo(() => Object.keys(effectiveResources), [effectiveResources, mergeCounter]);
+  const languages = useMemo(() => Object.keys(effectiveResources), [effectiveResources]);
 
   const [lang, setLang] = useState<string>(
     defaultLanguage ?? languages[0] ?? 'en-US',
   );
 
-  const currentResources = effectiveResources[lang] ?? {};
+  // Wrap in useMemo so currentResources is stable — avoids causing
+  // the `t` useCallback (which depends on it) to recreate every render.
+  const currentResources = useMemo(
+    () => effectiveResources[lang] ?? {},
+    [effectiveResources, lang],
+  );
 
   const [defaultCtx, setDefaultCtx] = useState<string | undefined>(defaultContext);
 
@@ -195,11 +202,11 @@ export function LanguageProvider({
     [],
   );
 
-  const getLanguages = useCallback(() => Object.keys(effectiveResources), [effectiveResources, mergeCounter]);
+  const getLanguages = useCallback(() => Object.keys(effectiveResources), [effectiveResources]);
 
   const ctx: I18nContextValue = useMemo(
     () => ({ t, setLanguage, setDefaultContext, getLanguages, mergeLanguage, currentLanguage: lang }),
-    [t, setLanguage, getLanguages, mergeLanguage, lang],
+    [t, setLanguage, setDefaultContext, getLanguages, mergeLanguage, lang],
   );
 
   return <LanguageContext.Provider value={ctx}>{children}</LanguageContext.Provider>;

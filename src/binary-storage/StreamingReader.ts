@@ -197,6 +197,9 @@ class StreamingReader implements StreamingReaderAPI {
   }
 
   [Symbol.asyncIterator](): AsyncIterator<unknown> {
+    // Aliasing `this` for use inside the returned iterator object's methods
+    // is a standard pattern for async iterators; the iterator is a plain
+    // object, not an arrow function, so `this` would be lost otherwise.
     const reader = this;
     return {
       async next(): Promise<IteratorResult<unknown>> {

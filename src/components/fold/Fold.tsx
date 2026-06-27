@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useKeyboard, useFocusState } from '../../keyboard/index.js';
 import type { FoldProps } from './types.js';
@@ -32,7 +32,7 @@ export function Fold({
     return () => { cancelled = true; };
   }, [storage, persistKey, defaultExpanded]);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     if (isControlled) {
       onToggle?.();
     } else {
@@ -42,12 +42,12 @@ export function Fold({
         return next;
       });
     }
-  };
+  }, [isControlled, onToggle, storage, persistKey]);
 
   useEffect(() => {
     const unSpace = boundKeyboard([' '], () => toggle(), { focusId });
     return () => { unSpace(); focusUnregister(focusId); };
-  }, [focusId]);
+  }, [focusId, boundKeyboard, focusUnregister, toggle]);
 
   return (
     <Box flexDirection="column">

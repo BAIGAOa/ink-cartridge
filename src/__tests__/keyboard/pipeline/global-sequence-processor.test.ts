@@ -641,4 +641,315 @@ describe('GlobalSequenceProcessor', () => {
       expect(newStartHandler).not.toHaveBeenCalled();
     });
   });
+
+  // ---- Disambiguation (multiple sequences sharing the same first key) ----
+
+  describe('disambiguation', () => {
+    it('two sequences same first key, second key matches first candidate', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['g', 'g'], operate: handler1 }),
+        makeEntry({ keys: ['g', 'x'], operate: handler2 }),
+      ];
+
+      // Start sequence — candidates should be populated
+      const ctx1 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result1 = processor.process(ctx1);
+      expect(result1).toBe(true);
+      expect(pendingSeqRef.current!.candidates).toBeDefined();
+      expect(pendingSeqRef.current!.candidates!.length).toBe(2);
+
+      // Press second key 'g' — matches handler1 (first registered)
+      const ctx2 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result2 = processor.process(ctx2);
+      expect(result2).toBe(true);
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('two sequences same first key, second key matches second candidate via mismatch disambiguation', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['g', 'g'], operate: handler1 }),
+        makeEntry({ keys: ['g', 'x'], operate: handler2 }),
+      ];
+
+      // Start sequence
+      const ctx1 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      expect(pendingSeqRef.current!.candidates).toBeDefined();
+
+      // Press second key 'x' — mismatches handler1, but disambiguates to handler2
+      const ctx2 = makeContext({
+        eventNames: ['x'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx2);
+      expect(result).toBe(true);
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('two sequences same first key, second key matches neither — cancels and returns false', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['g', 'g'], operate: handler1 }),
+        makeEntry({ keys: ['g', 'x'], operate: handler2 }),
+      ];
+
+      // Start sequence
+      const ctx1 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+
+      // Press second key 'z' — matches neither
+      const ctx2 = makeContext({
+        eventNames: ['z'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx2);
+      expect(result).toBe(false);
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('exclusive sequence does not participate in candidate disambiguation', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['g', 'g'], operate: handler1 }),
+        makeEntry({ keys: ['g', 'x'], operate: handler2, exclusive: true }),
+      ];
+
+      // Start — handler2 is exclusive, only handler1 is non-exclusive => no candidates
+      const ctx1 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      expect(pendingSeqRef.current!.candidates).toBeUndefined();
+
+      // 'x' mismatches handler1; no candidates, so cancel
+      const ctx2 = makeContext({
+        eventNames: ['x'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx2);
+      expect(result).toBe(false);
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('exclusive selected entry has no candidates regardless of other non-exclusive entries', () => {
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['g', 'g'], operate: handler1, exclusive: true }),
+        makeEntry({ keys: ['g', 'x'], operate: handler2 }),
+      ];
+
+      // Start — selected is exclusive, so candidates is undefined
+      const ctx1 = makeContext({
+        eventNames: ['g'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      expect(pendingSeqRef.current!.candidates).toBeUndefined();
+      expect(pendingSeqRef.current!.exclusive).toBe(true);
+
+      // 'x' — exclusive mode silently consumes
+      const ctx2 = makeContext({
+        eventNames: ['x'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx2);
+      expect(result).toBe(true);
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).not.toBeNull();
+    });
+
+    it('three sequences disambiguate correctly', () => {
+      const hA = vi.fn();
+      const hB = vi.fn();
+      const hC = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['d', 'v'], operate: hA }),
+        makeEntry({ keys: ['d', 'c'], operate: hB }),
+        makeEntry({ keys: ['d', 'd'], operate: hC }),
+      ];
+
+      // Start with 'd' — 3 candidates
+      const ctx1 = makeContext({
+        eventNames: ['d'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      expect(pendingSeqRef.current!.candidates).toBeDefined();
+      expect(pendingSeqRef.current!.candidates!.length).toBe(3);
+
+      // Press 'c' — only hB matches
+      const ctx2 = makeContext({
+        eventNames: ['c'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx2);
+      expect(result).toBe(true);
+      expect(hA).not.toHaveBeenCalled();
+      expect(hB).toHaveBeenCalledTimes(1);
+      expect(hC).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('candidates narrowed on match (not just on mismatch)', () => {
+      const hA = vi.fn();
+      const hB = vi.fn();
+      const hC = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['a', 'b', 'c'], operate: hA }),
+        makeEntry({ keys: ['a', 'b', 'd'], operate: hB }),
+        makeEntry({ keys: ['a', 'x', 'y'], operate: hC }),
+      ];
+
+      // Start with 'a' — 3 candidates
+      const ctx1 = makeContext({
+        eventNames: ['a'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      expect(pendingSeqRef.current!.candidates!.length).toBe(3);
+
+      // Press 'b' — matches hA and hB, not hC. Candidates narrowed to 2.
+      const ctx2 = makeContext({
+        eventNames: ['b'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx2);
+      expect(pendingSeqRef.current!.nextIndex).toBe(2);
+      expect(pendingSeqRef.current!.candidates).toBeDefined();
+      expect(pendingSeqRef.current!.candidates!.length).toBe(2);
+
+      // Press 'c' — only hA matches
+      const ctx3 = makeContext({
+        eventNames: ['c'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      const result = processor.process(ctx3);
+      expect(result).toBe(true);
+      expect(hA).toHaveBeenCalledTimes(1);
+      expect(hB).not.toHaveBeenCalled();
+      expect(hC).not.toHaveBeenCalled();
+      expect(pendingSeqRef.current).toBeNull();
+    });
+
+    it('after completion, same first key can start a new sequence', () => {
+      const hA = vi.fn();
+      const hB = vi.fn();
+      const processor = createGlobalSequenceProcessor({ affectOverlay: false });
+      const pendingSeqRef: { current: GlobalPendingSequence | null } = { current: null };
+      const seqs = [
+        makeEntry({ keys: ['d', 'v'], operate: hA }),
+        makeEntry({ keys: ['d', 'c'], operate: hB }),
+      ];
+
+      // First attempt: d, v
+      const ctx1 = makeContext({
+        eventNames: ['d'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx1);
+      const ctx2 = makeContext({
+        eventNames: ['v'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx2);
+      expect(hA).toHaveBeenCalledTimes(1);
+      expect(pendingSeqRef.current).toBeNull();
+
+      // Second attempt: d, c
+      const ctx3 = makeContext({
+        eventNames: ['d'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx3);
+      expect(pendingSeqRef.current).not.toBeNull();
+      const ctx4 = makeContext({
+        eventNames: ['c'],
+        topComponent: FakeScreen,
+        globalSequences: seqs,
+        pendingSeqRef,
+      });
+      processor.process(ctx4);
+      expect(hB).toHaveBeenCalledTimes(1);
+      expect(pendingSeqRef.current).toBeNull();
+    });
+  });
 });
