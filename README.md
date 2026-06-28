@@ -143,7 +143,8 @@ Every API provides full TypeScript type inference. Functions like `skip`, `gotoS
 ## Components
 
 ### Selection & Input
-- **[SelectInput](src/components/select/README.md)** — Single-select list with focus-aware keyboard navigation
+- **[SelectInput](src/components/select/README.md)** — Single-select list (vertical) with focus-aware keyboard navigation
+- **[SelectRow](src/components/select-row/README.md)** — Single-select list (horizontal) with left/right arrow navigation
 - **[MultiSelectInput](src/components/multi-select/README.md)** — Multi-select list with checkbox toggling (Space to toggle, Enter to submit)
 - **[TextInput](src/components/text/README.md)** — Text input with cursor, mask, and focus system integration
 - **[SearchInput](src/components/search-input/README.md)** — Search field with 🔍 icon and Esc-to-clear

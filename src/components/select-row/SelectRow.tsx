@@ -1,35 +1,38 @@
 import React, { useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { useKeyboard } from '../../keyboard/hook.js';
-import type { SelectInputProps, Item } from './types.js';
+import type { SelectRowProps, Item } from './types.js';
 import { defaultItem } from '../tools/select/utils.js';
 import { useSelectNavigation } from '../tools/select/useSelectNavigation.js';
 
 function defaultIndicator({ isSelected }: { isSelected: boolean }) {
   return (
-    <Box marginRight={1}>
-      {isSelected ? <Text color="blue">{'❯'}</Text> : <Text> </Text>}
+    <Box marginTop={1}>
+      {isSelected ? <Text color="blue">{'●'}</Text> : <Text> </Text>}
     </Box>
   );
 }
 
 /**
- * A single-select list component integrated with the ink-cartridge keyboard and
- * focus system.
+ * A horizontal single-select list component integrated with the ink-cartridge
+ * keyboard and focus system.
  *
- * Each instance registers a focus target identified by {@link SelectInputProps.focusId}
+ * Symmetric to {@link SelectInput} but items are laid out horizontally and
+ * navigated with left/right arrows (or vim-style h/l). The indicator is
+ * rendered below each item instead of to the left.
+ *
+ * Each instance registers a focus target identified by {@link SelectRowProps.focusId}
  * on the current screen's keyboard layer. Users navigate between multiple
- * SelectInputs on the same screen with Tab / Shift+Tab. Within the active
- * component, arrow keys (or vim-style j/k) move the highlight, and Enter
- * confirms the selection. Number keys 1-9 directly select an item.
+ * interactive components on the same screen with Tab / Shift+Tab.
  *
  * When the component is not the active focus target, its items are visually
  * dimmed and no key events are delivered to it.
  *
  * @typeParam T - The type of the value associated with each item.
  * @typeParam I - The extended item type, must extend Item<T>. Defaults to Item<T>.
+ * @2026-06-28 v3.8.0
  */
-export function SelectInput<T, I extends Item<T> = Item<T>>({
+export function SelectRow<T, I extends Item<T> = Item<T>>({
   items = [],
   onSelect,
   itemComponent,
@@ -38,11 +41,10 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
   limit: limitProp = 10,
   storage,
   storageKey,
-}: SelectInputProps<T, I>) {
-  const persistKey = storageKey ?? `select:${focusId}`;
+}: SelectRowProps<T, I>) {
+  const persistKey = storageKey ?? `select-row:${focusId}`;
 
-  // focusId is required because screen-level bindings lose to any active focus
-  // target in handleLayer — the indicator would light up but keys would not arrive.
+  // focusId is required — same rationale as SelectInput.
   // @2026-06-28 v3.8.0
   const { isFocused, selectedIndex, visibleItems, moveHighlight, selectedIndexRef, visibleItemsRef, onSelectRef } =
     useSelectNavigation<I>({ items, limit: limitProp, storage, persistKey, focusId, onSelect });
@@ -53,15 +55,15 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
   const ItemComp = (itemComponent ??
     (defaultItem as unknown as React.ComponentType<I & { isSelected: boolean }>));
 
-  // Keyboard bindings
+  // Keyboard bindings — horizontal navigation (left/right/h/l)
   useEffect(() => {
     const fid = focusId;
 
-    const unUp = boundKeyboard(['up', 'k'], () => moveHighlight(-1), { focusId: fid });
-    const unDown = boundKeyboard(['down', 'j'], () => moveHighlight(1), { focusId: fid });
+    const unLeft = boundKeyboard(['left', 'h'], () => moveHighlight(-1), { focusId: fid });
+    const unRight = boundKeyboard(['right', 'l'], () => moveHighlight(1), { focusId: fid });
     const unReturn = boundKeyboard(['return'], () => {
       const item = visibleItemsRef.current[selectedIndexRef.current];
-      if (item) onSelectRef.current?.(item);
+      if (item) onSelectRef.current(item);
     }, { focusId: fid });
 
     const numUnbinds: Array<() => void> = [];
@@ -70,27 +72,27 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
       numUnbinds.push(
         boundKeyboard([String(i)], () => {
           const item = visibleItemsRef.current[idx];
-          if (item) onSelectRef.current?.(item);
+          if (item) onSelectRef.current(item);
         }, { focusId: fid }),
       );
     }
 
     return () => {
-      unUp();
-      unDown();
+      unLeft();
+      unRight();
       unReturn();
       numUnbinds.forEach((fn) => fn());
     };
   }, [focusId, boundKeyboard, moveHighlight, visibleItems.length]);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="row">
       {visibleItems.map((item, index) => {
         const isItemSelected = index === selectedIndex && isFocused;
         return (
-          <Box key={(item as I).Key ?? String((item as I).value)}>
-            <IndicatorComp isSelected={isItemSelected} />
+          <Box key={(item as I).Key ?? String((item as I).value)} flexDirection="column" marginRight={2}>
             <ItemComp {...(item as any)} isSelected={isItemSelected} />
+            <IndicatorComp isSelected={isItemSelected} />
           </Box>
         );
       })}
