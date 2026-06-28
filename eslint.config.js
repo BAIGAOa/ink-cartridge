@@ -87,6 +87,7 @@ export default tseslint.config(
     files: [
       'src/__tests__/**/*.{ts,tsx}',
       'examples/**/*.{ts,tsx}',
+      'ink-blots/**/*.{ts,tsx}',
       'src/dev/**/*.{ts,tsx}',
     ],
     rules: {

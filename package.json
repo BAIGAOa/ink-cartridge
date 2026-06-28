@@ -29,9 +29,9 @@
         "clean": "rm -rf dist",
         "test": "vitest run",
         "test:watch": "vitest",
-        "lint": "eslint src/",
-        "lint:fix": "eslint --fix src/",
-        "lint:quick": "eslint src/ --quiet --cache",
+        "lint": "eslint src/ ink-blots/",
+        "lint:fix": "eslint --fix src/ ink-blots/",
+        "lint:quick": "eslint src/ ink-blots/ --quiet --cache",
         "demo:dev": "tsx examples/dev/dev.tsx"
     },
     "keywords": [
