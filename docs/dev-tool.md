@@ -63,6 +63,8 @@ The modal component itself. Auto-registered via `registerComponent` at module lo
 | `↑` | Move the panel up 1 row, clamped to terminal bounds. |
 | `↓` | Move the panel down 1 row, clamped to terminal bounds. |
 | `Ctrl+G` | Open the GlobalKeys Inspector modal. |
+| `Ctrl+K` | Open the LayerKeys Inspector modal for the current top screen. |
+| `Ctrl+S` | Open the Global Sequences Inspector modal. |
 | `Escape` | Close the DevScreen modal. |
 
 The position automatically re-clamps when the terminal is resized — no keypress needed.
@@ -92,6 +94,31 @@ While DevScreen is open, press `Ctrl+G` to open the **GlobalKeys Inspector** mod
 
 **Note**: After collapsing from a detail card back to the list, press `Tab` if the selection highlight does not reappear — this is a known quirk of the focus target lifecycle.
 
+### Ctrl+S — Global Sequences Inspector
+
+While DevScreen is open, press `Ctrl+S` to open the **Global Sequences Inspector** modal. It lists all registered global sequence bindings (`globalSequence()`) with their metadata, plus any currently active global pending sequence.
+
+**Keyboard controls**:
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move the selection highlight through the list (when SelectInput has focus). |
+| `Tab` | Switch focus between the list (`globalSeq-list`) and panel movement (`globalSeq-control`). |
+| `Enter` | Expand the selected entry to show a full detail card. |
+| `Enter` (detail) | Collapse the detail card back to the list. |
+| `Escape` | Close the Global Sequences Inspector and return to DevScreen. |
+
+**List view** — compact cards showing:
+
+- Full key sequence (e.g. `g, g`, `ctrl+w, q`) with attribute badges for non-default options: `[ao]` (affectOverlay), `[excl]` (exclusive), `[no-cover]` (cover=false), `[xno]` (executeWhenNoOverlay), `[T:N]` (non-default timeout), `[cat]` (category filter active).
+- Scrolling activates when more than 5 entries are present.
+
+**Pending state** — when a global sequence is currently pending (user pressed the first key), the title area shows the expected sequence, progress (e.g. `[1/2]`), and the next expected key.
+
+**Detail view** — full field breakdown with coloured boolean values (green = true, red = false):
+
+- Keys, Cover, AffectOverlay, Exclusive, ExecuteWhenNoOverlay, Timeout, Category, When.
+
 **Display sections**:
 
 - **Path** — breadcrumb of the current screen navigation stack (`Menu > Game > Inventory`). The current screen is highlighted in yellow.
@@ -111,6 +138,13 @@ While DevScreen is open, press `Ctrl+G` to open the **GlobalKeys Inspector** mod
 | `zindex` | `number` | — | Optional modal zIndex. |
 
 ### GlobalProps
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `top` | `number` | `0` | Initial vertical position in rows. |
+| `left` | `number` | `0` | Horizontal position in columns. |
+
+### GlobalSeqProps
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

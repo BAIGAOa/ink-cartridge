@@ -16,6 +16,7 @@ import {
   GlobalSequenceEntry,
   ResolvedGlobalKeyEntry,
   ResolvedGlobalSequenceEntry,
+  GlobalPendingSequence,
   BlockedKeyOptions,
   StopOptions,
   AllowModalOptions,
@@ -1150,6 +1151,24 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   );
 
   /**
+   * Return a shallow snapshot of the current global sequence list.
+   * Safe for read-only inspection; mutating the returned array has no
+   * effect on the live bindings.
+   */
+  const getGlobalSequences = useCallback(
+    (): ResolvedGlobalSequenceEntry[] => [...globalSequencesRef.current],
+    [],
+  );
+
+  /**
+   * Return the current global pending sequence state, or null.
+   */
+  const getGlobalPendingSequence = useCallback(
+    (): GlobalPendingSequence | null => globalPendingSeqRef.current,
+    [],
+  );
+
+  /**
    * Register global sequence key bindings.
    *
    * Validates each entry (keys length ≥ 2), clears any active global pending
@@ -1297,6 +1316,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       globalKeys,
       getGlobalKeys,
       globalSequence,
+      getGlobalSequences,
+      getGlobalPendingSequence,
       focusSet,
       focusNext,
       focusPrev,
@@ -1330,6 +1351,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       globalKeys,
       getGlobalKeys,
       globalSequence,
+      getGlobalSequences,
+      getGlobalPendingSequence,
       focusSet,
       focusNext,
       focusPrev,

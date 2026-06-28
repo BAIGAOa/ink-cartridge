@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Text, useWindowSize } from "ink";
 import { useScreenSystem } from "../screen/hook.js";
 import { useKeyboard, useModalMissListener } from "../keyboard/hook.js";
@@ -8,17 +8,146 @@ import { registerComponent } from "../screen/registry.js";
 import { closeDevTool } from "./entrance.js";
 import GlobalKeyDisplayBox from "./globalKey-display.js";
 import LayerKeyDisplayBox from "./layerKey-display.js";
+import GlobalSequenceDisplayBox from "./globalSeq-display.js";
+import type { ScreenKeyboardLayer } from "../keyboard/types.js";
 
 
 const PANEL_HEIGHT = 30;
+
+// ---- Focus target entry collected from a layer ----
+
+interface FocusEntry {
+  /** Display name of the owning layer (e.g. screen name, "overlay:xxx", "modal:xxx"). */
+  layerName: string;
+  /** The focus target id. */
+  focusId: string;
+  /** Whether this is the currently active focus on its layer. */
+  isCurrent: boolean;
+}
+
+/**
+ * Collect all focus targets from every accessible layer:
+ * screen stack (bottom → top), active overlays, and the active modal.
+ *
+ * Each entry records its layer name, focus id, and whether it is the
+ * active focus on its owning layer.  Only layers that actually have
+ * registered focus targets contribute entries.
+ */
+function collectAllFocusTargets(
+  currentPath: React.ComponentType<any>[],
+  activeOverlayIds: string[],
+  activeModalId: string | null,
+  readLayer: (owner: React.ComponentType<any> | string) => ScreenKeyboardLayer | undefined,
+): FocusEntry[] {
+  const entries: FocusEntry[] = [];
+
+  // Screen layers — from root to top
+  for (const component of currentPath) {
+    const layer = readLayer(component);
+    if (!layer || layer.focusOrder.length === 0) continue;
+    const name = component.displayName || component.name || 'Unknown';
+    for (const focusId of layer.focusOrder) {
+      entries.push({
+        layerName: name,
+        focusId,
+        isCurrent: focusId === layer.currentFocusId,
+      });
+    }
+  }
+
+  // Active overlay layers
+  for (const overlayId of activeOverlayIds) {
+    const layer = readLayer(overlayId);
+    if (!layer || layer.focusOrder.length === 0) continue;
+    for (const focusId of layer.focusOrder) {
+      entries.push({
+        layerName: `overlay:${overlayId}`,
+        focusId,
+        isCurrent: focusId === layer.currentFocusId,
+      });
+    }
+  }
+
+  // Active modal layer
+  if (activeModalId) {
+    const layer = readLayer(activeModalId);
+    if (layer && layer.focusOrder.length > 0) {
+      for (const focusId of layer.focusOrder) {
+        entries.push({
+          layerName: `modal:${activeModalId}`,
+          focusId,
+          isCurrent: focusId === layer.currentFocusId,
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+// ---- All-focus display component ----
+
+interface AllFocusSummaryProps {
+  currentPath: React.ComponentType<any>[];
+  activeOverlayIds: string[];
+  activeModalId: string | null;
+  readLayer: (owner: React.ComponentType<any> | string) => ScreenKeyboardLayer | undefined;
+}
+
+/**
+ * Renders every registered focus target from every active layer.
+ *
+ * Each row shows `[layerName] focusId` where:
+ * - **green** — the focus target that is currently active on its layer
+ * - **gray**  — an inactive focus target
+ * - a trailing `◀` marks the active one.
+ *
+ * If no focus targets exist anywhere, a single "— none" line is shown.
+ */
+function AllFocusSummary({ currentPath, activeOverlayIds, activeModalId, readLayer }: AllFocusSummaryProps) {
+  const entries = useMemo(
+    () => collectAllFocusTargets(currentPath, activeOverlayIds, activeModalId, readLayer),
+    [currentPath, activeOverlayIds, activeModalId, readLayer],
+  );
+
+  return (
+    <Box flexDirection="column">
+      <Box flexDirection="row">
+        <Text color="cyan">Focus Targets </Text>
+        <Text dimColor>({entries.length})</Text>
+      </Box>
+      {entries.length === 0 ? (
+        <Box paddingY={1}>
+          <Text color="gray">  — none</Text>
+        </Box>
+      ) : (
+        entries.map((entry, i) => (
+          <Box key={`${entry.layerName}-${entry.focusId}-${i}`} flexDirection="row">
+            <Text color="gray">  [{entry.layerName}] </Text>
+            <Text color={entry.isCurrent ? 'green' : 'gray'}>
+              {entry.focusId}{entry.isCurrent ? ' ◀' : ''}
+            </Text>
+          </Box>
+        ))
+      )}
+    </Box>
+  );
+}
 
 // ---- Inline keyboard-layer summary displayed inside DevScreen ----
 
 interface LayerSummaryProps {
   topComponent: React.ComponentType<any>;
-  readLayer: (owner: React.ComponentType<any> | string) => import('../keyboard/types.js').ScreenKeyboardLayer | undefined;
+  readLayer: (owner: React.ComponentType<any> | string) => ScreenKeyboardLayer | undefined;
 }
 
+/**
+ * Renders a compact summary of the keyboard layer for the top screen
+ * component: bindings, sequences, stopped keys, and blocked keys.
+ *
+ * Focus targets are displayed separately by {@link AllFocusSummary}
+ * so that all layers' targets are visible at once.
+ */
 function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
   const layer = readLayer(topComponent);
   if (!layer) {
@@ -41,12 +170,6 @@ function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
 
   return (
     <Box flexDirection="column" paddingY={1}>
-      <Box flexDirection="row" paddingBottom={1}>
-        <Text color="cyan">Focus: </Text>
-        <Text color={layer.currentFocusId ? 'green' : 'gray'}>
-          {layer.currentFocusId || 'none'}
-        </Text>
-      </Box>
       <Box flexDirection="row">
         <Text color="cyan">Bind ({layer.bindings.length}): </Text>
         <Text dimColor>{bindKeys || '—'}</Text>
@@ -182,12 +305,19 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
         screenComponent: topComponent,
       })
     })
+    const u6 = boundKeyboard(['ctrl+s'], () => {
+      openModal('__globalSeq-display__', GlobalSequenceDisplayBox, {
+        top: initialTop + 3,
+        left: left,
+      })
+    })
     return () => {
       u1()
       u2()
       u3()
       u4()
       u5()
+      u6()
     }
   }, [modalId])
 
@@ -273,13 +403,26 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
         <Text color="blue" dimColor>{"─".repeat(60)}</Text>
       </Box>
 
-      {/* Keyboard layer summary */}
+      {/* All focus targets across every layer */}
+      <AllFocusSummary
+        currentPath={currentPath}
+        activeOverlayIds={activeOverlayIds}
+        activeModalId={activeModalId}
+        readLayer={readLayer}
+      />
+
+      {/* Divider */}
+      <Box width='100%' paddingY={1}>
+        <Text color="blue" dimColor>{"─".repeat(60)}</Text>
+      </Box>
+
+      {/* Keyboard layer summary (bindings, sequences, etc. for the top screen) */}
       <LayerSummary topComponent={currentPath[currentPath.length - 1]} readLayer={readLayer} />
 
       {/* Info area */}
       <Box flexDirection="column">
         <Text dimColor>
-          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc Close | Ctrl+G GlobalKeys | Ctrl+K LayerKeys
+          Screens: {currentPath.length}  |  ↑↓ Move  |  Esc Close | Ctrl+G GlobalKeys | Ctrl+K LayerKeys | Ctrl+S GlobalSeqs
         </Text>
         <Text dimColor>
           Top: {offsetTop}/{rows - PANEL_HEIGHT}

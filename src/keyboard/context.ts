@@ -13,6 +13,8 @@ import type {
   ModalMissCallback,
   ModalMissOptions,
   ResolvedGlobalKeyEntry,
+  ResolvedGlobalSequenceEntry,
+  GlobalPendingSequence,
   ScreenKeyboardLayer,
 } from "./types.js";
 
@@ -171,6 +173,29 @@ export interface KeyboardContextValue {
     entries: GlobalSequenceEntry[],
     options?: { mode?: "replace" | "add" },
   ) => void;
+
+  /**
+   * Return a snapshot of all currently registered global sequence entries.
+   *
+   * Each entry includes the resolved `operate` callback (actions resolved
+   * from action IDs), plus metadata: `keys`, `cover`, `affectOverlay`,
+   * `category`, `timeout`, `exclusive`, `when`, and `executeWhenNoOverlay`.
+   *
+   * @returns A shallow copy of the current global sequences array.
+   */
+  getGlobalSequences: () => ResolvedGlobalSequenceEntry[];
+
+  /**
+   * Return the current global pending sequence state, or `null` if no
+   * global sequence is pending.
+   *
+   * A pending state exists when the first key of a registered global
+   * sequence has been pressed and the system is waiting for subsequent
+   * keys within the configured timeout.
+   *
+   * @returns The pending sequence snapshot, or `null`.
+   */
+  getGlobalPendingSequence: () => GlobalPendingSequence | null;
 
   /**
    * Remove a focus target from the current screen layer.
