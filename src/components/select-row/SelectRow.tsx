@@ -83,7 +83,7 @@ export function SelectRow<T, I extends Item<T> = Item<T>>({
       unReturn();
       numUnbinds.forEach((fn) => fn());
     };
-  }, [focusId, boundKeyboard, moveHighlight, visibleItems.length]);
+  }, [focusId, boundKeyboard, moveHighlight, visibleItems.length, onSelectRef, selectedIndexRef, visibleItemsRef]);
 
   return (
     <Box flexDirection="row">
