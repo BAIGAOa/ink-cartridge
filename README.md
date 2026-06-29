@@ -1,6 +1,6 @@
 # ink-cartridge
 
-> Ready-to-use Ink components and tools for building terminal UI applications.
+> Library for complex terminal Ink interactive applications and multi-page Ink applications.
 
 [![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-trc/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ink-cartridge.svg)](https://www.npmjs.com/package/ink-cartridge)
