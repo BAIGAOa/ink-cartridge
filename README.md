@@ -1,6 +1,8 @@
 # ink-cartridge
 
-<img src="cartridge.jpg" alt="picture" width="850">
+<div align="center">
+    <img src="cartridge.png" alt="picture" width="300">
+</div>
 
 >A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
 
