@@ -4,10 +4,10 @@
         <img width="440" alt="cartridge" src="cartridge.jpg">
         <br>
         <br>
-        <br>
-					 
-				  <h1 align="center">Cartridge</h1>
+        <br>					 
 </div>
+
+# Cartridge
 
 >A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
 
