@@ -5,6 +5,8 @@
         <br>
         <br>
         <br>
+					 
+				  <p style="font-size: 24px; font-weight: bold;">Cartridge</p>
 </div>
 
 >A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
