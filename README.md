@@ -1,4 +1,3 @@
-# ink-cartridge
 
 <div align="center">
         <br>
