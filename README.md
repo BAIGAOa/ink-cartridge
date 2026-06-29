@@ -7,7 +7,7 @@
         <br>					 
 </div>
 
-# Cartridge
+<h1 align="center">Cartridge</h1>
 
 >A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
 
