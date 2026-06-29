@@ -1,0 +1,39 @@
+# SelectInput
+
+Vertical list selector with keyboard navigation, scrolling, and persistence.
+
+## Props
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `items` | `Item<T>[]` | yes | `[]` | `{ label: string, value: T }` |
+| `onSelect` | `(item: Item<T>) => void` | yes | — | Called on Enter. |
+| `focusId` | `string` | yes | — | Focus target. |
+| `itemComponent` | `ComponentType` | no | default label | Custom item renderer. |
+| `indicatorComponent` | `ComponentType` | no | `❯` | Left-of-item indicator. |
+| `limit` | `number` | no | `10` | Max visible items before scrolling. |
+| `storage` | `StorageAPI` | no | — | Persist cursor position. |
+| `storageKey` | `string` | no | `"select:<focusId>"` | Storage key. |
+
+## Keyboard (scoped to `focusId`)
+
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Move up |
+| `↓` / `j` | Move down |
+| `Enter` | Select highlighted item |
+| `1`–`9` | Jump to nth visible item |
+
+## Best Practice
+
+```tsx
+<SelectInput
+  focusId="menu"
+  items={[
+    { label: 'Start Game', value: 'start' },
+    { label: 'Settings', value: 'settings' },
+    { label: 'Quit', value: 'quit' },
+  ]}
+  onSelect={(item) => handleSelect(item.value)}
+/>
+```

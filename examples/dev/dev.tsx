@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { render, Box, Text, useWindowSize } from 'ink';
 import {
   registerComponent,
@@ -11,8 +11,20 @@ import {
   useScreenSystem,
   ModalContext,
   openModal,
+  createEventBus,
+  EventProvider,
+  useEmitter,
+  useSubscribe,
 } from '../../src/index.js';
 import { openDevTool } from '../../src/dev/entrance.js';
+
+// Event map for cross-component communication via the event bus.
+interface AppEvents {
+  SHOW_NOTIFICATION: { text: string };
+  CLEAR_NOTIFICATION: void;
+}
+
+const bus = createEventBus<AppEvents>();
 
 
 // Registered screens for the navigation demo.
@@ -152,7 +164,7 @@ function Scene1(){
   const { rows } = useWindowSize()
   const { back } = useScreenSystem()
   const { globalSequence, boundKeyboard } = useKeyboard()
-  const [message, setMessage] = React.useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     // Two global sequences sharing the same first key 'g' —
@@ -215,7 +227,9 @@ function Console({ top, left }: { top: number, left: number }) {
 
 
 function GlobalKeys() {
-  const { globalKeys } = useKeyboard()
+  const { globalKeys } = useKeyboard();
+  const emitShowNotification = useEmitter('SHOW_NOTIFICATION');
+  const emitClearNotification = useEmitter('CLEAR_NOTIFICATION');
 
   useEffect(() => {
     globalKeys([
@@ -223,46 +237,87 @@ function GlobalKeys() {
         key: ['ctrl+e'],
         operate: () => process.exit(0),
         category: '*',
-        times: 2
+        times: 2,
       },
       {
         key: ['ctrl+r'],
-        operate: () => { },
+        operate: () => {},
         category: '*',
         affectOverlay: true,
       },
       {
         key: ['f1'],
-        operate: () => { },
+        operate: () => {},
         category: [Menu],
         executeWhenNoOverlay: true,
       },
       {
         key: ['ctrl+w', 'ctrl+q'],
-        operate: () => { },
+        operate: () => {},
         category: '*',
         times: 3,
         affectOverlay: true,
       },
       {
         key: 'tab',
-        operate: () => { },
+        operate: () => {},
         category: [],
         cover: false,
       },
-    ])
-  }, [])
+      // Event-driven examples — emit events instead of inlining logic.
+      {
+        key: ['ctrl+n'],
+        operate: () => emitShowNotification({ text: 'Hello from GlobalKeys!' }),
+        category: '*',
+      },
+      {
+        key: ['ctrl+x'],
+        operate: () => { emitClearNotification(undefined); },
+        category: '*',
+      },
+    ]);
+  }, []);
 
-  return null
+  return null;
 }
 
-registerComponent(Console, { top: 0, left: 0 })
+registerComponent(Console, { top: 0, left: 0 });
+
+/**
+ * Subscribes to event bus notifications and displays them.
+ *
+ * Demonstrates cross-component communication: GlobalKeys emits events
+ * via the event bus, and NotificationBar (in a completely different
+ * part of the tree) subscribes and reacts — with zero prop drilling.
+ */
+function NotificationBar() {
+  const [message, setMessage] = useState<string | null>(null);
+
+  useSubscribe('SHOW_NOTIFICATION', ({ text }: { text: string }) => {
+    setMessage(text);
+  });
+
+  useSubscribe('CLEAR_NOTIFICATION', () => {
+    setMessage(null);
+  });
+
+  if (!message) return null;
+
+  return (
+    <Box marginY={1} borderStyle="round" borderColor="green" paddingX={2}>
+      <Text bold color="green">
+        {message}
+      </Text>
+    </Box>
+  );
+}
 
 function App() {
   return (
     <KeyboardProvider>
       <Box flexDirection="column">
         <GlobalKeys />
+        <NotificationBar />
         <CurrentScreen />
       </Box>
     </KeyboardProvider>
@@ -271,6 +326,8 @@ function App() {
 
 render(
   <ScenarioManagementProvider defaultScreen={Menu}>
-    <App />
+    <EventProvider bus={bus}>
+      <App />
+    </EventProvider>
   </ScenarioManagementProvider>,
 );

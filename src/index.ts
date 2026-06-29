@@ -155,6 +155,17 @@ export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/in
 export { createStreamingReader, StreamCorruptError } from "./binary-storage/StreamingReader.js";
 export type { StreamingReaderOptions, StreamingReaderAPI } from "./binary-storage/StreamingReader.js";
 
+// Event System
+export { EventBus, EventProvider, createEventBus } from "./event/index.js";
+export { useEventBus, useEmitter, useSubscribe } from "./event/index.js";
+export type {
+  EventMap,
+  EventKey,
+  Listener,
+  Unsubscribe,
+  EventProviderProps,
+} from "./event/index.js";
+
 // Dev Tool
 export { openDevTool, closeDevTool } from "./dev/entrance.js";
 export type { DevProps } from "./dev/types.js";

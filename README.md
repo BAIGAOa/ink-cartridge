@@ -1,249 +1,130 @@
 # ink-cartridge
 
-> Library for complex terminal Ink interactive applications and multi-page Ink applications.
+> A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
 
 [![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-trc/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ink-cartridge.svg)](https://www.npmjs.com/package/ink-cartridge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Design Philosophy
 
----
+Ink gives you `useInput` and `render`. Everything else — screen navigation, layered keyboard events, focus management, cross-component communication — you build yourself. ink-cartridge provides all of that, designed for **multi-page, interaction-dense terminal apps** where a single global `useInput` with `if-else` chains breaks down.
 
-## Getting Started
+Three pillars:
 
-### Quick Start (scaffold a new project)
+- **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
+- **Layered keyboard engine** — Each screen owns its key bindings. A 7-stage pipeline resolves conflicts between modals, overlays, global keys, and the screen stack. Focus system partitions keys within the same layer.
+- **Event bus** — Decoupled cross-component communication. Global keys emit events; any component subscribes. Zero prop drilling.
 
-```bash
-npx ink-cartridge init my-tui
-cd my-tui
-npm start
+## Documentation
+
+```
+docs/
+├── keyboard/
+│   ├── [README](docs/keyboard/README.md)              — Architecture & API index
+│   ├── [KeyboardProvider](docs/keyboard/KeyboardProvider-API.md)
+│   ├── [useKeyboard](docs/keyboard/useKeyboard-API.md)
+│   ├── [boundKeyboard](docs/keyboard/boundKeyboard-API.md)
+│   ├── [boundSequence](docs/keyboard/boundSequence-API.md)
+│   ├── [blockedKey](docs/keyboard/blockedKey-API.md)
+│   ├── [stop](docs/keyboard/stop-API.md)
+│   ├── [globalKeys](docs/keyboard/globalKeys-API.md)
+│   ├── [globalSequence](docs/keyboard/globalSequence-API.md)
+│   ├── [focus system](docs/keyboard/focus-system-API.md)
+│   ├── [shortcut actions](docs/keyboard/shortcut-actions-API.md)
+│   ├── [sequence actions](docs/keyboard/sequence-actions-API.md)
+│   ├── [allowModal](docs/keyboard/allowModal-API.md)
+│   ├── [useModalMissListener](docs/keyboard/useModalMissListener-API.md)
+│   ├── [enableWildcardPriority](docs/keyboard/enableWildcardPriority-API.md)
+│   └── [advanced](docs/keyboard/advanced.md)
+│
+├── screen/
+│   ├── [README](docs/screen/README.md)                — Architecture & API index
+│   ├── [registerComponent](docs/screen/registerComponent-API.md)
+│   ├── [ScenarioManagementProvider](docs/screen/ScenarioManagementProvider-API.md)
+│   ├── [CurrentScreen](docs/screen/CurrentScreen-API.md)
+│   ├── [useScreenSystem](docs/screen/useScreenSystem-API.md)
+│   ├── [skip](docs/screen/skip-API.md)
+│   ├── [back](docs/screen/back-API.md)
+│   ├── [gotoScreen](docs/screen/gotoScreen-API.md)
+│   ├── [overlay](docs/screen/overlay-API.md)
+│   ├── [modal](docs/screen/modal-API.md)
+│   ├── [ModalContext](docs/screen/ModalContext-API.md)
+│   └── [advanced](docs/screen/advanced.md)
+│
+├── event/
+│   ├── [README](docs/event/README.md)                 — Architecture & API index
+│   ├── [createEventBus](docs/event/createEventBus-API.md)
+│   ├── [EventProvider](docs/event/EventProvider-API.md)
+│   ├── [useEmitter](docs/event/useEmitter-API.md)
+│   ├── [useSubscribe](docs/event/useSubscribe-API.md)
+│   ├── [useEventBus](docs/event/useEventBus-API.md)
+│   ├── [EventBus](docs/event/EventBus-API.md)
+│   └── [advanced](docs/event/advanced.md)
+│
+├── components/
+│   ├── [README](docs/components/README.md)            — Component index
+│   ├── [SelectInput](docs/components/SelectInput/SelectInput-API.md)
+│   ├── [SelectRow](docs/components/SelectRow/SelectRow-API.md)
+│   ├── [MultiSelectInput](docs/components/MultiSelectInput/MultiSelectInput-API.md)
+│   ├── [TextInput](docs/components/TextInput/TextInput-API.md)
+│   ├── [UncontrolledTextInput](docs/components/TextInput/UncontrolledTextInput-API.md)
+│   ├── [NumberInput](docs/components/NumberInput/NumberInput-API.md)
+│   ├── [SearchInput](docs/components/SearchInput/SearchInput-API.md)
+│   ├── [ConfirmDialog](docs/components/ConfirmDialog/ConfirmDialog-API.md)
+│   ├── [Spinner](docs/components/Spinner/Spinner-API.md)
+│   ├── [ProgressBar](docs/components/ProgressBar/ProgressBar-API.md)
+│   ├── [Divider](docs/components/Divider/Divider-API.md)
+│   ├── [Badge](docs/components/Badge/Badge-API.md)
+│   ├── [KeyHint](docs/components/KeyHint/KeyHint-API.md)
+│   ├── [Tabs](docs/components/Tabs/Tabs-API.md)
+│   ├── [Fold](docs/components/Fold/Fold-API.md)
+│   ├── [Form](docs/components/Form/Form-API.md)
+│   ├── [Field](docs/components/Form/Field-API.md)
+│   └── [useFormContext](docs/components/Form/useFormContext-API.md)
+│
+├── theme/
+│   ├── [README](docs/theme/README.md)
+│   ├── [ThemeProvider](docs/theme/ThemeProvider-API.md)
+│   ├── [useTheme](docs/theme/useTheme-API.md)
+│   └── [advanced](docs/theme/advanced.md)
+│
+├── language/
+│   ├── [README](docs/language/README.md)
+│   ├── [LanguageProvider](docs/language/LanguageProvider-API.md)
+│   ├── [useI18n](docs/language/useI18n-API.md)
+│   └── [advanced](docs/language/advanced.md)
+│
+├── storage/
+│   ├── [README](docs/storage/README.md)
+│   └── [createStorage](docs/storage/createStorage-API.md)
+│
+├── binary-storage/
+│   ├── [README](docs/binary-storage/README.md)
+│   ├── [createBinaryStorage](docs/binary-storage/createBinaryStorage-API.md)
+│   └── [createStreamingReader](docs/binary-storage/createStreamingReader-API.md)
+│
+└── dev-tool/
+    ├── [README](docs/dev-tool/README.md)
+    ├── [openDevTool](docs/dev-tool/openDevTool-API.md)
+    └── [closeDevTool](docs/dev-tool/closeDevTool-API.md)
 ```
 
-### Install in existing project
+## Install
 
 ```bash
 npm install ink-cartridge
 ```
 
-### Requirements
+## Scaffold
 
-| Dependency | Minimum Version |
-| ---------- | --------------- |
-| Node.js    | 22              |
-| ink        | 5               |
-| react      | 18              |
-
----
-
-## Design Philosophy
-
-ink-cartridge aims to make **screen management** and **keyboard event handling** in Ink applications composable, maintainable, and type-safe.
-
-### Screen as Component
-
-In ink-cartridge, **every React component is a "screen"**. Register them into a **screen tree** via `registerComponent`, then navigate the tree with `skip` / `back` / `gotoScreen`. This design makes screen navigation predictable and eliminates the chaos of hand-written conditional rendering (`if-else` / `switch`).
-
-### Layered Keyboard Events
-
-No more global `useInput` cluttered with `if-else` chains. ink-cartridge's keyboard system maintains **per-screen-layer** key bindings. Events bubble from **top to bottom** through the stack, with four key mechanisms:
-
-- **Sequence (`boundSequence`)** — Multi-key chords (e.g. `gg`, `dd`, `cw`) with timeout and exclusive/non-exclusive modes. Sequences take priority over ordinary bindings.
-- **Blocked Key (`blockedKey`)** — Let a key pass through the current layer to be handled below
-- **Stop (`stop`)** — Prevent a key from propagating to lower layers. Supports `stopAction` mode to block by shortcut action ID instead of literal key name
-- **Global Key (`globalKeys`)** — Shortcuts independent of the screen stack
-
-#### Finer-grained partitioning
-
-Within the same level, identical keys are also in competition. To address this, we have a complete **focus system**.  
-Each level maintains a set of focus targets, and only one focus is active at any given time within a level. Each focus target has its own bound keyboard operations. Only the activated focus target is eligible to execute them during event dispatching in **useInput**.  
-
-**For more details, please refer to the API documentation.**
-
-### Shortcut Actions
-
-Decouple operation definition from key binding with `defineShortcutAction`. Register named operations once, then reference them by string ID in `boundKeyboard`, `globalKeys`, and `stop`:
-
-```tsx
-defineShortcutAction([
-  { actionId: 'quit', action: () => process.exit() },
-]);
-boundKeyboard(['q'], 'quit');
-globalKeys([{ key: 'escape', operate: 'quit' }]);
-stop(['quit'], { stopAction: true });
+```bash
+npx ink-cartridge init my-tui
 ```
-
-### Sequence Actions
-
-Decouple sequence operation definition from key binding with `defineSequenceAction`. Register named sequence operations once, then reference them by string ID in `globalSequence` and `boundSequence`:
-
-```tsx
-defineSequenceAction([
-  { sequenceActionId: 'save', action: () => saveFile(), keys: ['ctrl+s'] },
-]);
-
-// Global sequence referencing the action
-globalSequence([{ keys: ['ctrl+s'], operate: 'save' }]);
-
-// Screen-level sequence using the action's predefined keys
-boundSequence('save');
-
-// Modify an existing action's keys dynamically
-modifySequenceAction('save', ['ctrl+shift+s']);
-```
-
-### Overlay System
-
-`openOverlay()` and `closeOverlay()` provide floating dialogs on top of the screen stack. Combined with the keyboard system, overlays intercept keys before they reach the underlying screen — ideal for confirmation dialogs, modals, and pop-up menus.
-
-### Module-Level Functions
-
-Navigation functions (`skip`, `back`, `gotoScreen`, `openOverlay`, `closeOverlay`) work both inside React components (via hooks) and as **module-level imports** in any `.ts` / `.tsx` file. This allows non-UI layers — game engines, state managers, etc. — to trigger screen transitions.
-
-### Type Safety
-
-Every API provides full TypeScript type inference. Functions like `skip`, `gotoScreen`, and `openOverlay` automatically infer parameter types from your component's props, catching errors at compile time.
-
----
-
-## ⚠️ Important: Component Nesting Order
-
-`KeyboardProvider` **must** be nested inside `ScenarioManagementProvider`, because it depends on the screen context to obtain the current screen stack.
-
-```tsx
-{/* ❌ Wrong: KeyboardProvider outside screen context */}
-<KeyboardProvider>
-  <ScenarioManagementProvider defaultScreen={Menu}>
-    ...
-  </ScenarioManagementProvider>
-</KeyboardProvider>
-
-{/* ✅ Correct: KeyboardProvider inside screen context */}
-<ScenarioManagementProvider defaultScreen={Menu}>
-  <KeyboardProvider>
-    ...
-  </KeyboardProvider>
-</ScenarioManagementProvider>
-```
-
-> The screen system can be used independently without `KeyboardProvider`; but the keyboard system requires the screen context.
-
----
-
-## Documentation
-
-- **[Screen Management System](docs/screen.md)** — `registerComponent`, `ScenarioManagementProvider`, `CurrentScreen`, `useScreenSystem`, `skip` / `back` / `gotoScreen` / `openOverlay` / `closeOverlay`
-- **[Keyboard System](docs/keyboard.md)** — `KeyboardProvider`, `useKeyboard`, `boundKeyboard`, `boundSequence`, `blockedKey`, `stop`, `globalKeys`, `defineShortcutAction`, focus management
-- **[Internationalization](docs/language.md)** — `LanguageProvider`, `useI18n`, `t()` translation with interpolation, language switching, **`ink-cartridge makeLanguageType`** CLI for compile-time type-safe translation keys
-- **[Theme System](docs/theme.md)** — `ThemeProvider`, `useTheme`, There is also a companion type generator and theme profile generator
-- **[Persistence System](docs/storage.md)** — `createStorage`, typed key-value JSON storage with automatic type validation, atomic writes, and zero config
-- **[Binary Storage System](docs/binary-storage.md)** — `createBinaryStorage` for sequential typed binary streams with positional cursors, and `createStreamingReader` for memory-efficient streaming of large files (500 MB+) with backpressure support
-
----
-
-## Components
-
-### Selection & Input
-- **[SelectInput](src/components/select/README.md)** — Single-select list (vertical) with focus-aware keyboard navigation
-- **[SelectRow](src/components/select-row/README.md)** — Single-select list (horizontal) with left/right arrow navigation
-- **[MultiSelectInput](src/components/multi-select/README.md)** — Multi-select list with checkbox toggling (Space to toggle, Enter to submit)
-- **[TextInput](src/components/text/README.md)** — Text input with cursor, mask, and focus system integration
-- **[SearchInput](src/components/search-input/README.md)** — Search field with 🔍 icon and Esc-to-clear
-- **[NumberInput](src/components/number-input/README.md)** — Numeric stepper with min/max/step and keyboard controls
-
-### Display & Feedback
-- **[Spinner](src/components/spinner/README.md)** — Animated spinner with multiple preset styles
-- **[ProgressBar](src/components/progress-bar/README.md)** — Customizable progress bar with percentage display
-- **[Badge](src/components/badge/README.md)** — Colored label/tag component
-- **[KeyHint](src/components/key-hint/README.md)** — Keyboard shortcut hint bar (`[S] Save`)
-
-### Navigation
-- **[Tabs](src/components/tabs/README.md)** — Tabbed panel with keyboard navigation and focus system integration
-- **[Fold](src/components/fold/README.md)** — Collapsible panel with preview and Space-toggle, integrated with focus system
-
-### Layout
-- **[Divider](src/components/divider/README.md)** — Horizontal separator with optional centered label
-
-### Form
-- **[Form & Field](src/components/form/README.md)** — Context‑based form system with validation, error focus, and Ctrl+Enter submit
-
-### Dialog
-- **[ConfirmDialog](src/components/dialog/README.md)** — Modal confirmation dialog with two buttons, designed for the overlay system
-
----
-
-## Quick Overview
-
-```tsx
-import React, { useEffect } from 'react';
-import { Box, Text, render } from 'ink';
-import {
-  registerComponent,
-  ScenarioManagementProvider,
-  CurrentScreen,
-  useScreenSystem,
-  KeyboardProvider,
-  useKeyboard,
-  ConfirmDialog,
-} from 'ink-cartridge';
-
-// ── Register screens ──
-function Menu() {
-  const { skip } = useScreenSystem();
-  const { boundKeyboard } = useKeyboard();
-  useEffect(() => {
-    boundKeyboard(['s'], () => skip(Game, { level: 1 }));
-  }, []);
-  return (
-    <Box>
-      <Text>Main Menu — Press S to start</Text>
-    </Box>
-  );
-}
-registerComponent(Menu, {});
-
-function Game({ level }: { level: number }) {
-  const { back } = useScreenSystem();
-  const { boundKeyboard } = useKeyboard();
-  useEffect(() => {
-    boundKeyboard(['b'], () => back());
-  }, []);
-  return (
-    <Box>
-      <Text>Level {level} — Press B to go back</Text>
-    </Box>
-  );
-}
-registerComponent(Game, { level: 1 }, { parent: Menu });
-
-// Register the dialog so it can be used with openOverlay()
-registerComponent(ConfirmDialog, {
-  title: '', message: '', onConfirm: () => {}, onCancel: () => {},
-});
-
-// ── Wire up ──
-function App() {
-  return (
-    <KeyboardProvider>
-      <CurrentScreen />
-    </KeyboardProvider>
-  );
-}
-
-render(
-  <ScenarioManagementProvider defaultScreen={Menu}>
-    <App />
-  </ScenarioManagementProvider>,
-);
-```
-
----
-
 
 ## Other
 
-I admit I thought about some things too quickly at the beginning of the project.
-For example, the method of **blockedKeys**. Why is it called that? I don't know. Maybe I didn't think about it at that time.
-Actually, it should be called **penetration**, but I don't want to change it.
+The method `blockedKey` is poorly named — it means *pass-through*, not "block." The internal name is `penetration`. Too late to rename now.
 
 ## License
 
