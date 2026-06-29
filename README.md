@@ -40,7 +40,7 @@ npx ink-cartridge init my-tui
 ## Documentation
 
 <details>
-<summary><b>📖 keyboard/</b> — Architecture &amp; API index</summary>
+<summary><b>keyboard/</b> — Architecture &amp; API index</summary>
 
 - [README](docs/keyboard/README.md) — Architecture &amp; API index
 - [KeyboardProvider](docs/keyboard/KeyboardProvider-API.md)
