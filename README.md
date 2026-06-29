@@ -18,97 +18,97 @@ Three pillars:
 
 ## Documentation
 
-```
+<pre>
 docs/
-├── keyboard/
-│   ├── [README](docs/keyboard/README.md)              — Architecture & API index
-│   ├── [KeyboardProvider](docs/keyboard/KeyboardProvider-API.md)
-│   ├── [useKeyboard](docs/keyboard/useKeyboard-API.md)
-│   ├── [boundKeyboard](docs/keyboard/boundKeyboard-API.md)
-│   ├── [boundSequence](docs/keyboard/boundSequence-API.md)
-│   ├── [blockedKey](docs/keyboard/blockedKey-API.md)
-│   ├── [stop](docs/keyboard/stop-API.md)
-│   ├── [globalKeys](docs/keyboard/globalKeys-API.md)
-│   ├── [globalSequence](docs/keyboard/globalSequence-API.md)
-│   ├── [focus system](docs/keyboard/focus-system-API.md)
-│   ├── [shortcut actions](docs/keyboard/shortcut-actions-API.md)
-│   ├── [sequence actions](docs/keyboard/sequence-actions-API.md)
-│   ├── [allowModal](docs/keyboard/allowModal-API.md)
-│   ├── [useModalMissListener](docs/keyboard/useModalMissListener-API.md)
-│   ├── [enableWildcardPriority](docs/keyboard/enableWildcardPriority-API.md)
-│   └── [advanced](docs/keyboard/advanced.md)
+├── <a href="docs/keyboard/README.md">keyboard/</a>
+│   ├── <a href="docs/keyboard/README.md">README</a>              — Architecture &amp; API index
+│   ├── <a href="docs/keyboard/KeyboardProvider-API.md">KeyboardProvider</a>
+│   ├── <a href="docs/keyboard/useKeyboard-API.md">useKeyboard</a>
+│   ├── <a href="docs/keyboard/boundKeyboard-API.md">boundKeyboard</a>
+│   ├── <a href="docs/keyboard/boundSequence-API.md">boundSequence</a>
+│   ├── <a href="docs/keyboard/blockedKey-API.md">blockedKey</a>
+│   ├── <a href="docs/keyboard/stop-API.md">stop</a>
+│   ├── <a href="docs/keyboard/globalKeys-API.md">globalKeys</a>
+│   ├── <a href="docs/keyboard/globalSequence-API.md">globalSequence</a>
+│   ├── <a href="docs/keyboard/focus-system-API.md">focus system</a>
+│   ├── <a href="docs/keyboard/shortcut-actions-API.md">shortcut actions</a>
+│   ├── <a href="docs/keyboard/sequence-actions-API.md">sequence actions</a>
+│   ├── <a href="docs/keyboard/allowModal-API.md">allowModal</a>
+│   ├── <a href="docs/keyboard/useModalMissListener-API.md">useModalMissListener</a>
+│   ├── <a href="docs/keyboard/enableWildcardPriority-API.md">enableWildcardPriority</a>
+│   └── <a href="docs/keyboard/advanced.md">advanced</a>
 │
-├── screen/
-│   ├── [README](docs/screen/README.md)                — Architecture & API index
-│   ├── [registerComponent](docs/screen/registerComponent-API.md)
-│   ├── [ScenarioManagementProvider](docs/screen/ScenarioManagementProvider-API.md)
-│   ├── [CurrentScreen](docs/screen/CurrentScreen-API.md)
-│   ├── [useScreenSystem](docs/screen/useScreenSystem-API.md)
-│   ├── [skip](docs/screen/skip-API.md)
-│   ├── [back](docs/screen/back-API.md)
-│   ├── [gotoScreen](docs/screen/gotoScreen-API.md)
-│   ├── [overlay](docs/screen/overlay-API.md)
-│   ├── [modal](docs/screen/modal-API.md)
-│   ├── [ModalContext](docs/screen/ModalContext-API.md)
-│   └── [advanced](docs/screen/advanced.md)
+├── <a href="docs/screen/README.md">screen/</a>
+│   ├── <a href="docs/screen/README.md">README</a>                — Architecture &amp; API index
+│   ├── <a href="docs/screen/registerComponent-API.md">registerComponent</a>
+│   ├── <a href="docs/screen/ScenarioManagementProvider-API.md">ScenarioManagementProvider</a>
+│   ├── <a href="docs/screen/CurrentScreen-API.md">CurrentScreen</a>
+│   ├── <a href="docs/screen/useScreenSystem-API.md">useScreenSystem</a>
+│   ├── <a href="docs/screen/skip-API.md">skip</a>
+│   ├── <a href="docs/screen/back-API.md">back</a>
+│   ├── <a href="docs/screen/gotoScreen-API.md">gotoScreen</a>
+│   ├── <a href="docs/screen/overlay-API.md">overlay</a>
+│   ├── <a href="docs/screen/modal-API.md">modal</a>
+│   ├── <a href="docs/screen/ModalContext-API.md">ModalContext</a>
+│   └── <a href="docs/screen/advanced.md">advanced</a>
 │
-├── event/
-│   ├── [README](docs/event/README.md)                 — Architecture & API index
-│   ├── [createEventBus](docs/event/createEventBus-API.md)
-│   ├── [EventProvider](docs/event/EventProvider-API.md)
-│   ├── [useEmitter](docs/event/useEmitter-API.md)
-│   ├── [useSubscribe](docs/event/useSubscribe-API.md)
-│   ├── [useEventBus](docs/event/useEventBus-API.md)
-│   ├── [EventBus](docs/event/EventBus-API.md)
-│   └── [advanced](docs/event/advanced.md)
+├── <a href="docs/event/README.md">event/</a>
+│   ├── <a href="docs/event/README.md">README</a>                 — Architecture &amp; API index
+│   ├── <a href="docs/event/createEventBus-API.md">createEventBus</a>
+│   ├── <a href="docs/event/EventProvider-API.md">EventProvider</a>
+│   ├── <a href="docs/event/useEmitter-API.md">useEmitter</a>
+│   ├── <a href="docs/event/useSubscribe-API.md">useSubscribe</a>
+│   ├── <a href="docs/event/useEventBus-API.md">useEventBus</a>
+│   ├── <a href="docs/event/EventBus-API.md">EventBus</a>
+│   └── <a href="docs/event/advanced.md">advanced</a>
 │
-├── components/
-│   ├── [README](docs/components/README.md)            — Component index
-│   ├── [SelectInput](docs/components/SelectInput/SelectInput-API.md)
-│   ├── [SelectRow](docs/components/SelectRow/SelectRow-API.md)
-│   ├── [MultiSelectInput](docs/components/MultiSelectInput/MultiSelectInput-API.md)
-│   ├── [TextInput](docs/components/TextInput/TextInput-API.md)
-│   ├── [UncontrolledTextInput](docs/components/TextInput/UncontrolledTextInput-API.md)
-│   ├── [NumberInput](docs/components/NumberInput/NumberInput-API.md)
-│   ├── [SearchInput](docs/components/SearchInput/SearchInput-API.md)
-│   ├── [ConfirmDialog](docs/components/ConfirmDialog/ConfirmDialog-API.md)
-│   ├── [Spinner](docs/components/Spinner/Spinner-API.md)
-│   ├── [ProgressBar](docs/components/ProgressBar/ProgressBar-API.md)
-│   ├── [Divider](docs/components/Divider/Divider-API.md)
-│   ├── [Badge](docs/components/Badge/Badge-API.md)
-│   ├── [KeyHint](docs/components/KeyHint/KeyHint-API.md)
-│   ├── [Tabs](docs/components/Tabs/Tabs-API.md)
-│   ├── [Fold](docs/components/Fold/Fold-API.md)
-│   ├── [Form](docs/components/Form/Form-API.md)
-│   ├── [Field](docs/components/Form/Field-API.md)
-│   └── [useFormContext](docs/components/Form/useFormContext-API.md)
+├── <a href="docs/components/README.md">components/</a>
+│   ├── <a href="docs/components/README.md">README</a>            — Component index
+│   ├── <a href="docs/components/SelectInput/SelectInput-API.md">SelectInput</a>
+│   ├── <a href="docs/components/SelectRow/SelectRow-API.md">SelectRow</a>
+│   ├── <a href="docs/components/MultiSelectInput/MultiSelectInput-API.md">MultiSelectInput</a>
+│   ├── <a href="docs/components/TextInput/TextInput-API.md">TextInput</a>
+│   ├── <a href="docs/components/TextInput/UncontrolledTextInput-API.md">UncontrolledTextInput</a>
+│   ├── <a href="docs/components/NumberInput/NumberInput-API.md">NumberInput</a>
+│   ├── <a href="docs/components/SearchInput/SearchInput-API.md">SearchInput</a>
+│   ├── <a href="docs/components/ConfirmDialog/ConfirmDialog-API.md">ConfirmDialog</a>
+│   ├── <a href="docs/components/Spinner/Spinner-API.md">Spinner</a>
+│   ├── <a href="docs/components/ProgressBar/ProgressBar-API.md">ProgressBar</a>
+│   ├── <a href="docs/components/Divider/Divider-API.md">Divider</a>
+│   ├── <a href="docs/components/Badge/Badge-API.md">Badge</a>
+│   ├── <a href="docs/components/KeyHint/KeyHint-API.md">KeyHint</a>
+│   ├── <a href="docs/components/Tabs/Tabs-API.md">Tabs</a>
+│   ├── <a href="docs/components/Fold/Fold-API.md">Fold</a>
+│   ├── <a href="docs/components/Form/Form-API.md">Form</a>
+│   ├── <a href="docs/components/Form/Field-API.md">Field</a>
+│   └── <a href="docs/components/Form/useFormContext-API.md">useFormContext</a>
 │
-├── theme/
-│   ├── [README](docs/theme/README.md)
-│   ├── [ThemeProvider](docs/theme/ThemeProvider-API.md)
-│   ├── [useTheme](docs/theme/useTheme-API.md)
-│   └── [advanced](docs/theme/advanced.md)
+├── <a href="docs/theme/README.md">theme/</a>
+│   ├── <a href="docs/theme/README.md">README</a>
+│   ├── <a href="docs/theme/ThemeProvider-API.md">ThemeProvider</a>
+│   ├── <a href="docs/theme/useTheme-API.md">useTheme</a>
+│   └── <a href="docs/theme/advanced.md">advanced</a>
 │
-├── language/
-│   ├── [README](docs/language/README.md)
-│   ├── [LanguageProvider](docs/language/LanguageProvider-API.md)
-│   ├── [useI18n](docs/language/useI18n-API.md)
-│   └── [advanced](docs/language/advanced.md)
+├── <a href="docs/language/README.md">language/</a>
+│   ├── <a href="docs/language/README.md">README</a>
+│   ├── <a href="docs/language/LanguageProvider-API.md">LanguageProvider</a>
+│   ├── <a href="docs/language/useI18n-API.md">useI18n</a>
+│   └── <a href="docs/language/advanced.md">advanced</a>
 │
-├── storage/
-│   ├── [README](docs/storage/README.md)
-│   └── [createStorage](docs/storage/createStorage-API.md)
+├── <a href="docs/storage/README.md">storage/</a>
+│   ├── <a href="docs/storage/README.md">README</a>
+│   └── <a href="docs/storage/createStorage-API.md">createStorage</a>
 │
-├── binary-storage/
-│   ├── [README](docs/binary-storage/README.md)
-│   ├── [createBinaryStorage](docs/binary-storage/createBinaryStorage-API.md)
-│   └── [createStreamingReader](docs/binary-storage/createStreamingReader-API.md)
+├── <a href="docs/binary-storage/README.md">binary-storage/</a>
+│   ├── <a href="docs/binary-storage/README.md">README</a>
+│   ├── <a href="docs/binary-storage/createBinaryStorage-API.md">createBinaryStorage</a>
+│   └── <a href="docs/binary-storage/createStreamingReader-API.md">createStreamingReader</a>
 │
-└── dev-tool/
-    ├── [README](docs/dev-tool/README.md)
-    ├── [openDevTool](docs/dev-tool/openDevTool-API.md)
-    └── [closeDevTool](docs/dev-tool/closeDevTool-API.md)
-```
+└── <a href="docs/dev-tool/README.md">dev-tool/</a>
+    ├── <a href="docs/dev-tool/README.md">README</a>
+    ├── <a href="docs/dev-tool/openDevTool-API.md">openDevTool</a>
+    └── <a href="docs/dev-tool/closeDevTool-API.md">closeDevTool</a>
+</pre>
 
 ## Install
 
