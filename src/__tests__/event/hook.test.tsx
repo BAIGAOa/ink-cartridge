@@ -43,8 +43,8 @@ describe('useEventBus', () => {
 
 describe('useEmitter', () => {
   it('returns a stable function reference across re-renders', () => {
-    let emitter1: Function | null = null;
-    let emitter2: Function | null = null;
+    let emitter1: ((payload: string) => void) | null = null;
+		 let emitter2: ((payload: string) => void) | null = null;
     let forceRender: () => void;
 
     function Consumer() {
