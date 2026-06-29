@@ -3,7 +3,7 @@
 <div align="center">
         <br>
         <br>
-        <img width="240" alt="cartridge" src="cartridge.jpg">
+        <img width="440" alt="cartridge" src="cartridge.jpg">
         <br>
         <br>
         <br>
