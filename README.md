@@ -1,5 +1,5 @@
 # ink-cartridge
-
+<img src="IMG_20260629_205529_737.jpg" alt="picture" width="150">
 > A component kit for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
 
 [![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-trc/actions/workflows/ci.yml)
