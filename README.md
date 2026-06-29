@@ -61,7 +61,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>📺 screen/</b> — Architecture &amp; API index</summary>
+<summary><b>screen/</b> — Architecture &amp; API index</summary>
 
 - [README](docs/screen/README.md) — Architecture &amp; API index
 - [registerComponent](docs/screen/registerComponent-API.md)
@@ -78,7 +78,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>📡 event/</b> — Architecture &amp; API index</summary>
+<summary><b>event/</b> — Architecture &amp; API index</summary>
 
 - [README](docs/event/README.md) — Architecture &amp; API index
 - [createEventBus](docs/event/createEventBus-API.md)
@@ -91,7 +91,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>🧩 components/</b> — Component index</summary>
+<summary><b>components/</b> — Component index</summary>
 
 - [README](docs/components/README.md) — Component index
 - [SelectInput](docs/components/SelectInput/SelectInput-API.md)
@@ -115,7 +115,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>🎨 theme/</b></summary>
+<summary><b>theme/</b></summary>
 
 - [README](docs/theme/README.md)
 - [ThemeProvider](docs/theme/ThemeProvider-API.md)
@@ -124,7 +124,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>🌐 language/</b></summary>
+<summary><b>language/</b></summary>
 
 - [README](docs/language/README.md)
 - [LanguageProvider](docs/language/LanguageProvider-API.md)
@@ -133,14 +133,14 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>💾 storage/</b></summary>
+<summary><b>storage/</b></summary>
 
 - [README](docs/storage/README.md)
 - [createStorage](docs/storage/createStorage-API.md)
 </details>
 
 <details>
-<summary><b>🗄️ binary-storage/</b></summary>
+<summary><b>binary-storage/</b></summary>
 
 - [README](docs/binary-storage/README.md)
 - [createBinaryStorage](docs/binary-storage/createBinaryStorage-API.md)
@@ -148,7 +148,7 @@ npx ink-cartridge init my-tui
 </details>
 
 <details>
-<summary><b>🔧 dev-tool/</b></summary>
+<summary><b>dev-tool/</b></summary>
 
 - [README](docs/dev-tool/README.md)
 - [openDevTool](docs/dev-tool/openDevTool-API.md)
