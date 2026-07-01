@@ -1,7 +1,7 @@
 <div align="center">
         <br>
         <br>
-        <img width="440" alt="cartridge" src="static/cartridge.jpg">
+        <img width="440" alt="cartridge" src="static/cartridge.png">
         <br>
         <br>
         <br>					 
