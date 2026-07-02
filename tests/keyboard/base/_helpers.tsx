@@ -19,7 +19,7 @@ import type { BlockedKeyOptions, StopOptions, SequenceOptions } from '../../../s
  * useEffect are in place before key presses are simulated.
  */
 export async function flush(): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 /**
