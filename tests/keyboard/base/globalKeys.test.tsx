@@ -302,6 +302,10 @@ describe('globalKeys cover', () => {
     // There should be no problem with the source code, that is the problem of testing, especially the stupid timing problem.
     // Do I have to call flush 100 times?
 
+    // After I tried to call flush twice, the test finally passed.
+    // fuck u flush.
+    // TODO: Perhaps a better alternative to flush could be found.
+    // @2026-07-1 3.8.0
     await pressKey(stdin, 'x');
     // The overlay binding fires at stage ③ after the global refrains
     // at stage ② due to the override check.
