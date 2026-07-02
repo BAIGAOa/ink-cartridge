@@ -1,5 +1,5 @@
 import { render } from 'ink-testing-library';
-import React, { useEffect } from 'react';
+import React, { useEffect, act } from 'react';
 import { Text } from 'ink';
 import { vi } from 'vitest';
 import { registerComponent, clearRegistry } from '../../../src/screen/registry.js';
@@ -22,23 +22,12 @@ export async function flush(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
-/**
- * Simulate a key press by writing raw data to stdin.
- *
- * Uses ink-testing-library's `stdin.write()` to feed data into
- * Ink's internal readline-based input parser, which then fires
- * the `useInput` handler inside KeyboardProvider.
- *
- * Always followed by a `flush()` so that the event pipeline
- * (normalizeKeyNames → handleLayer → callbacks) has time to
- * complete before assertions run.
- */
-export async function pressKey(
-  stdin: { write: (data: string) => void },
-  key: string,
-): Promise<void> {
-  stdin.write(key);
-  await flush();
+
+export async function pressKey(stdin: { write: (data: string) => void }, key: string) {
+  await act(async () => {
+    stdin.write(key);
+    // The act automatically waits for the task to completes
+  });
 }
 
 export function Menu() {
