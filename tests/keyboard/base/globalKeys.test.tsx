@@ -300,7 +300,7 @@ describe('globalKeys cover', () => {
     await pressKey(stdin, 'x');
     // The overlay binding fires at stage ③ after the global refrains
     // at stage ② due to the override check.
-    expect(globalFn).not.toHaveBeenCalled();
+    expect(globalFn).toHaveBeenCalledTimes(0);
   });
 });
 
