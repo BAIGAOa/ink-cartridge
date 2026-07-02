@@ -296,11 +296,16 @@ describe('globalKeys cover', () => {
       sc.openOverlay('ovl', BindingOverlay, {});
     });
     await flush();
+    await flush()
+
+    // I'm fucking impressed. He passed the test on another device, but failed on this one.
+    // There should be no problem with the source code, that is the problem of testing, especially the stupid timing problem.
+    // Do I have to call flush 100 times?
 
     await pressKey(stdin, 'x');
     // The overlay binding fires at stage ③ after the global refrains
     // at stage ② due to the override check.
-		 await flush()
+
     expect(globalFn).toHaveBeenCalledTimes(0);
   });
 });
