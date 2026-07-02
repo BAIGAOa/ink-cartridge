@@ -1,12 +1,14 @@
 import { render } from 'ink-testing-library';
 import React, { useEffect } from 'react';
 import { Text } from 'ink';
+import { vi } from 'vitest';
 import { registerComponent, clearRegistry } from '../../../src/screen/registry.js';
 import { ScenarioManagementProvider } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
+import type { BlockedKeyOptions, StopOptions, SequenceOptions } from '../../../src/keyboard/types.js';
 
 /**
  * Wait for asynchronous effects (useEffect, state updates) to flush.
@@ -135,4 +137,334 @@ export function renderKeyboardApp(
   );
 
   return { lastFrame, stdin, unmount };
+}
+
+/**
+ * Create a minimal ScreenSystemContext value with an empty
+ * screen path (`currentPath: []`).
+ *
+ * Used when a test needs to simulate the "no screen mounted" state —
+ * for example, verifying that `blockedKey` throws when called outside
+ * of any screen component.
+ *
+ * The returned object satisfies all required fields of the context
+ * value shape (22 fields). Functions are no-ops; arrays are empty;
+ * nullable fields are null.
+ */
+export function createEmptyScreenSystem(): object {
+  const noop = () => {};
+  return {
+    currentScreen: null,
+    currentOverlays: [],
+    currentModals: [],
+    currentPath: [] as React.ComponentType<any>[],
+    skip: noop,
+    back: noop,
+    gotoScreen: noop,
+    openOverlay: noop,
+    closeOverlay: noop,
+    closeAllOverlays: noop,
+    activateOverlay: noop,
+    deactivateOverlay: noop,
+    activeOverlayIds: [] as string[],
+    displayedOverlays: [] as any[],
+    displayedModals: [] as any[],
+    renderedModalEntries: [] as any[],
+    activeModalId: null as string | null,
+    activeModal: null as any,
+    modalQueue: [] as any[],
+    openModal: noop,
+    closeModal: noop,
+    closeAllModals: noop,
+  };
+}
+
+/**
+ * Result of {@link renderPenetrationStack}.
+ */
+export interface PenetrationStackResult {
+  lastFrame: () => string | undefined;
+  stdin: { write: (data: string) => void };
+  unmount: () => void;
+  /** Handler bound to 'x' on the Parent screen. */
+  parentX: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'y' on the Parent screen. */
+  parentY: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'x' on the Child screen. */
+  childX: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'y' on the Child screen. */
+  childY: ReturnType<typeof vi.fn>;
+  /** Press 's' to navigate from Parent to Child, then flush. */
+  goToChild: () => Promise<void>;
+}
+
+/**
+ * Render a two-screen stack for testing `blockedKey` penetration.
+ *
+ * The Parent screen has handlers for `x`, `y`, and `s` (skip to Child).
+ * The Child screen has handlers for `x`, `y`, and `b` (back to Parent),
+ * and calls `blockedKey` on the configured keys with the given options.
+ *
+ * Tree:  Parent → Child (child of Parent)
+ *
+ * @param blockKeys  - Keys to mark as transparent on the Child layer.
+ * @param blockOpts  - Optional {@link BlockedKeyOptions} (when, focusId).
+ * @2026-07-02 v3.8.0
+ */
+export function renderPenetrationStack(
+  blockKeys: string[],
+  blockOpts?: BlockedKeyOptions,
+): PenetrationStackResult {
+  const parentX = vi.fn();
+  const parentY = vi.fn();
+  const childX = vi.fn();
+  const childY = vi.fn();
+
+  function Parent() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['s'], () => sc.skip(Child, {}));
+      kb.boundKeyboard(['x'], parentX);
+      kb.boundKeyboard(['y'], parentY);
+    }, []);
+    return <Text>Parent</Text>;
+  }
+  Parent.displayName = 'Parent';
+
+  function Child() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['b'], () => sc.back());
+      kb.boundKeyboard(['x'], childX);
+      kb.boundKeyboard(['y'], childY);
+      kb.blockedKey(blockKeys, blockOpts);
+    }, []);
+    return <Text>Child</Text>;
+  }
+  Child.displayName = 'Child';
+
+  clearRegistry();
+  registerComponent(Parent, {});
+  registerComponent(Child, {}, { parent: Parent });
+
+  const { lastFrame, stdin, unmount } = render(
+    <ScenarioManagementProvider defaultScreen={Parent}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
+  );
+
+  return {
+    lastFrame: () => lastFrame(),
+    stdin,
+    unmount,
+    parentX,
+    parentY,
+    childX,
+    childY,
+    goToChild: () => pressKey(stdin, 's'),
+  };
+}
+
+/**
+ * Result of {@link renderStopStack}.
+ */
+export interface StopStackResult {
+  lastFrame: () => string | undefined;
+  stdin: { write: (data: string) => void };
+  unmount: () => void;
+  /** Handler bound to 'x' on the Parent screen. */
+  parentX: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'y' on the Parent screen. */
+  parentY: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'x' on the Child screen (only when `childBindsStoppedKeys` is true). */
+  childX: ReturnType<typeof vi.fn>;
+  /** Handler bound to 'y' on the Child screen. */
+  childY: ReturnType<typeof vi.fn>;
+  /** Press 's' to navigate from Parent to Child, then flush. */
+  goToChild: () => Promise<void>;
+  /** Calls the unstop function returned by `stop()`. */
+  unstop: () => void;
+}
+
+/**
+ * Render a two-screen stack for testing `stop` propagation.
+ *
+ * The Parent screen has handlers for `x`, `y`, and `s` (skip to Child).
+ * The Child screen has a handler for `y`, and calls `stop` on the
+ * configured keys with the given options.
+ *
+ * When `childBindsStoppedKeys` is `true`, the Child also binds a
+ * handler for each stopped key — this is used to verify that a
+ * matching binding fires before the stop barrier is reached.
+ *
+ * Tree:  Parent → Child (child of Parent)
+ *
+ * @param stopKeys              - Keys to stop on the Child layer.
+ * @param stopOpts              - Optional {@link StopOptions} (when, focusId, stopAction).
+ * @param childBindsStoppedKeys - If true, Child binds handlers for stopKeys.
+ * @2026-07-02 v3.8.0
+ */
+export function renderStopStack(
+  stopKeys: string[],
+  stopOpts?: StopOptions,
+  childBindsStoppedKeys: boolean = false,
+): StopStackResult {
+  const parentX = vi.fn();
+  const parentY = vi.fn();
+  const childX = vi.fn();
+  const childY = vi.fn();
+
+  // Captured so the test can call the unstop function at any time.
+  let unstopFn: (() => void) | null = null;
+
+  function Parent() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['s'], () => sc.skip(Child, {}));
+      kb.boundKeyboard(['x'], parentX);
+      kb.boundKeyboard(['y'], parentY);
+    }, []);
+    return <Text>Parent</Text>;
+  }
+  Parent.displayName = 'Parent';
+
+  function Child() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['b'], () => sc.back());
+      kb.boundKeyboard(['y'], childY);
+      if (childBindsStoppedKeys) {
+        for (const k of stopKeys) {
+          kb.boundKeyboard([k], childX);
+        }
+      }
+      unstopFn = kb.stop(stopKeys, stopOpts);
+    }, []);
+    return <Text>Child</Text>;
+  }
+  Child.displayName = 'Child';
+
+  clearRegistry();
+  registerComponent(Parent, {});
+  registerComponent(Child, {}, { parent: Parent });
+
+  const { lastFrame, stdin, unmount } = render(
+    <ScenarioManagementProvider defaultScreen={Parent}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
+  );
+
+  return {
+    lastFrame: () => lastFrame(),
+    stdin,
+    unmount,
+    parentX,
+    parentY,
+    childX,
+    childY,
+    goToChild: () => pressKey(stdin, 's'),
+    unstop: () => unstopFn?.(),
+  };
+}
+
+/**
+ * Result of {@link renderSequenceStack}.
+ */
+export interface SequenceStackResult {
+  lastFrame: () => string | undefined;
+  stdin: { write: (data: string) => void };
+  unmount: () => void;
+  /** Parent handler bound to the first key of the sequence. */
+  parentFirstKey: ReturnType<typeof vi.fn>;
+  /** Parent handler bound to a mismatch key ('x') for tracking fall-through. */
+  parentMismatch: ReturnType<typeof vi.fn>;
+  /** Child sequence handler — fires when the full sequence is matched. */
+  childHandler: ReturnType<typeof vi.fn>;
+  /** Press 's' to navigate from Parent to Child, then flush. */
+  goToChild: () => Promise<void>;
+  /** Unbind the sequence binding. */
+  unbind: () => void;
+}
+
+/**
+ * Render a two-screen stack for testing `boundSequence` behavior.
+ *
+ * The Parent screen binds handlers for the **first key** of the sequence
+ * (to verify it is consumed by the sequence system) and for a generic
+ * mismatch key `x` (to verify fall-through in non-exclusive mode).
+ * The Child screen calls `boundSequence` and binds `b` to go back.
+ *
+ * Tree:  Parent → Child (child of Parent)
+ *
+ * @param sequenceKeys - Ordered keys for the sequence (≥ 2).
+ * @param opts         - Optional {@link SequenceOptions}.
+ * @2026-07-02 v3.8.0
+ */
+export function renderSequenceStack(
+  sequenceKeys: string[],
+  opts?: SequenceOptions,
+): SequenceStackResult {
+  const parentFirstKey = vi.fn();
+  const parentMismatch = vi.fn();
+  const childHandler = vi.fn();
+
+  let unbindFn: (() => void) | null = null;
+
+  const firstKey = sequenceKeys[0];
+
+  function Parent() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['s'], () => sc.skip(Child, {}));
+      // Track whether the sequence's first key propagates to parent.
+      kb.boundKeyboard([firstKey], parentFirstKey);
+      // 'x' is used as the generic mismatch key in tests.
+      kb.boundKeyboard(['x'], parentMismatch);
+    }, []);
+    return <Text>Parent</Text>;
+  }
+  Parent.displayName = 'Parent';
+
+  function Child() {
+    const sc = useScreenSystem();
+    const kb = useKeyboard();
+    useEffect(() => {
+      kb.boundKeyboard(['b'], () => sc.back());
+      unbindFn = kb.boundSequence(sequenceKeys, childHandler, opts);
+    }, []);
+    return <Text>Child</Text>;
+  }
+  Child.displayName = 'Child';
+
+  clearRegistry();
+  registerComponent(Parent, {});
+  registerComponent(Child, {}, { parent: Parent });
+
+  const { lastFrame, stdin, unmount } = render(
+    <ScenarioManagementProvider defaultScreen={Parent}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
+  );
+
+  return {
+    lastFrame: () => lastFrame(),
+    stdin,
+    unmount,
+    parentFirstKey,
+    parentMismatch,
+    childHandler,
+    goToChild: () => pressKey(stdin, 's'),
+    unbind: () => unbindFn?.(),
+  };
 }
