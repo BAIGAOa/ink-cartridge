@@ -38,17 +38,21 @@ export interface KeyboardContextValue {
    * Overloads:
    * 1. `(keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions)` —
    *    explicit keys and handler. A single string is normalized to `[string]`.
-   * 2. `(actionId: string, options: BoundKeyboardOptions)` —
+   * 2. `(keys: string | string[], actionId: string, options?: BoundKeyboardOptions)` —
+   *    explicit keys referencing a registered shortcut action by id.
+   * 3. `(actionId: string, options?: BoundKeyboardOptions)` —
    *    uses a registered shortcut action's predefined keys and callback.
    *
    * @param keys     Key name(s) to bind (e.g. `"s"`, `["s", "ctrl+q", "return"]`).
-   * @param handler  Callback receiving the raw `input` and `key` from Ink.
+   * @param handler  Callback receiving the raw `input` and `key` from Ink,
+   *                 or a registered shortcut action id string.
    * @param options  Optional binding behavior (`onlyThis`, `focusId`, `once`, `times`, `when`).
    * @returns        An unbind function that removes this binding when called.
    */
   boundKeyboard: {
     (keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions): () => void;
-    (actionId: string, options: BoundKeyboardOptions): () => void;
+    (keys: string | string[], actionId: string, options?: BoundKeyboardOptions): () => void;
+    (actionId: string, options?: BoundKeyboardOptions): () => void;
   };
 
   /**

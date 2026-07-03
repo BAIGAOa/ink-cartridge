@@ -623,7 +623,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const boundKeyboard = useCallback(
     (
       keysOrActionId: string | string[],
-      handlerOrOptions: KeyHandler | string | BoundKeyboardOptions,
+      handlerOrOptions: KeyHandler | string | BoundKeyboardOptions | undefined,
       maybeOptions?: BoundKeyboardOptions,
     ): (() => void) => {
 
