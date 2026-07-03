@@ -49,10 +49,50 @@ describe('base', () => {
 
   test('Repeated registration of shortcut keys should report an error', () => {
     const handler = vi.fn()
+    let error: Error | null = null
 
-    const {} = renderKeyboardApp(Menu, (kb) => {
-      
+    renderKeyboardApp(Menu, (kb) => {
+      kb.defineShortcutAction([{
+        actionId: 'action-1',
+        action: handler,
+      }])
+
+      try {
+        kb.defineShortcutAction([{
+          actionId: 'action-1',
+          action: vi.fn(),
+        }])
+      } catch (e) {
+        error = e as Error
+      }
     })
+
+    expect(error).not.toBeNull()
+    expect(error!.message).toContain('Duplicate shortcut cannot be defined with ID action-1')
+  })
+
+  test('addAction should also reject duplicate action IDs', () => {
+    const handler = vi.fn()
+    let error: Error | null = null
+
+    renderKeyboardApp(Menu, (kb) => {
+      kb.addAction({
+        actionId: 'action-2',
+        action: handler,
+      })
+
+      try {
+        kb.addAction({
+          actionId: 'action-2',
+          action: vi.fn(),
+        })
+      } catch (e) {
+        error = e as Error
+      }
+    })
+
+    expect(error).not.toBeNull()
+    expect(error!.message).toContain('Duplicate shortcut cannot be defined with ID action-2')
   })
 
 })
