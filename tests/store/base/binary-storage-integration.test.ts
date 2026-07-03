@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { createBinaryStorage, BinaryStorageAPI } from '../../binary-storage/index.js';
+import { createBinaryStorage, BinaryStorageAPI } from '../../../src/binary-storage/index.js';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-bin-int-'));
@@ -18,9 +18,6 @@ afterEach(() => {
   fs.rmSync(testDir, { recursive: true, force: true });
 });
 
-/**
- * Record action frames into binary storage and replay them.
- */
 describe('game replay: record → persist → play-back', () => {
   interface Frame {
     tick: number;
@@ -67,14 +64,11 @@ describe('game replay: record → persist → play-back', () => {
     const writer = createBinaryStorage({ dir: testDir, file: 'replay.bin' });
     await recordFrames(writer, original);
 
-    // Persistence check: reopen the file
     const reader = createBinaryStorage({ dir: testDir, file: 'replay.bin' });
     const played = await playFrames(reader);
 
     expect(played).toEqual(original);
 
-    // Precise byte count: each frame = 5 values
-    // num(1+8) + str(varies) + num(1+8) + num(1+8) + bool(1+1)
     const expectedBytes = original.reduce((sum, f) => {
       const strBytes = Buffer.from(f.action, 'utf-8').length;
       return sum + (1+8) + (1+4+strBytes) + (1+8) + (1+8) + (1+1);
@@ -94,8 +88,7 @@ describe('game replay: record → persist → play-back', () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'partial.bin' });
     await recordFrames(bin, frames);
 
-    // Seek to tick 50 (skip 50 frames)
-    const stride = (1+8) + (1+4+4) + (1+8) + (1+8) + (1+1); // 'move' is 4 bytes
+    const stride = (1+8) + (1+4+4) + (1+8) + (1+8) + (1+1);
     bin.seekRead(stride * 50);
 
     expect(await bin.read.num()).toBe(50);
@@ -103,9 +96,6 @@ describe('game replay: record → persist → play-back', () => {
   });
 });
 
-/**
- * Sensor data logger: high-frequency numeric writes with occasional metadata.
- */
 describe('sensor logger: write many numbers, batch read back', () => {
   it('logs 10_000 temperature readings', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'sensor.bin', flush: false });
@@ -129,7 +119,6 @@ describe('sensor logger: write many numbers, batch read back', () => {
   it('interleaves metadata strings with sensor data', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'sensor-meta.bin' });
 
-    // Write: [timestamp] [event] [value] ...
     await bin.write.str('sensor-start');
     await bin.write.num(Date.now());
     await bin.write.num(25.3);
@@ -150,9 +139,6 @@ describe('sensor logger: write many numbers, batch read back', () => {
   });
 });
 
-/**
- * Object serialization: store and retrieve typed configuration objects.
- */
 describe('object persistence: typed config blobs', () => {
   interface PlayerState {
     name: string;
@@ -205,9 +191,6 @@ describe('object persistence: typed config blobs', () => {
   });
 });
 
-/**
- * Chat log: sequential write, append-only reopen.
- */
 describe('chat log: append-only sequential messages', () => {
   interface ChatMessage {
     sender: string;
@@ -218,16 +201,13 @@ describe('chat log: append-only sequential messages', () => {
   it('appends messages across multiple sessions', async () => {
     const fileOpts = { dir: testDir, file: 'chat.bin' };
 
-    // Session 1: two messages
     const s1 = createBinaryStorage(fileOpts);
     await s1.write.obj<ChatMessage>({ sender: 'Alice', text: 'hello', ts: 1000 });
     await s1.write.obj<ChatMessage>({ sender: 'Bob', text: 'hi!', ts: 1001 });
 
-    // Session 2: append one more
     const s2 = createBinaryStorage(fileOpts);
     await s2.write.obj<ChatMessage>({ sender: 'Alice', text: 'how are you?', ts: 1005 });
 
-    // Read all
     const reader = createBinaryStorage(fileOpts);
     reader.resetRead();
     const msgs: ChatMessage[] = [];
@@ -241,9 +221,6 @@ describe('chat log: append-only sequential messages', () => {
   });
 });
 
-/**
- * Mixed-type stream with write.any / read.any.
- */
 describe('mixed-type stream: any → any round-trip', () => {
   it('write.any auto-detects and read.any restores values', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'mixed.bin' });
@@ -262,9 +239,6 @@ describe('mixed-type stream: any → any round-trip', () => {
   });
 });
 
-/**
- * Truncate / seekWrite: rollback scenarios.
- */
 describe('rollback: seekWrite to undo', () => {
   it('undoes the last 3 writes by seeking back', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'undo.bin' });
@@ -276,7 +250,6 @@ describe('rollback: seekWrite to undo', () => {
     await bin.write.num(4);
     await bin.write.num(5);
 
-    // Undo: seekWrite back to after the second value
     await bin.seekWrite(posAfterTwo);
 
     bin.resetRead();
@@ -292,14 +265,12 @@ describe('rollback: seekWrite to undo', () => {
     await bin.write.num(3);
     await bin.write.num(4);
 
-    // Read first two
     bin.resetRead();
     await bin.read.num();
     await bin.read.num();
-    // Truncate at current read position (discard the last two)
     await bin.truncate();
 
-    expect(bin.tellWrite()).toBe((1 + 8) * 2); // two values remain
+    expect(bin.tellWrite()).toBe((1 + 8) * 2);
     bin.resetRead();
     expect(await bin.read.num()).toBe(1);
     expect(await bin.read.num()).toBe(2);
@@ -307,9 +278,6 @@ describe('rollback: seekWrite to undo', () => {
   });
 });
 
-/**
- * Multi-station isolation.
- */
 describe('multi-station: concurrent independent stations', () => {
   it('two stations in different files do not interfere', async () => {
     const a = createBinaryStorage({ dir: testDir, file: 'a.bin' });
@@ -338,17 +306,14 @@ describe('multi-station: concurrent independent stations', () => {
   });
 });
 
-/**
- * Unicode / edge cases.
- */
 describe('unicode & edge cases', () => {
   it('round-trips exotic Unicode strings', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'unicode.bin' });
     const strings = [
       'こんにちは',
       '✨ emoji and 中文 mixed 💯',
-      '\u0000 null byte in middle',
-      'a'.repeat(10_000), // 10k char string
+      '  null byte in middle',
+      'a'.repeat(10_000),
     ];
 
     for (const s of strings) {
@@ -376,58 +341,45 @@ describe('unicode & edge cases', () => {
     expect(await bin.read.num()).toBe(Number.MAX_SAFE_INTEGER);
     expect(await bin.read.num()).toBe(Number.MIN_SAFE_INTEGER);
     expect(await bin.read.num()).toBe(0);
-    // -0 reads back as 0 in JS (IEEE 754 equality); just verify it's 0
     const negZero = await bin.read.num();
     expect(Object.is(negZero, -0)).toBe(true);
   });
 });
 
-/**
- * Seek accuracy: record positions, jump back precisely.
- */
 describe('seek bookmarking: record positions and replay segments', () => {
   it('bookmarks and seeks to chapter boundaries', async () => {
     const bin = createBinaryStorage({ dir: testDir, file: 'chapters.bin' });
     const chapterStarts: number[] = [];
 
-    // Chapter 1
     chapterStarts.push(bin.tellWrite());
     await bin.write.str('Chapter One');
     await bin.write.num(1000);
     await bin.write.num(2000);
 
-    // Chapter 2
     chapterStarts.push(bin.tellWrite());
     await bin.write.str('Chapter Two');
     await bin.write.num(3000);
     await bin.write.num(4000);
 
-    // Chapter 3
     chapterStarts.push(bin.tellWrite());
     await bin.write.str('Chapter Three');
     await bin.write.num(5000);
     await bin.write.num(6000);
 
-    // Seek to chapter 2
     bin.seekRead(chapterStarts[1]);
     expect(await bin.read.str()).toBe('Chapter Two');
     expect(await bin.read.num()).toBe(3000);
 
-    // Seek to chapter 3
     bin.seekRead(chapterStarts[2]);
     expect(await bin.read.str()).toBe('Chapter Three');
     expect(await bin.read.num()).toBe(5000);
 
-    // Seek to chapter 1
     bin.seekRead(chapterStarts[0]);
     expect(await bin.read.str()).toBe('Chapter One');
     expect(await bin.read.num()).toBe(1000);
   });
 });
 
-/**
- * Boundary conditions: edge positions, zero-length content, empty streams.
- */
 describe('boundary conditions', () => {
   let bin: BinaryStorageAPI;
 
@@ -436,9 +388,7 @@ describe('boundary conditions', () => {
   });
 
   it('seekRead to exact writePos (empty readable region)', () => {
-    // seekRead(pos) where pos === writePos should succeed (no range error),
-    // but the next read should throw end-of-stream
-    bin.seekRead(0); // empty file
+    bin.seekRead(0);
     expect(bin.tellRead()).toBe(0);
     expect(bin.tellWrite()).toBe(0);
   });
@@ -452,7 +402,6 @@ describe('boundary conditions', () => {
     expect(bin.tellWrite()).toBe(0);
     expect(bin.tellRead()).toBe(0);
 
-    // Rewrite from scratch
     await bin.write.str('fresh');
     bin.resetRead();
     expect(await bin.read.str()).toBe('fresh');
@@ -461,7 +410,7 @@ describe('boundary conditions', () => {
 
   it('read.any on empty stream throws end-of-stream', async () => {
     await expect(bin.read.any()).rejects.toThrow('end of stream');
-    expect(bin.tellRead()).toBe(0); // position unchanged
+    expect(bin.tellRead()).toBe(0);
   });
 
   it('read.num on empty stream throws end-of-stream', async () => {
@@ -470,7 +419,7 @@ describe('boundary conditions', () => {
 
   it('seekRead to writePos succeeds but next read fails', async () => {
     await bin.write.num(42);
-    bin.seekRead(bin.tellWrite()); // at the end
+    bin.seekRead(bin.tellWrite());
     await expect(bin.read.any()).rejects.toThrow('end of stream');
   });
 
@@ -478,7 +427,6 @@ describe('boundary conditions', () => {
     await bin.write.num(100);
     await bin.write.str('test');
 
-    // Re-read from start twice
     for (let i = 0; i < 3; i++) {
       bin.resetRead();
       expect(await bin.read.num()).toBe(100);
@@ -487,9 +435,6 @@ describe('boundary conditions', () => {
   });
 });
 
-/**
- * Write concurrency: multiple writes fired without await.
- */
 describe('write ordering under concurrency', () => {
   let bin: BinaryStorageAPI;
 
@@ -503,7 +448,7 @@ describe('write ordering under concurrency', () => {
     bin.write.num(3);
     bin.write.str('four');
     bin.write.b(true);
-    await bin.write.null(); // last one awaited to flush
+    await bin.write.null();
 
     bin.resetRead();
     expect(await bin.read.num()).toBe(1);
@@ -515,9 +460,6 @@ describe('write ordering under concurrency', () => {
   });
 });
 
-/**
- * NaN and special IEEE 754 values.
- */
 describe('special IEEE 754 values', () => {
   let bin: BinaryStorageAPI;
 
@@ -541,7 +483,6 @@ describe('special IEEE 754 values', () => {
   it('Number.MIN_VALUE (smallest positive)', async () => {
     await bin.write.num(Number.MIN_VALUE);
     bin.resetRead();
-    // 0 is returned for denormalised values -> actually 5e-324 should survive
     const val = await bin.read.num();
     expect(val).toBe(Number.MIN_VALUE);
   });
@@ -557,9 +498,6 @@ describe('special IEEE 754 values', () => {
   });
 });
 
-/**
- * Deeply nested objects and arrays.
- */
 describe('deep JSON structures', () => {
   let bin: BinaryStorageAPI;
 
@@ -596,9 +534,6 @@ describe('deep JSON structures', () => {
   });
 });
 
-/**
- * Corruption: manual file tampering and recovery scenarios.
- */
 describe('corruption detection', () => {
   let bin: BinaryStorageAPI;
 
@@ -609,10 +544,8 @@ describe('corruption detection', () => {
   it('detects wrong tag for typed read', async () => {
     await bin.write.num(1);
     bin.resetRead();
-    // try reading number as string
     await expect(bin.read.str()).rejects.toThrow('type mismatch');
     await expect(bin.read.str()).rejects.toThrow('Expected string, got number');
-    // read position unchanged after failed read
     expect(bin.tellRead()).toBe(0);
   });
 
@@ -621,15 +554,13 @@ describe('corruption detection', () => {
     await bin.write.str('hello');
     bin.resetRead();
     expect(await bin.read.any()).toBe(1);
-    expect(bin.tellRead()).toBe(1 + 8); // past the number
+    expect(bin.tellRead()).toBe(1 + 8);
     expect(await bin.read.any()).toBe('hello');
   });
 
   it('manually corrupting file with invalid tag', async () => {
-    // Write valid data, then corrupt it on disk
     const bad = createBinaryStorage({ dir: testDir, file: 'corrupt.bin' });
     await bad.write.num(1);
-    // overwrite first byte with 0xFF
     const filePath = path.join(testDir, 'corrupt.bin');
     const buf = fs.readFileSync(filePath);
     buf.writeUInt8(0xFF, 0);
@@ -640,9 +571,6 @@ describe('corruption detection', () => {
   });
 });
 
-/**
- * Cursor manipulation edge cases.
- */
 describe('cursor manipulation edge cases', () => {
   let bin: BinaryStorageAPI;
 
@@ -652,9 +580,7 @@ describe('cursor manipulation edge cases', () => {
 
   it('seekRead to middle of number → garbage read', async () => {
     await bin.write.num(42);
-    // seek to byte 1 (middle of float64)
     bin.seekRead(1);
-    // reading a tag from mid-number bytes produces garbage tag
     await expect(bin.read.num()).rejects.toThrow();
   });
 
@@ -663,12 +589,11 @@ describe('cursor manipulation edge cases', () => {
     await bin.write.num(2);
     await bin.write.num(3);
     bin.resetRead();
-    await bin.read.num(); // readPos = 9
-    await bin.read.num(); // readPos = 18
+    await bin.read.num();
+    await bin.read.num();
 
-    // seekWrite to before readPos — readPos should clamp
     await bin.seekWrite(9);
-    expect(bin.tellRead()).toBe(9); // clamped from 18 to 9
+    expect(bin.tellRead()).toBe(9);
     expect(bin.tellWrite()).toBe(9);
   });
 
@@ -676,7 +601,6 @@ describe('cursor manipulation edge cases', () => {
     await bin.write.num(1);
     bin.resetRead();
     expect(await bin.read.num()).toBe(1);
-    // Now write more
     await bin.write.num(2);
     await bin.write.num(3);
     bin.resetRead();
@@ -686,9 +610,6 @@ describe('cursor manipulation edge cases', () => {
   });
 });
 
-/**
- * Truncation after mixed reads.
- */
 describe('truncation with partial reads', () => {
   let bin: BinaryStorageAPI;
 
@@ -705,7 +626,6 @@ describe('truncation with partial reads', () => {
     expect(await bin.read.str()).toBe('keep');
     await bin.truncate();
 
-    // Only 'keep' should remain
     const reopen = createBinaryStorage({ dir: testDir, file: 'test.bin' });
     reopen.resetRead();
     expect(await reopen.read.str()).toBe('keep');
@@ -713,9 +633,6 @@ describe('truncation with partial reads', () => {
   });
 });
 
-/**
- * Performance sanity: large sequences.
- */
 describe('large sequences', () => {
   it('round-trips 2000 mixed values', async () => {
     const bin2 = createBinaryStorage({ dir: testDir, file: 'large.bin', flush: false });

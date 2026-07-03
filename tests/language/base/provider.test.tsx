@@ -1,12 +1,32 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render } from 'ink-testing-library';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text } from 'ink';
-import { writeFileSync, mkdirSync, rmSync } from 'fs';
-import { resolve } from 'path';
-import { LanguageProvider, useI18n } from '../../language/index.js';
+import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { LanguageProvider, useI18n } from '../../../src/language/index.js';
 
-const TMP_DIR = resolve('src/__tests__/components/__locales_tmp');
+let tmpDir: string;
+
+function makeTmpDir(): string {
+  const dir = join(tmpdir(), `ink-lang-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function writeLocales(files: Record<string, Record<string, unknown>>): string {
+  if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+  tmpDir = makeTmpDir();
+  for (const [name, content] of Object.entries(files)) {
+    writeFileSync(join(tmpDir, name), JSON.stringify(content));
+  }
+  return tmpDir;
+}
+
+afterEach(() => {
+  if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+});
 
 function stripAnsi(str: string): string {
   return str.replace(/\x1b\[[0-9;]*m/g, '');
@@ -22,20 +42,44 @@ function CurrentLang() {
   return <Text>{currentLanguage}</Text>;
 }
 
-function writeLocales(files: Record<string, object>) {
-  rmSync(TMP_DIR, { recursive: true, force: true });
-  mkdirSync(TMP_DIR, { recursive: true });
-  for (const [name, content] of Object.entries(files)) {
-    writeFileSync(resolve(TMP_DIR, name), JSON.stringify(content));
+function TContext({ k, c }: { k: string; c?: string }) {
+  const { t } = useI18n();
+  return <Text>{t(k, { context: c })}</Text>;
+}
+
+function TContextParams({
+  k, c, p,
+}: {
+  k: string; c?: string; p?: Record<string, string | number>;
+}) {
+  const { t } = useI18n();
+  return <Text>{t(k, { context: c, params: p })}</Text>;
+}
+
+class ErrorCatcher extends React.Component<
+  { children: React.ReactNode },
+  { err: string | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { err: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { err: error.message };
+  }
+  render() {
+    if (this.state.err) return <Text>{this.state.err}</Text>;
+    return <>{this.props.children}</>;
   }
 }
 
-afterEach(() => {
-  rmSync(TMP_DIR, { recursive: true, force: true });
-});
+function Bad() {
+  useI18n();
+  return <Text>ok</Text>;
+}
 
-describe('resources 模式基本翻译', () => {
-  it('简单键翻译', () => {
+describe('resources mode — basic translation', () => {
+  it('simple key translation', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { hello: 'Hello' } }} defaultLanguage="en-US">
         <T k="hello" />
@@ -44,7 +88,7 @@ describe('resources 模式基本翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 
-  it('参数插值', () => {
+  it('parameter interpolation', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { level: 'Level {n}' } }} defaultLanguage="en-US">
         <T k="level" p={{ n: 5 }} />
@@ -53,7 +97,7 @@ describe('resources 模式基本翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Level 5');
   });
 
-  it('多个参数插值', () => {
+  it('multiple parameter interpolation', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { info: '{name} aged {age}' } }} defaultLanguage="en-US">
         <T k="info" p={{ name: 'Alice', age: '30' }} />
@@ -62,7 +106,7 @@ describe('resources 模式基本翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Alice aged 30');
   });
 
-  it('缺失参数保留占位符', () => {
+  it('missing parameter keeps placeholder', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { greet: 'Hi {name}' } }} defaultLanguage="en-US">
         <T k="greet" />
@@ -71,7 +115,7 @@ describe('resources 模式基本翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hi {name}');
   });
 
-  it('缺失 key 返回 key 本身', () => {
+  it('missing key returns key itself', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { a: 'A' } }} defaultLanguage="en-US">
         <T k="nonexistent" />
@@ -81,8 +125,8 @@ describe('resources 模式基本翻译', () => {
   });
 });
 
-describe('嵌套 key 和 fallback', () => {
-  it('嵌套 JSON 通过点号访问', () => {
+describe('nested keys and fallback', () => {
+  it('nested JSON accessed via dot notation', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{ 'en-US': { menu: { title: 'Main', sub: 'Sub' } } }}
@@ -94,7 +138,7 @@ describe('嵌套 key 和 fallback', () => {
     expect(stripAnsi(lastFrame())).toContain('Main');
   });
 
-  it('fallbackLanguage 在缺 key 时生效', () => {
+  it('fallbackLanguage used when key missing in current language', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -110,7 +154,7 @@ describe('嵌套 key 和 fallback', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 
-  it('fallback 也缺 key 返回 key 本身', () => {
+  it('returns key itself when fallback also misses', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{ 'en-US': { a: 'A' }, 'zh-CN': { a: '啊' } }}
@@ -124,8 +168,8 @@ describe('嵌套 key 和 fallback', () => {
   });
 });
 
-describe('语言切换', () => {
-  it('setLanguage 切换后 t() 实时更新', async () => {
+describe('language switching', () => {
+  it('setLanguage updates t() output in real time', async () => {
     function Switch() {
       const { t, setLanguage } = useI18n();
       useEffect(() => { setLanguage('zh-CN'); }, []);
@@ -143,10 +187,10 @@ describe('语言切换', () => {
     expect(stripAnsi(lastFrame())).toContain('你好');
   });
 
-  it('setLanguage 切换不存在的语言抛错', async () => {
+  it('setLanguage to non-existent language throws', async () => {
     function Switch() {
       const { setLanguage } = useI18n();
-      const [err, setErr] = React.useState<string | null>(null);
+      const [err, setErr] = useState<string | null>(null);
       useEffect(() => {
         try { setLanguage('fr-FR'); } catch (e: any) { setErr(e.message); }
       }, []);
@@ -164,8 +208,8 @@ describe('语言切换', () => {
   });
 });
 
-describe('getLanguages 和 currentLanguage', () => {
-  it('getLanguages 返回所有可用语言', () => {
+describe('getLanguages and currentLanguage', () => {
+  it('getLanguages returns all available languages', () => {
     function List() {
       const { getLanguages } = useI18n();
       return <Text>{getLanguages().join(',')}</Text>;
@@ -184,7 +228,7 @@ describe('getLanguages 和 currentLanguage', () => {
     expect(out).toContain('ja-JP');
   });
 
-  it('currentLanguage 返回当前语言', () => {
+  it('currentLanguage returns current language', () => {
     const { lastFrame } = render(
       <LanguageProvider resources={{ 'en-US': { a: 'A' } }} defaultLanguage="en-US">
         <CurrentLang />
@@ -194,22 +238,22 @@ describe('getLanguages 和 currentLanguage', () => {
   });
 });
 
-describe('path 模式', () => {
-  it('从目录加载 JSON 翻译文件', () => {
-    writeLocales({
+describe('path mode', () => {
+  it('loads JSON translation files from a directory', () => {
+    const dir = writeLocales({
       'en-US.json': { hello: 'Hello from file' },
       'zh-CN.json': { hello: '来自文件' },
     });
 
     const { lastFrame } = render(
-      <LanguageProvider path={TMP_DIR} defaultLanguage="zh-CN">
+      <LanguageProvider path={dir} defaultLanguage="zh-CN">
         <T k="hello" />
       </LanguageProvider>,
     );
     expect(stripAnsi(lastFrame())).toContain('来自文件');
   });
 
-  it('目录不存在时抛框架错误', () => {
+  it('throws when directory does not exist', () => {
     const { lastFrame } = render(
       <ErrorCatcher>
         <LanguageProvider path="/nonexistent/path/12345">
@@ -221,31 +265,31 @@ describe('path 模式', () => {
   });
 });
 
-describe('JSON 值类型处理', () => {
-  it('数字转为字符串', () => {
-    writeLocales({ 'en-US.json': { count: 42 } });
+describe('JSON value type handling', () => {
+  it('number converted to string', () => {
+    const dir = writeLocales({ 'en-US.json': { count: 42 } });
     const { lastFrame } = render(
-      <LanguageProvider path={TMP_DIR} defaultLanguage="en-US">
+      <LanguageProvider path={dir} defaultLanguage="en-US">
         <T k="count" />
       </LanguageProvider>,
     );
     expect(stripAnsi(lastFrame())).toContain('42');
   });
 
-  it('布尔转为字符串', () => {
-    writeLocales({ 'en-US.json': { active: true, inactive: false } });
+  it('boolean converted to string', () => {
+    const dir = writeLocales({ 'en-US.json': { active: true, inactive: false } });
     const { lastFrame } = render(
-      <LanguageProvider path={TMP_DIR} defaultLanguage="en-US">
+      <LanguageProvider path={dir} defaultLanguage="en-US">
         <T k="active" />
       </LanguageProvider>,
     );
     expect(stripAnsi(lastFrame())).toContain('true');
   });
 
-  it('数组转为逗号分隔字符串', () => {
-    writeLocales({ 'en-US.json': { items: ['a', 'b', 'c'] } });
+  it('array converted to comma-separated string', () => {
+    const dir = writeLocales({ 'en-US.json': { items: ['a', 'b', 'c'] } });
     const { lastFrame } = render(
-      <LanguageProvider path={TMP_DIR} defaultLanguage="en-US">
+      <LanguageProvider path={dir} defaultLanguage="en-US">
         <T k="items" />
       </LanguageProvider>,
     );
@@ -253,26 +297,8 @@ describe('JSON 值类型处理', () => {
   });
 });
 
-function TContext({ k, c }: { k: string; c?: string }) {
-  const { t } = useI18n();
-  return <Text>{t(k, { context: c })}</Text>;
-}
-
-function TContextParams({
-  k,
-  c,
-  p,
-}: {
-  k: string;
-  c?: string;
-  p?: Record<string, string | number>;
-}) {
-  const { t } = useI18n();
-  return <Text>{t(k, { context: c, params: p })}</Text>;
-}
-
-describe('context 上下文翻译', () => {
-  it('使用 context=female 解析 greeting.female', () => {
+describe('context translation', () => {
+  it('context=female resolves greeting.female', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -290,7 +316,7 @@ describe('context 上下文翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, madam');
   });
 
-  it('使用 context=male 解析 greeting.male', () => {
+  it('context=male resolves greeting.male', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -308,7 +334,7 @@ describe('context 上下文翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, sir');
   });
 
-  it('context 对应的键不存在时回退到基础键', () => {
+  it('falls back to base key when context key does not exist', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -325,7 +351,7 @@ describe('context 上下文翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 
-  it('context + 参数插值', () => {
+  it('context + parameter interpolation work together', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -342,39 +368,18 @@ describe('context 上下文翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Welcome, Ms. Alice');
   });
 
-  it('基础键和 context 键都不存在时返回 key 本身', () => {
+  it('returns key itself when neither base nor context key exist', () => {
     const { lastFrame } = render(
-      <LanguageProvider
-        resources={{ 'en-US': {} }}
-        defaultLanguage="en-US"
-      >
+      <LanguageProvider resources={{ 'en-US': {} }} defaultLanguage="en-US">
         <TContext k="missing" c="male" />
       </LanguageProvider>,
     );
     expect(stripAnsi(lastFrame())).toContain('missing');
   });
 
-  it('flat params object is NOT interpolated (breaking from v2.x)', () => {
-    // Passing a plain params record without wrapping in { params: ... }
-    // is a BREAKING CHANGE: the old API accepted this, the new API ignores it.
-    const { lastFrame } = render(
-      <LanguageProvider
-        resources={{ 'en-US': { level: 'Level {n}' } }}
-        defaultLanguage="en-US"
-      >
-        <T k="level" p={{ n: 5 }} />
-      </LanguageProvider>,
-    );
-    // T helper wraps p in { params: p }, so this still works.
-    // Direct flat-object calls are verified in the next test.
-    expect(stripAnsi(lastFrame())).toContain('Level 5');
-  });
-
   it('extra keys in options are safely ignored', () => {
-    // Regression: unexpected keys must not crash or leak into interpolation.
     function Extra() {
       const { t } = useI18n();
-      // Deliberately pass extra key — should be ignored
       const result = t('greeting', { context: 'female', extra: 'ignored' } as any);
       return <Text>{result}</Text>;
     }
@@ -394,7 +399,7 @@ describe('context 上下文翻译', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, madam');
   });
 
-  it('context 为 undefined 时行为与不传 options 一致', () => {
+  it('context undefined behaves same as no options', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -412,8 +417,8 @@ describe('context 上下文翻译', () => {
   });
 });
 
-describe('无资源回退', () => {
-  it('无任何资源时 t() 返回 key 本身', () => {
+describe('no resources fallback', () => {
+  it('t() returns key itself when no resources', () => {
     const { lastFrame } = render(
       <LanguageProvider>
         <T k="hello" />
@@ -422,7 +427,7 @@ describe('无资源回退', () => {
     expect(stripAnsi(lastFrame())).toContain('hello');
   });
 
-  it('无资源时 getLanguages 返回空数组', () => {
+  it('getLanguages returns empty array when no resources', () => {
     function Empty() {
       const { getLanguages } = useI18n();
       return <Text>{String(getLanguages().length)}</Text>;
@@ -436,8 +441,8 @@ describe('无资源回退', () => {
   });
 });
 
-describe('useI18n 不在 Provider 内', () => {
-  it('抛带框架前缀的错误', () => {
+describe('useI18n outside Provider', () => {
+  it('throws error with framework prefix', () => {
     const { lastFrame } = render(
       <ErrorCatcher>
         <Bad />
@@ -447,27 +452,13 @@ describe('useI18n 不在 Provider 内', () => {
   });
 });
 
-const TMP_MOD = resolve('src/__tests__/components/__locales_mod');
-
-function writeMod(files: Record<string, object>) {
-  rmSync(TMP_MOD, { recursive: true, force: true });
-  mkdirSync(TMP_MOD, { recursive: true });
-  for (const [name, content] of Object.entries(files)) {
-    writeFileSync(resolve(TMP_MOD, name), JSON.stringify(content));
-  }
-}
-
-afterEach(() => {
-  rmSync(TMP_MOD, { recursive: true, force: true });
-});
-
 describe('mergeLanguage', () => {
-  it('合并后新键覆盖旧键', async () => {
-    writeMod({ 'en-US.json': { hello: 'Hello from mod' } });
+  it('new key overrides old after merge', async () => {
+    const dir = writeLocales({ 'en-US.json': { hello: 'Hello from mod' } });
 
     function MergeTest() {
       const { t, mergeLanguage } = useI18n();
-      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      useEffect(() => { mergeLanguage([dir]); }, []);
       return <Text>{t('hello')}</Text>;
     }
 
@@ -476,17 +467,16 @@ describe('mergeLanguage', () => {
         <MergeTest />
       </LanguageProvider>,
     );
-
     await new Promise((r) => setTimeout(r, 10));
     expect(stripAnsi(lastFrame())).toContain('Hello from mod');
   });
 
-  it('合并可引入新的语言', async () => {
-    writeMod({ 'zh-CN.json': { hello: '模组你好' } });
+  it('merge can introduce new languages', async () => {
+    const dir = writeLocales({ 'zh-CN.json': { hello: '模组你好' } });
 
     function MergeTest() {
-      const { t, mergeLanguage, getLanguages } = useI18n();
-      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      const { mergeLanguage, getLanguages } = useI18n();
+      useEffect(() => { mergeLanguage([dir]); }, []);
       return <Text>{getLanguages().join(',')}</Text>;
     }
 
@@ -495,19 +485,18 @@ describe('mergeLanguage', () => {
         <MergeTest />
       </LanguageProvider>,
     );
-
     await new Promise((r) => setTimeout(r, 10));
     const out = stripAnsi(lastFrame());
     expect(out).toContain('zh-CN');
     expect(out).toContain('en-US');
   });
 
-  it('合并后的新语言可被 getLanguages 列出并使用其翻译', async () => {
-    writeMod({ 'zh-CN.json': { hello: '模组的你好' } });
+  it('merged language can be listed and used for translation', async () => {
+    const dir = writeLocales({ 'zh-CN.json': { hello: '模组的你好' } });
 
     function MergeTest() {
-      const { t, mergeLanguage, getLanguages } = useI18n();
-      useEffect(() => { mergeLanguage([TMP_MOD]); }, []);
+      const { mergeLanguage, getLanguages } = useI18n();
+      useEffect(() => { mergeLanguage([dir]); }, []);
       return <Text>{getLanguages().join(',')}</Text>;
     }
 
@@ -516,21 +505,20 @@ describe('mergeLanguage', () => {
         <MergeTest />
       </LanguageProvider>,
     );
-
     await new Promise((r) => setTimeout(r, 10));
     const out = stripAnsi(lastFrame());
     expect(out).toContain('zh-CN');
     expect(out).toContain('en-US');
   });
 
-  it('多路径：后面的覆盖前面的', async () => {
-    const modA = resolve(TMP_MOD, 'a');
-    const modB = resolve(TMP_MOD, 'b');
-    rmSync(TMP_MOD, { recursive: true, force: true });
+  it('multiple paths: later overrides earlier', async () => {
+    const base = makeTmpDir();
+    const modA = join(base, 'a');
+    const modB = join(base, 'b');
     mkdirSync(modA, { recursive: true });
     mkdirSync(modB, { recursive: true });
-    writeFileSync(resolve(modA, 'en-US.json'), JSON.stringify({ hello: 'From A' }));
-    writeFileSync(resolve(modB, 'en-US.json'), JSON.stringify({ hello: 'From B' }));
+    writeFileSync(join(modA, 'en-US.json'), JSON.stringify({ hello: 'From A' }));
+    writeFileSync(join(modB, 'en-US.json'), JSON.stringify({ hello: 'From B' }));
 
     function MergeTest() {
       const { t, mergeLanguage } = useI18n();
@@ -543,17 +531,14 @@ describe('mergeLanguage', () => {
         <MergeTest />
       </LanguageProvider>,
     );
-
     await new Promise((r) => setTimeout(r, 10));
     expect(stripAnsi(lastFrame())).toContain('From B');
     expect(stripAnsi(lastFrame())).not.toContain('From A');
   });
-
-
 });
 
 describe('defaultContext prop', () => {
-  it('defaultContext="male" 时 t("greeting") 解析 greeting.male', () => {
+  it('defaultContext="male" resolves greeting.male', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -572,7 +557,7 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, sir');
   });
 
-  it('defaultContext 对应的键不存在时回退到基础键', () => {
+  it('falls back to base key when defaultContext key missing', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -590,7 +575,7 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 
-  it('显式 context 覆盖 defaultContext', () => {
+  it('explicit context overrides defaultContext', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -609,7 +594,7 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, madam');
   });
 
-  it('setDefaultContext 动态切换后 t() 实时更新', async () => {
+  it('setDefaultContext updates t() output dynamically', async () => {
     function Switcher() {
       const { t, setDefaultContext } = useI18n();
       useEffect(() => { setDefaultContext('female'); }, []);
@@ -634,7 +619,7 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).toContain('Hello, madam');
   });
 
-  it('setDefaultContext(undefined) 清除后 t() 恢复为仅查基础键', async () => {
+  it('setDefaultContext(undefined) clears and reverts to base key lookup', async () => {
     function Clearer() {
       const { t, setDefaultContext } = useI18n();
       useEffect(() => { setDefaultContext(undefined); }, []);
@@ -655,12 +640,11 @@ describe('defaultContext prop', () => {
       </LanguageProvider>,
     );
     await new Promise((r) => setTimeout(r, 10));
-    // After clearing, it should NOT use 'greeting.male'
     expect(stripAnsi(lastFrame())).not.toContain('Hello, sir');
     expect(stripAnsi(lastFrame())).toContain('Hello');
   });
 
-  it('defaultContext 下缺失键返回键本身', () => {
+  it('missing key with defaultContext returns key itself', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{ 'en-US': {} }}
@@ -673,7 +657,7 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).toContain('nonexistent');
   });
 
-  it('未设置 defaultContext 时行为保持不变', () => {
+  it('behaviour unchanged when defaultContext is not set', () => {
     const { lastFrame } = render(
       <LanguageProvider
         resources={{
@@ -691,25 +675,3 @@ describe('defaultContext prop', () => {
     expect(stripAnsi(lastFrame())).not.toContain('sir');
   });
 });
-
-class ErrorCatcher extends React.Component<
-  { children: React.ReactNode },
-  { err: string | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { err: null };
-  }
-  static getDerivedStateFromError(error: Error) {
-    return { err: error.message };
-  }
-  render() {
-    if (this.state.err) return <Text>{this.state.err}</Text>;
-    return <>{this.props.children}</>;
-  }
-}
-
-function Bad() {
-  useI18n();
-  return <Text>nope</Text>;
-}

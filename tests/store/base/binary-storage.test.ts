@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { createBinaryStorage, BinaryStorageAPI } from '../../binary-storage/index.js';
+import { createBinaryStorage, BinaryStorageAPI } from '../../../src/binary-storage/index.js';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-bin-storage-'));
@@ -40,8 +40,7 @@ describe('write / read round-trip', () => {
 
     await bin.write.b(false);
     bin.resetRead();
-    // seek past the first bool
-    bin.seekRead(1 + 1); // tag + bool byte
+    bin.seekRead(1 + 1);
     expect(await bin.read.b()).toBe(false);
   });
 
@@ -114,7 +113,7 @@ describe('end of stream', () => {
   it('throws reading past written values', async () => {
     await bin.write.num(1);
     bin.resetRead();
-    await bin.read.num(); // consume
+    await bin.read.num();
     await expect(bin.read.num()).rejects.toThrow('end of stream');
   });
 });
@@ -123,7 +122,7 @@ describe('position management', () => {
   it('tellRead / tellWrite track correctly', async () => {
     expect(bin.tellWrite()).toBe(0);
     await bin.write.num(42);
-    expect(bin.tellWrite()).toBe(1 + 8); // tag + float64
+    expect(bin.tellWrite()).toBe(1 + 8);
     expect(bin.tellRead()).toBe(0);
   });
 
@@ -132,7 +131,6 @@ describe('position management', () => {
     await bin.write.num(2);
     await bin.write.num(3);
     bin.resetRead();
-    // skip first num (tag + 8 bytes)
     bin.seekRead(1 + 8);
     expect(await bin.read.num()).toBe(2);
   });
@@ -157,7 +155,7 @@ describe('seekWrite / truncate', () => {
     await bin.write.num(1);
     await bin.write.num(2);
     await bin.write.num(3);
-    const posAfterTwo = (1 + 8) * 2; // 2 values
+    const posAfterTwo = (1 + 8) * 2;
     await bin.seekWrite(posAfterTwo);
     expect(bin.tellWrite()).toBe(posAfterTwo);
     bin.resetRead();
@@ -171,7 +169,7 @@ describe('seekWrite / truncate', () => {
     await bin.write.num(2);
     await bin.write.num(3);
     bin.resetRead();
-    await bin.read.num(); // consumed 1
+    await bin.read.num();
     await bin.truncate();
     expect(bin.tellWrite()).toBe(1 + 8);
     bin.resetRead();
@@ -185,12 +183,10 @@ describe('flush control', () => {
     const b = createBinaryStorage({ dir: testDir, file: 'batch.bin', flush: false });
     await b.write.num(1);
     await b.write.num(2);
-    // file should not exist or be empty
     const filePath = path.join(testDir, 'batch.bin');
-    expect(() => fs.readFileSync(filePath)).toThrow(); // file not created
+    expect(() => fs.readFileSync(filePath)).toThrow();
 
     await b.write.flush();
-    // now file should contain both values
     const buf = fs.readFileSync(filePath);
     expect(buf.length).toBe((1 + 8) * 2);
   });
@@ -224,7 +220,6 @@ describe('file persistence', () => {
 
 describe('corrupt file handling', () => {
   it('throws on unknown type tag', async () => {
-    // write corrupt data directly
     const buf = Buffer.alloc(1);
     buf.writeUInt8(0xFF, 0);
     fs.writeFileSync(path.join(testDir, 'test.bin'), buf);

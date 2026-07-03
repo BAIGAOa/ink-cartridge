@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { createBinaryStorage, createStreamingReader } from '../../binary-storage/index.js';
-import { StreamCorruptError } from '../../binary-storage/StreamingReader.js';
+import { createBinaryStorage, createStreamingReader } from '../../../src/binary-storage/index.js';
+import { StreamCorruptError } from '../../../src/binary-storage/StreamingReader.js';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-stream-'));
@@ -19,13 +19,11 @@ afterEach(() => {
   fs.rmSync(testDir, { recursive: true, force: true });
 });
 
-/** Helper: write values with BinaryStorage and return the file path. */
 async function writeFile(name: string, values: unknown[]): Promise<string> {
   const storage = createBinaryStorage({ dir: testDir, file: name });
   for (const v of values) {
     await storage.write.any(v);
   }
-  // The file is auto-flushed (default).
   return path.join(testDir, name);
 }
 
@@ -125,7 +123,6 @@ describe('readBatch batching', () => {
     const filePath = await writeFile('zero.bin', [1, 2, 3]);
     const reader = createStreamingReader(filePath);
     expect(await reader.readBatch(0)).toEqual([]);
-    // Next call should still get all values.
     expect(await reader.readBatch(10)).toEqual([1, 2, 3]);
   });
 });
@@ -159,11 +156,9 @@ describe('async iterator', () => {
     const filePath = await writeFile('mix.bin', [1, 2, 3, 4, 5]);
     const reader = createStreamingReader(filePath);
 
-    // readBatch consumes first 2
     const batch = await reader.readBatch(2);
     expect(batch).toEqual([1, 2]);
 
-    // iterator picks up the rest
     const collected: unknown[] = [];
     for await (const value of reader) {
       collected.push(value);
@@ -177,15 +172,12 @@ describe('boundary: chunk splitting', () => {
     const nums = Array.from({ length: 50 }, (_, i) => i);
     const filePath = await writeFile('tiny.bin', nums);
 
-    // Use highWaterMark: 1 to force byte-by-byte reads.
     const reader = createStreamingReader(filePath, { highWaterMark: 1 });
     const result = await reader.readBatch(100);
     expect(result).toEqual(nums);
   });
 
   it('handles chunks that split a number mid-payload', async () => {
-    // Each number is 9 bytes (1 tag + 8 float64).
-    // highWaterMark: 5 means each chunk is < 1 number.
     const nums = Array.from({ length: 20 }, (_, i) => i * 10);
     const filePath = await writeFile('splitnum.bin', nums);
 
@@ -198,7 +190,6 @@ describe('boundary: chunk splitting', () => {
     const strings = ['short', 'a'.repeat(200), 'medium', 'b'.repeat(500)];
     const filePath = await writeFile('splitstr.bin', strings);
 
-    // 3-byte chunks — smaller than the 4-byte length prefix.
     const reader = createStreamingReader(filePath, { highWaterMark: 3 });
     const result = await reader.readBatch(100);
     expect(result).toEqual(strings);
@@ -213,22 +204,17 @@ describe('error handling', () => {
 
   it('throws on unknown type tag (corrupt file)', async () => {
     const filePath = await writeFile('corrupt.bin', [1, 2, 3]);
-    // Read the file, corrupt a tag byte.
     const buf = fs.readFileSync(filePath);
-    // First number is 9 bytes: [0x01][8 bytes float64].
-    // Second value starts at byte 9 — corrupt its tag.
     buf.writeUInt8(0xFF, 9);
     fs.writeFileSync(filePath, buf);
 
     const reader = createStreamingReader(filePath);
-    // The corrupt tag is hit during parsing, so even the first readBatch rejects.
     await expect(reader.readBatch(10)).rejects.toThrow(StreamCorruptError);
     await expect(reader.readBatch(10)).rejects.toThrow('Unknown type tag');
   });
 
   it('throws on truncated file (mid-value)', async () => {
     const filePath = await writeFile('trunc.bin', [1, 2, 3]);
-    // Truncate the file by removing the last 6 bytes (incomplete number).
     const buf = fs.readFileSync(filePath);
     const truncated = buf.subarray(0, buf.length - 6);
     fs.writeFileSync(filePath, truncated);
@@ -236,13 +222,11 @@ describe('error handling', () => {
     const reader = createStreamingReader(filePath);
     const batch = await reader.readBatch(2);
     expect(batch).toEqual([1, 2]);
-    // Third value is truncated.
     await expect(reader.readBatch(10)).rejects.toThrow(StreamCorruptError);
     await expect(reader.readBatch(10)).rejects.toThrow('truncated');
   });
 
   it('reports byte offset in error message', async () => {
-    // Write a good number then a corrupt tag at byte 9.
     const filePath = path.join(testDir, 'offset.bin');
     const goodBuf = Buffer.alloc(9);
     goodBuf.writeUInt8(0x01, 0);
@@ -252,7 +236,6 @@ describe('error handling', () => {
     fs.writeFileSync(filePath, corruptData);
 
     const reader = createStreamingReader(filePath);
-    // The corrupt tag at byte 9 causes parsing to fail eagerly.
     await expect(reader.readBatch(10)).rejects.toThrow('at byte 9');
   });
 });
@@ -270,22 +253,16 @@ describe('concurrency and resource management', () => {
     expect(b1).toEqual([1, 2]);
     expect(b2).toEqual([1, 2, 3]);
 
-    // r1 continues from where it left off.
     const b1b = await r1.readBatch(10);
     expect(b1b).toEqual([3, 4, 5]);
   });
 
   it('destroy() resolves pending readBatch with []', async () => {
-    // Write a large file so readBatch has to wait.
     const nums = Array.from({ length: 10000 }, (_, i) => i);
     const filePath = await writeFile('destroy.bin', nums);
 
-    const reader = createStreamingReader(filePath);
-    // Start reading — this may resolve immediately if the file is small.
-    // Set highWaterMark to 1 to force the reader to wait between chunks.
     const slowReader = createStreamingReader(filePath, { highWaterMark: 1 });
     const batchPromise = slowReader.readBatch(5000);
-    // Give it a tick to start, then destroy.
     await new Promise(r => setTimeout(r, 10));
     slowReader.destroy();
 
@@ -309,15 +286,12 @@ describe('concurrency and resource management', () => {
 
 describe('backpressure', () => {
   it('pauses stream when queue exceeds maxQueueSize', async () => {
-    // Write many values.
     const count = 5000;
     const nums = Array.from({ length: count }, (_, i) => i);
     const filePath = await writeFile('backpressure.bin', nums);
 
-    // Set a very small queue size so backpressure engages.
     const reader = createStreamingReader(filePath, { maxQueueSize: 10 });
 
-    // Read all values in small batches.
     let total = 0;
     let batch: unknown[];
     while ((batch = await reader.readBatch(100)).length > 0) {
@@ -332,13 +306,11 @@ describe('backpressure', () => {
     const filePath = await writeFile('resume.bin', nums);
 
     const reader = createStreamingReader(filePath, { maxQueueSize: 5 });
-    // This should work end-to-end even with a tiny queue.
     const all = await reader.readBatch(count);
     expect(all).toHaveLength(count);
   });
 
   it('handles large file without memory blowup (stress test)', async () => {
-    // Generate ~50 MB file — small enough for CI, large enough to exercise streaming.
     const filePath = path.join(testDir, 'stress.bin');
     const storage = createBinaryStorage({ dir: testDir, file: 'stress.bin', flush: false });
     const numValues = 100000;
@@ -352,7 +324,6 @@ describe('backpressure', () => {
     let batch: unknown[];
     while ((batch = await reader.readBatch(1000)).length > 0) {
       total += batch.length;
-      // Verify values are correct for a few spot checks.
       if (total <= batch.length) {
         expect(batch[0]).toBe('value-0');
       }

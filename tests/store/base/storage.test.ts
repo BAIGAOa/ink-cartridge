@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { z } from 'zod';
-import { createStorage, StorageAPI } from '../../storage/index.js';
+import { createStorage, StorageAPI } from '../../../src/storage/index.js';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ink-cartridge-storage-'));
@@ -40,15 +40,15 @@ describe('write / read round-trip', () => {
     expect(await storage.read.str('name', 'Guest')).toBe('Alice');
   });
 
+  it('writes and reads a boolean', async () => {
+    await storage.write.b('darkMode', true);
+    expect(await storage.read.b('darkMode', false)).toBe(true);
+  });
+
   it('writes and reads an object', async () => {
     await storage.write.obj('window', { width: 120, height: 40 });
     const result = await storage.read.obj('window', { width: 80, height: 24 });
     expect(result).toEqual({ width: 120, height: 40 });
-  });
-
-  it('writes and reads a boolean', async () => {
-    await storage.write.b('darkMode', true);
-    expect(await storage.read.b('darkMode', false)).toBe(true);
   });
 
   it('writes and reads an array', async () => {
@@ -62,13 +62,17 @@ describe('write / read round-trip', () => {
   });
 });
 
-describe('defaults: missing key returns default', () => {
+describe('defaults — missing key returns default', () => {
   it('returns default for missing number', async () => {
     expect(await storage.read.num('missing', 42)).toBe(42);
   });
 
   it('returns default for missing string', async () => {
     expect(await storage.read.str('missing', 'fallback')).toBe('fallback');
+  });
+
+  it('returns default for missing boolean', async () => {
+    expect(await storage.read.b('missing', true)).toBe(true);
   });
 
   it('returns default for missing object', async () => {
@@ -79,47 +83,42 @@ describe('defaults: missing key returns default', () => {
   it('returns default for missing array', async () => {
     expect(await storage.read.arr('missing', [9])).toEqual([9]);
   });
-
-  it('returns default for missing boolean', async () => {
-    expect(await storage.read.b('missing', true)).toBe(true);
-  });
 });
 
 describe('type mismatch → default + auto-repair', () => {
-  it('number stored as string → returns default', async () => {
+  it('number stored as string returns default and repairs file', async () => {
     await storage.write.any('vol', 'not-a-number');
     expect(await storage.read.num('vol', 100)).toBe(100);
-    // file was repaired
     expect(rawData()).toEqual({ vol: 100 });
   });
 
-  it('string stored as number → returns default', async () => {
+  it('string stored as number returns default and repairs file', async () => {
     await storage.write.any('name', 123);
     expect(await storage.read.str('name', 'Guest')).toBe('Guest');
     expect(rawData()).toEqual({ name: 'Guest' });
   });
 
-  it('object stored as array → returns default', async () => {
+  it('boolean stored as string returns default and repairs file', async () => {
+    await storage.write.any('flag', 'true');
+    expect(await storage.read.b('flag', false)).toBe(false);
+    expect(rawData()).toEqual({ flag: false });
+  });
+
+  it('object stored as array returns default and repairs file', async () => {
     await storage.write.any('cfg', [1, 2]);
     expect(await storage.read.obj('cfg', { key: 'val' })).toEqual({ key: 'val' });
     expect(rawData()).toEqual({ cfg: { key: 'val' } });
   });
 
-  it('array stored as object → returns default', async () => {
+  it('array stored as object returns default and repairs file', async () => {
     await storage.write.any('list', { a: 1 });
     expect(await storage.read.arr('list', [0])).toEqual([0]);
     expect(rawData()).toEqual({ list: [0] });
   });
-
-  it('boolean stored as string → returns default', async () => {
-    await storage.write.any('flag', 'true');
-    expect(await storage.read.b('flag', false)).toBe(false);
-    expect(rawData()).toEqual({ flag: false });
-  });
 });
 
 describe('has / delete / clear / getAll', () => {
-  it('has returns true for existing key', async () => {
+  it('has returns true for existing key, false for missing', async () => {
     await storage.write.str('k', 'v');
     expect(await storage.has('k')).toBe(true);
     expect(await storage.has('x')).toBe(false);
@@ -148,24 +147,20 @@ describe('has / delete / clear / getAll', () => {
 
 describe('file-level behaviours', () => {
   it('creates the data directory and file on first write', async () => {
-    // after first write the file must exist
     expect(fs.existsSync(testDir)).toBe(true);
     await storage.write.str('hello', 'world');
     expect(fs.existsSync(path.join(testDir, 'test.json'))).toBe(true);
   });
 
-  it('loads existing data from disk', async () => {
+  it('loads existing data from disk on re-open', async () => {
     await storage.write.num('count', 5);
-    // create a new storage instance pointing to the same file
     const s2 = createStorage({ dir: testDir, file: 'test.json' });
     expect(await s2.read.num('count', 0)).toBe(5);
   });
 
   it('handles corrupt JSON by resetting', async () => {
-    // write corrupt content directly
     fs.writeFileSync(path.join(testDir, 'test.json'), 'not-json {{{');
     const s2 = createStorage({ dir: testDir, file: 'test.json' });
-    // should not throw; returns default and repairs
     expect(await s2.read.num('count', 99)).toBe(99);
     expect(rawData()).toEqual({ count: 99 });
   });
@@ -176,7 +171,7 @@ describe('file-level behaviours', () => {
     expect(await s2.read.str('key', 'default')).toBe('default');
   });
 
-  it('atomic write: no .tmp file left behind', async () => {
+  it('atomic write leaves no .tmp file behind', async () => {
     await storage.write.num('n', 1);
     expect(fs.existsSync(path.join(testDir, 'test.json.tmp'))).toBe(false);
   });
@@ -201,7 +196,7 @@ describe('zod schema', () => {
     age: z.number(),
   });
 
-  it('round-trip: write.schema → read.schema returns stored value', async () => {
+  it('round-trip — write.schema → read.schema returns stored value', async () => {
     const user = { name: 'Alice', age: 30 };
     await storage.write.schema('user', user);
     const result = await storage.read.schema('user', userSchema, { name: '?', age: 0 });
@@ -215,7 +210,7 @@ describe('zod schema', () => {
     expect(rawData()).toEqual({ nobody: def });
   });
 
-  it('type mismatch → returns default + auto-repair', async () => {
+  it('type mismatch returns default and auto-repairs', async () => {
     await storage.write.any('user', { name: 123, age: 'not-a-number' });
     const def = { name: '?', age: 0 };
     const result = await storage.read.schema('user', userSchema, def);
@@ -223,7 +218,7 @@ describe('zod schema', () => {
     expect(rawData()).toEqual({ user: def });
   });
 
-  it('wrong shape (missing property) → returns default + repair', async () => {
+  it('wrong shape (missing property) returns default and repairs', async () => {
     await storage.write.any('user', { name: 'Eve' });
     const def = { name: '?', age: 0 };
     const result = await storage.read.schema('user', userSchema, def);
@@ -240,7 +235,9 @@ describe('zod schema', () => {
     });
     const data = { profile: { displayName: 'Gamer', score: 999 } };
     await storage.write.schema('data', data);
-    const result = await storage.read.schema('data', nestedSchema, { profile: { displayName: '?', score: 0 } });
+    const result = await storage.read.schema('data', nestedSchema, {
+      profile: { displayName: '?', score: 0 },
+    });
     expect(result).toEqual(data);
   });
 
@@ -254,7 +251,7 @@ describe('zod schema', () => {
     expect(rawData()).toEqual({ mode: 'b' });
   });
 
-  it('coercion: string "42" parsed to number 42', async () => {
+  it('coercion — string "42" parsed to number 42', async () => {
     const coerceSchema = z.coerce.number();
     await storage.write.any('count', '42');
     const result = await storage.read.schema('count', coerceSchema, 0);
@@ -262,12 +259,12 @@ describe('zod schema', () => {
     expect(typeof result).toBe('number');
   });
 
-  it('backward compat: existing read.num() still works', async () => {
+  it('backward compat — existing read.num() still works', async () => {
     await storage.write.num('age', 25);
     expect(await storage.read.num('age', 0)).toBe(25);
   });
 
-  it('backward compat: existing read.str() auto-repair still works', async () => {
+  it('backward compat — read.num() auto-repair still works', async () => {
     await storage.write.any('vol', 'not-a-number');
     expect(await storage.read.num('vol', 100)).toBe(100);
     expect(rawData()).toEqual({ vol: 100 });

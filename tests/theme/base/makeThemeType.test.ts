@@ -11,7 +11,7 @@ import {
   generateTypesContent,
   generateRuntimeContent,
   makeThemeType,
-} from '../../cli/makeThemeType.js';
+} from '../../../src/cli/makeThemeType.js';
 
 let tmpDir: string;
 
@@ -29,7 +29,7 @@ function writeTheme(filePath: string, data: Record<string, unknown>): string {
 }
 
 describe('findCommonKeys', () => {
-  it('返回所有文件的交集键', () => {
+  it('returns intersection of keys across all files', () => {
     const files = [
       { id: 'dark', values: { primary: 'cyan', bg: 'black' } },
       { id: 'light', values: { primary: 'yellow', bg: 'white' } },
@@ -38,7 +38,7 @@ describe('findCommonKeys', () => {
     expect(findCommonKeys(files)).toEqual(['bg', 'primary']);
   });
 
-  it('忽略只在部分文件中存在的键', () => {
+  it('ignores keys only present in some files', () => {
     const files = [
       { id: 'a', values: { color: 'red', extra: 'x' } },
       { id: 'b', values: { color: 'blue' } },
@@ -47,13 +47,13 @@ describe('findCommonKeys', () => {
     expect(findCommonKeys(files)).toEqual(['color']);
   });
 
-  it('空数组返回空', () => {
+  it('returns empty for empty array', () => {
     expect(findCommonKeys([])).toEqual([]);
   });
 });
 
 describe('classifyKeys', () => {
-  it('string 值归类为 color，boolean 值归类为 style', () => {
+  it('classifies string values as color, boolean as style', () => {
     const files = [
       {
         id: 'dark',
@@ -229,7 +229,6 @@ describe('makeThemeType integration', () => {
     mkdirSync(srcDir, { recursive: true });
 
     writeTheme(path.join(srcDir, 'dark.json'), { id: 'dark', primary: 'cyan' });
-    // Write a non-JSON file
     writeFileSync(path.join(srcDir, 'README.md'), '# Themes\n');
 
     const outDir = path.join(tmpDir, 'typed');
@@ -266,9 +265,7 @@ describe('makeThemeType integration', () => {
     const typesFile = path.join(outDir, 'theme-types.d.ts');
     const typesContent = fs.readFileSync(typesFile, 'utf-8');
 
-    // 'primary' is in both files → included
     expect(typesContent).toContain("'primary'");
-    // 'extra' is only in dark.json → excluded from type
     expect(typesContent).not.toContain("'extra'");
   });
 
@@ -276,7 +273,6 @@ describe('makeThemeType integration', () => {
     const srcDir = path.join(tmpDir, 'themes');
     mkdirSync(srcDir, { recursive: true });
 
-    // Both files have the same keys but 'accent' is string in first, boolean in second
     writeTheme(path.join(srcDir, 'a.json'), { id: 'a', accent: 'red' });
     writeTheme(path.join(srcDir, 'b.json'), { id: 'b', accent: 'blue' });
 
@@ -292,10 +288,8 @@ describe('makeThemeType integration', () => {
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
     const typesContent = fs.readFileSync(typesFile, 'utf-8');
-    // 'accent' is string in first file → should be in ThemeColorKey
     expect(typesContent).toContain("| 'accent'");
 
-    // Verify it's in color section (before ThemeStyleKey line)
     const colorSection = typesContent.slice(
       typesContent.indexOf('ThemeColorKey'),
       typesContent.indexOf('ThemeStyleKey'),

@@ -1,17 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider } from '../../theme/provider.js';
-import { useTheme } from '../../theme/hook.js';
-
-function wrapper(children: React.ReactNode, props: any = {}) {
-  // Need to return a wrapper component for renderHook
-  return ({ children: inner }: { children: React.ReactNode }) =>
-    React.createElement(ThemeProvider, { ...props }, inner);
-}
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { ThemeProvider } from '../../../src/theme/provider.js';
+import { useTheme } from '../../../src/theme/hook.js';
 
 describe('ThemeProvider — inline themes', () => {
-  it('加载 inline themes 后 color() 返回当前主题的值', () => {
+  it('loads inline themes and returns current theme values', () => {
     const themes = [
       { id: 'dark', primary: 'cyan', bg: 'black' },
       { id: 'light', primary: 'blue', bg: 'white' },
@@ -28,7 +25,7 @@ describe('ThemeProvider — inline themes', () => {
     expect(result.current.themes).toEqual(['dark', 'light']);
   });
 
-  it('未指定 defaultTheme 时使用第一个主题', () => {
+  it('uses first theme when defaultTheme is not specified', () => {
     const themes = [
       { id: 'a', x: 'red' },
       { id: 'b', x: 'green' },
@@ -43,7 +40,7 @@ describe('ThemeProvider — inline themes', () => {
     expect(result.current.color('x')).toBe('red');
   });
 
-  it('color() 查询不存在的键返回 undefined', () => {
+  it('color() returns undefined for non-existent key', () => {
     const themes = [{ id: 'only', name: 'only-theme' }];
 
     const { result } = renderHook(() => useTheme(), {
@@ -54,7 +51,7 @@ describe('ThemeProvider — inline themes', () => {
     expect(result.current.color('missing')).toBeUndefined();
   });
 
-  it('themes 为空时使用默认行为（空 themeId）', () => {
+  it('empty themes array uses default behaviour (empty themeId)', () => {
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
         React.createElement(ThemeProvider, { themes: [] }, children),
@@ -66,7 +63,7 @@ describe('ThemeProvider — inline themes', () => {
 });
 
 describe('setTheme', () => {
-  it('setTheme 切换到指定主题后 color() 返回新值，所有消费者 re-render', () => {
+  it('switches theme and returns new values after rerender', () => {
     const themes = [
       { id: 'dark', primary: 'cyan' },
       { id: 'light', primary: 'yellow' },
@@ -80,17 +77,14 @@ describe('setTheme', () => {
     expect(result.current.themeId).toBe('dark');
     expect(result.current.color('primary')).toBe('cyan');
 
-    // Switch theme
     result.current.setTheme('light');
-
-    // Re-render to pick up the new state
     rerender();
 
     expect(result.current.themeId).toBe('light');
     expect(result.current.color('primary')).toBe('yellow');
   });
 
-  it('setTheme 切换到不存在的主题抛错', () => {
+  it('throws when switching to a non-existent theme', () => {
     const themes = [{ id: 'only', primary: 'green' }];
 
     const { result } = renderHook(() => useTheme(), {
@@ -103,7 +97,7 @@ describe('setTheme', () => {
 });
 
 describe('style()', () => {
-  it('style() 返回 boolean 类型键的值', () => {
+  it('returns boolean values for boolean-type keys', () => {
     const themes = [
       { id: 'bold', titleBold: true, cardBold: false },
     ];
@@ -117,7 +111,7 @@ describe('style()', () => {
     expect(result.current.style('cardBold')).toBe(false);
   });
 
-  it('style() 对 string 类型的键返回 undefined（不是 boolean）', () => {
+  it('returns undefined for string-type keys', () => {
     const themes = [{ id: 't', primary: 'blue' }];
 
     const { result } = renderHook(() => useTheme(), {
@@ -128,7 +122,7 @@ describe('style()', () => {
     expect(result.current.style('primary')).toBeUndefined();
   });
 
-  it('style() 对不存在的键返回 undefined', () => {
+  it('returns undefined for non-existent keys', () => {
     const themes = [{ id: 't' }];
 
     const { result } = renderHook(() => useTheme(), {
@@ -139,7 +133,7 @@ describe('style()', () => {
     expect(result.current.style('nope')).toBeUndefined();
   });
 
-  it('color() 对 boolean 类型的键返回 undefined（不是 string）', () => {
+  it('color() returns undefined for boolean-type keys', () => {
     const themes = [{ id: 't', isDark: true }];
 
     const { result } = renderHook(() => useTheme(), {
@@ -150,7 +144,7 @@ describe('style()', () => {
     expect(result.current.color('isDark')).toBeUndefined();
   });
 
-  it('color() 和 style() 在同一主题中各自取值互不干扰', () => {
+  it('color() and style() coexist without interference', () => {
     const themes = [
       { id: 't', primary: 'green', titleBold: true, muted: 'gray', dimText: false },
     ];
@@ -168,11 +162,7 @@ describe('style()', () => {
 });
 
 describe('path loading', () => {
-  it('从目录加载 {id}.json 文件，color() 可正常取值', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('loads {id}.json files from a directory', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-test-'));
     try {
       fs.writeFileSync(
@@ -198,11 +188,7 @@ describe('path loading', () => {
     }
   });
 
-  it('path 加载没有 JSON 文件的目录时 themes 为空', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('empty directory results in empty themes list', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-empty-'));
     try {
       const { result } = renderHook(() => useTheme(), {
@@ -218,7 +204,7 @@ describe('path loading', () => {
 });
 
 describe('key consistency validation', () => {
-  it('所有主题键名完全一致时不抛错', () => {
+  it('does not throw when all themes have identical keys', () => {
     const themes = [
       { id: 'a', primary: 'red', bg: 'black' },
       { id: 'b', primary: 'blue', bg: 'white' },
@@ -232,10 +218,10 @@ describe('key consistency validation', () => {
     }).not.toThrow();
   });
 
-  it('主题键名不一致时抛错（缺少键）', () => {
+  it('throws when a theme is missing a key', () => {
     const themes = [
       { id: 'a', primary: 'red', bg: 'black', accent: 'green' },
-      { id: 'b', primary: 'blue', bg: 'white' }, // missing 'accent'
+      { id: 'b', primary: 'blue', bg: 'white' },
     ];
 
     expect(() => {
@@ -246,10 +232,10 @@ describe('key consistency validation', () => {
     }).toThrow(/missing from "b": accent/);
   });
 
-  it('主题键名不一致时抛错（多余的键）', () => {
+  it('throws when a theme has an extra key', () => {
     const themes = [
       { id: 'a', primary: 'red', bg: 'black' },
-      { id: 'b', primary: 'blue', bg: 'white', extra: 'pink' }, // extra key
+      { id: 'b', primary: 'blue', bg: 'white', extra: 'pink' },
     ];
 
     expect(() => {
@@ -260,7 +246,7 @@ describe('key consistency validation', () => {
     }).toThrow(/extra in "b": extra/);
   });
 
-  it('单个主题不抛错', () => {
+  it('does not throw for a single theme', () => {
     const themes = [{ id: 'only', primary: 'red' }];
 
     expect(() => {
@@ -273,11 +259,7 @@ describe('key consistency validation', () => {
 });
 
 describe('mergeTheme', () => {
-  it('mergeTheme 覆盖已有主题的键值，不创建新主题', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('overrides existing theme values without creating new themes', () => {
     const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-base-'));
     const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-overlay-'));
     try {
@@ -289,7 +271,6 @@ describe('mergeTheme', () => {
         path.join(dir2, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'yellow' }),
       );
-      // dir2 also has a theme not in dir1 — should be ignored
       fs.writeFileSync(
         path.join(dir2, 'extra.json'),
         JSON.stringify({ id: 'extra', primary: 'red' }),
@@ -303,15 +284,11 @@ describe('mergeTheme', () => {
       expect(result.current.color('primary')).toBe('cyan');
       expect(result.current.themes).toEqual(['dark']);
 
-      // Merge overlay — 'extra' from dir2 should be ignored (not in base)
       result.current.mergeTheme([dir2]);
       rerender();
 
-      // After merge, primary should be overridden by dir2
       expect(result.current.color('primary')).toBe('yellow');
-      // bg was not in dir2's dark.json, should remain from base
       expect(result.current.color('bg')).toBe('black');
-      // extra theme should NOT appear
       expect(result.current.themes).toEqual(['dark']);
     } finally {
       fs.rmSync(dir1, { recursive: true, force: true });
@@ -319,11 +296,7 @@ describe('mergeTheme', () => {
     }
   });
 
-  it('mergeTheme 多个路径依次覆盖', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('later paths override earlier ones for the same key', () => {
     const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-a-'));
     const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-b-'));
     const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-c-'));
@@ -343,9 +316,7 @@ describe('mergeTheme', () => {
       result.current.mergeTheme([dir2, dir3]);
       rerender();
 
-      // dir3 is last, so color='blue' wins
       expect(result.current.color('color')).toBe('blue');
-      // size was overridden in dir3 too
       expect(result.current.color('size')).toBe('large');
     } finally {
       fs.rmSync(dir1, { recursive: true, force: true });
@@ -354,7 +325,7 @@ describe('mergeTheme', () => {
     }
   });
 
-  it('mergeTheme 对不存在的目录抛错', () => {
+  it('throws for non-existent directory', () => {
     const themes = [{ id: 't', primary: 'red' }];
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
@@ -366,11 +337,7 @@ describe('mergeTheme', () => {
 });
 
 describe('addThemes', () => {
-  it('addThemes 添加单个新主题后 themes 列表和 color() 均更新', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('adds a single new theme and returns updated list', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-base-'));
     const newDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-new-'));
     try {
@@ -378,7 +345,6 @@ describe('addThemes', () => {
         path.join(baseDir, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
       );
-
       fs.writeFileSync(
         path.join(newDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
@@ -395,7 +361,6 @@ describe('addThemes', () => {
       rerender();
 
       expect(result.current.themes).toEqual(['dark', 'light']);
-      // Switch to the new theme and verify values
       result.current.setTheme('light');
       rerender();
       expect(result.current.themeId).toBe('light');
@@ -407,11 +372,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 一次添加多个新主题', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('adds multiple new themes in one call', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-multi-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod-'));
     try {
@@ -419,7 +380,6 @@ describe('addThemes', () => {
         path.join(baseDir, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'cyan' }),
       );
-
       fs.writeFileSync(
         path.join(modDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'yellow' }),
@@ -446,11 +406,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 多次调用可以陆续添加主题', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('accumulates themes across multiple addThemes calls', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-seq-'));
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-a-'));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-b-'));
@@ -487,11 +443,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 文件名重复时后面的路径覆盖前面的（同文件不同路径）', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('later paths override same filename across paths', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-override-'));
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-oa-'));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-ob-'));
@@ -500,7 +452,6 @@ describe('addThemes', () => {
         path.join(baseDir, 't1.json'),
         JSON.stringify({ id: 't1', color: 'red', size: 'small' }),
       );
-      // Same filename "t2.json" in both dirA and dirB, different ids
       fs.writeFileSync(
         path.join(dirA, 't2.json'),
         JSON.stringify({ id: 't2a', color: 'green', size: 'medium' }),
@@ -515,7 +466,6 @@ describe('addThemes', () => {
           React.createElement(ThemeProvider, { path: baseDir }, children),
       });
 
-      // dirB is later, so t2.json from dirB wins → id 't2b' should appear, 't2a' should not
       result.current.addThemes([dirA, dirB]);
       rerender();
 
@@ -531,11 +481,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes id 与已有主题重复时立即抛错', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('throws when id already exists in base themes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-dup-'));
     try {
       fs.writeFileSync(
@@ -548,7 +494,6 @@ describe('addThemes', () => {
           React.createElement(ThemeProvider, { path: baseDir }, children),
       });
 
-      // Try to add a theme whose id already exists in base
       const newDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-conflict-'));
       try {
         fs.writeFileSync(
@@ -564,11 +509,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 同批次内不同文件名拥有相同 id 时抛错', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('throws when same id appears in different filenames within one batch', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-dup2-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod2-'));
     try {
@@ -576,7 +517,6 @@ describe('addThemes', () => {
         path.join(baseDir, 't1.json'),
         JSON.stringify({ id: 't1', color: 'red' }),
       );
-      // Two different filenames with the same id inside the same path
       fs.writeFileSync(
         path.join(modDir, 'style-a.json'),
         JSON.stringify({ id: 'clash', color: 'green' }),
@@ -598,11 +538,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 缺失键时抛错', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('throws when new theme is missing keys vs base', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-miss-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod3-'));
     try {
@@ -610,7 +546,6 @@ describe('addThemes', () => {
         path.join(baseDir, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }),
       );
-      // New theme is missing 'accent' key
       fs.writeFileSync(
         path.join(modDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
@@ -628,11 +563,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 多余键时抛错', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('throws when new theme has extra keys vs base', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-extra-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod4-'));
     try {
@@ -640,7 +571,6 @@ describe('addThemes', () => {
         path.join(baseDir, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
       );
-      // New theme has an extra 'accent' key
       fs.writeFileSync(
         path.join(modDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', accent: 'pink' }),
@@ -658,11 +588,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 同时缺键和多余键时报错指出两者', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('reports both missing and extra keys in one error', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-both-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod5-'));
     try {
@@ -670,7 +596,6 @@ describe('addThemes', () => {
         path.join(baseDir, 'dark.json'),
         JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }),
       );
-      // Missing 'accent', extra 'border' vs base
       fs.writeFileSync(
         path.join(modDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', border: 'red' }),
@@ -689,7 +614,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 对不存在的目录抛错', () => {
+  it('throws for non-existent directory', () => {
     const themes = [{ id: 't', primary: 'red' }];
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
@@ -699,11 +624,7 @@ describe('addThemes', () => {
     expect(() => result.current.addThemes(['/nonexistent/path/add'])).toThrow();
   });
 
-  it('addThemes 在 base 为空时可以不校验键（首个主题定义键集）', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('accepts any keys when base is empty', () => {
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-empty-'));
     try {
       fs.writeFileSync(
@@ -716,12 +637,10 @@ describe('addThemes', () => {
           React.createElement(ThemeProvider, { themes: [] }, children),
       });
 
-      // base is empty; addThemes should accept any keys (first theme defines the set)
       result.current.addThemes([modDir]);
       rerender();
 
       expect(result.current.themes).toEqual(['first']);
-      // No theme is auto-selected when base was empty; switch manually
       result.current.setTheme('first');
       rerender();
       expect(result.current.color('color')).toBe('red');
@@ -731,11 +650,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 与 mergeTheme 联合使用：先添加后合并', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('addThemes then mergeTheme combined', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-addmerge-'));
     const addDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-addmerge2-'));
     const mergeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-addmerge3-'));
@@ -754,12 +669,10 @@ describe('addThemes', () => {
           React.createElement(ThemeProvider, { path: baseDir, defaultTheme: 'dark' }, children),
       });
 
-      // Add the new theme
       result.current.addThemes([addDir]);
       rerender();
       expect(result.current.themes).toEqual(['dark', 'light']);
 
-      // Now merge an update to the newly added theme
       fs.writeFileSync(
         path.join(mergeDir, 'light.json'),
         JSON.stringify({ id: 'light', primary: 'magenta' }),
@@ -770,7 +683,7 @@ describe('addThemes', () => {
       result.current.setTheme('light');
       rerender();
       expect(result.current.color('primary')).toBe('magenta');
-      expect(result.current.color('bg')).toBe('white'); // unchanged
+      expect(result.current.color('bg')).toBe('white');
     } finally {
       fs.rmSync(baseDir, { recursive: true, force: true });
       fs.rmSync(addDir, { recursive: true, force: true });
@@ -778,11 +691,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes style() 对新主题的 boolean 键正常工作', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('style() works for boolean keys on newly added themes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-style-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod6-'));
     try {
@@ -816,11 +725,7 @@ describe('addThemes', () => {
     }
   });
 
-  it('addThemes 使用 inline themes 模式也能添加', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const os = require('os');
-
+  it('addThemes works with inline themes mode', () => {
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-inline-'));
     try {
       fs.writeFileSync(
