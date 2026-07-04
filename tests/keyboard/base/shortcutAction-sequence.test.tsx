@@ -412,7 +412,7 @@ describe('sequence action', () => {
       try {
         kb.globalSequence([{
           keys: ['a'],
-          operate: vi.fn()
+          operate: vi.fn<() => void>()
         }])
       } catch (e) {
         error = e as Error

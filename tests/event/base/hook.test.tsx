@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, act } from '@testing-library/react';
-import React, { useState, ReactNode } from 'react';
+import { renderHook, act } from '@testing-library/react';
+import React, { ReactNode, useRef } from 'react';
 import { EventBus } from '../../../src/event/EventBus.js';
 import { EventProvider, createEventBus } from '../../../src/event/EventProvider.js';
 import { useEventBus, useEmitter, useSubscribe } from '../../../src/event/hook.js';
@@ -11,68 +11,44 @@ interface TestEvents {
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  const bus = createEventBus<TestEvents>();
-  return <EventProvider bus={bus}>{children}</EventProvider>;
+  const busRef = useRef<EventBus<TestEvents> | null>(null);
+  if (!busRef.current) {
+    busRef.current = createEventBus<TestEvents>();
+  }
+  return <EventProvider bus={busRef.current}>{children}</EventProvider>;
 }
 
 describe('useEventBus', () => {
   it('returns the bus instance from context', () => {
-    let bus: EventBus<TestEvents> | null = null;
-    function Reader() {
-      bus = useEventBus<TestEvents>();
-      return null;
-    }
-    render(<Reader />, { wrapper });
-    expect(bus).toBeInstanceOf(EventBus);
+    const { result } = renderHook(() => useEventBus<TestEvents>(), { wrapper });
+    expect(result.current).toBeInstanceOf(EventBus);
   });
 
   it('throws when used outside EventProvider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    function Bad() {
-      useEventBus();
-      return null;
-    }
-    expect(() => render(<Bad />)).toThrow(/useEventBus must be used within an EventProvider/);
+    expect(() => renderHook(() => useEventBus())).toThrow(
+      /useEventBus must be used within an EventProvider/,
+    );
     spy.mockRestore();
   });
 });
 
 describe('useEmitter', () => {
   it('returns a stable function reference across re-renders', () => {
-    let emitterRef: ((payload: string) => void) | null = null;
-    function App() {
-      const [, force] = useState(0);
-      const emit = useEmitter('test:event');
-      if (!emitterRef) emitterRef = emit;
-      return <button onClick={() => force((n) => n + 1)}>re-render</button>;
-    }
-    const { container } = render(<App />, { wrapper });
-    const first = emitterRef;
-    act(() => { container.querySelector('button')?.click(); });
-    expect(emitterRef).toBe(first);
+    const { result, rerender } = renderHook(() => useEmitter('test:event'), { wrapper });
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
   });
 
   it('emits an event to a subscriber on the same bus', () => {
     const listener = vi.fn();
-    function Sub() {
+    const { result } = renderHook(() => {
+      const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return null;
-    }
-    let emitEvent!: (payload: string) => void;
-    function Emitter() {
-      emitEvent = useEmitter('test:event');
-      return <button onClick={() => emitEvent('hello')}>emit</button>;
-    }
-    function App() {
-      return (
-        <EventProvider bus={createEventBus<TestEvents>()}>
-          <Sub />
-          <Emitter />
-        </EventProvider>
-      );
-    }
-    const { container } = render(<App />);
-    act(() => { container.querySelector('button')?.click(); });
+      return emit;
+    }, { wrapper });
+    act(() => { result.current('hello'); });
     expect(listener).toHaveBeenCalledWith('hello');
   });
 });
@@ -80,94 +56,75 @@ describe('useEmitter', () => {
 describe('useSubscribe', () => {
   it('calls the callback when the event is emitted', () => {
     const listener = vi.fn();
-    let emitEvent!: (payload: string) => void;
-    function App() {
-      emitEvent = useEmitter('test:event');
+    const { result } = renderHook(() => {
+      const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return null;
-    }
-    render(<App />, { wrapper });
-    act(() => { emitEvent('data'); });
+      return emit;
+    }, { wrapper });
+    act(() => { result.current('data'); });
     expect(listener).toHaveBeenCalledWith('data');
   });
 
   it('unsubscribes on unmount', () => {
     const listener = vi.fn();
-    let emitEvent!: (payload: string) => void;
-    let mounted = true;
+    const bus = createEventBus<TestEvents>();
 
-    function Sub() {
+    function sharedWrapper({ children }: { children: ReactNode }) {
+      return <EventProvider bus={bus}>{children}</EventProvider>;
+    }
+
+    const { result, unmount } = renderHook(() => {
+      const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return null;
-    }
+      return emit;
+    }, { wrapper: sharedWrapper });
 
-    function App() {
-      emitEvent = useEmitter('test:event');
-      const [show, setShow] = useState(true);
-      return (
-        <>
-          {show && <Sub />}
-          <button onClick={() => setShow(false)}>unmount</button>
-          <button onClick={() => { mounted = !mounted; }}>toggle</button>
-        </>
-      );
-    }
-    const { container } = render(<App />, { wrapper });
-
-    act(() => { emitEvent('first'); });
+    act(() => { result.current('first'); });
     expect(listener).toHaveBeenCalledTimes(1);
 
-    act(() => { container.querySelector('button')?.click(); });
-    act(() => { emitEvent('second'); });
+    unmount();
+
+    const { result: emitOnly } = renderHook(() => useEmitter('test:event'), {
+      wrapper: sharedWrapper,
+    });
+    act(() => { emitOnly.current('second'); });
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it('re-binds callback when deps change', () => {
     const received: string[] = [];
-    function App() {
-      const emit = useEmitter('test:event');
-      const [prefix, setPrefix] = useState('a');
-      useSubscribe(
-        'test:event',
-        (payload: string) => received.push(`${prefix}:${payload}`),
-        [prefix],
-      );
-      return (
-        <>
-          <button onClick={() => emit('x')}>emit</button>
-          <button onClick={() => setPrefix('b')}>change-dep</button>
-        </>
-      );
-    }
-    const { container } = render(<App />, { wrapper });
-    const buttons = container.querySelectorAll('button');
+    const { result, rerender } = renderHook(
+      ({ prefix }: { prefix: string }) => {
+        const emit = useEmitter('test:event');
+        useSubscribe(
+          'test:event',
+          (payload: string) => received.push(`${prefix}:${payload}`),
+          [prefix],
+        );
+        return emit;
+      },
+      { wrapper, initialProps: { prefix: 'a' } },
+    );
 
-    act(() => { (buttons[0] as HTMLButtonElement).click(); });
-    act(() => { (buttons[1] as HTMLButtonElement).click(); });
-    act(() => { (buttons[0] as HTMLButtonElement).click(); });
+    act(() => { result.current('x'); });
+    expect(received).toEqual(['a:x']);
 
+    rerender({ prefix: 'b' });
+    act(() => { result.current('x'); });
     expect(received).toEqual(['a:x', 'b:x']);
   });
 
   it('handles multiple subscribers independently', () => {
     const a = vi.fn();
     const b = vi.fn();
-    let emitEvent!: (payload: string) => void;
-    function App() {
-      emitEvent = useEmitter('test:event');
-      return (
-        <>
-          <Sub spy={a} />
-          <Sub spy={b} />
-        </>
-      );
-    }
-    function Sub({ spy }: { spy: ReturnType<typeof vi.fn> }) {
-      useSubscribe('test:event', spy);
-      return null;
-    }
-    render(<App />, { wrapper });
-    act(() => { emitEvent('data'); });
+    const { result } = renderHook(() => {
+      const emit = useEmitter('test:event');
+      useSubscribe('test:event', a);
+      useSubscribe('test:event', b);
+      return emit;
+    }, { wrapper });
+
+    act(() => { result.current('data'); });
     expect(a).toHaveBeenCalledWith('data');
     expect(b).toHaveBeenCalledWith('data');
   });
