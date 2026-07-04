@@ -67,6 +67,7 @@ describe('persistent layer owner-stack timing', () => {
     });
 
     await flush();
+    await flush();
 
     // Modal active on origin screen — 'a' reaches modal handler.
     await pressKey(stdin, 'a');
@@ -74,6 +75,7 @@ describe('persistent layer owner-stack timing', () => {
 
     // Navigate away via skip — modal becomes inactive.
     await pressKey(stdin, 's');
+    await flush();
     await flush();
 
     // 'b' must reach Target's own layer, not the modal's.
@@ -120,11 +122,13 @@ describe('persistent layer owner-stack timing', () => {
     });
 
     await flush();
+    await flush();
 
     await pressKey(stdin, 'a');
     expect(overlay.handler).toHaveBeenCalledTimes(1);
 
     await pressKey(stdin, 's');
+    await flush();
     await flush();
 
     await pressKey(stdin, 'b');
@@ -168,12 +172,14 @@ describe('persistent layer owner-stack timing', () => {
     });
 
     await flush();
+    await flush();
 
     await pressKey(stdin, 'a');
     expect(modal.handler).toHaveBeenCalledTimes(1);
 
     // Cross-branch jump — modal goes inactive.
     await pressKey(stdin, 'g');
+    await flush();
     await flush();
 
     // 'b' must reach GotoTarget's layer.
