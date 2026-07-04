@@ -129,14 +129,15 @@ export function gotoScreen<C extends React.ComponentType<any>>(
  * Open a floating overlay on top of the current screen stack.
  *
  * Multiple overlays can be open simultaneously, distinguished by unique IDs.
+ * Calling with an ID that already exists is a no-op — the existing overlay is
+ * left unchanged.
  *
  * @param id         Unique identifier for this overlay.
  * @param component  The overlay component (must be registered).
  * @param params     Props to pass to the overlay component.
  * @param options    Optional activation and zIndex settings.
  *
- * @throws If the provider is not mounted, the component is not registered,
- *         or the ID is already in use.
+ * @throws If the provider is not mounted or the component is not registered.
  */
 export function openOverlay<C extends React.ComponentType<any>>(
   id: string,
@@ -156,11 +157,15 @@ export function openOverlay<C extends React.ComponentType<any>>(
     params: params as Record<string, unknown>,
     activate: options?.activate ?? true,
     zIndex: options?.zIndex,
+    persistent: options?.persistent,
   });
 }
 
 /**
  * Close a specific overlay by its ID.
+ *
+ * If no overlay with the given ID exists, this is a no-op — safe to call
+ * even when the overlay may have already been closed.
  *
  * @param id  The ID of the overlay to close.
  *
@@ -208,13 +213,15 @@ export function deactivateOverlay(id: string): void {
  * The active modal receives absolute keyboard priority, consuming all
  * keyboard events before they reach overlays or screens.
  *
+ * Calling with an ID that already exists is a no-op — the existing modal
+ * is left unchanged. This supports simple toggle bindings without guard refs.
+ *
  * @param id         Unique identifier for this modal.
  * @param component  The modal component (must be registered).
  * @param params     Props to pass to the modal component.
  * @param options    Optional zIndex and renderNow settings.
  *
- * @throws If the provider is not mounted, the component is not registered,
- *         or the ID is already in use.
+ * @throws If the provider is not mounted or the component is not registered.
  */
 export function openModal<C extends React.ComponentType<any>>(
   id: string,
@@ -233,7 +240,8 @@ export function openModal<C extends React.ComponentType<any>>(
     component,
     params: params as Record<string, unknown>,
     zIndex: options?.zIndex,
-    renderNow: options?.renderNow,
+    renderNow: options?.renderNow ?? false,
+    persistent: options?.persistent,
   });
 }
 
@@ -242,6 +250,9 @@ export function openModal<C extends React.ComponentType<any>>(
  *
  * When the active modal is closed, the modal with the next highest zIndex
  * automatically becomes active.
+ *
+ * If no modal with the given ID exists, this is a no-op — safe to call
+ * even when the modal may have already been closed.
  *
  * @param id  The ID of the modal to close.
  *
@@ -311,13 +322,46 @@ function buildPathFrom(
 }
 
 /**
+ * Rebuild active IDs for overlays and modals after navigation.
+ *
+ * Only persistent entries survive navigation. Among them, only those
+ * whose originComponent matches the current top-of-path screen are
+ * re-activated.
+ *
+ * @2026-07-04 v3.8.0
+ */
+function recalcActiveAfterNavigation(
+  persistentOverlays: OverlayEntry[],
+  persistentModals: ModalEntry[],
+  newTopScreen: React.ComponentType<any>,
+): { activeOverlayIds: Set<string>; activeModalId: string | null } {
+  const activeOverlayIds = new Set<string>();
+  for (const o of persistentOverlays) {
+    if (o.originComponent === newTopScreen) {
+      activeOverlayIds.add(o.id);
+    }
+  }
+
+  let activeModalId: string | null = null;
+  for (const m of persistentModals) {
+    if (m.originComponent === newTopScreen) {
+      activeModalId = m.id;
+    }
+  }
+
+  return { activeOverlayIds, activeModalId };
+}
+
+/**
  * Pure reducer for {@link ScreenState}.
  *
  * Handles all navigation actions: skip (down), back (up), gotoScreen
  * (cross-branch), openOverlay, closeOverlay, closeAllOverlays,
  * activateOverlay, and deactivateOverlay.
  *
- * Navigation actions (skip / back / gotoScreen) clear all open overlays.
+ * Navigation actions filter out non-persistent overlays/modals and
+ * recalculate active IDs based on whether the origin screen of each
+ * persistent entry is at the top of the new path.
  */
 function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   switch (action.type) {
@@ -339,13 +383,21 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       const template = getTemplate(action.component) ?? {};
       const mergedParams = { ...template, ...action.params };
 
+      const newPath = [...state.path, action.component];
+      const persistentOverlays = state.overlays.filter(o => o.persistent);
+      const persistentModals = state.modals.filter(m => m.persistent);
+      const newTop = newPath[newPath.length - 1];
+      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
+        persistentOverlays, persistentModals, newTop,
+      );
+
       return {
-        path: [...state.path, action.component],
+        path: newPath,
         pathParams: [...state.pathParams, mergedParams],
-        overlays: [],
-        activeOverlayIds: new Set<string>(),
-        modals: [],
-        activeModalId: null,
+        overlays: persistentOverlays,
+        activeOverlayIds,
+        modals: persistentModals,
+        activeModalId,
         counter,
       };
     }
@@ -361,13 +413,21 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         );
       }
 
+      const newPath = state.path.slice(0, -levels);
+      const persistentOverlays = state.overlays.filter(o => o.persistent);
+      const persistentModals = state.modals.filter(m => m.persistent);
+      const newTop = newPath[newPath.length - 1];
+      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
+        persistentOverlays, persistentModals, newTop,
+      );
+
       return {
-        path: state.path.slice(0, -levels),
+        path: newPath,
         pathParams: state.pathParams.slice(0, -levels),
-        overlays: [],
-        activeOverlayIds: new Set<string>(),
-        modals: [],
-        activeModalId: null,
+        overlays: persistentOverlays,
+        activeOverlayIds,
+        modals: persistentModals,
+        activeModalId,
         counter: state.counter + 1,
       };
     }
@@ -399,28 +459,31 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         }),
       ];
 
+      const persistentOverlays = state.overlays.filter(o => o.persistent);
+      const persistentModals = state.modals.filter(m => m.persistent);
+      const newTop = newPath[newPath.length - 1];
+      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
+        persistentOverlays, persistentModals, newTop,
+      );
+
       return {
         path: newPath,
         pathParams: newPathParams,
-        overlays: [],
-        activeOverlayIds: new Set<string>(),
-        modals: [],
-        activeModalId: null,
+        overlays: persistentOverlays,
+        activeOverlayIds,
+        modals: persistentModals,
+        activeModalId,
         counter: state.counter + 1,
       };
     }
 
     case 'openOverlay': {
       if (state.overlays.some(o => o.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Overlay with id "${action.id}" already exists. Use a unique id for each overlay.`,
-        );
+        return state;
       }
 
       if (state.modals.some(m => m.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Cannot open overlay "${action.id}": this ID is already in use by a modal. Use a unique id.`,
-        );
+        return state;
       }
 
       const newEntry: OverlayEntry = {
@@ -429,6 +492,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         props: action.params,
         zIndex: action.zIndex ?? state.overlays.length,
         createdAt: Date.now(),
+        persistent: action.persistent,
+        originComponent: action.persistent
+          ? state.path[state.path.length - 1]
+          : undefined,
       };
 
       const newOverlays = sortOverlays([...state.overlays, newEntry]);
@@ -447,9 +514,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
     case 'closeOverlay': {
       if (!state.overlays.some(o => o.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Cannot close overlay "${action.id}": no overlay with that ID exists.`,
-        );
+        return state;
       }
 
       const newOverlays = state.overlays.filter(o => o.id !== action.id);
@@ -505,15 +570,11 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
     case 'openModal': {
       if (state.modals.some(m => m.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Modal with id "${action.id}" already exists. Use a unique id for each modal.`,
-        );
+        return state;
       }
 
       if (state.overlays.some(o => o.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Cannot open modal "${action.id}": this ID is already in use by an overlay. Use a unique id.`,
-        );
+        return state;
       }
 
       const newEntry: ModalEntry = {
@@ -523,6 +584,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         zIndex: action.zIndex ?? state.modals.length,
         createdAt: Date.now(),
         renderNow: action.renderNow ?? false,
+        persistent: action.persistent,
+        originComponent: action.persistent
+          ? state.path[state.path.length - 1]
+          : undefined,
       };
 
       const newModals = sortModals([...state.modals, newEntry]);
@@ -538,9 +603,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
     case 'closeModal': {
       if (!state.modals.some(m => m.id === action.id)) {
-        throw new Error(
-          `[Ink-Cartridge] Cannot close modal "${action.id}": no modal with that ID exists.`,
-        );
+        return state;
       }
 
       const newModals = state.modals.filter(m => m.id !== action.id);
@@ -720,6 +783,7 @@ export function ScenarioManagementProvider({
         params: params as Record<string, unknown>,
         activate: options?.activate ?? true,
         zIndex: options?.zIndex,
+        persistent: options?.persistent,
       });
     },
     [],
@@ -759,6 +823,7 @@ export function ScenarioManagementProvider({
         params: params as Record<string, unknown>,
         zIndex: options?.zIndex,
         renderNow: options?.renderNow,
+        persistent: options?.persistent,
       });
     },
     [],

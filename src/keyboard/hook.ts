@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { OverlayContext } from "../screen/OverlayContext.js";
 import { ModalContext } from "../screen/ModalContext.js";
+import { useScreenSystem } from "../screen/hook.js";
 import type { ModalMissCallback, ModalMissOptions } from "./types.js";
 
 /**
@@ -25,8 +26,12 @@ import type { ModalMissCallback, ModalMissOptions } from "./types.js";
  */
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
-  const overlayId = useContext(OverlayContext);
-  const modalId = useContext(ModalContext);
+  const overlayCtx = useContext(OverlayContext);
+  const modalCtx = useContext(ModalContext);
+
+  const overlayId = overlayCtx?.id ?? null;
+  const modalId = modalCtx?.id ?? null;
+  const { currentPath } = useScreenSystem();
 
   if (!ctx) {
     throw new Error(
@@ -34,37 +39,73 @@ export function useKeyboard(): KeyboardContextValue {
     );
   }
 
-  // Manage the owner stack for overlay isolation.
-  // When inside an overlay, push the overlay ID as the current owner so
-  // that boundKeyboard, blockedKey, stop, and focus functions operate on
-  // the overlay's own keyboard layer instead of the screen's layer.
-  //
-  // Destructuring _pushOwner / _popOwner to local variables gives ESLint a
-  // simple identifier to include in the dependency array (avoiding the need
-  // to list `ctx` as a whole, which would broaden the effect trigger).
   const { _pushOwner, _popOwner } = ctx;
+  const ownerPushedRef = useRef(false);
+
+  // Lifecycle: overlay mount → push, unmount → pop.
   useEffect(() => {
     if (overlayId) {
-      _pushOwner(overlayId);
+      if (!ownerPushedRef.current) {
+        _pushOwner(overlayId);
+        ownerPushedRef.current = true;
+      }
       return () => {
         _popOwner(overlayId);
+        ownerPushedRef.current = false;
       };
     }
     return;
   }, [overlayId, _pushOwner, _popOwner]);
 
-  // Manage the owner stack for modal isolation (symmetric to overlay).
-  // When inside a modal, push the modal ID as the current owner so that
-  // keyboard functions operate on the modal's own layer.
+  // Lifecycle: modal mount → push, unmount → pop.
   useEffect(() => {
     if (modalId) {
-      _pushOwner(modalId);
+      if (!ownerPushedRef.current) {
+        _pushOwner(modalId);
+        ownerPushedRef.current = true;
+      }
       return () => {
         _popOwner(modalId);
+        ownerPushedRef.current = false;
       };
     }
     return;
   }, [modalId, _pushOwner, _popOwner]);
+
+  /**
+   * Render-time owner stack sync for persistent layers.
+   *
+   * When a persistent overlay/modal survives navigation but the user has
+   * navigated to a different screen, the owner must be popped from the
+   * stack IMMEDIATELY (during render) so that sibling screen components'
+   * mount effects see the correct owner when they call boundKeyboard.
+   * Re-push happens when the user navigates back to the origin screen.
+   *
+   * This replaces the previous useEffect-based management which was
+   * subject to sibling ordering: screen components' effects fire before
+   * the persisting layer's effect, causing bindings to leak into the
+   * wrong keyboard layer.
+   *
+   * @2026-07-04 v3.8.0
+   */
+  const ownerCtx = modalCtx ?? overlayCtx;
+  const ownerId = ownerCtx?.id ?? null;
+  const originComponent = ownerCtx?.originComponent;
+
+  if (originComponent && ownerId) {
+    const currentTop = currentPath[currentPath.length - 1];
+    if (currentTop === originComponent) {
+      if (!ownerPushedRef.current) {
+        _pushOwner(ownerId);
+        ownerPushedRef.current = true;
+      }
+    } else {
+      if (ownerPushedRef.current) {
+        _popOwner(ownerId);
+        ownerPushedRef.current = false;
+      }
+    }
+  }
 
   return ctx;
 }
@@ -116,7 +157,8 @@ export function useModalMissListener(
   options?: ModalMissOptions,
 ): () => void {
   const ctx = useContext(KeyboardContext);
-  const modalId = useContext(ModalContext);
+  const modalCtx = useContext(ModalContext);
+  const modalId = modalCtx?.id ?? null;
 
   useEffect(() => {
     if (!ctx || !modalId) return;

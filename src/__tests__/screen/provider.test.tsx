@@ -420,12 +420,13 @@ describe('overlay（多浮层）', () => {
     expect(get()!.displayedOverlays.length).toBe(0);
   });
 
-  it('重复 ID 的 openOverlay 抛错', () => {
+  it('重复 ID 的 openOverlay 是 no-op', () => {
     const { get } = renderWithRef(Menu);
     act(() => get()!.openOverlay('dup', Notification, { message: 'first' }));
     expect(() =>
       act(() => get()!.openOverlay('dup', Notification, { message: 'second' })),
-    ).toThrow(/already exists/);
+    ).not.toThrow();
+    expect(get()!.displayedOverlays.length).toBe(1);
   });
 
   it('activate/deactivate 控制浮层激活状态', () => {
@@ -440,11 +441,11 @@ describe('overlay（多浮层）', () => {
     expect(get()!.activeOverlayIds).toContain('n1');
   });
 
-  it('closeOverlay 传入未知 ID 时抛错', () => {
+  it('closeOverlay 传入未知 ID 时不抛错（no-op）', () => {
     const { get } = renderWithRef(Menu);
     expect(() =>
       act(() => get()!.closeOverlay('nonexistent')),
-    ).toThrow(/Cannot close overlay.*no overlay with that ID exists/);
+    ).not.toThrow();
   });
 
   it('activateOverlay 传入未知 ID 时抛错', () => {
@@ -461,11 +462,11 @@ describe('overlay（多浮层）', () => {
     ).toThrow(/Cannot deactivate overlay.*no overlay with that ID exists/);
   });
 
-  it('模块级 closeOverlay 传入未知 ID 时抛错', () => {
+  it('模块级 closeOverlay 传入未知 ID 时不抛错（no-op）', () => {
     renderWithRef(Menu);
     expect(() =>
       act(() => closeOverlay('nonexistent')),
-    ).toThrow(/Cannot close overlay.*no overlay with that ID exists/);
+    ).not.toThrow();
   });
 
   it('模块级 activateOverlay/deactivateOverlay 行为一致', () => {

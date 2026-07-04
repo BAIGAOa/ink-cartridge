@@ -117,7 +117,8 @@ interface SimpleOverlayProps {
 }
 
 function SimpleOverlay({ onCustomKey }: SimpleOverlayProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
@@ -131,7 +132,8 @@ SimpleOverlay.displayName = 'SimpleOverlay';
 interface OverlayAProps { onA?: () => void; }
 
 function OverlayA({ onA }: OverlayAProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
@@ -145,7 +147,8 @@ OverlayA.displayName = 'OverlayA';
 interface OverlayBProps { onB?: () => void; }
 
 function OverlayB({ onB }: OverlayBProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
@@ -159,7 +162,8 @@ OverlayB.displayName = 'OverlayB';
 interface OverlayCProps { onC?: () => void; }
 
 function OverlayC({ onC }: OverlayCProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
@@ -229,7 +233,8 @@ function OverlayWithOnlyThis({ onOnlyThisKey }: { onOnlyThisKey?: () => void }) 
 OverlayWithOnlyThis.displayName = 'OverlayWithOnlyThis';
 
 function OverlayThatOpensAnother() {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { openOverlay: op, closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {
@@ -731,32 +736,33 @@ describe('场景 7：导航操作清空所有 overlay', () => {
 
 // 边界与错误场景
 
-describe('场景 8：重复 ID 打开 overlay 抛错', () => {
-  it('重复使用已有 ID 时抛错', () => {
+describe('场景 8：重复 ID 打开 overlay 是 no-op', () => {
+  it('重复使用已有 ID 时不抛错（no-op）', () => {
     const { getScreen } = renderSystem(Menu);
 
     act(() => getScreen()!.openOverlay('dup', SimpleOverlay, {}));
     expect(() =>
       act(() => getScreen()!.openOverlay('dup', SimpleOverlay, {})),
-    ).toThrow(/already exists/);
+    ).not.toThrow();
+    expect(getScreen()!.displayedOverlays.length).toBe(1);
   });
 
-  it('模块级 openOverlay 重复 ID 也抛错', () => {
+  it('模块级 openOverlay 重复 ID 也是 no-op', () => {
     renderSystem(Menu);
 
     act(() => openOverlay('dup-mod', SimpleOverlay, {}));
     expect(() =>
       act(() => openOverlay('dup-mod', SimpleOverlay, {})),
-    ).toThrow(/already exists/);
+    ).not.toThrow();
   });
 });
 
-describe('场景 9：操作不存在的 overlay ID 抛错', () => {
-  it('closeOverlay 传入未知 ID 抛错', () => {
+describe('场景 9：操作不存在的 overlay ID', () => {
+  it('closeOverlay 传入未知 ID 不抛错（no-op）', () => {
     const { getScreen } = renderSystem(Menu);
     expect(() =>
       act(() => getScreen()!.closeOverlay('nonexistent')),
-    ).toThrow(/Cannot close overlay.*no overlay with that ID exists/);
+    ).not.toThrow();
   });
 
   it('activateOverlay 传入未知 ID 抛错', () => {
@@ -773,11 +779,11 @@ describe('场景 9：操作不存在的 overlay ID 抛错', () => {
     ).toThrow(/Cannot deactivate overlay.*no overlay with that ID exists/);
   });
 
-  it('模块级 closeOverlay 传入未知 ID 抛错', () => {
+  it('模块级 closeOverlay 传入未知 ID 不抛错（no-op）', () => {
     renderSystem(Menu);
     expect(() =>
       act(() => closeOverlay('nonexistent')),
-    ).toThrow(/Cannot close overlay.*no overlay with that ID exists/);
+    ).not.toThrow();
   });
 });
 

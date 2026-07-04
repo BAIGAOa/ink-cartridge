@@ -93,7 +93,7 @@ describe('DevScreen open / close toggle', () => {
     expect(screenSystemRef!.activeModalId).toBe('_Dev-Tool_');
   });
 
-  it('throws when opening DevScreen that is already open', () => {
+  it('opening DevScreen twice is a no-op', () => {
     function Main() {
       const { boundKeyboard: bk } = useKeyboard();
       useEffect(() => {
@@ -106,9 +106,8 @@ describe('DevScreen open / close toggle', () => {
     renderApp(Main);
 
     act(() => pressKey('d', {}));
-    // Modal blocks all keys, so pressing 'd' again won't reach Main.
-    // Call openDevTool directly to test duplicate rejection.
-    expect(() => act(() => { openDevTool({ top: 0, left: 0 }); })).toThrow('already exists');
+    // Calling openDevTool again should not throw — it's a no-op.
+    expect(() => act(() => { openDevTool({ top: 0, left: 0 }); })).not.toThrow();
   });
 
   it('toggle via escape inside DevScreen closes the modal', () => {
