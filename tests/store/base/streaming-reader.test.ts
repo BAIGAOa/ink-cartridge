@@ -20,10 +20,11 @@ afterEach(() => {
 });
 
 async function writeFile(name: string, values: unknown[]): Promise<string> {
-  const storage = createBinaryStorage({ dir: testDir, file: name });
+  const storage = createBinaryStorage({ dir: testDir, file: name, flush: false });
   for (const v of values) {
     await storage.write.any(v);
   }
+  await storage.write.flush();
   return path.join(testDir, name);
 }
 
