@@ -4,6 +4,8 @@ import * as path from 'node:path';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
+type LangFile = { name: string; keys: Record<string, string> };
+
 import {
   flatJSON,
   findCommonKeys,
@@ -87,7 +89,7 @@ describe('findCommonKeys', () => {
   });
 
   it('returns empty when no keys are common', () => {
-    const files = [
+    const files: LangFile[] = [
       { name: 'en-US', keys: { a: 'A' } },
       { name: 'zh-CN', keys: { b: 'B' } },
     ];
@@ -104,7 +106,7 @@ describe('findCommonKeys', () => {
   });
 
   it('handles three files with different overlaps', () => {
-    const files = [
+    const files: LangFile[] = [
       { name: 'a', keys: { shared: '1', onlyA: '2' } },
       { name: 'b', keys: { shared: '3', onlyB: '4' } },
       { name: 'c', keys: { shared: '5', onlyC: '6' } },
@@ -131,7 +133,7 @@ describe('findCommonKeys', () => {
 
 describe('findPartialKeys', () => {
   it('returns keys missing from some files with file names', () => {
-    const files = [
+    const files: LangFile[] = [
       { name: 'en-US', keys: { hello: 'Hello', bye: 'Bye' } },
       { name: 'zh-CN', keys: { hello: '你好' } },
     ];
@@ -153,7 +155,7 @@ describe('findPartialKeys', () => {
   });
 
   it('identifies which files are missing each key among 3+ files', () => {
-    const files = [
+    const files: LangFile[] = [
       { name: 'a', keys: { x: '1' } },
       { name: 'b', keys: { x: '2' } },
       { name: 'c', keys: { y: '3' } },

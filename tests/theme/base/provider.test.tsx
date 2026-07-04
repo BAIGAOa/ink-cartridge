@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { ThemeProvider } from '../../../src/theme/provider.js';
 import { useTheme } from '../../../src/theme/hook.js';
+import type { ThemeDefinition } from '../../../src/theme/types.js';
 
 describe('ThemeProvider — inline themes', () => {
   it('loads inline themes and returns current theme values', () => {
@@ -16,7 +17,7 @@ describe('ThemeProvider — inline themes', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes, defaultTheme: 'dark' }, children),
+        <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
     });
 
     expect(result.current.themeId).toBe('dark');
@@ -33,7 +34,7 @@ describe('ThemeProvider — inline themes', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.themeId).toBe('a');
@@ -45,7 +46,7 @@ describe('ThemeProvider — inline themes', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.color('missing')).toBeUndefined();
@@ -54,7 +55,7 @@ describe('ThemeProvider — inline themes', () => {
   it('empty themes array uses default behaviour (empty themeId)', () => {
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes: [] }, children),
+        <ThemeProvider themes={[]}>{children}</ThemeProvider>,
     });
 
     expect(result.current.themeId).toBeDefined();
@@ -71,7 +72,7 @@ describe('setTheme', () => {
 
     const { result, rerender } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes, defaultTheme: 'dark' }, children),
+        <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
     });
 
     expect(result.current.themeId).toBe('dark');
@@ -89,7 +90,7 @@ describe('setTheme', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(() => result.current.setTheme('nonexistent')).toThrow(/nonexistent/);
@@ -104,7 +105,7 @@ describe('style()', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.style('titleBold')).toBe(true);
@@ -116,7 +117,7 @@ describe('style()', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.style('primary')).toBeUndefined();
@@ -127,7 +128,7 @@ describe('style()', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.style('nope')).toBeUndefined();
@@ -138,7 +139,7 @@ describe('style()', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.color('isDark')).toBeUndefined();
@@ -151,7 +152,7 @@ describe('style()', () => {
 
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(result.current.color('primary')).toBe('green');
@@ -176,7 +177,7 @@ describe('path loading', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: dir, defaultTheme: 'dark' }, children),
+          <ThemeProvider path={dir} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       expect(result.current.themeId).toBe('dark');
@@ -193,7 +194,7 @@ describe('path loading', () => {
     try {
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: dir }, children),
+          <ThemeProvider path={dir}>{children}</ThemeProvider>,
       });
 
       expect(result.current.themes).toEqual([]);
@@ -213,13 +214,13 @@ describe('key consistency validation', () => {
     expect(() => {
       renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes }, children),
+          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
       });
     }).not.toThrow();
   });
 
   it('throws when a theme is missing a key', () => {
-    const themes = [
+    const themes: ThemeDefinition[] = [
       { id: 'a', primary: 'red', bg: 'black', accent: 'green' },
       { id: 'b', primary: 'blue', bg: 'white' },
     ];
@@ -227,13 +228,13 @@ describe('key consistency validation', () => {
     expect(() => {
       renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes }, children),
+          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
       });
     }).toThrow(/missing from "b": accent/);
   });
 
   it('throws when a theme has an extra key', () => {
-    const themes = [
+    const themes: ThemeDefinition[] = [
       { id: 'a', primary: 'red', bg: 'black' },
       { id: 'b', primary: 'blue', bg: 'white', extra: 'pink' },
     ];
@@ -241,7 +242,7 @@ describe('key consistency validation', () => {
     expect(() => {
       renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes }, children),
+          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
       });
     }).toThrow(/extra in "b": extra/);
   });
@@ -252,7 +253,7 @@ describe('key consistency validation', () => {
     expect(() => {
       renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes }, children),
+          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
       });
     }).not.toThrow();
   });
@@ -278,7 +279,7 @@ describe('mergeTheme', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: dir1, defaultTheme: 'dark' }, children),
+          <ThemeProvider path={dir1} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       expect(result.current.color('primary')).toBe('cyan');
@@ -307,7 +308,7 @@ describe('mergeTheme', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: dir1 }, children),
+          <ThemeProvider path={dir1}>{children}</ThemeProvider>,
       });
 
       expect(result.current.color('color')).toBe('red');
@@ -329,7 +330,7 @@ describe('mergeTheme', () => {
     const themes = [{ id: 't', primary: 'red' }];
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(() => result.current.mergeTheme(['/nonexistent/path/xyz'])).toThrow();
@@ -352,7 +353,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir, defaultTheme: 'dark' }, children),
+          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       expect(result.current.themes).toEqual(['dark']);
@@ -391,7 +392,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       expect(result.current.themes).toEqual(['dark']);
@@ -426,7 +427,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       result.current.addThemes([dirA]);
@@ -463,7 +464,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       result.current.addThemes([dirA, dirB]);
@@ -491,7 +492,7 @@ describe('addThemes', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       const newDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-conflict-'));
@@ -528,7 +529,7 @@ describe('addThemes', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       expect(() => result.current.addThemes([modDir])).toThrow(/clash/);
@@ -553,7 +554,7 @@ describe('addThemes', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       expect(() => result.current.addThemes([modDir])).toThrow(/missing.*accent/);
@@ -578,7 +579,7 @@ describe('addThemes', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       expect(() => result.current.addThemes([modDir])).toThrow(/extra.*accent/);
@@ -603,7 +604,7 @@ describe('addThemes', () => {
 
       const { result } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir }, children),
+          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
       });
 
       expect(() => result.current.addThemes([modDir])).toThrow(/missing.*accent/);
@@ -618,7 +619,7 @@ describe('addThemes', () => {
     const themes = [{ id: 't', primary: 'red' }];
     const { result } = renderHook(() => useTheme(), {
       wrapper: ({ children }: { children: React.ReactNode }) =>
-        React.createElement(ThemeProvider, { themes }, children),
+        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
     });
 
     expect(() => result.current.addThemes(['/nonexistent/path/add'])).toThrow();
@@ -634,7 +635,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes: [] }, children),
+          <ThemeProvider themes={[]}>{children}</ThemeProvider>,
       });
 
       result.current.addThemes([modDir]);
@@ -666,7 +667,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir, defaultTheme: 'dark' }, children),
+          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       result.current.addThemes([addDir]);
@@ -706,7 +707,7 @@ describe('addThemes', () => {
 
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { path: baseDir, defaultTheme: 'dark' }, children),
+          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       result.current.addThemes([modDir]);
@@ -739,7 +740,7 @@ describe('addThemes', () => {
       ];
       const { result, rerender } = renderHook(() => useTheme(), {
         wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(ThemeProvider, { themes, defaultTheme: 'dark' }, children),
+          <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
       });
 
       result.current.addThemes([modDir]);

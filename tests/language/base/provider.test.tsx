@@ -28,8 +28,8 @@ afterEach(() => {
   if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
 });
 
-function stripAnsi(str: string): string {
-  return str.replace(/\x1b\[[0-9;]*m/g, '');
+function stripAnsi(str: string | undefined): string {
+  return (str ?? '').replace(/\x1b\[[0-9;]*m/g, '');
 }
 
 function T({ k, p }: { k: string; p?: Record<string, string | number> }) {
@@ -129,7 +129,7 @@ describe('nested keys and fallback', () => {
   it('nested JSON accessed via dot notation', () => {
     const { lastFrame } = render(
       <LanguageProvider
-        resources={{ 'en-US': { menu: { title: 'Main', sub: 'Sub' } } }}
+        resources={{ 'en-US': { menu: { title: 'Main', sub: 'Sub' } } } as any}
         defaultLanguage="en-US"
       >
         <T k="menu.title" />

@@ -4,6 +4,8 @@ import * as path from 'node:path';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
+type ThemeFile = { id: string; values: Record<string, string | boolean> };
+
 import {
   findCommonKeys,
   classifyKeys,
@@ -39,7 +41,7 @@ describe('findCommonKeys', () => {
   });
 
   it('ignores keys only present in some files', () => {
-    const files = [
+    const files: ThemeFile[] = [
       { id: 'a', values: { color: 'red', extra: 'x' } },
       { id: 'b', values: { color: 'blue' } },
     ];
