@@ -113,7 +113,7 @@ export function MultiSelectInput<T, I extends Item<T> = Item<T>>({
   initialIndex = 0,
   storage,
   storageKey,
-}: MultiSelectInputProps<T, I>) {
+}: MultiSelectInputProps<T, I>): React.JSX.Element {
   const isFocused = useFocusState(focusId);
   const { boundKeyboard, focusUnregister } = useKeyboard();
 

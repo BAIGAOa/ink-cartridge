@@ -192,7 +192,8 @@ export interface LayerKeyDisplayProps {
 export default function LayerKeyDisplayBox({ top: initialTop, left, screenComponent }: LayerKeyDisplayProps) {
   const { readLayer, boundKeyboard } = useKeyboard();
   const { closeModal } = useScreenSystem();
-  const modalId = useContext(ModalContext);
+  const modalCtx = useContext(ModalContext);
+  const modalId = modalCtx?.id ?? null;
   const { rows } = useWindowSize();
 
   const [offsetTop, setOffsetTop] = useState(initialTop);

@@ -58,7 +58,8 @@ Notification.displayName = 'Notification';
 // own useEffect so that the binding is registered on the overlay layer
 // (owner = overlay ID string). Enables testing overlay global key overrides.
 function BindingOverlay({ boundKey, onBound }: { boundKey: string; onBound?: () => void }) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   useEffect(() => {

@@ -19,6 +19,7 @@ function openModal<C extends React.ComponentType<any>>(
 |--------|------|---------|-------------|
 | `zIndex` | `number` | `modals.length` | Stacking order — highest zIndex is active. |
 | `renderNow` | `boolean` | `false` | When `true`, renders even when not the active modal. |
+| `persistent` | `boolean` | `false` | When `true`, the modal survives screen navigation (skip/back/gotoScreen). Non-persistent modals are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
 
 Throws if `id` collides with an existing overlay or modal.
 
@@ -35,6 +36,8 @@ Throws if no modal with that ID exists. The next-highest-zIndex modal becomes ac
 ```ts
 function closeAllModals(): void
 ```
+
+Closes all modals, including persistent ones.
 
 ## Modal vs Overlay
 

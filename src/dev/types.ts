@@ -8,6 +8,12 @@ export interface DevProps {
   left: number
 
   zindex?: number
+
+  /** Keys allowed to pass through the dev tool modal to layers below. */
+  allowKeys?: string[]
+
+  /** Whether the dev tool survives screen navigation. Defaults to `true`. */
+  persistent?: boolean
 }
 
 /**

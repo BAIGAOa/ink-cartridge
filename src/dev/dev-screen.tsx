@@ -232,7 +232,7 @@ function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
  *
  * @2026-06-23 3.6.1
  */
-export function DevScreen({ top: initialTop, left}: DevProps) {
+export function DevScreen({ top: initialTop, left, allowKeys }: DevProps) {
   const {
     currentPath,
     displayedOverlays,
@@ -240,8 +240,9 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
     modalQueue,
     activeModalId,
   } = useScreenSystem()
-  const { boundKeyboard, readLayer } = useKeyboard()
-  const modalId = useContext(ModalContext)
+  const { boundKeyboard, readLayer, allowModal } = useKeyboard()
+  const modalCtx = useContext(ModalContext)
+  const modalId = modalCtx?.id ?? null;
   const { rows } = useWindowSize()
   const { openModal } = useScreenSystem()
 
@@ -279,6 +280,10 @@ export function DevScreen({ top: initialTop, left}: DevProps) {
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    return allowModal(allowKeys ?? [])
+  }, [allowModal])
 
   useEffect(() => {
     const u1 = boundKeyboard(['up'], () =>

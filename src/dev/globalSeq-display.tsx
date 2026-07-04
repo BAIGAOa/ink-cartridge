@@ -72,7 +72,8 @@ const Sep = () => (
 export default function GlobalSequenceDisplayBox({ top: initialTop, left }: GlobalProps) {
   const { getGlobalSequences, getGlobalPendingSequence, boundKeyboard } = useKeyboard();
   const { closeModal } = useScreenSystem();
-  const modalId = useContext(ModalContext);
+  const modalCtx = useContext(ModalContext);
+  const modalId = modalCtx?.id ?? null;
   const { rows } = useWindowSize();
 
   const [offsetTop, setOffsetTop] = useState(initialTop);

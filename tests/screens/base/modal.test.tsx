@@ -5,6 +5,7 @@ import React from 'react';
 import {
   Menu,
   GameLevel,
+  Settings,
   Notification,
   renderWithCapture,
   setupBaseScreenTests,
@@ -255,6 +256,91 @@ describe('modal interactions', () => {
     expect(getCapture()!.modalQueue.length).toBe(2);
 
     act(() => { ctx.skip(GameLevel, { level: 1 }); });
+    expect(getCapture()!.modalQueue.length).toBe(0);
+  });
+});
+
+describe('persistent modal', () => {
+  it('survives skip navigation', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    expect(getCapture()!.modalQueue.length).toBe(1);
+
+    act(() => { ctx.skip(GameLevel, { level: 1 }); });
+
+    expect(getCapture()!.modalQueue.length).toBe(1);
+    expect(getCapture()!.modalQueue[0].id).toBe('m1');
+  });
+
+  it('survives back navigation', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.skip(GameLevel, { level: 1 }); });
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    expect(getCapture()!.modalQueue.length).toBe(1);
+
+    act(() => { ctx.back(); });
+
+    expect(getCapture()!.modalQueue.length).toBe(1);
+    expect(getCapture()!.modalQueue[0].id).toBe('m1');
+  });
+
+  it('survives gotoScreen navigation', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    expect(getCapture()!.modalQueue.length).toBe(1);
+
+    act(() => { ctx.gotoScreen(Settings, { theme: 'dark' }); });
+
+    expect(getCapture()!.modalQueue.length).toBe(1);
+    expect(getCapture()!.modalQueue[0].id).toBe('m1');
+  });
+
+  it('becomes inactive (activeModalId is null) after skip navigation', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    expect(getCapture()!.activeModalId).toBe('m1');
+
+    act(() => { ctx.skip(GameLevel, { level: 1 }); });
+
+    expect(getCapture()!.activeModalId).toBeNull();
+  });
+
+  it('can be closed explicitly with closeModal', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    expect(getCapture()!.modalQueue.length).toBe(1);
+
+    act(() => { ctx.closeModal('m1'); });
+
+    expect(getCapture()!.modalQueue.length).toBe(0);
+  });
+
+  it('is cleared by closeAllModals even when persistent', () => {
+    registerComponent(DummyModal, {});
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
+    act(() => { ctx.openModal('m2', DummyModal, {}); });
+    expect(getCapture()!.modalQueue.length).toBe(2);
+
+    act(() => { ctx.closeAllModals(); });
+
     expect(getCapture()!.modalQueue.length).toBe(0);
   });
 });

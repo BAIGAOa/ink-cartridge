@@ -42,7 +42,7 @@ function Menu() {
     // the Escape key inside DevScreen handles closing. openDevTool
     // throws if already open — the try/catch in closeDevTool makes
     // stale refs harmless, and openDevTool itself guards against duplicates.
-    const u1 = boundKeyboard(['ctrl+d'], () => openDevTool({ top: 0, left: 0 }));
+    const u1 = boundKeyboard(['ctrl+d'], () => openDevTool({ top: 0, left: 0, allowKeys: ['s', 'v', 'c', 'd'] }));
     const u2 = boundKeyboard(['s'], () => {
       if (gameOpenRef.current) {
         closeOverlay('console')
@@ -62,7 +62,7 @@ function Menu() {
     boundSequence(['d', 'c'], () => {
       openModal('console', ConsoleModal, {
         top: 30,
-        left: 0
+        left: 0,
       })
     })
     return () => {

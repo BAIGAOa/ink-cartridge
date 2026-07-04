@@ -50,7 +50,8 @@ function Notification({ message }: { message: string }) {
 Notification.displayName = 'Notification';
 
 function BindingOverlay({ boundKey, onBound }: { boundKey: string; onBound?: () => void }) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay: cl } = useScreenSystem();
   const { boundSequence, boundKeyboard } = useKeyboard();
   useEffect(() => {

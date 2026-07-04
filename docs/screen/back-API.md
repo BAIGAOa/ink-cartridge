@@ -17,7 +17,7 @@ function back(levels?: number): void
 ## Behavior
 
 - Throws if at the root screen (can't go further up).
-- Clears all overlays and modals.
+- Clears non-persistent overlays and modals. Persistent overlays and modals survive; keyboard focus is automatically restored when returning to the originating screen.
 
 ## Best Practice
 

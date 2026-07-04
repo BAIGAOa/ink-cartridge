@@ -27,7 +27,7 @@ export function CurrentScreen(): React.ReactNode {
     if (!entry) return overlayNode;
     return React.createElement(
       OverlayContext.Provider,
-      { value: entry.id, key: `ovl-ctx-${entry.id}` },
+      { value: { id: entry.id, originComponent: entry.originComponent }, key: `ovl-ctx-${entry.id}` },
       overlayNode,
     );
   });
@@ -39,16 +39,16 @@ export function CurrentScreen(): React.ReactNode {
     if (!entry) return modalNode;
     return React.createElement(
       ModalContext.Provider,
-      { value: entry.id, key: `mdl-ctx-${entry.id}` },
+      { value: { id: entry.id, originComponent: entry.originComponent }, key: `mdl-ctx-${entry.id}` },
       modalNode,
     );
   });
 
-  return React.createElement(
-    Box,
-    { flexDirection: 'column', width: '100%', height: '100%' },
-    currentScreen as React.ReactElement,
-    ...wrappedOverlays.map((w) => w as React.ReactElement),
-    ...wrappedModals.map((w) => w as React.ReactElement),
-  );
+  return (
+    <Box flexDirection='column' width='100%' height='100%'>
+      {currentScreen}
+      {wrappedOverlays.map((w) => w)}
+      {wrappedModals.map((w) => w)}
+    </Box>
+  )
 }

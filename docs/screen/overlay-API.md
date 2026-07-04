@@ -19,6 +19,7 @@ function openOverlay<C extends React.ComponentType<any>>(
 |--------|------|---------|-------------|
 | `activate` | `boolean` | `false` | Whether the overlay is immediately active (receives keyboard). |
 | `zIndex` | `number` | `overlays.length` | Stacking order. |
+| `persistent` | `boolean` | `false` | When `true`, the overlay survives screen navigation (skip/back/gotoScreen). Non-persistent overlays are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
 
 Throws if `id` collides with an existing overlay or modal.
 
@@ -35,6 +36,8 @@ Throws if no overlay with that ID exists.
 ```ts
 function closeAllOverlays(): void
 ```
+
+Closes all overlays, including persistent ones.
 
 ### activateOverlay / deactivateOverlay
 

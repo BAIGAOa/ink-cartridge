@@ -26,7 +26,7 @@ Navigation rules:
 - `skip(Child)` — only to a direct child of the current screen
 - `back(n?)` — up `n` levels toward root
 - `gotoScreen(Target)` — jump across branches via lowest common ancestor
-- All navigation clears overlays and modals
+- All navigation clears non-persistent overlays and modals. Use `persistent: true` on overlay/modal to preserve them across navigation.
 
 Overlays and modals share a common ID namespace. An overlay is a floating panel that can coexist with other overlays. A modal is exclusive — only the highest-zIndex modal receives keyboard input.
 

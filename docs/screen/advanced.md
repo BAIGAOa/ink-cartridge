@@ -24,6 +24,31 @@ openOverlay('notification', NotificationBar, { text: 'Saved!' }, { activate: fal
 // Dismissed by the notification component itself or via closeOverlay('notification')
 ```
 
+## Persistent Overlays & Modals
+
+Use `persistent: true` to keep an overlay or modal across screen navigation — e.g. a global search panel, music player, or notification that should remain visible regardless of which screen is active.
+
+Navigation clears keyboard focus while away; it is automatically restored when returning to the originating screen.
+
+```tsx
+// Open a persistent search overlay
+openOverlay('global-search', SearchPanel, {}, { persistent: true });
+
+// Navigate to search results — overlay stays rendered, keyboard deactivated
+skip(SearchResults, { query: 'hello' });
+
+// Navigate back — overlay's keyboard is automatically restored
+back();
+```
+
+Persistent modals work the same way:
+
+```tsx
+openModal('player', MusicPlayer, {}, { persistent: true });
+```
+
+Explicit close functions (`closeOverlay`, `closeModal`, `closeAllOverlays`, `closeAllModals`) always clear persistent entries — persistence only applies to navigation-triggered clearing.
+
 ## Modal with renderNow
 
 Use `renderNow: true` to keep a non-active modal visible (e.g. a background modal stack):

@@ -3,6 +3,7 @@ import { act } from 'react';
 import {
   Menu,
   GameLevel,
+  Settings,
   Notification,
   renderWithCapture,
   setupBaseScreenTests,
@@ -238,5 +239,127 @@ describe('multiple overlays', () => {
     expect(updated.displayedOverlays.find(o => o.id === 'n1')).toBeTruthy();
     expect(updated.displayedOverlays.find(o => o.id === 'n3')).toBeTruthy();
     expect(updated.displayedOverlays.find(o => o.id === 'n2')).toBeUndefined();
+  });
+});
+
+describe('persistent overlay', () => {
+  it('survives skip navigation while non-persistent overlays are cleared', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+      ctx.openOverlay('n2', Notification, { message: 'regular' });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(2);
+
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.displayedOverlays[0].id).toBe('n1');
+  });
+
+  it('survives back navigation', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+
+    act(() => {
+      ctx.back();
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.displayedOverlays[0].id).toBe('n1');
+  });
+
+  it('survives gotoScreen navigation', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+
+    act(() => {
+      ctx.gotoScreen(Settings, { theme: 'dark' });
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.displayedOverlays[0].id).toBe('n1');
+  });
+
+  it('becomes inactive (removed from activeOverlayIds) after skip navigation', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+    });
+    expect(getCapture()!.activeOverlayIds).toContain('n1');
+
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
+
+    expect(getCapture()!.activeOverlayIds).toEqual([]);
+  });
+
+  it('can be closed explicitly with closeOverlay', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+
+    act(() => {
+      ctx.closeOverlay('n1');
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(0);
+  });
+
+  it('is cleared by closeAllOverlays even when persistent', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'persistent' }, { persistent: true });
+      ctx.openOverlay('n2', Notification, { message: 'regular' });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(2);
+
+    act(() => {
+      ctx.closeAllOverlays();
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(0);
+  });
+
+  it('non-persistent overlay is still cleared by skip (regression)', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.openOverlay('n1', Notification, { message: 'regular' });
+    });
+    expect(getCapture()!.displayedOverlays.length).toBe(1);
+
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
+
+    expect(getCapture()!.displayedOverlays.length).toBe(0);
   });
 });

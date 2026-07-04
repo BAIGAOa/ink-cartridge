@@ -457,3 +457,55 @@ export function renderSequenceStack(
     unbind: () => unbindFn?.(),
   };
 }
+
+export function createTestOverlay(id: string) {
+  const handler = vi.fn();
+
+  function OverlayComponent() {
+    const { boundKeyboard } = useKeyboard();
+    useEffect(() => {
+      return boundKeyboard(['a'], handler);
+    }, [boundKeyboard]);
+    return <Text>OVERLAY</Text>;
+  }
+  OverlayComponent.displayName = id;
+
+  registerComponent(OverlayComponent, {});
+
+  return {
+    handler,
+    id,
+    open: (sc: ReturnType<typeof useScreenSystem>, options?: { persistent?: boolean; activate?: boolean }) => {
+      sc.openOverlay(id, OverlayComponent, {}, options ?? {});
+    },
+    activate: (sc: ReturnType<typeof useScreenSystem>) => {
+      sc.activateOverlay(id);
+    },
+  };
+}
+
+export function createTestModal(id: string, allowKeys: string[] = []) {
+  const handler = vi.fn();
+
+  function ModalComponent() {
+    const { boundKeyboard, allowModal } = useKeyboard();
+    useEffect(() => {
+      return allowModal(allowKeys);
+    }, []);
+    useEffect(() => {
+      return boundKeyboard(['a'], handler);
+    }, [boundKeyboard]);
+    return <Text>MODAL</Text>;
+  }
+  ModalComponent.displayName = id;
+
+  registerComponent(ModalComponent, {});
+
+  return {
+    handler,
+    id,
+    open: (sc: ReturnType<typeof useScreenSystem>, options?: { persistent?: boolean; renderNow?: boolean }) => {
+      sc.openModal(id, ModalComponent, {}, options ?? {});
+    },
+  };
+}

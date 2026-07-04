@@ -67,7 +67,8 @@ const Sep = () => (
 export default function GlobalKeyDisplayBox({ top: initialTop, left }: GlobalProps) {
   const { getGlobalKeys, boundKeyboard } = useKeyboard();
   const { closeModal } = useScreenSystem();
-  const modalId = useContext(ModalContext);
+  const modalCtx = useContext(ModalContext);
+  const modalId = modalCtx?.id ?? null;
   const { rows } = useWindowSize();
 
   const [offsetTop, setOffsetTop] = useState(initialTop);

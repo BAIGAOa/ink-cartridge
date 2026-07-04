@@ -24,6 +24,8 @@ export interface OpenOverlayOptions {
   activate?: boolean;
   /** Visual stacking order. Smaller values render behind larger values. */
   zIndex?: number;
+  /** Whether this overlay survives screen navigation (skip/back/gotoScreen). */
+  persistent?: boolean;
 }
 
 /**
@@ -34,6 +36,8 @@ export interface OpenModalOptions {
   zIndex?: number;
   /** Whether to render the modal even when it is not the active modal (zIndex not highest). Defaults to false. */
   renderNow?: boolean;
+  /** Whether this modal survives screen navigation (skip/back/gotoScreen). */
+  persistent?: boolean;
 }
 
 /**
@@ -50,6 +54,17 @@ export interface OverlayEntry {
   zIndex: number;
   /** Timestamp for tie-breaking when zIndex values are equal. */
   createdAt: number;
+
+  /**
+   * When true, this overlay survives screen navigation (skip/back/gotoScreen).
+   * Non-persistent overlays are cleared on navigation. A persistent overlay
+   * is automatically re-activated when navigation returns to its originating
+   * screen and deactivated when navigating away.
+   */
+  persistent?: boolean;
+
+  /** When persistent, the screen component that opened this overlay — used to restore keyboard activation when returning to that screen. */
+  originComponent?: React.ComponentType<any>;
 }
 
 /**
@@ -72,6 +87,17 @@ export interface ModalEntry {
   createdAt: number;
   /** Whether to render even when not the active modal. Defaults to false. */
   renderNow: boolean;
+
+  /**
+   * When true, this modal survives screen navigation (skip/back/gotoScreen).
+   * Non-persistent modals are cleared on navigation. A persistent modal is
+   * automatically re-activated when navigation returns to its originating
+   * screen and deactivated when navigating away.
+   */
+  persistent?: boolean;
+
+  /** When persistent, the screen component that opened this modal — used to restore activation when returning to that screen. */
+  originComponent?: React.ComponentType<any>;
 }
 
 /**
@@ -148,6 +174,8 @@ export interface OpenOverlayAction {
   activate: boolean;
   /** Optional zIndex for visual stacking. */
   zIndex?: number;
+  /** Whether this overlay survives screen navigation. */
+  persistent?: boolean;
 }
 
 /** Action dispatched when closing a specific overlay by ID. */
@@ -189,6 +217,8 @@ export interface OpenModalAction {
   zIndex?: number;
   /** Whether to render even when not active. Defaults to false. */
   renderNow?: boolean;
+  /** Whether this modal survives screen navigation. */
+  persistent?: boolean;
 }
 
 /** Action dispatched when closing a specific modal by ID. */

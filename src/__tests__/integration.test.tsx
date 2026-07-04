@@ -130,7 +130,8 @@ function Inventory() {
 Inventory.displayName = 'Inventory';
 
 function PauseOverlay() {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
 
@@ -178,7 +179,8 @@ interface SeqOverlayProps {
 }
 
 function SeqOverlay({ onSeqSpy }: SeqOverlayProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay } = useScreenSystem();
   const { boundKeyboard, boundSequence } = useKeyboard();
 
@@ -198,7 +200,8 @@ interface ModalPanelProps {
 }
 
 function ModalPanel({ onMiss, onModalKey, missOptions }: ModalPanelProps) {
-  const modalId = useContext(ModalContext);
+  const modalCtx = useContext(ModalContext);
+  const modalId = modalCtx?.id;
   const { closeModal } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
 
@@ -282,7 +285,8 @@ interface SimpleOverlayProps {
 }
 
 function SimpleOverlay({ label }: SimpleOverlayProps) {
-  const overlayId = useContext(OverlayContext);
+  const overlayCtx = useContext(OverlayContext);
+  const overlayId = overlayCtx?.id;
   const { closeOverlay } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
 

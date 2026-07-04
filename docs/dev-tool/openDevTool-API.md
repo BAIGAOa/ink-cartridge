@@ -1,6 +1,6 @@
 # openDevTool
 
-Open the development panel as a modal. Shows screen path, overlays, modals, focus targets, and per-layer keyboard bindings in real time.
+Open the development panel as a **persistent** modal — it survives screen navigation so you can inspect state while moving between screens. Keyboard focus is automatically suspended when navigating away and restored on return. **Safe to call when already open** (no-op).
 
 ## Signature
 
@@ -15,6 +15,8 @@ function openDevTool(props: DevProps): void
 | `top` | `number` | Vertical position in rows. |
 | `left` | `number` | Horizontal position in columns. |
 | `zindex` | `number` | Modal zIndex (optional). |
+| `allowKeys` | `string[]` | Keys allowed to pass through the modal to layers below (optional). Uses `allowModal` internally. |
+| `persistent` | `boolean` | Whether the dev tool survives screen navigation. Defaults to `true`. |
 
 Throws if the dev tool is already open.
 
@@ -30,12 +32,14 @@ Throws if the dev tool is already open.
 
 ## Best Practice
 
-Bind to a global key and guard with try/catch:
+Bind to a global key, pass the toggle key through with `allowKeys`, and guard with try/catch:
 
 ```tsx
 useEffect(() => {
   return boundKeyboard(['ctrl+d'], () => {
-    try { openDevTool({ top: 0, left: 0 }); } catch {}
+    try { openDevTool({ top: 0, left: 0, allowKeys: ['ctrl+d'] }); } catch {}
   });
 }, []);
 ```
+
+With `allowKeys`, `Ctrl+D` can close the dev tool without needing an external toggle ref — just bind Escape inside the tool and Ctrl+D in global keys.
