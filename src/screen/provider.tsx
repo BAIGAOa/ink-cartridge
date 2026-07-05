@@ -343,9 +343,11 @@ function recalcActiveAfterNavigation(
   }
 
   let activeModalId: string | null = null;
+  let maxZ = -1;
   for (const m of persistentModals) {
-    if (m.originComponent === newTopScreen) {
+    if (m.originComponent === newTopScreen && m.zIndex > maxZ) {
       activeModalId = m.id;
+      maxZ = m.zIndex;
     }
   }
 
@@ -384,8 +386,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       const mergedParams = { ...template, ...action.params };
 
       const newPath = [...state.path, action.component];
+
       const persistentOverlays = state.overlays.filter(o => o.persistent);
       const persistentModals = state.modals.filter(m => m.persistent);
+      
       const newTop = newPath[newPath.length - 1];
       const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
         persistentOverlays, persistentModals, newTop,

@@ -5,7 +5,7 @@ export { normalizeKeyNames, isNormalCharacter } from "./keyNormalizer.js";
 export type {
   KeyHandler,
   BoundKeyboardOptions,
-  BlockedKeyOptions,
+  PenetrationOptions,
   AllowModalOptions,
   StopOptions,
   BoundKeyEntry,

@@ -45,7 +45,7 @@ export function keyMatchesRule(
  * all must pass for the binding to fire.
  *
  * @param bindings      Ordered list of key bindings to try.
- * @param unblockedKeys Normalized key names not blocked at this layer.
+ * @param availableKeys Normalized key names available for matching at this layer.
  * @param input         Raw character from Ink's useInput.
  * @param key           Full Key descriptor from Ink.
  * @param skipBinding   Optional predicate to skip individual bindings
@@ -54,17 +54,17 @@ export function keyMatchesRule(
  */
 export function tryMatchBindings(
   bindings: BoundKeyEntry[],
-  unblockedKeys: string[],
+  availableKeys: string[],
   input: string,
   key: Key,
   skipBinding?: (binding: BoundKeyEntry) => boolean,
 ): boolean {
-  if (unblockedKeys.length === 0) return false;
+  if (availableKeys.length === 0) return false;
 
   for (const binding of bindings) {
     if (skipBinding && skipBinding(binding)) continue;
     if (binding.when?.() === false) continue;
-    if (binding.keys.some((k) => unblockedKeys.includes(k))) {
+    if (binding.keys.some((k) => availableKeys.includes(k))) {
       binding.handler(input, key);
       return true;
     }
@@ -113,7 +113,7 @@ export function handleTabNavigation(
 /**
  * Handle a keyboard event against a single layer.
  *
- * Evaluates tab navigation, blocked keys, wildcard priority, sequence
+ * Evaluates tab navigation, penetration keys, wildcard priority, sequence
  * matching, focus-target bindings, layer-level bindings, and stopped
  * keys — in that order.
  *
@@ -137,8 +137,8 @@ export function handleLayer(
   // they can also be bound to business-specific keys.
   if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
 
-  const blocked = layer.blockedKeys;
-  const unblocked = eventNames.filter((n) => !keyMatchesRule(n, blocked));
+  const penetrated = layer.penetrationKeys;
+  const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated));
 
   // onlyThis semantics differ between screens and overlays:
   // - Screen: skip when any overlay is active (activeOverlayCount > 0)
@@ -152,14 +152,14 @@ export function handleLayer(
   // Wildcard priority pre-check: when enabled, wildcard `*` bindings
   // are evaluated before sequences, exact matches, and everything else.
   // Only normal characters are affected — special keys fall through.
-  if (isTop && wildcardFirst && unblocked.length > 0) {
+  if (isTop && wildcardFirst && available.length > 0) {
     // Check focus-target wildcard first
     if (layer.currentFocusId) {
       const ft = layer.focusTargets.get(layer.currentFocusId);
       if (ft) {
-        const fBlocked = ft.blockedKeys;
-        const fUnblocked = unblocked.filter(n => !keyMatchesRule(n, fBlocked));
-        if (fUnblocked.length > 0) {
+        const fPenetrated = ft.penetrationKeys;
+        const fAvailable = available.filter(n => !keyMatchesRule(n, fPenetrated));
+        if (fAvailable.length > 0) {
           const wb = ft.bindings.find(b => b.keys.includes('*'));
           if (wb && isNormalCharacter(input, key)) {
             if (wb.when?.() === false) { /* skip */ }
@@ -184,7 +184,7 @@ export function handleLayer(
 
   // Sequence matching: only for the top layer (isTop).
   // Sequences have priority over ordinary boundKeyboard bindings.
-  if (isTop && unblocked.length > 0) {
+  if (isTop && available.length > 0) {
     const pending = layer.pendingSequence;
 
     // We already have a pending sequence in progress.
@@ -197,7 +197,7 @@ export function handleLayer(
         // Fall through to normal bindings — do NOT return true.
       } else {
         const expectedKey = pending.sequences[pending.nextIndex];
-        if (unblocked.includes(expectedKey)) {
+        if (available.includes(expectedKey)) {
           // Matched the next key in the sequence.
           clearTimeout(pending.timer);
           pending.nextIndex++;
@@ -205,7 +205,7 @@ export function handleLayer(
           if (pending.candidates && pending.candidates.length > 1) {
             const nextIdx = pending.nextIndex - 1;
             const narrowed = pending.candidates.filter(
-              c => c.keys.length > nextIdx && unblocked.includes(c.keys[nextIdx]),
+              c => c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
             );
             pending.candidates = narrowed.length <= 1 ? undefined : narrowed;
           }
@@ -231,7 +231,7 @@ export function handleLayer(
             // against every candidate's next expected key to disambiguate.
             const nextIdx = pending.nextIndex;
             const stillPossible = pending.candidates.filter(
-              c => c.keys.length > nextIdx && unblocked.includes(c.keys[nextIdx]),
+              c => c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
             );
             if (stillPossible.length === 0) {
               // No candidate matches — cancel all and fall through.
@@ -271,11 +271,11 @@ export function handleLayer(
       }
     }
 
-    // No pending sequence — try to start a new one from the first unblocked key.
+    // No pending sequence — try to start a new one from the first available key.
     if (layer.pendingSequence === null) {
-      // Check each unblocked key name (not just the first) to handle
+      // Check each available key name (not just the first) to handle
       // modifier combinations like 'ctrl+w' which appear after 'w'.
-      for (const keyName of unblocked) {
+      for (const keyName of available) {
         // When ctrl/meta modifier is held (but not shift), a bare key name
         // (without '+') does not represent the keystroke the user intended.
         // normalizeKeyNames expands ctrl+d into ['d', 'ctrl+d']; matching 'd'
@@ -337,10 +337,10 @@ export function handleLayer(
   if (isTop && layer.currentFocusId) {
     const ft = layer.focusTargets.get(layer.currentFocusId);
     if (ft) {
-      const fBlocked = ft.blockedKeys;
-      const fUnblocked = unblocked.filter((n) => !keyMatchesRule(n, fBlocked));
+      const fPenetrated = ft.penetrationKeys;
+      const fAvailable = available.filter((n) => !keyMatchesRule(n, fPenetrated));
 
-      if (tryMatchBindings(ft.bindings, fUnblocked, input, key, shouldSkipOnlyThis)) return true;
+      if (tryMatchBindings(ft.bindings, fAvailable, input, key, shouldSkipOnlyThis)) return true;
 
       if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
         return true;
@@ -348,7 +348,7 @@ export function handleLayer(
     }
   }
 
-  if (tryMatchBindings(layer.bindings, unblocked, input, key, shouldSkipOnlyThis)) return true;
+  if (tryMatchBindings(layer.bindings, available, input, key, shouldSkipOnlyThis)) return true;
 
   if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
     return true;

@@ -39,7 +39,7 @@ afterEach(() => {
  * Intentionally skipped tests and the reasons:
  *
  * 1. Timeout expiry (default 500 ms and custom timeout).
- *    Requires real setTimeout delays â€” ink-testing-library's synchronous
+ *    Requires real setTimeout delays â€?ink-testing-library's synchronous
  *    render / flush model cannot accurately simulate async timer expiry.
  *
  * 2. Navigation cancels a pending sequence.
@@ -74,7 +74,7 @@ describe('boundSequence error handling', () => {
     }
     TestHost.displayName = 'TestHost';
 
-    // Cast to any â€” all 22 fields are provided in createEmptyScreenSystem()
+    // Cast to any â€?all 22 fields are provided in createEmptyScreenSystem()
     // but a plain object literal cannot be checked against the complex context interface.
     const { lastFrame } = render(
       <ScreenSystemContext.Provider value={emptyScreenSystem as any}>
@@ -238,7 +238,7 @@ describe('boundSequence happy path', () => {
 
     // The sequence on Child consumes 'g' as its first key and enters
     // a pending state.  Parent's 'g' handler must not fire even though
-    // Child has no explicit boundKeyboard for 'g' â€” sequences have
+    // Child has no explicit boundKeyboard for 'g' â€?sequences have
     // priority over boundKeyboard in handleLayer.
     await pressKey(stdin, 'g');
     expect(parentFirstKey).not.toHaveBeenCalled();
@@ -276,7 +276,7 @@ describe('boundSequence non-exclusive mode', () => {
     await pressKey(stdin, 'x');
     expect(childHandler).not.toHaveBeenCalled();
 
-    // A new attempt should start fresh â€” the previous cancellation
+    // A new attempt should start fresh â€?the previous cancellation
     // cleared the pending state.
     await pressKey(stdin, 'g');
     await pressKey(stdin, 'g');
@@ -285,7 +285,7 @@ describe('boundSequence non-exclusive mode', () => {
 });
 
 describe('boundSequence exclusive mode', () => {
-  it('mismatched key is silently consumed â€” sequence keeps waiting', async () => {
+  it('mismatched key is silently consumed â€?sequence keeps waiting', async () => {
     const { stdin, parentMismatch, childHandler, goToChild, lastFrame } =
       renderSequenceStack(['g', 'g'], { exclusive: true });
 
@@ -300,7 +300,7 @@ describe('boundSequence exclusive mode', () => {
     await pressKey(stdin, 'x');
     expect(parentMismatch).not.toHaveBeenCalled();
 
-    // Sequence is still pending â€” completing it should fire the handler.
+    // Sequence is still pending â€?completing it should fire the handler.
     await pressKey(stdin, 'g');
     expect(childHandler).toHaveBeenCalledTimes(1);
   });
@@ -331,7 +331,7 @@ describe('boundSequence onlyThis', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('with an overlay open the sequence does not start â€” first key falls through', async () => {
+  it('with an overlay open the sequence does not start â€?first key falls through', async () => {
     const handler = vi.fn();
     const screenHandler = vi.fn();
 
@@ -350,7 +350,7 @@ describe('boundSequence onlyThis', () => {
 });
 
 describe('boundSequence focusId', () => {
-  it('focusId matching current focus â€” sequence starts', async () => {
+  it('focusId matching current focus â€?sequence starts', async () => {
     const handler = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.boundKeyboard(['y'], vi.fn(), { focusId: 'input-A' });
@@ -363,7 +363,7 @@ describe('boundSequence focusId', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('focusId does not match current focus â€” sequence does not start, first key falls through', async () => {
+  it('focusId does not match current focus â€?sequence does not start, first key falls through', async () => {
     const handler = vi.fn();
     const screenHandler = vi.fn();
 
@@ -380,7 +380,7 @@ describe('boundSequence focusId', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('two sequences with same first key and different focusIds â€” only the active focus sequence fires', async () => {
+  it('two sequences with same first key and different focusIds â€?only the active focus sequence fires', async () => {
     const handlerA = vi.fn();
     const handlerB = vi.fn();
 
@@ -401,7 +401,7 @@ describe('boundSequence focusId', () => {
 });
 
 describe('boundSequence when', () => {
-  it('when returns true â€” sequence starts, first key is consumed', async () => {
+  it('when returns true â€?sequence starts, first key is consumed', async () => {
     const gate = true;
     const { stdin, parentFirstKey, childHandler, goToChild, lastFrame } =
       renderSequenceStack(['g', 'g'], { when: () => gate });
@@ -416,7 +416,7 @@ describe('boundSequence when', () => {
     expect(childHandler).toHaveBeenCalledTimes(1);
   });
 
-  it('when returns false â€” sequence does not start, first key falls through to parent', async () => {
+  it('when returns false â€?sequence does not start, first key falls through to parent', async () => {
     const gate = false;
     const { stdin, parentFirstKey, childHandler, goToChild, lastFrame } =
       renderSequenceStack(['g', 'g'], { when: () => gate });
@@ -429,7 +429,7 @@ describe('boundSequence when', () => {
     expect(childHandler).not.toHaveBeenCalled();
   });
 
-  it('when toggles from true to false mid-sequence â€” pending sequence is cancelled', async () => {
+  it('when toggles from true to false mid-sequence â€?pending sequence is cancelled', async () => {
     let gate = true;
     const { stdin, childHandler, goToChild, lastFrame } =
       renderSequenceStack(['g', 'g'], { when: () => gate });
@@ -450,7 +450,7 @@ describe('boundSequence when', () => {
 });
 
 describe('boundSequence unbind', () => {
-  it('unbind removes the sequence â€” first key falls through to parent', async () => {
+  it('unbind removes the sequence â€?first key falls through to parent', async () => {
     const { stdin, parentFirstKey, childHandler, goToChild, lastFrame, unbind } =
       renderSequenceStack(['g', 'g']);
 
@@ -465,7 +465,7 @@ describe('boundSequence unbind', () => {
     expect(parentFirstKey).toHaveBeenCalledTimes(2);
   });
 
-  it('unbind is idempotent â€” multiple calls do not throw', async () => {
+  it('unbind is idempotent â€?multiple calls do not throw', async () => {
     const { goToChild, unbind } = renderSequenceStack(['g', 'g']);
 
     await goToChild();
@@ -532,7 +532,7 @@ describe('boundSequence multiple sequences sharing first key', () => {
     // Start pending with both candidates active.
     await pressKey(stdin, 'g');
 
-    // 'x' matches neither ['g','g'] nor ['g','o'] at position 1 â†’
+    // 'x' matches neither ['g','g'] nor ['g','o'] at position 1 â†?
     // all candidates are cancelled and 'x' falls through to normal
     // bindings.
     await pressKey(stdin, 'x');
@@ -580,8 +580,8 @@ describe('boundSequence sequence action overload', () => {
 });
 
 describe('boundSequence interaction', () => {
-  it('first key blocked by blockedKey â€” sequence does not start, key passes through', async () => {
-    // blockedKey is evaluated before sequences in handleLayer (the
+  it('first key blocked by penetration â€?sequence does not start, key passes through', async () => {
+    // penetration is evaluated before sequences in handleLayer (the
     // unblocked filter runs at line 141, sequences at line 187).
     // If the first sequence key is blocked, it never reaches the
     // sequence system.
@@ -605,10 +605,10 @@ describe('boundSequence interaction', () => {
       useEffect(() => {
         kb.boundKeyboard(['b'], () => sc.back());
         kb.boundSequence(['g', 'g'], childHandler);
-        // blockedKey on the first sequence key makes it transparent â€”
+        // penetration on the first sequence key makes it transparent â€?
         // it passes through to parent without ever being consumed by
         // the sequence.
-        kb.blockedKey(['g']);
+        kb.penetration(['g']);
       }, []);
       return <Text>Child</Text>;
     }
@@ -635,7 +635,7 @@ describe('boundSequence interaction', () => {
     expect(parentFirstKey).toHaveBeenCalledTimes(2);
   });
 
-  it('sequence handler fires before stop barrier â€” key consumed by sequence, not by stop', async () => {
+  it('sequence handler fires before stop barrier â€?key consumed by sequence, not by stop', async () => {
     const parentFirstKey = vi.fn();
     const childHandler = vi.fn();
 
@@ -683,7 +683,7 @@ describe('boundSequence interaction', () => {
     await pressKey(stdin, 'g');
     await pressKey(stdin, 'g');
     expect(childHandler).toHaveBeenCalledTimes(1);
-    // Parent never receives 'g' â€” the sequence consumed both keys.
+    // Parent never receives 'g' â€?the sequence consumed both keys.
     expect(parentFirstKey).not.toHaveBeenCalled();
   });
 });

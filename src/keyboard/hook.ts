@@ -8,7 +8,7 @@ import type { ModalMissCallback, ModalMissOptions } from "./types.js";
 /**
  * Access the keyboard API from within a React component.
  *
- * Returns `{ boundKeyboard, blockedKey, stop, globalKeys, ... }`.
+ * Returns `{ boundKeyboard, penetration, stop, globalKeys, ... }`.
  *
  * When called inside an overlay component (wrapped in OverlayContext.Provider),
  * keyboard bindings are automatically isolated to the overlay's own layer,

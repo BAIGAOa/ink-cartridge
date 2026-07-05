@@ -73,9 +73,9 @@ function invokeMissIfNeeded(
 
   const opts = layer.onMissOptions ?? {};
 
-  // fix: The stop API and blockedKey API cases are no longer handled.
+  // fix: The stop API and penetration API cases are no longer handled.
   // Instead, it is left to handlerLayer to handle natural
-  // So the expectation is that, So the Stop API returns miss: false, but the BlockedKeys API returns miss: true
+  // So the expectation is that, So the Stop API returns miss: false, but the penetration API returns miss: true
   // TODO: You need to modify the corresponding test and do it later.
   // @2026-06-23 3.6.1
 

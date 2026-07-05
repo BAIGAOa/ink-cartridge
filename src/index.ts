@@ -54,7 +54,7 @@ export type {
 } from "./keyboard/index.js";
 
 export type {
-  BlockedKeyOptions,
+  PenetrationOptions,
   AllowModalOptions,
   StopOptions,
   LayerKind,

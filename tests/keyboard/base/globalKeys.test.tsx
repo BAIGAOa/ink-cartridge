@@ -33,12 +33,12 @@ afterEach(() => {
  * Intentionally skipped tests and the reasons:
  *
  * 1. Calling globalKeys when no screen is mounted.
- *    Same pattern as blockedKey / stop / boundSequence â€” the error is
+ *    Same pattern as penetration / stop / boundSequence â€?the error is
  *    thrown from the registration side, not from useKeyboard().  The
  *    globalKeys function itself does NOT check getCurrentOwner(),
  *    so this path does not exist for globalKeys.
  *
- * 2. topComponent is null in checkGlobalKey â†’ skips firing.
+ * 2. topComponent is null in checkGlobalKey â†?skips firing.
  *    Requires an empty screen path which is hard to trigger through
  *    the public API (ScenarioManagementProvider always initialises
  *    with a non-empty path).  Same limitation as the other error tests.
@@ -143,7 +143,7 @@ describe('globalKeys basic matching', () => {
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it('accepts an array of keys â€” any matching key triggers operate', async () => {
+  it('accepts an array of keys â€?any matching key triggers operate', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: ['a', 'b'], operate: fn }]);
@@ -160,7 +160,7 @@ describe('globalKeys basic matching', () => {
 
 describe('globalKeys affectOverlay', () => {
   it('affectOverlay: true fires before the overlay layer', async () => {
-    // When affectOverlay is true the global key runs at stage â‘¡
+    // When affectOverlay is true the global key runs at stage â‘?
     // (before overlay).  An overlay binding for the same key would
     // normally consume it, but the global key fires first.
     const globalFn = vi.fn();
@@ -171,21 +171,21 @@ describe('globalKeys affectOverlay', () => {
     });
     await flush();
     // The overlay's own bindings are set up in Notification's useEffect,
-    // but since globalKey fires at stage â‘¡ before overlays at stage â‘¢,
+    // but since globalKey fires at stage â‘?before overlays at stage â‘?
     // we can verify the global fires regardless of the overlay.
     await pressKey(stdin, 'x');
     expect(globalFn).toHaveBeenCalledTimes(1);
   });
 
   it('affectOverlay: false (default) fires after the overlay layer', async () => {
-    // affectOverlay: false global keys fire at stage â‘¤, after overlays
-    // at stage â‘¢.  If an overlay consumes the key the global never fires.
+    // affectOverlay: false global keys fire at stage â‘? after overlays
+    // at stage â‘?  If an overlay consumes the key the global never fires.
     const globalFn = vi.fn();
 
     const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {
       kb.globalKeys([{ key: 'x', operate: globalFn }]);
       // The overlay does NOT bind 'x' so the key is not consumed at
-      // stage â‘¢ â€” it falls through to global keys at stage â‘¤.
+      // stage â‘?â€?it falls through to global keys at stage â‘?
       sc.openOverlay('ovl', Notification, { message: 'test' });
     });
     await flush();
@@ -223,7 +223,7 @@ describe('globalKeys affectOverlay', () => {
 });
 
 describe('globalKeys cover', () => {
-  it('cover: false prevents screen-level override â€” boundKeyboard throws', async () => {
+  it('cover: false prevents screen-level override â€?boundKeyboard throws', async () => {
     let renderResult = '';
 
     function TestScreen() {
@@ -251,7 +251,7 @@ describe('globalKeys cover', () => {
     );
   });
 
-  it('cover: true (default) â€” screen boundKeyboard overrides the global key', async () => {
+  it('cover: true (default) â€?screen boundKeyboard overrides the global key', async () => {
     const globalFn = vi.fn();
     const screenFn = vi.fn();
 
@@ -269,17 +269,17 @@ describe('globalKeys cover', () => {
     expect(globalFn).not.toHaveBeenCalled();
   });
 
-  it('cover: true + affectOverlay: true â€” overlay overrides the global key', async () => {
+  it('cover: true + affectOverlay: true â€?overlay overrides the global key', async () => {
     const globalFn = vi.fn();
 
     // Use an inline overlay that binds 'x' so it overrides the global.
     function BindingOverlay() {
       const kb = useKeyboard();
       const overlayFn = vi.fn();
-      // The global key (affectOverlay:true) fires at stage â‘¡, BEFORE the
-      // overlay at stage â‘¢.  At stage â‘¡ the processor checks whether any
-      // overlay has registered an override for this key â€” if yes, the
-      // global skips itself so the overlay can handle the key at stage â‘¢.
+      // The global key (affectOverlay:true) fires at stage â‘? BEFORE the
+      // overlay at stage â‘?  At stage â‘?the processor checks whether any
+      // overlay has registered an override for this key â€?if yes, the
+      // global skips itself so the overlay can handle the key at stage â‘?
       // @2026-07-02 v3.8.0
       useEffect(() => {
         kb.boundKeyboard(['x'], overlayFn);
@@ -307,15 +307,15 @@ describe('globalKeys cover', () => {
     // TODO: Perhaps a better alternative to flush could be found.
     // @2026-07-1 3.8.0
     await pressKey(stdin, 'x');
-    // The overlay binding fires at stage â‘¢ after the global refrains
-    // at stage â‘¡ due to the override check.
+    // The overlay binding fires at stage â‘?after the global refrains
+    // at stage â‘?due to the override check.
 
     expect(globalFn).toHaveBeenCalledTimes(0);
   });
 });
 
 describe('globalKeys category', () => {
-  it('category omitted or "*" â€” fires on all screens', async () => {
+  it('category omitted or "*" â€?fires on all screens', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       // No category means all screens.
@@ -327,21 +327,21 @@ describe('globalKeys category', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('category restricts to specific screens â€” fires only when topComponent matches', async () => {
+  it('category restricts to specific screens â€?fires only when topComponent matches', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
-      // Restrict to GameLevel â€” Menu is the current screen so the
+      // Restrict to GameLevel â€?Menu is the current screen so the
       // global key should NOT fire.
       kb.globalKeys([{ key: 'x', operate: fn, category: [GameLevel] }]);
     });
     await flush();
 
     await pressKey(stdin, 'x');
-    // Menu is top of stack, not GameLevel â€” global key is skipped.
+    // Menu is top of stack, not GameLevel â€?global key is skipped.
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it('category: [] â€” never fires', async () => {
+  it('category: [] â€?never fires', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: 'x', operate: fn, category: [] }]);
@@ -354,7 +354,7 @@ describe('globalKeys category', () => {
 });
 
 describe('globalKeys when', () => {
-  it('when returns true â€” global key fires', async () => {
+  it('when returns true â€?global key fires', async () => {
     const gate = true;
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
@@ -366,7 +366,7 @@ describe('globalKeys when', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('when returns false â€” global key is skipped', async () => {
+  it('when returns false â€?global key is skipped', async () => {
     const gate = false;
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
@@ -380,7 +380,7 @@ describe('globalKeys when', () => {
 });
 
 describe('globalKeys times', () => {
-  it('times: 3 â€” first two presses are consumed, third fires operate', async () => {
+  it('times: 3 â€?first two presses are consumed, third fires operate', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: 'x', operate: fn, times: 3 }]);
@@ -392,12 +392,12 @@ describe('globalKeys times', () => {
     // First two presses are silently consumed by the times counter.
     expect(fn).not.toHaveBeenCalled();
 
-    // Third press â€” counter reaches times, operate fires, counter resets.
+    // Third press â€?counter reaches times, operate fires, counter resets.
     await pressKey(stdin, 'x');
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('counter resets after firing â€” a new cycle starts', async () => {
+  it('counter resets after firing â€?a new cycle starts', async () => {
     const fn = vi.fn();
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: 'x', operate: fn, times: 2 }]);
@@ -439,7 +439,7 @@ describe('globalKeys times', () => {
 });
 
 describe('globalKeys mode', () => {
-  it('default mode (replace) â€” second call replaces the first', async () => {
+  it('default mode (replace) â€?second call replaces the first', async () => {
     const fn1 = vi.fn();
     const fn2 = vi.fn();
 
@@ -456,7 +456,7 @@ describe('globalKeys mode', () => {
     expect(fn2).toHaveBeenCalledTimes(1);
   });
 
-  it('mode: "add" â€” second call appends, both registrations coexist', async () => {
+  it('mode: "add" â€?second call appends, both registrations coexist', async () => {
     const fn1 = vi.fn();
     const fn2 = vi.fn();
 
@@ -468,7 +468,7 @@ describe('globalKeys mode', () => {
 
     await pressKey(stdin, 'x');
     // The first matching entry in the array fires first and consumes
-    // the event â€” so fn1 fires, fn2 does not.
+    // the event â€?so fn1 fires, fn2 does not.
     expect(fn1).toHaveBeenCalledTimes(1);
     expect(fn2).not.toHaveBeenCalled();
   });
@@ -497,7 +497,7 @@ describe('globalKeys screen stack interaction', () => {
 
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: 'x', operate: globalFn }]);
-      // No screen-level binding for 'x' â€” the global key acts as fallback.
+      // No screen-level binding for 'x' â€?the global key acts as fallback.
     });
     await flush();
 
@@ -511,9 +511,9 @@ describe('globalKeys screen stack interaction', () => {
 
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.globalKeys([{ key: 'x', operate: globalFn }]);
-      // Pipeline: â‘¤ GlobalKey â†’ â‘¥ Screen stack.  The global key's cover
+      // Pipeline: â‘?GlobalKey â†?â‘?Screen stack.  The global key's cover
       // check (default true) sees the screen-level override and skips.
-      // The screen binding then fires at stage â‘¥.
+      // The screen binding then fires at stage â‘?
       kb.boundKeyboard(['x'], screenFn);
     });
     await flush();
@@ -524,7 +524,7 @@ describe('globalKeys screen stack interaction', () => {
     expect(globalFn).not.toHaveBeenCalled();
   });
 
-  it('stack top changes â€” category check re-evaluated on each key press', async () => {
+  it('stack top changes â€?category check re-evaluated on each key press', async () => {
     const fn = vi.fn();
 
     const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {

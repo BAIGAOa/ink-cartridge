@@ -1,15 +1,15 @@
-# blockedKey
+# penetration
 
 Mark a key as **transparent** on the current layer. When pressed, this layer's bindings are skipped — the key falls through to the next layer below.
 
-Despite the name, it means *pass-through*, not "block."
+Formerly named `blockedKey` (the old name was misleading — it means *pass-through*, not "block").
 
 ## Signature
 
 ```ts
-function blockedKey(
+function penetration(
   keys: string[],
-  options?: BlockedKeyOptions
+  options?: PenetrationOptions
 ): () => void
 ```
 
@@ -31,6 +31,6 @@ Use when a parent needs to claim a key that a child would normally capture:
 ```tsx
 // Child captures 'escape' — parent marks it transparent
 useEffect(() => {
-  return blockedKey(['escape']);
+  return penetration(['escape']);
 }, []);
 ```

@@ -144,11 +144,11 @@ describe('two KeyboardProvider instances are fully isolated', () => {
     b.unmount();
   });
 
-  it('blockedKey in instance A does not affect instance B', () => {
+  it('penetration in instance A does not affect instance B', () => {
     const a = renderIsolatedProvider();
     const b = renderIsolatedProvider();
 
-    a.kb().blockedKey(['escape']);
+    a.kb().penetration(['escape']);
 
     const spyB = vi.fn();
     expect(() => b.kb().boundKeyboard(['escape'], spyB)).not.toThrow();
@@ -166,14 +166,14 @@ describe('two KeyboardProvider instances are fully isolated', () => {
     a.kb().boundKeyboard(['g'], 'go');
     a.kb().boundKeyboard(['a'], () => {}, { focusId: 'fa1' });
     a.kb().boundKeyboard(['b'], () => {}, { focusId: 'fa2' });
-    a.kb().blockedKey(['x']);
+    a.kb().penetration(['x']);
 
     const spyB = vi.fn();
     b.kb().defineShortcutAction([{ actionId: 'run', action: spyB }]);
     b.kb().boundKeyboard(['r'], 'run');
     b.kb().boundKeyboard(['c'], () => {}, { focusId: 'fb1' });
     b.kb().boundKeyboard(['d'], () => {}, { focusId: 'fb2' });
-    b.kb().blockedKey(['y']);
+    b.kb().penetration(['y']);
 
     expect(() => a.kb().boundKeyboard(['g2'], 'go')).not.toThrow();
     expect(a.kb().focusCurrent()).toBe('fa1');

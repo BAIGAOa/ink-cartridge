@@ -2,7 +2,7 @@ import { createContext } from "react";
 import type {
   KeyHandler,
   BoundKeyboardOptions,
-  BlockedKeyOptions,
+  PenetrationOptions,
   StopOptions,
   AllowModalOptions,
   GlobalKeyEntry,
@@ -66,7 +66,7 @@ export interface KeyboardContextValue {
    * @param options  If `focusId` is provided, marks transparent only
    *                 within that focus target.
    */
-  blockedKey: (keys: string[], options?: BlockedKeyOptions) => () => void;
+  penetration: (keys: string[], options?: PenetrationOptions) => () => void;
 
   /**
    * Prevent one or more keys from propagating to layers below.
