@@ -1,19 +1,49 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Text } from 'ink';
+import { Text, Box, useWindowSize } from 'ink';
 import chalk from 'chalk';
 import { useKeyboard, useFocusState } from '../../keyboard/index.js';
 import type { TextInputProps, UncontrolledTextInputProps } from './types.js';
 
-/**
- * 将给定字符重复多次
- */
 function repeatChar(char: string, count: number): string {
   return Array(count + 1).join(char);
 }
 
 /**
- * 计算光标在可见字符串中的偏移量，并生成带高亮（反色）的渲染结果
+ * Split text into wrapped lines at maxWidth boundaries.
  */
+function wrapLines(text: string, maxWidth: number): string[] {
+  if (maxWidth <= 0 || text.length === 0) return [''];
+  const lines: string[] = [];
+  for (let i = 0; i < text.length; i += maxWidth) {
+    lines.push(text.slice(i, i + maxWidth));
+  }
+  return lines;
+}
+
+/**
+ * Convert a flat cursor offset to {line, col} in wrap mode.
+ */
+function offsetToLineCol(offset: number, maxWidth: number): { line: number; col: number } {
+  if (maxWidth <= 0) return { line: 0, col: 0 };
+  return {
+    line: Math.floor(offset / maxWidth),
+    col: offset % maxWidth,
+  };
+}
+
+/**
+ * Convert {line, col} back to a flat cursor offset, clamped to [0, textLength].
+ */
+function lineColToOffset(
+  line: number,
+  col: number,
+  maxWidth: number,
+  textLength: number,
+): number {
+  const offset = line * maxWidth + col;
+  return Math.max(0, Math.min(offset, textLength));
+}
+
 function renderWithCursor(
   value: string,
   placeholder: string,
@@ -24,10 +54,8 @@ function renderWithCursor(
   cursorWidth: number,
   highlightPastedText: boolean,
 ): string {
-  // 显示用的值：如果设置了掩码则每个字符替换为掩码字符
   const displayValue = mask ? repeatChar(mask, value.length) : value;
 
-  // 未聚焦或不需要显示光标 → 直接返回纯文本（空时显示占位符）
   if (!showCursor || !isFocused) {
     if (displayValue.length === 0 && placeholder) {
       return chalk.grey(placeholder);
@@ -35,14 +63,11 @@ function renderWithCursor(
     return displayValue;
   }
 
-  // 聚焦且显示光标时的处理
-  // 空值 + 有占位符 → 占位符第一个字符反色，其余灰色
   if (displayValue.length === 0 && placeholder) {
     if (placeholder.length === 0) return chalk.inverse(' ');
     return chalk.inverse(placeholder[0]) + chalk.grey(placeholder.slice(1));
   }
 
-  // 实际高亮宽度（粘贴高亮时可能大于1）
   const actualHighlightWidth = highlightPastedText ? cursorWidth : 0;
 
   let result = '';
@@ -53,7 +78,6 @@ function renderWithCursor(
     result += isInHighlight ? chalk.inverse(displayValue[i]) : displayValue[i];
   }
 
-  // 光标在末尾时追加一个反色空格
   if (cursorOffset === displayValue.length) {
     result += chalk.inverse(' ');
   }
@@ -61,29 +85,6 @@ function renderWithCursor(
   return result;
 }
 
-/**
- * Controlled text input component integrated with the keyboard focus system.
- *
- * Supports:
- * - Arrow keys to move cursor
- * - Backspace/Delete to remove characters
- * - Regular character input (via wildcard '*')
- * - Optional mask (password mode)
- * - Paste highlighting (highlight the whole pasted block)
- * - Placeholder
- *
- * @example
- * ```tsx
- * const [name, setName] = useState('');
- * <TextInput
- *   focusId="name-field"
- *   value={name}
- *   onChange={setName}
- *   placeholder="Enter your name"
- *   showCursor
- * />
- * ```
- */
 export function TextInput({
   placeholder = '',
   mask,
@@ -93,60 +94,97 @@ export function TextInput({
   onChange,
   onSubmit,
   focusId,
+  wrap = false,
+  width,
 }: TextInputProps) {
   const isFocused = useFocusState(focusId);
   const { boundKeyboard, focusUnregister, enableWildcardPriority } = useKeyboard();
+  const { columns: terminalColumns } = useWindowSize();
 
-  // 光标位置（字符索引）
+  // Available width: prop override or terminal width.
+  const availableWidth = Math.max(1, (width ?? terminalColumns) || 80);
+
+  // Virtual-scroll offset (only used when wrap=false).
+  const [scrollOffset, setScrollOffset] = useState(0);
+  // Cursor position (flat character index).
   const [cursorOffset, setCursorOffset] = useState(originalValue.length);
-  // 粘贴高亮宽度（一次插入的字符数）
+  // Paste highlight width.
   const [cursorWidth, setCursorWidth] = useState(0);
-  // 通配符优先模式的 disable 函数
+  // Wildcard priority disable function.
   const disablePriorityRef = useRef<(() => void) | null>(null);
 
-  // 当外部 value 缩短时，修正光标位置避免越界
+  // Clamp cursor when external value shortens.
   useEffect(() => {
     setCursorOffset((prev) => Math.min(prev, originalValue.length));
   }, [originalValue]);
 
+  // When wrap mode changes or text is cleared externally, reset scroll.
+  const isTextEmpty = originalValue.length === 0;
+  useEffect(() => {
+    setScrollOffset(0);
+  }, [wrap, isTextEmpty]);
+
   /**
-   * 移动光标（左右箭头调用）
+   * Ensure the cursor is visible within the virtual-scroll window.
+   * No-op when wrap is enabled.
    */
+  const ensureVisible = useCallback(
+    (newOffset: number) => {
+      if (wrap) return;
+      // Reserve 1 char per side for scroll indicators.
+      const visibleW = Math.max(1, availableWidth - 2);
+      const maxScroll = Math.max(0, originalValue.length - visibleW);
+      setScrollOffset((prev) => {
+        let next = prev;
+        if (newOffset < next) next = newOffset;
+        if (newOffset >= next + visibleW) next = newOffset - visibleW + 1;
+        return Math.max(0, Math.min(next, maxScroll));
+      });
+    },
+    [wrap, availableWidth, originalValue.length],
+  );
+
   const moveCursor = useCallback(
     (delta: number) => {
       if (!showCursor) return;
       setCursorOffset((prev) => {
         const next = prev + delta;
-        if (next < 0) return 0;
-        if (next > originalValue.length) return originalValue.length;
-        return next;
+        const clamped = Math.max(0, Math.min(next, originalValue.length));
+        ensureVisible(clamped);
+        return clamped;
       });
-      // 光标移动后清除粘贴高亮
       setCursorWidth(0);
     },
-    [showCursor, originalValue.length],
+    [showCursor, originalValue.length, ensureVisible],
   );
 
   /**
-   * 插入文本或删除字符
-   * @param insertion 要插入的字符串，undefined 表示执行删除操作
-   * @param isForwardDelete true 表示 Delete（删光标右侧），false/undefined 表示 Backspace（删光标左侧）
+   * Vertical cursor movement for wrap mode.
    */
+  const moveCursorVertical = useCallback(
+    (delta: number) => {
+      if (!showCursor || !wrap) return;
+      const { line, col } = offsetToLineCol(cursorOffset, availableWidth);
+      const targetLine = Math.max(0, line + delta);
+      const newOffset = lineColToOffset(targetLine, col, availableWidth, originalValue.length);
+      setCursorOffset(newOffset);
+      setCursorWidth(0);
+    },
+    [showCursor, wrap, cursorOffset, availableWidth, originalValue.length],
+  );
+
   const modifyText = useCallback(
     (insertion?: string, isForwardDelete = false) => {
       let newValue = originalValue;
       let newOffset = cursorOffset;
 
       if (insertion === undefined) {
-        // 删除操作
+        // Delete.
         if (isForwardDelete && cursorOffset < originalValue.length) {
-          // Delete：删除光标右侧一个字符
           newValue =
             originalValue.slice(0, cursorOffset) +
             originalValue.slice(cursorOffset + 1);
-          // 光标位置不变
         } else if (!isForwardDelete && cursorOffset > 0) {
-          // Backspace：删除光标左侧一个字符
           newValue =
             originalValue.slice(0, cursorOffset - 1) +
             originalValue.slice(cursorOffset);
@@ -155,7 +193,7 @@ export function TextInput({
           return;
         }
       } else {
-        // 插入
+        // Insert.
         newValue =
           originalValue.slice(0, cursorOffset) +
           insertion +
@@ -163,11 +201,11 @@ export function TextInput({
         newOffset = cursorOffset + insertion.length;
       }
 
-      // 边界保护
       newOffset = Math.max(0, Math.min(newOffset, newValue.length));
 
       setCursorOffset(newOffset);
-      // 如果一次插入了多个字符且开启高亮，记录高亮宽度
+      ensureVisible(newOffset);
+
       if (insertion && insertion.length > 1 && highlightPastedText) {
         setCursorWidth(insertion.length);
       } else {
@@ -178,29 +216,34 @@ export function TextInput({
         onChange(newValue);
       }
     },
-    [originalValue, cursorOffset, onChange, highlightPastedText],
+    [originalValue, cursorOffset, onChange, highlightPastedText, ensureVisible],
   );
 
-  // 焦点目标生命周期 — focusId 变化时注销旧的，新的由绑定 effect 创建
+  // Focus lifecycle.
   useEffect(() => {
     return () => focusUnregister(focusId);
   }, [focusId, focusUnregister]);
 
-  // 注册键盘绑定（仅在获得焦点时生效）
+  // Keyboard bindings.
   useEffect(() => {
     const fid = focusId;
     const unbindList: Array<() => void> = [];
 
-    // 开启通配符最高优先级，确保所有普通字符输入优先被 TextInput 捕获
     disablePriorityRef.current?.();
     const disablePriority = enableWildcardPriority();
     disablePriorityRef.current = disablePriority;
 
-    // 左右移动光标
+    // Left/right.
     unbindList.push(boundKeyboard(['left'], () => moveCursor(-1), { focusId: fid }));
     unbindList.push(boundKeyboard(['right'], () => moveCursor(1), { focusId: fid }));
 
-    // 退格 / 删除
+    // Up/down (wrap mode only).
+    if (wrap) {
+      unbindList.push(boundKeyboard(['up'], () => moveCursorVertical(-1), { focusId: fid }));
+      unbindList.push(boundKeyboard(['down'], () => moveCursorVertical(1), { focusId: fid }));
+    }
+
+    // Backspace / Delete.
     unbindList.push(
       boundKeyboard(['backspace'], () => modifyText(), { focusId: fid }),
     );
@@ -208,11 +251,10 @@ export function TextInput({
       boundKeyboard(['delete'], () => modifyText(undefined, true), { focusId: fid }),
     );
 
-    // 回车提交 — 提交时解除通配符最高优先级
+    // Enter — submit.
     if (onSubmit) {
       unbindList.push(
         boundKeyboard(['return'], () => {
-          // 用户提交后解除通配符优先级，恢复正常按键分发
           disablePriority();
           disablePriorityRef.current = null;
           onSubmit(originalValue);
@@ -220,12 +262,11 @@ export function TextInput({
       );
     }
 
-    // 通配符 '*'：捕获所有普通字符输入
+    // Wildcard: capture all character input.
     unbindList.push(
       boundKeyboard(['*'], (input) => modifyText(input), { focusId: fid }),
     );
 
-    // 清理：解绑所有键盘回调并恢复通配符优先级
     return () => {
       unbindList.forEach((fn) => fn());
       if (disablePriorityRef.current) {
@@ -237,38 +278,114 @@ export function TextInput({
     focusId,
     boundKeyboard,
     moveCursor,
+    moveCursorVertical,
     modifyText,
     onSubmit,
     originalValue,
     enableWildcardPriority,
+    wrap,
   ]);
 
-  // 渲染最终显示的文本
-  const rendered = renderWithCursor(
-    originalValue,
-    placeholder,
+  // ── Render: wrap mode ──────────────────────────────────────────
+
+  if (wrap) {
+    const baseLines = wrapLines(originalValue, availableWidth);
+    const displayLines = baseLines.length === 0 ? [''] : [...baseLines];
+    const { line: cursorLine, col: cursorCol } = offsetToLineCol(cursorOffset, availableWidth);
+
+    // When empty and placeholder is set, show placeholder on first line.
+    if (originalValue.length === 0 && placeholder) {
+      return (
+        <Box flexDirection="column">
+          <Text>{renderWithCursor('', placeholder, mask, showCursor, isFocused, 0, 0, false)}</Text>
+        </Box>
+      );
+    }
+
+    // Ensure the cursor always has a line to render on,
+    // even when it sits at the exact end of the last wrapped line.
+    while (displayLines.length <= cursorLine) {
+      displayLines.push('');
+    }
+
+    return (
+      <Box flexDirection="column">
+        {displayLines.map((line, i) => {
+          if (i === cursorLine) {
+            return (
+              <Text key={i}>
+                {renderWithCursor(
+                  line,
+                  '',
+                  mask,
+                  showCursor,
+                  isFocused,
+                  cursorCol,
+                  cursorWidth,
+                  highlightPastedText,
+                )}
+              </Text>
+            );
+          }
+          return <Text key={i}>{line}</Text>;
+        })}
+      </Box>
+    );
+  }
+
+  // ── Render: virtual-scroll mode ────────────────────────────────
+
+  if (originalValue.length === 0 && placeholder) {
+    return (
+      <Text>
+        {renderWithCursor('', placeholder, mask, showCursor, isFocused, 0, 0, false)}
+      </Text>
+    );
+  }
+
+  if (originalValue.length <= availableWidth) {
+    return (
+      <Text>
+        {renderWithCursor(
+          originalValue,
+          '',
+          mask,
+          showCursor,
+          isFocused,
+          cursorOffset,
+          cursorWidth,
+          highlightPastedText,
+        )}
+      </Text>
+    );
+  }
+
+  // Text is wider than available width — virtual scroll.
+  const visibleW = Math.max(1, availableWidth - 2);
+  const maxScroll = Math.max(0, originalValue.length - visibleW);
+  const windowStart = Math.max(0, Math.min(scrollOffset, maxScroll));
+  const windowText = originalValue.slice(windowStart, windowStart + visibleW);
+  const localCursor = cursorOffset - windowStart;
+
+  const textRendered = renderWithCursor(
+    windowText,
+    '',
     mask,
     showCursor,
     isFocused,
-    cursorOffset,
+    localCursor,
     cursorWidth,
     highlightPastedText,
   );
 
-  return React.createElement(Text, null, rendered);
+  const leftIndicator = windowStart > 0 ? chalk.grey('←') : '';
+  const rightIndicator = windowStart + visibleW < originalValue.length ? chalk.grey('→') : '';
+
+  return <Text>{leftIndicator + textRendered + rightIndicator}</Text>;
 }
 
 /**
  * Uncontrolled text input component that manages its own internal state.
- *
- * @example
- * ```tsx
- * <UncontrolledTextInput
- *   focusId="search"
- *   initialValue="default"
- *   onSubmit={(val) => console.log(val)}
- * />
- * ```
  */
 export function UncontrolledTextInput({
   initialValue = '',
@@ -293,9 +410,11 @@ export function UncontrolledTextInput({
     storage?.write.str(persistKey, newVal);
   };
 
-  return React.createElement(TextInput, {
-    ...props,
-    value,
-    onChange: handleChange,
-  });
+  return (
+    <TextInput
+      {...props}
+      value={value}
+      onChange={handleChange}
+    />
+  );
 }

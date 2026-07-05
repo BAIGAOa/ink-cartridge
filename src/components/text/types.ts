@@ -48,6 +48,19 @@ export type TextInputProps = {
    * Must be unique on the current screen.
    */
   readonly focusId: string;
+
+  /**
+   * When true, text wraps to the next line instead of virtual-scrolling.
+   * Up/down arrow keys navigate between wrapped lines.
+   * @default false
+   */
+  readonly wrap?: boolean;
+
+  /**
+   * Available width in characters. When omitted, auto-detected from
+   * terminal dimensions via useWindowSize.
+   */
+  readonly width?: number;
 };
 
 /**
