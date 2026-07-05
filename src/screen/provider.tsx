@@ -1,5 +1,5 @@
 import React, { useReducer, useMemo, useEffect, ReactNode } from 'react';
-import { ScreenSystemContext } from './context.js';
+import { ScreenSystemContext, ScreenSystemContextValue } from './context.js';
 import {
   ScreenState,
   ScreenAction,
@@ -641,6 +641,8 @@ export interface ScenarioManagementProviderProps {
   defaultScreen: React.ComponentType<any>;
   /** 默认参数（可选，未传则使用注册时的模板参数） */
   defaultParams?: Record<string, unknown>;
+
+  fullScreen?: boolean
 }
 
 /**
@@ -653,6 +655,7 @@ export function ScenarioManagementProvider({
   children,
   defaultScreen,
   defaultParams,
+  fullScreen
 }: ScenarioManagementProviderProps) {
   if (!hasComponent(defaultScreen)) {
     throw new Error(
@@ -853,7 +856,7 @@ export function ScenarioManagementProvider({
     ? state.modals.find(m => m.id === state.activeModalId) ?? null
     : null;
 
-  const value = useMemo(
+  const value: ScreenSystemContextValue = useMemo(
     () => ({
       currentScreen,
       currentOverlays,
@@ -877,6 +880,7 @@ export function ScenarioManagementProvider({
       openModal: openModalInContext,
       closeModal: closeModalInContext,
       closeAllModals: closeAllModalsInContext,
+      fullScreen
     }),
     [
       currentScreen,
@@ -900,6 +904,7 @@ export function ScenarioManagementProvider({
       closeModalInContext,
       closeAllModalsInContext,
       state.activeModalId,
+      fullScreen
     ],
   );
 

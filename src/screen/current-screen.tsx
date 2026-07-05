@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from 'ink';
+import { Box, useWindowSize } from 'ink';
 import { useScreenSystem } from './hook.js';
 import { OverlayContext } from './OverlayContext.js';
 import { ModalContext } from './ModalContext.js';
@@ -19,7 +19,8 @@ import { ModalContext } from './ModalContext.js';
  * Architecturally symmetric between overlays and modals.
  */
 export function CurrentScreen(): React.ReactNode {
-  const { currentScreen, currentOverlays, displayedOverlays, currentModals, renderedModalEntries } = useScreenSystem();
+  const { currentScreen, currentOverlays, displayedOverlays, currentModals, renderedModalEntries, fullScreen } = useScreenSystem();
+  const { rows } = useWindowSize()
 
   // Build overlay elements with OverlayContext wrappers
   const wrappedOverlays = currentOverlays.map((overlayNode, i) => {
@@ -45,7 +46,7 @@ export function CurrentScreen(): React.ReactNode {
   });
 
   return (
-    <Box flexDirection='column' width='100%' height='100%'>
+    <Box flexDirection='column' width='100%' height={fullScreen ? rows : '100%'}>
       {currentScreen}
       {wrappedOverlays.map((w) => w)}
       {wrappedModals.map((w) => w)}
