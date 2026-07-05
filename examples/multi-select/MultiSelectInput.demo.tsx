@@ -20,16 +20,11 @@ const colorItems = [
   { label: 'Black', value: 'black' },
 ];
 
-/**
- * 主界面：展示 MultiSelectInput 的受控模式用法。
- * Space 切换选中，Enter 确认提交，Esc 退出。
- */
 function MainScreen() {
   const { globalKeys } = useKeyboard();
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState<string[] | null>(null);
 
-  // 绑定 Esc 退出（根节点不能 back，直接退出进程）
   useEffect(() => {
     globalKeys([
       {
@@ -41,9 +36,9 @@ function MainScreen() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>🎨 MultiSelectInput Demo</Text>
+      <Text bold>MultiSelectInput Demo</Text>
       <Text dimColor>
-        Space: 切换  |  Enter: 确认  |  ↑↓/jk: 移动  |  Esc: 退出
+        Space: toggle  |  Enter: submit  |  Up/Down or j/k: move  |  Esc: quit
       </Text>
 
       <Box marginY={1}>
@@ -58,13 +53,13 @@ function MainScreen() {
       </Box>
 
       <Text>
-        已选择: {selected.length > 0 ? selected.join(', ') : '(空)'}
+        Selected: {selected.length > 0 ? selected.join(', ') : '(none)'}
       </Text>
 
       {submitted && (
         <Box marginTop={1}>
           <Text color="green">
-            ✅ 已确认: {submitted.join(', ')}
+            Confirmed: {submitted.join(', ')}
           </Text>
         </Box>
       )}

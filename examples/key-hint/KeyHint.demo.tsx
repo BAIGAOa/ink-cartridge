@@ -6,16 +6,16 @@ import { Divider } from '../../src/components/divider/Divider.js';
 function Demo() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>KeyHint 组件演示</Text>
+      <Text bold underline>KeyHint component demo</Text>
       <Box flexDirection="column" marginTop={1} gap={1}>
-        <Text>菜单快捷键:</Text>
+        <Text>Menu shortcuts:</Text>
         <KeyHint keys={[
           { key: 's', desc: 'Start' },
           { key: 'l', desc: 'Load' },
           { key: 'q', desc: 'Quit' },
         ]} />
         <Divider />
-        <Text>编辑快捷键:</Text>
+        <Text>Editor shortcuts:</Text>
         <KeyHint keys={[
           { key: 'ctrl+s', desc: 'Save' },
           { key: 'ctrl+z', desc: 'Undo' },
@@ -23,7 +23,7 @@ function Demo() {
           { key: 'ctrl+v', desc: 'Paste' },
         ]} />
         <Divider />
-        <Text>单个键:</Text>
+        <Text>Single key:</Text>
         <KeyHint keys={[
           { key: '?', desc: 'Help' },
         ]} />
@@ -32,4 +32,4 @@ function Demo() {
   );
 }
 
-render(React.createElement(Demo));
+render(<Demo />);

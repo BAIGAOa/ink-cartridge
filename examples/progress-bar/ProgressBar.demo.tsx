@@ -15,39 +15,39 @@ function Demo() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>ProgressBar 组件演示</Text>
+      <Text bold underline>ProgressBar component demo</Text>
       <Box flexDirection="column" marginTop={1} gap={1}>
         <Box>
-          <Text>默认: </Text>
+          <Text>Default: </Text>
           <ProgressBar percent={pct} />
         </Box>
         <Box>
-          <Text>绿色: </Text>
+          <Text>Green: </Text>
           <ProgressBar percent={pct} color="green" />
         </Box>
         <Box>
-          <Text>宽 40: </Text>
+          <Text>Width 40: </Text>
           <ProgressBar percent={pct} width={40} />
         </Box>
         <Box>
-          <Text>无百分比: </Text>
+          <Text>No percentage: </Text>
           <ProgressBar percent={pct} showPercent={false} />
         </Box>
         <Box>
-          <Text>自定义字符: </Text>
+          <Text>Custom chars: </Text>
           <ProgressBar percent={pct} char="■" emptyChar="·" />
         </Box>
         <Divider />
         <Box>
-          <Text>固定 50%: </Text>
+          <Text>Fixed 50%: </Text>
           <ProgressBar percent={50} />
         </Box>
         <Box>
-          <Text>固定 0%: </Text>
+          <Text>Fixed 0%: </Text>
           <ProgressBar percent={0} />
         </Box>
         <Box>
-          <Text>固定 100%: </Text>
+          <Text>Fixed 100%: </Text>
           <ProgressBar percent={100} />
         </Box>
       </Box>
@@ -55,4 +55,4 @@ function Demo() {
   );
 }
 
-render(React.createElement(Demo));
+render(<Demo />);
