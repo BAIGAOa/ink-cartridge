@@ -164,9 +164,9 @@ npx ink-cartridge init my-tui
 - [closeDevTool](docs/dev-tool/closeDevTool-API.md)
 </details>
 
-## Other
+## Examples
 
-The method `penetration` (formerly `blockedKey`) marks keys as transparent (pass-through). Renamed in v3.8.1 to eliminate the historical naming confusion.
+Runnable demos for every component. See [examples/README.md](examples/README.md) for the full list and run commands.
 
 ## License
 
