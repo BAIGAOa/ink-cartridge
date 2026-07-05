@@ -16,11 +16,11 @@ function Demo() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>SearchInput 组件演示</Text>
+      <Text bold underline>SearchInput component demo</Text>
 
       <Box flexDirection="column" marginTop={1} gap={1}>
         <Box>
-          <Text>搜索: </Text>
+          <Text>Search: </Text>
           <SearchInput
             focusId="search"
             value={query}
@@ -34,15 +34,15 @@ function Demo() {
       <Divider />
 
       <Box flexDirection="column">
-        <Text>当前输入: [{query}]</Text>
-        <Text>已提交: [{submitted}]</Text>
+        <Text>Current: [{query}]</Text>
+        <Text>Submitted: [{submitted}]</Text>
       </Box>
 
       <Divider />
 
       <KeyHint keys={[
-        { key: 'Esc', desc: '清空' },
-        { key: 'Enter', desc: '提交' },
+        { key: 'Esc', desc: 'Clear' },
+        { key: 'Enter', desc: 'Submit' },
       ]} />
     </Box>
   );

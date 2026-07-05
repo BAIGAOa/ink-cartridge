@@ -6,21 +6,21 @@ import { Divider } from '../../src/components/divider/Divider.js';
 function Demo() {
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>Spinner 组件演示</Text>
+      <Text bold underline>Spinner component demo</Text>
       <Box flexDirection="column" marginTop={1} gap={1}>
         <Box>
-          <Text>默认: </Text>
+          <Text>Default: </Text>
           <Spinner />
         </Box>
         <Box>
-          <Text>带文字: </Text>
+          <Text>With label: </Text>
           <Spinner label="Loading..." />
         </Box>
         <Box>
-          <Text>颜色: </Text>
+          <Text>Color: </Text>
           <Spinner color="green" label="Processing" />
         </Box>
-        <Divider label="动画风格" />
+        <Divider label="Animation style" />
         <Box>
           <Text>simple: </Text>
           <Spinner type="simple" />
@@ -37,7 +37,7 @@ function Demo() {
           <Text>arc: </Text>
           <Spinner type="arc" />
         </Box>
-        <Divider label="状态" />
+        <Divider label="State" />
         <Box>
           <Text>active=false: </Text>
           <Spinner active={false} label="Done!" color="green" />
@@ -47,4 +47,4 @@ function Demo() {
   );
 }
 
-render(React.createElement(Demo));
+render(<Demo />);

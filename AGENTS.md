@@ -127,6 +127,8 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 | `agents/rules/testing.md` | `tests/**/*` |
 | `agents/rules/components.md` | `src/components/**` |
 | `agents/rules/public-api.md` | `src/index.ts` |
+| `agents/rules/examples.md` | `examples/**/*` |
+| `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `docs/**/*`, `*.md` |
 
 ## CI/CD
 

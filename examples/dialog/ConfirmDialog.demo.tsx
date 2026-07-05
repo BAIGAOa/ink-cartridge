@@ -23,10 +23,10 @@ function MainScreen() {
         operate: () => {
           if (dirty) {
             showOverlay(ConfirmDialog, {
-              title: '放弃更改',
-              message: '你有未保存的更改，确定要退出吗？',
-              confirmLabel: '放弃并退出',
-              cancelLabel: '继续编辑',
+              title: 'Discard changes',
+              message: 'You have unsaved changes. Are you sure you want to quit?',
+              confirmLabel: 'Discard and quit',
+              cancelLabel: 'Keep editing',
               onConfirm: () => process.exit(0),
               onCancel: () => closeOverlay(),
             });
