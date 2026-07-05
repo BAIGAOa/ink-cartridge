@@ -66,6 +66,8 @@ export interface ScreenSystemContextValue {
   closeModal: CloseModalFn;
   /** Close all open modals at once. */
   closeAllModals: CloseAllModalsFn;
+  /** Whether to turn on full screen effect */
+  fullScreen?: boolean;
 }
 
 /**
