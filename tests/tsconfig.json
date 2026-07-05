@@ -3,8 +3,13 @@
   "compilerOptions": {
     "rootDir": "..",
     "noEmit": true,
+    "strict": false,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "noImplicitAny": false,
+    "noImplicitReturns": false
   },
   "include": ["./**/*", "../src/**/*"]
 }

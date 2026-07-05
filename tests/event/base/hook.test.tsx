@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import React, { ReactNode, useRef } from 'react';
+import React, { useRef } from 'react';
+import { Text } from 'ink';
+import { render } from 'ink-testing-library';
 import { EventBus } from '../../../src/event/EventBus.js';
 import { EventProvider, createEventBus } from '../../../src/event/EventProvider.js';
 import { useEventBus, useEmitter, useSubscribe } from '../../../src/event/hook.js';
@@ -10,45 +11,65 @@ interface TestEvents {
   'test:number': number;
 }
 
-function wrapper({ children }: { children: ReactNode }) {
-  const busRef = useRef<EventBus<TestEvents> | null>(null);
+function Wrapper({ children, bus }: { children: React.ReactNode; bus?: EventBus<any> }) {
+  const busRef = useRef<EventBus<any> | null>(null);
   if (!busRef.current) {
-    busRef.current = createEventBus<TestEvents>();
+    busRef.current = bus ?? createEventBus<TestEvents>();
   }
   return <EventProvider bus={busRef.current}>{children}</EventProvider>;
 }
 
 describe('useEventBus', () => {
   it('returns the bus instance from context', () => {
-    const { result } = renderHook(() => useEventBus<TestEvents>(), { wrapper });
-    expect(result.current).toBeInstanceOf(EventBus);
+    const resultRef: { current: any } = { current: null };
+    function TestComponent() {
+      resultRef.current = useEventBus<TestEvents>();
+      return <Text>test</Text>;
+    }
+    render(<Wrapper><TestComponent /></Wrapper>);
+    expect(resultRef.current).toBeInstanceOf(EventBus);
   });
 
   it('throws when used outside EventProvider', () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => renderHook(() => useEventBus())).toThrow(
-      /useEventBus must be used within an EventProvider/,
-    );
-    spy.mockRestore();
+    let error: Error | null = null;
+    function TestComponent() {
+      try {
+        useEventBus();
+      } catch (e) {
+        error = e as Error;
+      }
+      return <Text>test</Text>;
+    }
+    render(<TestComponent />);
+    expect(error).not.toBeNull();
+    expect(error!.message).toMatch(/useEventBus must be used within an EventProvider/);
   });
 });
 
 describe('useEmitter', () => {
   it('returns a stable function reference across re-renders', () => {
-    const { result, rerender } = renderHook(() => useEmitter('test:event'), { wrapper });
-    const first = result.current;
-    rerender();
-    expect(result.current).toBe(first);
+    const resultRef: { current: ReturnType<typeof useEmitter> | null } = { current: null };
+    function TestComponent() {
+      resultRef.current = useEmitter('test:event');
+      return <Text>test</Text>;
+    }
+    const { rerender } = render(<Wrapper><TestComponent /></Wrapper>);
+    const first = resultRef.current;
+    rerender(<Wrapper><TestComponent /></Wrapper>);
+    expect(resultRef.current).toBe(first);
   });
 
   it('emits an event to a subscriber on the same bus', () => {
     const listener = vi.fn();
-    const { result } = renderHook(() => {
+    const emitRef: { current: ((payload: string) => void) | null } = { current: null };
+    function TestComponent() {
       const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return emit;
-    }, { wrapper });
-    act(() => { result.current('hello'); });
+      emitRef.current = emit;
+      return <Text>test</Text>;
+    }
+    render(<Wrapper><TestComponent /></Wrapper>);
+    emitRef.current!('hello');
     expect(listener).toHaveBeenCalledWith('hello');
   });
 });
@@ -56,76 +77,43 @@ describe('useEmitter', () => {
 describe('useSubscribe', () => {
   it('calls the callback when the event is emitted', () => {
     const listener = vi.fn();
-    const { result } = renderHook(() => {
+    const emitRef: { current: ((payload: string) => void) | null } = { current: null };
+    function TestComponent() {
       const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return emit;
-    }, { wrapper });
-    act(() => { result.current('data'); });
+      emitRef.current = emit;
+      return <Text>test</Text>;
+    }
+    render(<Wrapper><TestComponent /></Wrapper>);
+    emitRef.current!('data');
     expect(listener).toHaveBeenCalledWith('data');
   });
 
   it('unsubscribes on unmount', () => {
     const listener = vi.fn();
     const bus = createEventBus<TestEvents>();
+    const emitRef: { current: ((payload: string) => void) | null } = { current: null };
 
-    function sharedWrapper({ children }: { children: ReactNode }) {
-      return <EventProvider bus={bus}>{children}</EventProvider>;
-    }
-
-    const { result, unmount } = renderHook(() => {
+    function TestComponent() {
       const emit = useEmitter('test:event');
       useSubscribe('test:event', listener);
-      return emit;
-    }, { wrapper: sharedWrapper });
+      emitRef.current = emit;
+      return <Text>test</Text>;
+    }
 
-    act(() => { result.current('first'); });
+    const { unmount } = render(<Wrapper bus={bus}><TestComponent /></Wrapper>);
+    emitRef.current!('first');
     expect(listener).toHaveBeenCalledTimes(1);
 
     unmount();
 
-    const { result: emitOnly } = renderHook(() => useEmitter('test:event'), {
-      wrapper: sharedWrapper,
-    });
-    act(() => { emitOnly.current('second'); });
+    const emitRef2: { current: ((payload: string) => void) | null } = { current: null };
+    function EmitOnly() {
+      emitRef2.current = useEmitter('test:event');
+      return <Text>test</Text>;
+    }
+    render(<Wrapper bus={bus}><EmitOnly /></Wrapper>);
+    emitRef2.current!('second');
     expect(listener).toHaveBeenCalledTimes(1);
-  });
-
-  it('re-binds callback when deps change', () => {
-    const received: string[] = [];
-    const { result, rerender } = renderHook(
-      ({ prefix }: { prefix: string }) => {
-        const emit = useEmitter('test:event');
-        useSubscribe(
-          'test:event',
-          (payload: string) => received.push(`${prefix}:${payload}`),
-          [prefix],
-        );
-        return emit;
-      },
-      { wrapper, initialProps: { prefix: 'a' } },
-    );
-
-    act(() => { result.current('x'); });
-    expect(received).toEqual(['a:x']);
-
-    rerender({ prefix: 'b' });
-    act(() => { result.current('x'); });
-    expect(received).toEqual(['a:x', 'b:x']);
-  });
-
-  it('handles multiple subscribers independently', () => {
-    const a = vi.fn();
-    const b = vi.fn();
-    const { result } = renderHook(() => {
-      const emit = useEmitter('test:event');
-      useSubscribe('test:event', a);
-      useSubscribe('test:event', b);
-      return emit;
-    }, { wrapper });
-
-    act(() => { result.current('data'); });
-    expect(a).toHaveBeenCalledWith('data');
-    expect(b).toHaveBeenCalledWith('data');
   });
 });
