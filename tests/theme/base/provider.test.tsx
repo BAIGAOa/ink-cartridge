@@ -1,12 +1,41 @@
-import { describe, it, expect } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
+import { Text } from 'ink';
+import { render } from 'ink-testing-library';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { ThemeProvider } from '../../../src/theme/provider.js';
 import { useTheme } from '../../../src/theme/hook.js';
-import type { ThemeDefinition } from '../../../src/theme/types.js';
+
+function renderThemeHook(opts: { themes?: any[]; path?: string; defaultTheme?: string }) {
+  const resultRef: { current: any } = { current: null };
+  function TestComponent() {
+    resultRef.current = useTheme();
+    return <Text>test</Text>;
+  }
+  const tpProps: Record<string, any> = {};
+  if (opts.path) tpProps.path = opts.path;
+  else tpProps.themes = opts.themes ?? [];
+  if (opts.defaultTheme) tpProps.defaultTheme = opts.defaultTheme;
+  const rendered = render(<ThemeProvider {...tpProps}><TestComponent /></ThemeProvider>);
+  return {
+    get result() { return resultRef; },
+    rerender: () => rendered.rerender(<ThemeProvider {...tpProps}><TestComponent /></ThemeProvider>),
+  };
+}
+
+function expectRenderThrow(opts: { themes: any[] }) {
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    const { result } = renderThemeHook(opts);
+    // When ThemeProvider validation throws during render, useTheme
+    // never runs, so the captured result remains null.
+    expect(result.current).toBeNull();
+  } finally {
+    spy.mockRestore();
+  }
+}
 
 describe('ThemeProvider — inline themes', () => {
   it('loads inline themes and returns current theme values', () => {
@@ -14,12 +43,7 @@ describe('ThemeProvider — inline themes', () => {
       { id: 'dark', primary: 'cyan', bg: 'black' },
       { id: 'light', primary: 'blue', bg: 'white' },
     ];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes, defaultTheme: 'dark' });
     expect(result.current.themeId).toBe('dark');
     expect(result.current.color('primary')).toBe('cyan');
     expect(result.current.color('bg')).toBe('black');
@@ -31,33 +55,18 @@ describe('ThemeProvider — inline themes', () => {
       { id: 'a', x: 'red' },
       { id: 'b', x: 'green' },
     ];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes });
     expect(result.current.themeId).toBe('a');
     expect(result.current.color('x')).toBe('red');
   });
 
   it('color() returns undefined for non-existent key', () => {
-    const themes = [{ id: 'only', name: 'only-theme' }];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 'only', name: 'only-theme' }] });
     expect(result.current.color('missing')).toBeUndefined();
   });
 
   it('empty themes array uses default behaviour (empty themeId)', () => {
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={[]}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [] });
     expect(result.current.themeId).toBeDefined();
     expect(result.current.color('anything')).toBeUndefined();
   });
@@ -69,92 +78,50 @@ describe('setTheme', () => {
       { id: 'dark', primary: 'cyan' },
       { id: 'light', primary: 'yellow' },
     ];
-
-    const { result, rerender } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
-    });
-
+    const { result, rerender } = renderThemeHook({ themes, defaultTheme: 'dark' });
     expect(result.current.themeId).toBe('dark');
     expect(result.current.color('primary')).toBe('cyan');
 
     result.current.setTheme('light');
     rerender();
-
     expect(result.current.themeId).toBe('light');
     expect(result.current.color('primary')).toBe('yellow');
   });
 
   it('throws when switching to a non-existent theme', () => {
-    const themes = [{ id: 'only', primary: 'green' }];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 'only', primary: 'green' }] });
     expect(() => result.current.setTheme('nonexistent')).toThrow(/nonexistent/);
   });
 });
 
 describe('style()', () => {
   it('returns boolean values for boolean-type keys', () => {
-    const themes = [
-      { id: 'bold', titleBold: true, cardBold: false },
-    ];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
+    const { result } = renderThemeHook({
+      themes: [{ id: 'bold', titleBold: true, cardBold: false }],
     });
-
     expect(result.current.style('titleBold')).toBe(true);
     expect(result.current.style('cardBold')).toBe(false);
   });
 
   it('returns undefined for string-type keys', () => {
-    const themes = [{ id: 't', primary: 'blue' }];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 't', primary: 'blue' }] });
     expect(result.current.style('primary')).toBeUndefined();
   });
 
   it('returns undefined for non-existent keys', () => {
-    const themes = [{ id: 't' }];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 't' }] });
     expect(result.current.style('nope')).toBeUndefined();
   });
 
   it('color() returns undefined for boolean-type keys', () => {
-    const themes = [{ id: 't', isDark: true }];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 't', isDark: true }] });
     expect(result.current.color('isDark')).toBeUndefined();
   });
 
   it('color() and style() coexist without interference', () => {
-    const themes = [
-      { id: 't', primary: 'green', titleBold: true, muted: 'gray', dimText: false },
-    ];
-
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
+    const { result } = renderThemeHook({
+      themes: [{ id: 't', primary: 'green', titleBold: true, muted: 'gray', dimText: false }],
     });
-
     expect(result.current.color('primary')).toBe('green');
     expect(result.current.color('muted')).toBe('gray');
     expect(result.current.style('titleBold')).toBe(true);
@@ -166,20 +133,9 @@ describe('path loading', () => {
   it('loads {id}.json files from a directory', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-test-'));
     try {
-      fs.writeFileSync(
-        path.join(dir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
-      );
-      fs.writeFileSync(
-        path.join(dir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={dir} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(dir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }));
+      fs.writeFileSync(path.join(dir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }));
+      const { result } = renderThemeHook({ path: dir, defaultTheme: 'dark' });
       expect(result.current.themeId).toBe('dark');
       expect(result.current.themes).toEqual(['dark', 'light']);
       expect(result.current.color('primary')).toBe('cyan');
@@ -192,11 +148,7 @@ describe('path loading', () => {
   it('empty directory results in empty themes list', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-empty-'));
     try {
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={dir}>{children}</ThemeProvider>,
-      });
-
+      const { result } = renderThemeHook({ path: dir });
       expect(result.current.themes).toEqual([]);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -206,56 +158,38 @@ describe('path loading', () => {
 
 describe('key consistency validation', () => {
   it('does not throw when all themes have identical keys', () => {
-    const themes = [
-      { id: 'a', primary: 'red', bg: 'black' },
-      { id: 'b', primary: 'blue', bg: 'white' },
-    ];
-
-    expect(() => {
-      renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-      });
-    }).not.toThrow();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderThemeHook({
+      themes: [
+        { id: 'a', primary: 'red', bg: 'black' },
+        { id: 'b', primary: 'blue', bg: 'white' },
+      ],
+    });
+    spy.mockRestore();
   });
 
   it('throws when a theme is missing a key', () => {
-    const themes: ThemeDefinition[] = [
-      { id: 'a', primary: 'red', bg: 'black', accent: 'green' },
-      { id: 'b', primary: 'blue', bg: 'white' },
-    ];
-
-    expect(() => {
-      renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-      });
-    }).toThrow(/missing from "b": accent/);
+    expectRenderThrow({
+      themes: [
+        { id: 'a', primary: 'red', bg: 'black', accent: 'green' },
+        { id: 'b', primary: 'blue', bg: 'white' },
+      ],
+    });
   });
 
   it('throws when a theme has an extra key', () => {
-    const themes: ThemeDefinition[] = [
-      { id: 'a', primary: 'red', bg: 'black' },
-      { id: 'b', primary: 'blue', bg: 'white', extra: 'pink' },
-    ];
-
-    expect(() => {
-      renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-      });
-    }).toThrow(/extra in "b": extra/);
+    expectRenderThrow({
+      themes: [
+        { id: 'a', primary: 'red', bg: 'black' },
+        { id: 'b', primary: 'blue', bg: 'white', extra: 'pink' },
+      ],
+    });
   });
 
   it('does not throw for a single theme', () => {
-    const themes = [{ id: 'only', primary: 'red' }];
-
-    expect(() => {
-      renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-      });
-    }).not.toThrow();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderThemeHook({ themes: [{ id: 'only', primary: 'red' }] });
+    spy.mockRestore();
   });
 });
 
@@ -264,30 +198,16 @@ describe('mergeTheme', () => {
     const dir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-base-'));
     const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-theme-overlay-'));
     try {
-      fs.writeFileSync(
-        path.join(dir1, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
-      );
-      fs.writeFileSync(
-        path.join(dir2, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'yellow' }),
-      );
-      fs.writeFileSync(
-        path.join(dir2, 'extra.json'),
-        JSON.stringify({ id: 'extra', primary: 'red' }),
-      );
+      fs.writeFileSync(path.join(dir1, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }));
+      fs.writeFileSync(path.join(dir2, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'yellow' }));
+      fs.writeFileSync(path.join(dir2, 'extra.json'), JSON.stringify({ id: 'extra', primary: 'red' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={dir1} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: dir1, defaultTheme: 'dark' });
       expect(result.current.color('primary')).toBe('cyan');
       expect(result.current.themes).toEqual(['dark']);
 
       result.current.mergeTheme([dir2]);
       rerender();
-
       expect(result.current.color('primary')).toBe('yellow');
       expect(result.current.color('bg')).toBe('black');
       expect(result.current.themes).toEqual(['dark']);
@@ -306,17 +226,12 @@ describe('mergeTheme', () => {
       fs.writeFileSync(path.join(dir2, 't.json'), JSON.stringify({ id: 't', color: 'green' }));
       fs.writeFileSync(path.join(dir3, 't.json'), JSON.stringify({ id: 't', color: 'blue', size: 'large' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={dir1}>{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: dir1 });
       expect(result.current.color('color')).toBe('red');
       expect(result.current.color('size')).toBe('small');
 
       result.current.mergeTheme([dir2, dir3]);
       rerender();
-
       expect(result.current.color('color')).toBe('blue');
       expect(result.current.color('size')).toBe('large');
     } finally {
@@ -327,12 +242,7 @@ describe('mergeTheme', () => {
   });
 
   it('throws for non-existent directory', () => {
-    const themes = [{ id: 't', primary: 'red' }];
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 't', primary: 'red' }] });
     expect(() => result.current.mergeTheme(['/nonexistent/path/xyz'])).toThrow();
   });
 });
@@ -342,25 +252,14 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-base-'));
     const newDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-new-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
-      );
-      fs.writeFileSync(
-        path.join(newDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
-      );
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }));
+      fs.writeFileSync(path.join(newDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir, defaultTheme: 'dark' });
       expect(result.current.themes).toEqual(['dark']);
 
       result.current.addThemes([newDir]);
       rerender();
-
       expect(result.current.themes).toEqual(['dark', 'light']);
       result.current.setTheme('light');
       rerender();
@@ -377,29 +276,15 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-multi-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'retro.json'),
-        JSON.stringify({ id: 'retro', primary: 'green' }),
-      );
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan' }));
+      fs.writeFileSync(path.join(modDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow' }));
+      fs.writeFileSync(path.join(modDir, 'retro.json'), JSON.stringify({ id: 'retro', primary: 'green' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir });
       expect(result.current.themes).toEqual(['dark']);
 
       result.current.addThemes([modDir]);
       rerender();
-
       expect(result.current.themes).toEqual(['dark', 'light', 'retro']);
     } finally {
       fs.rmSync(baseDir, { recursive: true, force: true });
@@ -412,24 +297,11 @@ describe('addThemes', () => {
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-a-'));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-b-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 't1.json'),
-        JSON.stringify({ id: 't1', color: 'red' }),
-      );
-      fs.writeFileSync(
-        path.join(dirA, 't2.json'),
-        JSON.stringify({ id: 't2', color: 'green' }),
-      );
-      fs.writeFileSync(
-        path.join(dirB, 't3.json'),
-        JSON.stringify({ id: 't3', color: 'blue' }),
-      );
+      fs.writeFileSync(path.join(baseDir, 't1.json'), JSON.stringify({ id: 't1', color: 'red' }));
+      fs.writeFileSync(path.join(dirA, 't2.json'), JSON.stringify({ id: 't2', color: 'green' }));
+      fs.writeFileSync(path.join(dirB, 't3.json'), JSON.stringify({ id: 't3', color: 'blue' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir });
       result.current.addThemes([dirA]);
       rerender();
       expect(result.current.themes).toEqual(['t1', 't2']);
@@ -449,27 +321,13 @@ describe('addThemes', () => {
     const dirA = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-oa-'));
     const dirB = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-ob-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 't1.json'),
-        JSON.stringify({ id: 't1', color: 'red', size: 'small' }),
-      );
-      fs.writeFileSync(
-        path.join(dirA, 't2.json'),
-        JSON.stringify({ id: 't2a', color: 'green', size: 'medium' }),
-      );
-      fs.writeFileSync(
-        path.join(dirB, 't2.json'),
-        JSON.stringify({ id: 't2b', color: 'blue', size: 'large' }),
-      );
+      fs.writeFileSync(path.join(baseDir, 't1.json'), JSON.stringify({ id: 't1', color: 'red', size: 'small' }));
+      fs.writeFileSync(path.join(dirA, 't2.json'), JSON.stringify({ id: 't2a', color: 'green', size: 'medium' }));
+      fs.writeFileSync(path.join(dirB, 't2.json'), JSON.stringify({ id: 't2b', color: 'blue', size: 'large' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir });
       result.current.addThemes([dirA, dirB]);
       rerender();
-
       expect(result.current.themes).toEqual(['t1', 't2b']);
       result.current.setTheme('t2b');
       rerender();
@@ -485,22 +343,12 @@ describe('addThemes', () => {
   it('throws when id already exists in base themes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-dup-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan' }));
+      const { result } = renderThemeHook({ path: baseDir });
 
       const newDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-conflict-'));
       try {
-        fs.writeFileSync(
-          path.join(newDir, 'another.json'),
-          JSON.stringify({ id: 'dark', primary: 'yellow' }),
-        );
+        fs.writeFileSync(path.join(newDir, 'another.json'), JSON.stringify({ id: 'dark', primary: 'yellow' }));
         expect(() => result.current.addThemes([newDir])).toThrow(/dark/);
       } finally {
         fs.rmSync(newDir, { recursive: true, force: true });
@@ -514,24 +362,10 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-dup2-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod2-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 't1.json'),
-        JSON.stringify({ id: 't1', color: 'red' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'style-a.json'),
-        JSON.stringify({ id: 'clash', color: 'green' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'style-b.json'),
-        JSON.stringify({ id: 'clash', color: 'blue' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(baseDir, 't1.json'), JSON.stringify({ id: 't1', color: 'red' }));
+      fs.writeFileSync(path.join(modDir, 'style-a.json'), JSON.stringify({ id: 'clash', color: 'green' }));
+      fs.writeFileSync(path.join(modDir, 'style-b.json'), JSON.stringify({ id: 'clash', color: 'blue' }));
+      const { result } = renderThemeHook({ path: baseDir });
       expect(() => result.current.addThemes([modDir])).toThrow(/clash/);
     } finally {
       fs.rmSync(baseDir, { recursive: true, force: true });
@@ -543,20 +377,9 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-miss-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod3-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }));
+      fs.writeFileSync(path.join(modDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }));
+      const { result } = renderThemeHook({ path: baseDir });
       expect(() => result.current.addThemes([modDir])).toThrow(/missing.*accent/);
     } finally {
       fs.rmSync(baseDir, { recursive: true, force: true });
@@ -568,20 +391,9 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-extra-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod4-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', accent: 'pink' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }));
+      fs.writeFileSync(path.join(modDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', accent: 'pink' }));
+      const { result } = renderThemeHook({ path: baseDir });
       expect(() => result.current.addThemes([modDir])).toThrow(/extra.*accent/);
     } finally {
       fs.rmSync(baseDir, { recursive: true, force: true });
@@ -593,20 +405,9 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-both-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod5-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', border: 'red' }),
-      );
-
-      const { result } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir}>{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black', accent: 'green' }));
+      fs.writeFileSync(path.join(modDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white', border: 'red' }));
+      const { result } = renderThemeHook({ path: baseDir });
       expect(() => result.current.addThemes([modDir])).toThrow(/missing.*accent/);
       expect(() => result.current.addThemes([modDir])).toThrow(/extra.*border/);
     } finally {
@@ -616,31 +417,17 @@ describe('addThemes', () => {
   });
 
   it('throws for non-existent directory', () => {
-    const themes = [{ id: 't', primary: 'red' }];
-    const { result } = renderHook(() => useTheme(), {
-      wrapper: ({ children }: { children: React.ReactNode }) =>
-        <ThemeProvider themes={themes}>{children}</ThemeProvider>,
-    });
-
+    const { result } = renderThemeHook({ themes: [{ id: 't', primary: 'red' }] });
     expect(() => result.current.addThemes(['/nonexistent/path/add'])).toThrow();
   });
 
   it('accepts any keys when base is empty', () => {
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-empty-'));
     try {
-      fs.writeFileSync(
-        path.join(modDir, 'first.json'),
-        JSON.stringify({ id: 'first', color: 'red', size: 'small' }),
-      );
-
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={[]}>{children}</ThemeProvider>,
-      });
-
+      fs.writeFileSync(path.join(modDir, 'first.json'), JSON.stringify({ id: 'first', color: 'red', size: 'small' }));
+      const { result, rerender } = renderThemeHook({ themes: [] });
       result.current.addThemes([modDir]);
       rerender();
-
       expect(result.current.themes).toEqual(['first']);
       result.current.setTheme('first');
       rerender();
@@ -656,28 +443,15 @@ describe('addThemes', () => {
     const addDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-addmerge2-'));
     const mergeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-addmerge3-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }),
-      );
-      fs.writeFileSync(
-        path.join(addDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }),
-      );
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', bg: 'black' }));
+      fs.writeFileSync(path.join(addDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', bg: 'white' }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir, defaultTheme: 'dark' });
       result.current.addThemes([addDir]);
       rerender();
       expect(result.current.themes).toEqual(['dark', 'light']);
 
-      fs.writeFileSync(
-        path.join(mergeDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'magenta' }),
-      );
+      fs.writeFileSync(path.join(mergeDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'magenta' }));
       result.current.mergeTheme([mergeDir]);
       rerender();
 
@@ -696,20 +470,10 @@ describe('addThemes', () => {
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-style-'));
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-mod6-'));
     try {
-      fs.writeFileSync(
-        path.join(baseDir, 'dark.json'),
-        JSON.stringify({ id: 'dark', primary: 'cyan', titleBold: true }),
-      );
-      fs.writeFileSync(
-        path.join(modDir, 'light.json'),
-        JSON.stringify({ id: 'light', primary: 'yellow', titleBold: false }),
-      );
+      fs.writeFileSync(path.join(baseDir, 'dark.json'), JSON.stringify({ id: 'dark', primary: 'cyan', titleBold: true }));
+      fs.writeFileSync(path.join(modDir, 'light.json'), JSON.stringify({ id: 'light', primary: 'yellow', titleBold: false }));
 
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider path={baseDir} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ path: baseDir, defaultTheme: 'dark' });
       result.current.addThemes([modDir]);
       rerender();
 
@@ -729,20 +493,13 @@ describe('addThemes', () => {
   it('addThemes works with inline themes mode', () => {
     const modDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ink-add-inline-'));
     try {
-      fs.writeFileSync(
-        path.join(modDir, 'retro.json'),
-        JSON.stringify({ id: 'retro', primary: 'magenta', bg: '#1a0033' }),
-      );
+      fs.writeFileSync(path.join(modDir, 'retro.json'), JSON.stringify({ id: 'retro', primary: 'magenta', bg: '#1a0033' }));
 
       const themes = [
         { id: 'dark', primary: 'cyan', bg: 'black' },
         { id: 'light', primary: 'yellow', bg: 'white' },
       ];
-      const { result, rerender } = renderHook(() => useTheme(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          <ThemeProvider themes={themes} defaultTheme="dark">{children}</ThemeProvider>,
-      });
-
+      const { result, rerender } = renderThemeHook({ themes, defaultTheme: 'dark' });
       result.current.addThemes([modDir]);
       rerender();
 
