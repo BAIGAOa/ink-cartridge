@@ -119,9 +119,10 @@ export function TextInput({
   }, [originalValue]);
 
   // When wrap mode changes or text is cleared externally, reset scroll.
+  const isTextEmpty = originalValue.length === 0;
   useEffect(() => {
     setScrollOffset(0);
-  }, [wrap, originalValue.length === 0]);
+  }, [wrap, isTextEmpty]);
 
   /**
    * Ensure the cursor is visible within the virtual-scroll window.
