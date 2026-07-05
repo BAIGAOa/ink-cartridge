@@ -18,12 +18,15 @@ export function SearchInput({
   placeholder,
   onSubmit,
 }: SearchInputProps) {
-  const { boundKeyboard } = useKeyboard();
+  const { boundKeyboard, focusUnregister } = useKeyboard();
 
   useEffect(() => {
     const unEsc = boundKeyboard(['escape'], () => onChange(''), { focusId });
-    return () => { unEsc(); };
-  }, [focusId, onChange, boundKeyboard]);
+    return () => {
+      unEsc();
+      focusUnregister(focusId);
+    };
+  }, [focusId, onChange, boundKeyboard, focusUnregister]);
 
   return (
     <Box>
