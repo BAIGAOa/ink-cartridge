@@ -56,7 +56,7 @@ npx ink-cartridge init my-tui
 - [useKeyboard](docs/keyboard/useKeyboard-API.md)
 - [boundKeyboard](docs/keyboard/boundKeyboard-API.md)
 - [boundSequence](docs/keyboard/boundSequence-API.md)
-- [blockedKey](docs/keyboard/blockedKey-API.md)
+- [penetration](docs/keyboard/penetration-API.md)
 - [stop](docs/keyboard/stop-API.md)
 - [globalKeys](docs/keyboard/globalKeys-API.md)
 - [globalSequence](docs/keyboard/globalSequence-API.md)
@@ -166,7 +166,7 @@ npx ink-cartridge init my-tui
 
 ## Other
 
-The method `blockedKey` is poorly named — it means *pass-through*, not "block." The internal name is `penetration`. Too late to rename now.
+The method `penetration` (formerly `blockedKey`) marks keys as transparent (pass-through). Renamed in v3.8.1 to eliminate the historical naming confusion.
 
 ## License
 

@@ -35,7 +35,7 @@ Each stage is an independent processor. The first to return `true` consumes the 
 | [useKeyboard](./useKeyboard-API.md) | Access all layer methods |
 | [boundKeyboard](./boundKeyboard-API.md) | Per-layer single-key binding |
 | [boundSequence](./boundSequence-API.md) | Per-layer multi-key sequence |
-| [blockedKey](./blockedKey-API.md) | Mark keys as transparent (pass-through) |
+| [penetration](./penetration-API.md) | Mark keys as transparent (pass-through) |
 | [stop](./stop-API.md) | Block keys from propagating down |
 | [globalKeys](./globalKeys-API.md) | Global single-key bindings |
 | [globalSequence](./globalSequence-API.md) | Global multi-key sequences |

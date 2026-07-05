@@ -17,7 +17,7 @@ import {
   ResolvedGlobalKeyEntry,
   ResolvedGlobalSequenceEntry,
   GlobalPendingSequence,
-  BlockedKeyOptions,
+  PenetrationOptions,
   StopOptions,
   AllowModalOptions,
   ShortcutOperationEntry,
@@ -76,12 +76,12 @@ function removeKeysFromActionMap(
 
 /**
  * Minimal shape shared by {@link ScreenKeyboardLayer} and {@link FocusTarget}
- * — any object that holds `allowedKeys`, `blockedKeys`, and `stoppedKeys`
+ * — any object that holds `allowedKeys`, `penetrationKeys`, and `stoppedKeys`
  * as {@link KeyRule} arrays.
  */
 interface KeyRuleContainer {
   allowedKeys: KeyRule[];
-  blockedKeys: KeyRule[];
+  penetrationKeys: KeyRule[];
   stoppedKeys: KeyRule[];
 }
 
@@ -102,7 +102,7 @@ interface KeyRuleContainer {
  */
 function pushKeyEntries(
   container: KeyRuleContainer,
-  property: 'allowedKeys' | 'blockedKeys' | 'stoppedKeys',
+  property: 'allowedKeys' | 'penetrationKeys' | 'stoppedKeys',
   keys: string[],
   createEntry: (key: string) => KeyRule,
 ): () => void {
@@ -286,7 +286,7 @@ export interface KeyboardProviderProps {
 /**
  * Keyboard context provider for layered key handling.
  *
- * Manages per-screen-layer key bindings, transparent keys (`blockedKey`),
+ * Manages per-screen-layer key bindings, transparent keys (`penetration`),
  * key-stop propagation barriers (`stop`), and global keys (`globalKeys`).
  * Handles the full event priority chain:
  *   1. Global keys with `affectOverlay: true`
@@ -487,7 +487,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
         layer = {
           kind,
           bindings: [],
-          blockedKeys: [],
+          penetrationKeys: [],
           stoppedKeys: [],
           allowedKeys: [],
           globalKeyOverrides: new Set(),
@@ -560,7 +560,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       if (!target) {
         target = {
           bindings: [],
-          blockedKeys: [],
+          penetrationKeys: [],
           stoppedKeys: [],
           allowedKeys: [],
           actionKeysMap: new Map(),
@@ -796,10 +796,10 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
    * Mark keys as transparent on the current layer.
    */
   const penetration = useCallback(
-    (keys: string[], options?: BlockedKeyOptions): (() => void) => {
+    (keys: string[], options?: PenetrationOptions): (() => void) => {
       const owner = getCurrentOwner();
       if (!owner) {
-        throw new Error('[Ink-Cartridge] blockedKey() must be called inside a screen component or overlay.');
+        throw new Error('[Ink-Cartridge] penetration() must be called inside a screen component or overlay.');
       }
       const layer = getLayer(owner);
       const compiledWhen = options?.when;
@@ -807,7 +807,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const container: KeyRuleContainer = options?.focusId
         ? getOrCreateFocusTarget(layer, options.focusId)
         : layer;
-      return pushKeyEntries(container, 'blockedKeys', keys, (key) => ({
+      return pushKeyEntries(container, 'penetrationKeys', keys, (key) => ({
         key,
         when: compiledWhen,
       }));
@@ -1311,7 +1311,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
   const value = useMemo(
     () => ({
       boundKeyboard,
-      blockedKey: penetration,
+      penetration,
       stop,
       globalKeys,
       getGlobalKeys,

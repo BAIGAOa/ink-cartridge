@@ -27,7 +27,7 @@ type LayerDetailItem =
   | { kind: 'bindings'; idx: number; entry: BoundKeyEntry }
   | { kind: 'sequences'; idx: number; firstKey: string; entry: SequenceBinding }
   | { kind: 'stopped'; idx: number; rule: KeyRule }
-  | { kind: 'blocked'; idx: number; rule: KeyRule }
+  | { kind: 'penetrated'; idx: number; rule: KeyRule }
   | { kind: 'focusTarget'; focusId: string; target: FocusTarget };
 
 interface LayerKeyItem extends Item<LayerDetailItem> {}
@@ -149,7 +149,7 @@ function FocusTargetDetail({ focusId, target }: { focusId: string; target: Focus
       <Box paddingY={1} flexDirection="column">
         <Row label="Focus ID"><Text color="white">{focusId}</Text></Row>
         <Row label="Bindings"><Text color="white">{target.bindings.length}</Text></Row>
-        <Row label="Blocked"><Text color="white">{target.blockedKeys.length}</Text></Row>
+        <Row label="Penetr."><Text color="white">{target.penetrationKeys.length}</Text></Row>
         <Row label="Stopped"><Text color="white">{target.stoppedKeys.length}</Text></Row>
       </Box>
       {target.bindings.length > 0 && (
@@ -160,10 +160,10 @@ function FocusTargetDetail({ focusId, target }: { focusId: string; target: Focus
           ))}
         </Box>
       )}
-      {target.blockedKeys.length > 0 && (
+      {target.penetrationKeys.length > 0 && (
         <Box paddingTop={1} flexDirection="column">
-          <Text color="gray" dimColor>Blocked:</Text>
-          {target.blockedKeys.map((r, i) => (
+          <Text color="gray" dimColor>Penetration:</Text>
+          {target.penetrationKeys.map((r, i) => (
             <Text key={i} color="gray">  {fmtKeys(r.key)}</Text>
           ))}
         </Box>
@@ -286,11 +286,11 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
     });
   });
 
-  // Blocked keys
-  layer.blockedKeys.forEach((rule, i) => {
+  // Penetration keys
+  layer.penetrationKeys.forEach((rule, i) => {
     items.push({
-      label: `[Blk]  ${keyRuleLabel(rule)}`,
-      value: { kind: 'blocked', idx: i, rule },
+      label: `[Pen]  ${keyRuleLabel(rule)}`,
+      value: { kind: 'penetrated', idx: i, rule },
       Key: `blk-${i}`,
     });
   });
@@ -298,7 +298,7 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
   // Focus targets
   for (const [focusId, target] of layer.focusTargets) {
     items.push({
-      label: `[Foc]  ${focusId}  (bind:${target.bindings.length} blk:${target.blockedKeys.length} stp:${target.stoppedKeys.length})`,
+      label: `[Foc]  ${focusId}  (bind:${target.bindings.length} pen:${target.penetrationKeys.length} stp:${target.stoppedKeys.length})`,
       value: { kind: 'focusTarget', focusId, target },
       Key: `focus-${focusId}`,
     });
@@ -323,8 +323,8 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
         return <SequenceDetail firstKey={expandedEntry.firstKey} entry={expandedEntry.entry} />;
       case 'stopped':
         return <KeyRuleDetail label="Stopped Key" rule={expandedEntry.rule} />;
-      case 'blocked':
-        return <KeyRuleDetail label="Blocked Key (pass-through)" rule={expandedEntry.rule} />;
+      case 'penetrated':
+        return <KeyRuleDetail label="Penetration Key (pass-through)" rule={expandedEntry.rule} />;
       case 'focusTarget':
         return <FocusTargetDetail focusId={expandedEntry.focusId} target={expandedEntry.target} />;
     }
@@ -355,7 +355,7 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
         renderDetail()
       ) : items.length === 0 ? (
         <Box flexGrow={1} justifyContent="center" alignItems="center">
-          <Text color="gray">No bindings, sequences, stopped/blocked keys, or focus targets.</Text>
+          <Text color="gray">No bindings, sequences, stopped/penetration keys, or focus targets.</Text>
         </Box>
       ) : (
         <SelectInput<LayerDetailItem, LayerKeyItem>

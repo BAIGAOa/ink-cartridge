@@ -143,7 +143,7 @@ interface LayerSummaryProps {
 
 /**
  * Renders a compact summary of the keyboard layer for the top screen
- * component: bindings, sequences, stopped keys, and blocked keys.
+ * component: bindings, sequences, stopped keys, and penetration keys.
  *
  * Focus targets are displayed separately by {@link AllFocusSummary}
  * so that all layers' targets are visible at once.
@@ -164,7 +164,7 @@ function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
   const stopped = layer.stoppedKeys.map(r =>
     Array.isArray(r.key) ? (r.key as string[]).join(',') : r.key
   ).join(' ');
-  const blocked = layer.blockedKeys.map(r =>
+  const penetrated = layer.penetrationKeys.map(r =>
     Array.isArray(r.key) ? (r.key as string[]).join(',') : r.key
   ).join(' ');
 
@@ -189,10 +189,10 @@ function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
           <Text dimColor>{stopped}</Text>
         </Box>
       )}
-      {blocked && (
+      {penetrated && (
         <Box flexDirection="row">
-          <Text color="gray">Blocked: </Text>
-          <Text dimColor>{blocked}</Text>
+          <Text color="gray">Penetr: </Text>
+          <Text dimColor>{penetrated}</Text>
         </Box>
       )}
     </Box>
@@ -217,7 +217,7 @@ function LayerSummary({ topComponent, readLayer }: LayerSummaryProps) {
  * The panel registers itself via `registerComponent` so it participates
  * in the modal keyboard layer automatically.
  *
- * As a modal, DevScreen blocks all keyboard events from reaching overlays
+ * As a modal, DevScreen consumes all keyboard events from reaching overlays
  * and screens while open.
  *
  * @param top   - Initial vertical position in rows (0 = top of terminal).

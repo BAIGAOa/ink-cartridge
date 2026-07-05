@@ -4,7 +4,7 @@ import type { OverlayEntry } from "../screen/types.js";
 /**
  * A single key rule with an optional when condition.
  *
- * Used internally for blockedKeys and stoppedKeys to support
+ * Used internally for penetrationKeys and stoppedKeys to support
  * conditional transparency and conditional propagation barriers.
  */
 export interface KeyRule {
@@ -142,7 +142,7 @@ export interface FocusTarget {
   /** Registered key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
   /** Key rules marked as transparent on this target (pass-through). */
-  blockedKeys: KeyRule[];
+  penetrationKeys: KeyRule[];
   /** Key rules stopped on this target (propagation barrier). */
   stoppedKeys: KeyRule[];
   /**
@@ -272,7 +272,7 @@ export interface ScreenKeyboardLayer {
   /** Registered screen-level key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
   /** Key rules marked as transparent at the screen level (pass-through). */
-  blockedKeys: KeyRule[];
+  penetrationKeys: KeyRule[];
   /** Key rules stopped at the screen level (propagation barrier). */
   stoppedKeys: KeyRule[];
   /**
@@ -322,7 +322,7 @@ export interface ScreenKeyboardLayer {
  * Event object passed to the {@link ModalMissCallback}.
  *
  * When `miss` is `false`, the key was handled (by a binding, Tab
- * navigation, sequence, or — depending on options — stop/blockedKey).
+ * navigation, sequence, or — depending on options — stop/penetration).
  * When `miss` is `true`, the remaining fields describe the key that
  * was not handled by any mechanism visible to the miss detector.
  */
@@ -384,16 +384,16 @@ export interface StopOptions {
 }
 
 /**
- * Options for {@link KeyboardContextValue.blockedKey} when marking keys
+ * Options for {@link KeyboardContextValue.penetration} when marking keys
  * as transparent within a specific focus target.
  */
-export interface BlockedKeyOptions {
-  /** If provided, blocks only within the named focus target. */
+export interface PenetrationOptions {
+  /** If provided, penetrates only within the named focus target. */
   focusId?: string;
   /**
    * Optional condition callback. When provided, the key is only transparent
-   * (blocked) when this returns `true`. When `false`, the blocked-key rule
-   * is ignored and the key is not blocked.
+   * when this returns `true`. When `false`, the penetration rule
+   * is ignored and the key is not passed through.
    */
   when?: () => boolean;
 }

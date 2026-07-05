@@ -30,7 +30,7 @@ A task is not complete until:
 
 **Screen System** (`src/screen/`) — Tree-based navigation via `registerComponent(Component, template, { parent })`. Navigation: `skip()` (down), `back()` (up, `levels` param), `gotoScreen()` (jump via LCA), `overlay()` / `closeOverlay()` (floating dialogs). All nav functions work as React hooks AND module-level imports (`_dispatchers` Set). `ScenarioManagementProvider` wraps the app; `CurrentScreen` renders the active screen.
 
-**Keyboard System** (`src/keyboard/`) — Layered key bindings. Priority: `globalKeys(affectOverlay:true)` → overlay → `globalKeys(affectOverlay:false)` → screen stack (top→bottom). Mechanisms: `boundKeyboard()` (per-screen), `blockedKey()` (pass-through), `stop()` (propagation barrier), `globalKeys()`. Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling. Shortcut actions: `defineShortcutAction`/`addAction`/`removeAction`.
+**Keyboard System** (`src/keyboard/`) — Layered key bindings. Priority: `globalKeys(affectOverlay:true)` → overlay → `globalKeys(affectOverlay:false)` → screen stack (top→bottom). Mechanisms: `boundKeyboard()` (per-screen), `penetration()` (pass-through), `stop()` (propagation barrier), `globalKeys()`. Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling. Shortcut actions: `defineShortcutAction`/`addAction`/`removeAction`.
 
 **Component Library** (`src/components/`) — 14 components, each in own folder. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit.
 
@@ -43,7 +43,7 @@ A task is not complete until:
 
 ## Watch out for
 
-- `blockedKey` means **pass-through** (penetration), NOT "block". Makes keys transparent to lower layers.
+- `penetration()` means **pass-through**, NOT "block". Makes keys transparent to lower layers. (Formerly `blockedKey`.)
 - `KeyboardProvider` MUST nest inside `ScenarioManagementProvider`. Reversed silently breaks keyboard.
 - `_dispatch` is set in `useEffect` — unavailable during `componentDidCatch`. Error boundaries calling `overlay()` will find `_dispatch` is null.
 - `clearShortcutOperations` is a no-op at module level — keyboard state is per-instance via `useRef`.

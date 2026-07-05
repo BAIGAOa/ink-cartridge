@@ -8,14 +8,14 @@ import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
-import type { BlockedKeyOptions, StopOptions, SequenceOptions } from '../../../src/keyboard/types.js';
+import type { PenetrationOptions, StopOptions, SequenceOptions } from '../../../src/keyboard/types.js';
 
 /**
  * Wait for asynchronous effects (useEffect, state updates) to flush.
  *
  * ink-testing-library's render is synchronous but React effects
  * are not. A short setTimeout lets the microtask queue drain so
- * that boundKeyboard / blockedKey / etc. registrations inside
+ * that boundKeyboard / penetration / etc. registrations inside
  * useEffect are in place before key presses are simulated.
  */
 export async function flush(): Promise<void> {
@@ -133,7 +133,7 @@ export function renderKeyboardApp(
  * screen path (`currentPath: []`).
  *
  * Used when a test needs to simulate the "no screen mounted" state —
- * for example, verifying that `blockedKey` throws when called outside
+ * for example, verifying that `penetration` throws when called outside
  * of any screen component.
  *
  * The returned object satisfies all required fields of the context
@@ -188,21 +188,21 @@ export interface PenetrationStackResult {
 }
 
 /**
- * Render a two-screen stack for testing `blockedKey` penetration.
+ * Render a two-screen stack for testing `penetration`.
  *
  * The Parent screen has handlers for `x`, `y`, and `s` (skip to Child).
  * The Child screen has handlers for `x`, `y`, and `b` (back to Parent),
- * and calls `blockedKey` on the configured keys with the given options.
+ * and calls `penetration` on the configured keys with the given options.
  *
  * Tree:  Parent → Child (child of Parent)
  *
- * @param blockKeys  - Keys to mark as transparent on the Child layer.
- * @param blockOpts  - Optional {@link BlockedKeyOptions} (when, focusId).
+ * @param penKeys   - Keys to mark as transparent on the Child layer.
+ * @param penOpts   - Optional {@link PenetrationOptions} (when, focusId).
  * @2026-07-02 v3.8.0
  */
 export function renderPenetrationStack(
-  blockKeys: string[],
-  blockOpts?: BlockedKeyOptions,
+  penKeys: string[],
+  penOpts?: PenetrationOptions,
 ): PenetrationStackResult {
   const parentX = vi.fn();
   const parentY = vi.fn();
@@ -228,7 +228,7 @@ export function renderPenetrationStack(
       kb.boundKeyboard(['b'], () => sc.back());
       kb.boundKeyboard(['x'], childX);
       kb.boundKeyboard(['y'], childY);
-      kb.blockedKey(blockKeys, blockOpts);
+      kb.penetration(penKeys, penOpts);
     }, []);
     return <Text>Child</Text>;
   }
