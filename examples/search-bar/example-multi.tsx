@@ -7,7 +7,7 @@ import {
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
-  SelectInput,
+  MultiSelectInput,
 } from "../../src/index.js";
 
 const SAMPLE_ITEMS: SearchBarItem<string>[] = [
@@ -31,39 +31,41 @@ const SAMPLE_ITEMS: SearchBarItem<string>[] = [
   "Watermelon",
 ].map((name) => ({ label: name, value: name.toLowerCase() }));
 
-// Stable reference — avoids unmount/remount on every keystroke.
-const SingleResults: React.ComponentType<{
+// Defined outside the component to keep a stable reference.
+// The selectBar is a React.ComponentType, so inline closures cause
+// unmount/remount on every keystroke, losing keyboard state.
+const MultiResults: React.ComponentType<{
   items: SearchBarItem<string>[];
   onSelect: (item: SearchBarItem<string>) => void;
   focusId: string;
   query: string;
-}> = ({ items, onSelect, focusId }) => (
-  <SelectInput<string, SearchBarItem<string>>
-    items={items}
-    onSelect={onSelect}
-    focusId={focusId}
-    limit={8}
-  />
-);
+}> = ({ items, onSelect, focusId }) => {
+  const [selected, setSelected] = useState<string[]>([]);
+
+  return (
+    <MultiSelectInput<string, SearchBarItem<string>>
+      items={items}
+      focusId={focusId}
+      limit={6}
+      selected={selected}
+      onChange={setSelected}
+      onSubmit={(vals) => {
+        setSelected(vals);
+        // Trigger focus return to TextInput
+        if (items.length > 0) onSelect(items[0]);
+      }}
+    />
+  );
+};
 
 function APP(){
-  const [selected, setSelected] = useState<SearchBarItem<string> | undefined>(undefined);
-
   return (
     <Box flexDirection="column">
       <SearchBar
         focusId="search-bar"
         items={SAMPLE_ITEMS}
-        onSubmit={setSelected}
-        selectBar={SingleResults}
+        selectBar={MultiResults}
       />
-      {selected && (
-        <Box marginTop={1}>
-          <Text color="green">
-            Selected: {selected.label} ({selected.value})
-          </Text>
-        </Box>
-      )}
     </Box>
   );
 }

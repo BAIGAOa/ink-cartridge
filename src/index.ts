@@ -113,6 +113,10 @@ export { NumberInput } from "./components/number-input/NumberInput.js";
 // Components — SearchInput
 export { SearchInput } from "./components/search-input/SearchInput.js";
 
+// Components — SearchBar
+export { default as SearchBar } from "./components/search-bar/SearchBar.js";
+export type { SearchBarItem, SearchBarProps } from "./components/search-bar/search-bar-types.js";
+
 // Components — Tabs
 export { Tabs } from "./components/tabs/Tabs.js";
 export type { Tab, TabsProps } from "./components/tabs/types.js";

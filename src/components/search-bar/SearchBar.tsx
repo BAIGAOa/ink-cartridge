@@ -1,21 +1,24 @@
 import { Box, Text, useWindowSize } from "ink";
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { TextInput } from "../text/TextInput.js";
 import { useKeyboard } from "../../keyboard/hook.js";
-import type { SearchBarProps } from "./search-bar-types.js";
+import type { SearchBarItem, SearchBarProps } from "./search-bar-types.js";
 
 /**
- * Filter and sort items by query.
+ * Filter and sort items by query against their labels.
  * Priority: exact match → prefix match → earlier substring position.
  */
-function filterAndSort(items: string[], query: string): string[] {
+function filterAndSort<T>(
+  items: SearchBarItem<T>[],
+  query: string,
+): SearchBarItem<T>[] {
   if (!query.trim()) return items;
   const lower = query.toLowerCase();
   return items
-    .filter((item) => item.toLowerCase().includes(lower))
+    .filter((item) => item.label.toLowerCase().includes(lower))
     .sort((a, b) => {
-      const aLower = a.toLowerCase();
-      const bLower = b.toLowerCase();
+      const aLower = a.label.toLowerCase();
+      const bLower = b.label.toLowerCase();
       if (aLower === lower && bLower !== lower) return -1;
       if (aLower !== lower && bLower === lower) return 1;
       const aStarts = aLower.startsWith(lower);
@@ -26,38 +29,22 @@ function filterAndSort(items: string[], query: string): string[] {
     });
 }
 
-const DEFAULT_MAX_VISIBLE = 10;
-
-function DefaultResult({ item, isSelected }: { item: string; isSelected: boolean }) {
-  return (
-    <Text color={isSelected ? "cyan" : undefined} inverse={isSelected}>
-      {item}
-    </Text>
-  );
-}
-
-function DefaultIndicator({ isSelected }: { isSelected: boolean }) {
-  return <Text>{isSelected ? "> " : "  "}</Text>;
-}
-
-export default function SearchBar({
+export default function SearchBar<
+  T,
+  I extends SearchBarItem<T> = SearchBarItem<T>,
+>({
   focusId,
   width,
   items = [],
   onSubmit,
-  maxVisibleResults = DEFAULT_MAX_VISIBLE,
-  resultComponent: ResultComp,
-  indicatorComponent: IndicatorComp,
-}: SearchBarProps) {
-  const Result = ResultComp ?? DefaultResult;
-  const Indicator = IndicatorComp ?? DefaultIndicator;
+  selectBar: SelectBar,
+}: SearchBarProps<T, I>) {
   const [value, setValue] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
   const { columns } = useWindowSize();
-  const { boundKeyboard } = useKeyboard();
+  const { focusSet, boundKeyboard } = useKeyboard();
 
   const inputWidth = width ?? Math.max(1, columns - 4);
+  const resultsFocusId = `${focusId}-results`;
 
   // Filter and sort results whenever the query or items change.
   const results = useMemo(
@@ -65,95 +52,28 @@ export default function SearchBar({
     [items, value],
   );
 
-  // Reset selection when the result set changes size.
-  useEffect(() => {
-    setSelectedIndex(0);
-    setScrollOffset(0);
-  }, [results.length]);
-
-  // Virtual-scroll bounds.
-  const limit =
-    results.length > maxVisibleResults
-      ? maxVisibleResults
-      : Math.max(1, results.length);
-  const maxScroll = Math.max(0, results.length - limit);
-  const safeScroll = Math.max(0, Math.min(scrollOffset, maxScroll));
-  const safeIndex = results.length === 0
-    ? 0
-    : Math.max(0, Math.min(selectedIndex, limit - 1));
-
-  // Refs keep latest values accessible in keyboard callbacks without
-  // re-binding on every keystroke (same pattern as useSelectNavigation).
-  const resultsRef = useRef(results);
-  resultsRef.current = results;
-  const safeIndexRef = useRef(safeIndex);
-  safeIndexRef.current = safeIndex;
-  const safeScrollRef = useRef(safeScroll);
-  safeScrollRef.current = safeScroll;
-  const limitRef = useRef(limit);
-  limitRef.current = limit;
-  const valueRef = useRef(value);
-  valueRef.current = value;
-  const onSubmitRef = useRef(onSubmit);
-  onSubmitRef.current = onSubmit;
-
   /**
-   * Move the highlighted result up (-1) or down (+1), auto-scrolling
-   * the virtual window when the selection leaves the visible area.
+   * When selectBar confirms a selection, fire onSubmit and return
+   * focus to the TextInput.
    */
-  const moveHighlight = useCallback(
-    (delta: number) => {
-      const items = resultsRef.current;
-      if (items.length === 0) return;
-      const lim = limitRef.current;
-      const scroll = safeScrollRef.current;
-      const idx = safeIndexRef.current;
-      const absIdx = scroll + idx;
-      const newAbs = Math.max(0, Math.min(absIdx + delta, items.length - 1));
-      if (newAbs < scroll) {
-        setScrollOffset(newAbs);
-        setSelectedIndex(0);
-      } else if (newAbs >= scroll + lim) {
-        setScrollOffset(newAbs - lim + 1);
-        setSelectedIndex(lim - 1);
-      } else {
-        setSelectedIndex(newAbs - scroll);
-      }
+  const handleSelect = useCallback(
+    (item: I) => {
+      onSubmit?.(item);
+      focusSet(focusId);
     },
-    [],
+    [onSubmit, focusSet, focusId],
   );
+  
 
-  // Screen-level keyboard bindings for results navigation.
-  // Registered without focusId so they fire after TextInput's focus-level
-  // bindings. TextInput does not bind up/down (in non-wrap mode) nor
-  // return (when no onSubmit is passed), so these keys fall through.
+  // Enter in TextInput switches focus to the selectBar.
+  // Registered at screen level so it fires after TextInput's focus-level
+  // bindings (TextInput does not bind 'return' when onSubmit is not passed).
   useEffect(() => {
-    const unUp = boundKeyboard(['up'], () => moveHighlight(-1));
-    const unDown = boundKeyboard(['down'], () => moveHighlight(1));
     const unReturn = boundKeyboard(['return'], () => {
-      const items = resultsRef.current;
-      const idx = safeIndexRef.current;
-      const scroll = safeScrollRef.current;
-      const absIdx = scroll + idx;
-      if (items.length > 0 && absIdx < items.length) {
-        onSubmitRef.current?.(items[absIdx]);
-      } else {
-        onSubmitRef.current?.(valueRef.current);
-      }
+      focusSet(resultsFocusId);
     });
-    return () => {
-      unUp();
-      unDown();
-      unReturn();
-    }
-  }, [boundKeyboard, moveHighlight]);
-
-  // Visible slice of results.
-  const visibleResults = results.length === 0
-    ? []
-    : results.slice(safeScroll, safeScroll + limit);
-
-  const separatorWidth = Math.max(1, columns - 2);
+    return unReturn;
+  }, [boundKeyboard, focusSet, resultsFocusId]);
 
   return (
     <Box
@@ -172,38 +92,15 @@ export default function SearchBar({
           width={inputWidth}
         />
       </Box>
-      <Text bold>{"─".repeat(separatorWidth)}</Text>
-
-      {/* Scroll-up indicator */}
-      {safeScroll > 0 && (
-        <Text color="grey">
-          {"  ▲ "}{safeScroll}{" more"}
-        </Text>
-      )}
-
-      {/* Results */}
-      {visibleResults.map((item, i) => {
-        const globalIdx = safeScroll + i;
-        const isSelected = globalIdx === safeScroll + safeIndex;
-        return (
-          <Box key={globalIdx} flexDirection="row">
-            <Indicator isSelected={isSelected} />
-            <Result item={item} isSelected={isSelected} />
-          </Box>
-        );
-      })}
-
-      {/* Scroll-down indicator */}
-      {safeScroll + limit < results.length && (
-        <Text color="grey">
-          {"  ▼ "}{results.length - safeScroll - limit}{" more"}
-        </Text>
-      )}
-
-      {/* Empty state */}
-      {value.trim() !== "" && results.length === 0 && (
-        <Text color="grey">{"  No results for \""}{value}{"\""}</Text>
-      )}
+      <Text bold>
+        {"-".repeat(inputWidth)}
+      </Text>
+      <SelectBar
+        items={results as I[]}
+        onSelect={handleSelect}
+        focusId={resultsFocusId}
+        query={value}
+      />
     </Box>
   );
 }

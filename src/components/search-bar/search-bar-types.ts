@@ -1,7 +1,19 @@
 import type React from "react";
 
-export interface SearchBarProps {
-  /** Focus identifier for the keyboard system */
+export interface SearchBarItem<T> {
+  /** Display text shown in the results list */
+  label: string;
+  /** Value returned to onSubmit when this item is selected */
+  value: T;
+  /** Optional stable key for React reconciliation */
+  Key?: string;
+}
+
+export interface SearchBarProps<
+  T,
+  I extends SearchBarItem<T> = SearchBarItem<T>,
+> {
+  /** Focus identifier for the TextInput in the keyboard system */
   focusId: string;
 
   /**
@@ -10,35 +22,27 @@ export interface SearchBarProps {
    */
   width?: number;
 
-  /** Items to search through. Filtered and sorted as the user types. */
-  items?: string[];
+  /** Items to search through. Filtered and sorted by label as the user types. */
+  items?: I[];
 
   /**
-   * Called when the user confirms a selection (Enter on a highlighted
-   * result, or Enter on typed text when no results match).
+   * Called when the user confirms a selection via the selectBar.
+   * Receives the selected item.
    */
-  onSubmit?: (value: string) => void;
+  onSubmit?: (item: I) => void;
 
   /**
-   * Maximum visible results before virtual scrolling kicks in.
-   * @default 10
+   * Component that renders the filtered results and handles selection.
+   * Receives filtered items, an onSelect callback, a focusId for keyboard
+   * integration, and the current query string.
+   *
+   * Must be a component that registers its own keyboard bindings under the
+   * given focusId (e.g. SelectInput).
    */
-  maxVisibleResults?: number;
-
-  /**
-   * Custom component for rendering a single result item.
-   * Receives the item string and whether it is currently highlighted.
-   */
-  resultComponent?: React.ComponentType<{
-    item: string;
-    isSelected: boolean;
-  }>;
-
-  /**
-   * Custom indicator rendered before each result row.
-   * Receives whether that row is currently highlighted.
-   */
-  indicatorComponent?: React.ComponentType<{
-    isSelected: boolean;
+  selectBar: React.ComponentType<{
+    items: I[];
+    onSelect: (item: I) => void;
+    focusId: string;
+    query: string;
   }>;
 }
