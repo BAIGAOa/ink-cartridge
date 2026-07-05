@@ -4,12 +4,13 @@ Interactive and visual building blocks for terminal UIs. All interactive compone
 
 | Component | Directory |
 |-----------|-----------|
+| SearchBar | [`SearchBar/`](./SearchBar/) |
+| SearchInput | [`SearchInput/`](./SearchInput/) |
 | SelectInput | [`SelectInput/`](./SelectInput/) |
 | SelectRow | [`SelectRow/`](./SelectRow/) |
 | MultiSelectInput | [`MultiSelectInput/`](./MultiSelectInput/) |
 | TextInput | [`TextInput/`](./TextInput/) |
 | NumberInput | [`NumberInput/`](./NumberInput/) |
-| SearchInput | [`SearchInput/`](./SearchInput/) |
 | ConfirmDialog | [`ConfirmDialog/`](./ConfirmDialog/) |
 | Spinner | [`Spinner/`](./Spinner/) |
 | ProgressBar | [`ProgressBar/`](./ProgressBar/) |

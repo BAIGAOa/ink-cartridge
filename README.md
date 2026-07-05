@@ -109,6 +109,7 @@ npx ink-cartridge init my-tui
 - [TextInput](docs/components/TextInput/TextInput-API.md)
 - [UncontrolledTextInput](docs/components/TextInput/UncontrolledTextInput-API.md)
 - [NumberInput](docs/components/NumberInput/NumberInput-API.md)
+- [SearchBar](docs/components/SearchBar/SearchBar-API.md)
 - [SearchInput](docs/components/SearchInput/SearchInput-API.md)
 - [ConfirmDialog](docs/components/ConfirmDialog/ConfirmDialog-API.md)
 - [Spinner](docs/components/Spinner/Spinner-API.md)
