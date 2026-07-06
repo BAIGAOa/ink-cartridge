@@ -96,6 +96,10 @@ export function renderKeyboardApp(
     kb: ReturnType<typeof useKeyboard>,
     sc: ReturnType<typeof useScreenSystem>,
   ) => (() => void) | void,
+  providerOptions?: {
+    modes?: string[];
+    defaultMode?: string | null;
+  },
 ): {
   lastFrame: () => string | undefined;
   stdin: { write: (data: string) => void };
@@ -119,7 +123,7 @@ export function renderKeyboardApp(
 
   const { lastFrame, stdin, unmount } = render(
     <ScenarioManagementProvider defaultScreen={defaultScreen}>
-      <KeyboardProvider>
+      <KeyboardProvider modes={providerOptions?.modes} defaultMode={providerOptions?.defaultMode}>
         <AppHost />
       </KeyboardProvider>
     </ScenarioManagementProvider>,

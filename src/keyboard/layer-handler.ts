@@ -54,6 +54,7 @@ export function keyMatchesRule(
  */
 export function tryMatchBindings(
   bindings: BoundKeyEntry[],
+  currentMode: string | null,
   availableKeys: string[],
   input: string,
   key: Key,
@@ -62,6 +63,7 @@ export function tryMatchBindings(
   if (availableKeys.length === 0) return false;
 
   for (const binding of bindings) {
+    if (binding.mode && binding.mode !== currentMode) continue;
     if (skipBinding && skipBinding(binding)) continue;
     if (binding.when?.() === false) continue;
     if (binding.keys.some((k) => availableKeys.includes(k))) {
@@ -73,6 +75,7 @@ export function tryMatchBindings(
   const wildcardBinding = bindings.find(b => b.keys.includes('*'));
   if (wildcardBinding && isNormalCharacter(input, key)) {
     if (!skipBinding || !skipBinding(wildcardBinding)) {
+      if (wildcardBinding.mode && wildcardBinding.mode !== currentMode) return false;
       if (wildcardBinding.when?.() === false) return false;
       wildcardBinding.handler(input, key);
       return true;
@@ -131,6 +134,7 @@ export function handleLayer(
   activeOverlayCount: number,
   isOverlay: boolean,
   wildcardFirst: boolean,
+  currentMode: string | null,
 ): boolean {
   // The reason it has the highest priority is to ensure that tab/shift+tab have the highest priority, avoiding conflicts with business-bound actions.
   // However, when there is no Focus Target in the Current Screen, handleTabNavigation will return false, which allows users to retain flexibility. When tab/shift+tab do not need to be enforced,
@@ -162,7 +166,8 @@ export function handleLayer(
         if (fAvailable.length > 0) {
           const wb = ft.bindings.find(b => b.keys.includes('*'));
           if (wb && isNormalCharacter(input, key)) {
-            if (wb.when?.() === false) { /* skip */ }
+            if (wb.mode && wb.mode !== currentMode) { /* skip */ }
+            else if (wb.when?.() === false) { /* skip */ }
             else if (!shouldSkipOnlyThis(wb)) {
               wb.handler(input, key);
               return true;
@@ -174,7 +179,8 @@ export function handleLayer(
     // Check screen-level wildcard
     const wb = layer.bindings.find(b => b.keys.includes('*'));
     if (wb && isNormalCharacter(input, key)) {
-      if (wb.when?.() === false) { /* skip */ }
+      if (wb.mode && wb.mode !== currentMode) { /* skip */ }
+      else if (wb.when?.() === false) { /* skip */ }
       else if (!shouldSkipOnlyThis(wb)) {
         wb.handler(input, key);
         return true;
@@ -289,8 +295,9 @@ export function handleLayer(
         }
         const candidates = layer.sequences.get(keyName);
         if (!candidates || candidates.length === 0) continue;
-        // Filter by onlyThis, focusId, and when constraints.
+        // Filter by mode, onlyThis, focusId, and when constraints.
         const matching = candidates.filter(binding => {
+          if (binding.options?.mode && binding.options.mode !== currentMode) return false;
           if (binding.options?.onlyThis) {
             if (isOverlay) return activeOverlayCount <= 1;
             else return activeOverlayCount === 0;
@@ -340,7 +347,7 @@ export function handleLayer(
       const fPenetrated = ft.penetrationKeys;
       const fAvailable = available.filter((n) => !keyMatchesRule(n, fPenetrated));
 
-      if (tryMatchBindings(ft.bindings, fAvailable, input, key, shouldSkipOnlyThis)) return true;
+      if (tryMatchBindings(ft.bindings, currentMode, fAvailable, input, key, shouldSkipOnlyThis)) return true;
 
       if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
         return true;
@@ -348,7 +355,7 @@ export function handleLayer(
     }
   }
 
-  if (tryMatchBindings(layer.bindings, available, input, key, shouldSkipOnlyThis)) return true;
+  if (tryMatchBindings(layer.bindings, currentMode, available, input, key, shouldSkipOnlyThis)) return true;
 
   if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
     return true;

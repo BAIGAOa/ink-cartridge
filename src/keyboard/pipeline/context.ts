@@ -27,6 +27,7 @@ export interface PipelineRefs {
   >;
   wildcardPriorityCountRef: React.MutableRefObject<number>;
   notifyFocusChange: () => void;
+  currentModeRef: React.MutableRefObject<string | null>;
 }
 
 /**
@@ -56,6 +57,7 @@ export function buildPipelineContext(
   const activeOverlays = overlays.filter(n => activeIds.has(n.id));
   const activeCount = activeIds.size;
   const wildcardFirst = refs.wildcardPriorityCountRef.current > 0;
+  const currentMode = refs.currentModeRef.current;
 
   return {
     input,
@@ -73,5 +75,6 @@ export function buildPipelineContext(
     pendingSeqRef: refs.globalPendingSeqRef,
     notifyFocusChange: refs.notifyFocusChange,
     anyOverlayConsumed: false,
+    currentMode,
   };
 }

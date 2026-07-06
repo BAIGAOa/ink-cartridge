@@ -25,6 +25,7 @@ No return value. To remove all global keys registered by this component, call `g
 | `times` | `number` | — | Fire on every Nth press. Counter is per-entry, never auto-resets. |
 | `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no overlay is open. |
 | `when` | `() => boolean` | — | Conditional. |
+| `mode` | `string` | — | Restrict to a specific mode. See [Mode System](./mode-system-API.md). |
 
 ## Best Practice
 

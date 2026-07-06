@@ -29,6 +29,7 @@ function boundKeyboard(
 | `times` | `number` | — | Fire on every Nth press (e.g. `2` = 2nd, 4th, 6th…). |
 | `observer` | `(count: number) => void` | — | Called on each press with the running count. Only meaningful with `times`. |
 | `when` | `() => boolean` | — | Conditional: only fire when this returns `true`. |
+| `mode` | `string` | — | Restrict to a specific mode. Binding is skipped when the active mode doesn't match. See [Mode System](./mode-system-API.md). |
 
 ## Returns
 

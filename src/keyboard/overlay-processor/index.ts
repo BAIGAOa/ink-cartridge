@@ -24,6 +24,7 @@ export function createOverlayProcessor(): PipelineProcessor {
           layer, ctx.eventNames, ctx.input, ctx.key,
           true, ctx.notifyFocusChange, ctx.activeCount,
           true, ctx.wildcardFirst,
+          ctx.currentMode
         )) {
           ctx.anyOverlayConsumed = true;
           // Do not break — continue to next overlay (broadcast semantics).

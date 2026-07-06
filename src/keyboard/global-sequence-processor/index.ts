@@ -35,6 +35,7 @@ function tryStartGlobalSequence(
 
   for (const entry of entries) {
     if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
+    if (entry.mode && entry.mode !== ctx.currentMode) continue;
     if (entry.when?.() === false) continue;
     if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay) continue;
     if (!ctx.topComponent) continue;
