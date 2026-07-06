@@ -51,6 +51,8 @@ export type {
   KeyboardProviderProps,
   GlobalKeyEntry,
   GlobalSequenceEntry,
+  KeyboardProcessorProps,
+  BuiltinProcessorId,
 } from "./keyboard/index.js";
 
 export type {

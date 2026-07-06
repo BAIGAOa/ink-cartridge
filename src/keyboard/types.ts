@@ -1,5 +1,6 @@
 import type { Key } from "ink";
 import type { OverlayEntry } from "../screen/types.js";
+import { BuiltinProcessorId } from "./pipeline/chain.js";
 
 /**
  * A single key rule with an optional when condition.
@@ -260,7 +261,7 @@ export interface SequenceBinding {
  * The kind of keyboard layer — determines how it participates in
  * the event pipeline.
  */
-export type LayerKind = 'screen' | 'overlay' | 'modal';
+export type LayerKind = "screen" | "overlay" | "modal";
 
 /**
  * Per-layer keyboard state: bindings, transparent keys, stop keys,
@@ -328,7 +329,7 @@ export interface ScreenKeyboardLayer {
  */
 export type ModalMissEvent =
   | { miss: false }
-  | { miss: true; key: import('ink').Key; input: string; eventNames: string[] };
+  | { miss: true; key: import("ink").Key; input: string; eventNames: string[] };
 
 /**
  * Callback signature for {@link useModalMissListener}.
@@ -627,7 +628,10 @@ export interface SequenceOperationEntry {
  * action IDs. Public API continues to accept `GlobalSequenceEntry` with
  * `operate: string | (() => void)`.
  */
-export interface ResolvedGlobalSequenceEntry extends Omit<GlobalSequenceEntry, 'operate'> {
+export interface ResolvedGlobalSequenceEntry extends Omit<
+  GlobalSequenceEntry,
+  "operate"
+> {
   operate: () => void;
 }
 
@@ -645,7 +649,7 @@ export interface ResolvedGlobalKeyEntry {
   operate: () => void;
   cover?: boolean;
   affectOverlay?: boolean;
-  category?: React.ComponentType<any>[] | '*';
+  category?: React.ComponentType<any>[] | "*";
   times?: number;
   observer?: (times: number) => void;
   pressCount?: number;
@@ -670,7 +674,7 @@ export interface GlobalPendingSequence {
   exclusive: boolean;
   affectOverlay: boolean;
   cover: boolean;
-  category?: React.ComponentType<any>[] | '*';
+  category?: React.ComponentType<any>[] | "*";
   executeWhenNoOverlay?: boolean;
   when?: () => boolean;
   /**
@@ -710,7 +714,9 @@ export interface PipelineContext {
   readonly activeModalId: string | null;
 
   // --- Mutable refs (shared with provider) ---
-  readonly layersRef: React.MutableRefObject<Map<React.ComponentType<any> | string, ScreenKeyboardLayer>>;
+  readonly layersRef: React.MutableRefObject<
+    Map<React.ComponentType<any> | string, ScreenKeyboardLayer>
+  >;
   readonly pendingSeqRef: React.MutableRefObject<GlobalPendingSequence | null>;
 
   // --- Callbacks ---
@@ -730,4 +736,22 @@ export interface PipelineContext {
 export interface PipelineProcessor {
   process(ctx: PipelineContext): boolean;
   id: string;
+}
+
+/**
+ * Per-instance custom processor injection for {@link KeyboardProvider}.
+ *
+ * Supports the same positioning as {@link addProcessor}:
+ * - `{ processor, target, position }` — insert before/after a built-in processor
+ * - `{ processor, index }`              — insert at a 0-based position
+ * - `{ processor }`                      — append to the end of the chain
+ */
+export interface KeyboardProcessorProps {
+  processor: PipelineProcessor;
+  /** Target built-in processor ID. Use with {@link position}. */
+  target?: BuiltinProcessorId;
+  /** Insert before or after {@link target}. */
+  position?: 'before' | 'after';
+  /** Insert at this 0-based index. Overrides target/position. */
+  index?: number;
 }

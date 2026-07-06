@@ -5,7 +5,7 @@ Mounts the keyboard engine. Must be nested inside `ScenarioManagementProvider`.
 ## Signature
 
 ```tsx
-function KeyboardProvider({ children }: { children: ReactNode }): JSX.Element
+function KeyboardProvider({ children, processors }: KeyboardProviderProps): JSX.Element
 ```
 
 ## Parameters
@@ -13,8 +13,33 @@ function KeyboardProvider({ children }: { children: ReactNode }): JSX.Element
 | Param | Type | Description |
 |-------|------|-------------|
 | `children` | `ReactNode` | App content |
+| `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
 
-No other props. All configuration happens through the hooks.
+### `processors` prop
+
+Each entry in `processors` describes where to insert a custom processor relative to the built-in 7-stage chain:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `processor` | `PipelineProcessor` | The custom processor to insert |
+| `index` | `number` | (Optional) Insert at this 0-based position |
+| `target` | `BuiltinProcessorId` | (Optional) Target built-in processor ID |
+| `position` | `'before' \| 'after'` | (Optional) Insert before or after `target` |
+
+Positioning priorities (checked in order): `index` → `target` + `position` → append.
+
+This is the per-instance counterpart to [`addProcessor`](./addProcessor-API.md). Prefer `processors` when the custom logic should only apply to a specific `KeyboardProvider` subtree; use `addProcessor` when it should apply globally.
+
+```tsx
+<KeyboardProvider
+  processors={[
+    { processor: auditLogger, index: 0 },
+    { processor: specialKeyHandler, target: 'modal', position: 'after' },
+  ]}
+>
+  <CurrentScreen />
+</KeyboardProvider>
+```
 
 ## Returns
 
