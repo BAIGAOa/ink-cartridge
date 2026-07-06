@@ -75,5 +75,6 @@ export function createGlobalKeyProcessor(config: {
       }
       return false;
     },
+    id: `global-key-${affectOverlay ? 'overlay' : 'screen'}`,
   };
 }

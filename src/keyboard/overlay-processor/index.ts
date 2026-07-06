@@ -32,5 +32,6 @@ export function createOverlayProcessor(): PipelineProcessor {
       // Always return false so the chain continues to subsequent stages.
       return false;
     },
+    id: 'overlay',
   };
 }

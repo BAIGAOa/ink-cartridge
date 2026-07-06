@@ -729,4 +729,5 @@ export interface PipelineContext {
  */
 export interface PipelineProcessor {
   process(ctx: PipelineContext): boolean;
+  id: string;
 }

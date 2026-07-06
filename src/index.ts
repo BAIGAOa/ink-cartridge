@@ -41,7 +41,7 @@ export type {
 
 // ── Keyboard System ────────────────────────────────────────
 export { KeyboardProvider, useKeyboard } from "./keyboard/index.js";
-export { normalizeKeyNames, isNormalCharacter } from "./keyboard/index.js";
+export { normalizeKeyNames, isNormalCharacter, addProcessor } from "./keyboard/index.js";
 
 export type {
   KeyHandler,

@@ -5,6 +5,103 @@ import { createGlobalKeyProcessor } from '../global-key-processor/index.js';
 import { createOverlayProcessor } from '../overlay-processor/index.js';
 import { createScreenStackProcessor } from '../screen-stack-processor/index.js';
 
+/** Known IDs of the 7 built-in pipeline processors. */
+type BuiltinProcessorId =
+  | 'modal'
+  | 'global-sequence-overlay'
+  | 'global-key-overlay'
+  | 'overlay'
+  | 'global-sequence-screen'
+  | 'global-key-screen'
+  | 'screen-stack';
+
+const _processors: PipelineProcessor[] = [
+  createModalProcessor(),
+  createGlobalSequenceProcessor({ affectOverlay: true }),
+  createGlobalKeyProcessor({ affectOverlay: true }),
+  createOverlayProcessor(),
+  createGlobalSequenceProcessor({ affectOverlay: false }),
+  createGlobalKeyProcessor({ affectOverlay: false }),
+  createScreenStackProcessor(),
+];
+
+function thereIsRepetition(processors: PipelineProcessor[]): { hasRepetition: boolean; duplicateIds: BuiltinProcessorId[] } {
+  const seenIds = new Set<string>();
+  const duplicateIds = new Set<string>();
+
+  for (const processor of processors) {
+    if (seenIds.has(processor.id)) {
+      duplicateIds.add(processor.id);
+    }
+    seenIds.add(processor.id);
+  }
+
+  return {
+    hasRepetition: duplicateIds.size > 0,
+    duplicateIds: Array.from(duplicateIds) as BuiltinProcessorId[],
+  };
+}
+
+/**
+ * Register a custom processor into the pipeline at a specified position.
+ *
+ * @param processor - The processor to insert.
+ * @param options - Positioning:
+ *   - `{ before: "processorId" }` — insert before the named processor
+ *   - `{ after: "processorId" }`  — insert after the named processor
+ *   - `{ index: n }`             — insert at the n-th position (0-based)
+ *   - omitted                    — append to the end
+ *
+ * @throws If `processor.id` duplicates an existing processor, or the
+ *         `before`/`after` target is not found.
+ *
+ * @example
+ * ```ts
+ * import { addProcessor } from './chain.js';
+ * import { createMyProcessor } from './my-processor/index.js';
+ *
+ * addProcessor(createMyProcessor(), { after: 'modal' });
+ * ```
+ */
+export function addProcessor(
+  processor: PipelineProcessor,
+  options?: { before?: BuiltinProcessorId | (string & {}) } | { after?: BuiltinProcessorId | (string & {}) } | { index?: number },
+): void {
+  // Validate no duplicate ID
+  const { hasRepetition, duplicateIds } = thereIsRepetition([..._processors, processor]);
+  if (hasRepetition) {
+    throw new Error(
+      `[ink-cartridge] Cannot add processor "${processor.id}": duplicate id "${duplicateIds[0]}"`,
+    );
+  }
+
+  const opts = options ?? {};
+
+  if ('index' in opts && typeof opts.index === 'number') {
+    _processors.splice(opts.index, 0, processor);
+    return;
+  }
+
+  const target = 'before' in opts ? opts.before
+    : 'after' in opts ? opts.after
+    : undefined;
+
+  if (target) {
+    const kind = 'before' in opts ? 'before' : 'after';
+    const idx = _processors.findIndex(p => p.id === target);
+    if (idx === -1) {
+      throw new Error(
+        `[ink-cartridge] Cannot insert ${kind} "${target}": processor not found`,
+      );
+    }
+    _processors.splice(kind === 'before' ? idx : idx + 1, 0, processor);
+    return;
+  }
+
+  // Default: append
+  _processors.push(processor);
+}
+
 /**
  * Build the canonical 7-stage processor chain.
  *
@@ -20,21 +117,13 @@ import { createScreenStackProcessor } from '../screen-stack-processor/index.js';
  * @2026-06-22 v3.6.1
  */
 function buildProcessors(): PipelineProcessor[] {
-  return [
-    createModalProcessor(),
-    createGlobalSequenceProcessor({ affectOverlay: true }),
-    createGlobalKeyProcessor({ affectOverlay: true }),
-    createOverlayProcessor(),
-    createGlobalSequenceProcessor({ affectOverlay: false }),
-    createGlobalKeyProcessor({ affectOverlay: false }),
-    createScreenStackProcessor(),
-  ];
+  return _processors;
 }
 
 /**
  * Run a keyboard event through the full processor chain.
  *
- * Each processor's {@link PipelineProcessor.process} is called in order.
+ * Each processor's `PipelineProcessor.process` is called in order.
  * The first processor to return `true` (event consumed) stops the chain.
  *
  * @param ctx - Snapshot context built by {@link buildPipelineContext}.
@@ -44,4 +133,30 @@ export function runPipeline(ctx: PipelineContext): void {
   for (const processor of processors) {
     if (processor.process(ctx)) return;
   }
+}
+
+/** @internal Reset the processor array to its default state (for testing). */
+export function resetProcessors(): void {
+  _processors.length = 0;
+  _processors.push(
+    createModalProcessor(),
+    createGlobalSequenceProcessor({ affectOverlay: true }),
+    createGlobalKeyProcessor({ affectOverlay: true }),
+    createOverlayProcessor(),
+    createGlobalSequenceProcessor({ affectOverlay: false }),
+    createGlobalKeyProcessor({ affectOverlay: false }),
+    createScreenStackProcessor(),
+  );
+}
+
+/** @internal Exposed for testing. */
+export function _thereIsRepetition(
+  processors: PipelineProcessor[],
+): { hasRepetition: boolean; duplicateIds: BuiltinProcessorId[] } {
+  return thereIsRepetition(processors);
+}
+
+/** @internal Exposed for testing. */
+export function _getProcessors(): readonly PipelineProcessor[] {
+  return _processors;
 }

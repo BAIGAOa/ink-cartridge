@@ -45,6 +45,7 @@ Each stage is an independent processor. The first to return `true` consumes the 
 | [allowModal](./allowModal-API.md) | Let keys pass through the modal barrier |
 | [useModalMissListener](./useModalMissListener-API.md) | Listen for unhandled keys inside a modal |
 | [enableWildcardPriority](./enableWildcardPriority-API.md) | Absolute priority for `*` wildcard bindings |
+| [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline |
 
 ## Advanced
 
