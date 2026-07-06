@@ -67,7 +67,7 @@ export type {
   ModalMissOptions,
   ResolvedGlobalKeyEntry,
 } from "./keyboard/index.js";
-export { useFocusState } from "./keyboard/index.js";
+export { useFocusState, useModalMissListener } from "./keyboard/index.js";
 
 
 // Components — SelectInput

@@ -21,6 +21,35 @@ Each component lives in its own directory: `examples/<component-name>/<Demo>.dem
 - Prefer JSX over `React.createElement`.
 - Demos are single-API showcases. For multi-system stress tests, use `ink-blots/`.
 
+## Overlays and modals
+
+Overlays and modals must be visually floating on top of the screen, not rendered inline below it. Ink renders children in a flex column by default — without explicit positioning, overlays/modals appear as appended content at the bottom.
+
+Every demo that uses overlays or modals must follow these rules:
+
+1. **`fullScreen` on the provider** — `ScenarioManagementProvider` must receive `fullScreen` so the container fills the terminal viewport:
+   ```tsx
+   <ScenarioManagementProvider defaultScreen={Main} fullScreen>
+   ```
+
+2. **`position="absolute"` on the root Box** — the overlay/modal component's outermost Box must use Ink's absolute positioning:
+   ```tsx
+   <Box position="absolute" top={top} left={left} width={W} height={H} ...>
+   ```
+
+3. **Centered placement** — compute `top`/`left` from `useWindowSize()` to center the overlay/modal:
+   ```tsx
+   const { columns, rows } = useWindowSize();
+   const top = Math.max(0, Math.floor((rows - height) / 2));
+   const left = Math.max(0, Math.floor((columns - width) / 2));
+   ```
+
+4. **`backgroundColor`** — set a background color (typically `"black"`) so the floating element covers content behind it instead of rendering transparently on top.
+
+5. **Accept `top`/`left` as props** — overlay/modal components should accept optional `top` and `left` props (following the `DevScreen` pattern), allowing callers to override the default centered placement. Use `useWindowSize()` as the fallback.
+
+6. **Fixed dimensions** — declare `const OVERLAY_W` / `OVERLAY_H` constants at module level so the centering math is consistent.
+
 ## Imports
 
 Import from the public API (`../../src/index.js`) or from deep component paths. Either is acceptable as long as it's consistent within the file.
