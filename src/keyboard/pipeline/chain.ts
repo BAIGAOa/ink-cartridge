@@ -19,7 +19,7 @@ export type BuiltinProcessorId =
   | "global-key-screen"
   | "screen-stack";
 
-let _processors: PipelineProcessor[] = [
+const _processors: PipelineProcessor[] = [
   createModalProcessor(),
   createGlobalSequenceProcessor({ affectOverlay: true }),
   createGlobalKeyProcessor({ affectOverlay: true }),
