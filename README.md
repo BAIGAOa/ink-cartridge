@@ -67,6 +67,7 @@ npx ink-cartridge init my-tui
 - [useModalMissListener](docs/keyboard/useModalMissListener-API.md)
 - [enableWildcardPriority](docs/keyboard/enableWildcardPriority-API.md)
 - [addProcessor](docs/keyboard/addProcessor-API.md)
+- [removeProcessor](docs/keyboard/removeProcessor-API.md)
 - [advanced](docs/keyboard/advanced.md)
 </details>
 
