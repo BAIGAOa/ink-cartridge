@@ -282,7 +282,20 @@ function finalizeBoundKeyboard(
 
 export interface KeyboardProviderProps {
   children: ReactNode;
+  /** Per-instance custom processors injected into the event pipeline. */
   processors?: KeyboardProcessorProps[]
+  /**
+   * Initial set of mode names (e.g. `["normal", "insert"]`).
+   * Modes must be registered before they can be activated via
+   * {@link KeyboardContextValue.setMode}. Use {@link KeyboardContextValue.addMode}
+   * to register additional modes at runtime.
+   */
+  modes?: string[];
+  /**
+   * The active mode on mount. Must be a member of `modes` or `null`
+   * (no-mode). Defaults to `null`.
+   */
+  defaultMode?: string | null;
 }
 
 /**
@@ -300,7 +313,7 @@ export interface KeyboardProviderProps {
  * Must be nested inside a {@link ScenarioManagementProvider} so that the
  * current screen path and overlay state are available.
  */
-export function KeyboardProvider({ children, processors }: KeyboardProviderProps) {
+export function KeyboardProvider({ children, processors, modes, defaultMode }: KeyboardProviderProps) {
   const {
     currentPath,
     activeOverlayIds,
@@ -315,6 +328,9 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
   const displayedOverlaysRef = useRef(displayedOverlays);
   const activeModalIdRef = useRef<string | null>(null);
   const displayedModalsRef = useRef(displayedModals);
+
+  const modesRef = useRef<Set<string>>(new Set(modes ?? []));
+  const currentModeRef = useRef<string | null>(defaultMode ?? null);
 
   const globalKeysRef = useRef<{
     key: string | string[];
@@ -758,6 +774,7 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
 
         const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
         entry.when = options?.when;
+        entry.mode = options?.mode;
 
         target.bindings.push(entry);
 
@@ -776,6 +793,7 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
 
       const entry = createBoundKeyEntry(keys, handler, options?.onlyThis ?? false, owner);
       entry.when = options?.when;
+      entry.mode = options?.mode;
 
       layer.bindings.push(entry);
 
@@ -1117,6 +1135,7 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
             observer: each.observer,
             executeWhenNoOverlay: each.executeWhenNoOverlay,
             when: each.when,
+            mode: each.mode,
           };
         }
         return {
@@ -1130,6 +1149,7 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
           observer: each.observer,
           executeWhenNoOverlay: each.executeWhenNoOverlay,
           when: each.when,
+          mode: each.mode,
         };
       });
 
@@ -1310,6 +1330,42 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
     [],
   );
 
+  const addMode = useCallback((mode: string) => {
+    if (modesRef.current.has(mode)) {
+      return false
+    }
+    modesRef.current.add(mode);
+    return true;
+  }, []);
+
+  const removeMode = useCallback((mode: string) => {
+    return modesRef.current.delete(mode);
+  }, []);
+
+  const setMode = useCallback((mode: string | null) => {
+    if (typeof mode === "string" && !modesRef.current.has(mode)) {
+      return false;
+    }
+    currentModeRef.current = mode;
+    return true;
+  }, []);
+
+  const nextMode = useCallback(() => {
+    const modes = Array.from(modesRef.current);
+    if (modes.length === 0) return;
+    const currentIndex = modes.indexOf(currentModeRef.current ?? '');
+    const nextIndex = (currentIndex + 1) % modes.length;
+    currentModeRef.current = modes[nextIndex];
+  }, []);
+
+  const prevMode = useCallback(() => {
+    const modes = Array.from(modesRef.current);
+    if (modes.length === 0) return;
+    const currentIndex = modes.indexOf(currentModeRef.current ?? '');
+    const prevIndex = (currentIndex - 1 + modes.length) % modes.length;
+    currentModeRef.current = modes[prevIndex];
+  }, []);
+
   const value = useMemo(
     () => ({
       boundKeyboard,
@@ -1345,6 +1401,12 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
       useModalMissListener,
       allowModal,
       readLayer,
+	      getCurrentMode: () => currentModeRef.current,
+      addMode,
+      removeMode,
+      setMode,
+      nextMode,
+      prevMode,
     }),
     [
       boundKeyboard,
@@ -1380,6 +1442,11 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
       useModalMissListener,
       allowModal,
       readLayer,
+      addMode,
+      removeMode,
+      setMode,
+      nextMode,
+      prevMode,
     ],
   );
 
@@ -1395,6 +1462,7 @@ export function KeyboardProvider({ children, processors }: KeyboardProviderProps
       globalPendingSeqRef,
       wildcardPriorityCountRef,
       notifyFocusChange,
+      currentModeRef
     });
 
     runPipeline(ctx, processors);

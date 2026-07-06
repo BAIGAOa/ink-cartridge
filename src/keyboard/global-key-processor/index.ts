@@ -22,6 +22,9 @@ export function createGlobalKeyProcessor(config: {
       for (const entry of ctx.globalKeys) {
         if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
 
+        // mode mismatch → skip this entry
+        if (entry.mode && entry.mode !== ctx.currentMode) continue;
+
         // when=false → entry treated as if not registered
         if (entry.when?.() === false) continue;
 

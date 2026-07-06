@@ -507,6 +507,72 @@ export interface KeyboardContextValue {
    * @returns The layer data, or `undefined`.
    */
   readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
+
+  /**
+   * Returns the currently active mode, or `null` if no mode is set.
+   *
+   * Reads from the provider's ref — always returns the latest value
+   * regardless of React batching. Safe to call inside keyboard handlers.
+   *
+   * @returns The active mode string, or `null`.
+   */
+  getCurrentMode: () => string | null;
+
+  /**
+   * Register a new mode so it can be switched to via {@link setMode},
+   * {@link nextMode}, or {@link prevMode}.
+   *
+   * Duplicate names are silently ignored. Modes must be registered before
+   * they can be activated — {@link setMode} rejects unregistered modes.
+   *
+   * @param mode - Unique mode name (e.g. `"normal"`, `"insert"`).
+   * @returns `true` if the mode was added, `false` if it was already registered.
+   */
+  addMode: (mode: string) => boolean;
+
+  /**
+   * Unregister a mode. The currently active mode is NOT cleared when it
+   * is removed — call {@link setMode}`(null)` first if you need to exit.
+   *
+   * @param mode - The mode name to remove.
+   * @returns `true` if the mode existed and was removed.
+   */
+  removeMode: (mode: string) => boolean;
+
+  /**
+   * Switch to a specific mode immediately.
+   *
+   * Pass `null` to exit all modes (no-mode state). When passing a string,
+   * the mode must have been registered via {@link addMode} or the
+   * {@link KeyboardProviderProps.modes} prop — otherwise the call is
+   * rejected and returns `false`.
+   *
+   * Mode changes take effect synchronously for the next key event. They
+   * do NOT trigger a React re-render (modes are stored in a ref for
+   * zero-overhead keyboard-path access).
+   *
+   * @param mode - The target mode name, or `null` to clear.
+   * @returns `true` if the switch succeeded, `false` if the mode is not registered.
+   */
+  setMode: (mode: string | null) => boolean;
+
+  /**
+   * Cycle to the next mode in registration order.
+   *
+   * Wraps around: the mode after the last registered mode is the first.
+   * A no-op when no modes are registered. Does not trigger a re-render.
+   *
+   * Typical use: binding `escape` / `ctrl+[` to cycle from insert → normal.
+   */
+  nextMode: () => void;
+
+  /**
+   * Cycle to the previous mode in registration order.
+   *
+   * Wraps around: the mode before the first registered mode is the last.
+   * A no-op when no modes are registered. Does not trigger a re-render.
+   */
+  prevMode: () => void;
 }
 
 /**

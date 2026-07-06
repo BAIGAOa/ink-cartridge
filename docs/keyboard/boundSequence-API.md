@@ -27,6 +27,7 @@ function boundSequence(
 | `exclusive` | `boolean` | `false` | `true` = mismatched key is silently consumed. `false` = mismatch cancels the sequence and the key falls through. |
 | `focusId` | `string` | — | Scope to a focus target. |
 | `when` | `() => boolean` | — | Conditional. |
+| `mode` | `string` | — | Restrict to a specific mode. Sequence is skipped when the active mode doesn't match. See [Mode System](./mode-system-API.md). |
 
 ## Returns
 

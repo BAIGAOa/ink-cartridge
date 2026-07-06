@@ -26,6 +26,7 @@ No return value. To remove all global sequences registered by this component, ca
 | `exclusive` | `boolean` | `false` | `true` = mismatched key consumed silently. |
 | `executeWhenNoOverlay` | `boolean` | `false` | Fire even when no overlay is active (for `affectOverlay: true`). |
 | `when` | `() => boolean` | — | Conditional. |
+| `mode` | `string` | — | Restrict to a specific mode. See [Mode System](./mode-system-API.md). |
 
 ## Best Practice
 

@@ -98,6 +98,31 @@ export interface BoundKeyboardOptions {
    * @param remaining - How many more presses are needed before the handler fires.
    */
   observer?: (remaining: number) => void;
+
+  /**
+   * Restrict this binding to a specific mode set via {@link KeyboardContextValue.setMode}.
+   *
+   * When the active mode (read from the pipeline context) does not match
+   * this value, the binding is skipped as if it does not exist — the event
+   * continues to the next binding or layer. When omitted, the binding fires
+   * in all modes (including no-mode, i.e. `currentMode === null`).
+   *
+   * Modes must be registered before use — via {@link KeyboardProviderProps.modes}
+   * or {@link KeyboardContextValue.addMode}.
+   *
+   * @example
+   * ```ts
+   * // Only active in insert mode
+   * boundKeyboard('*', handleInput, { mode: 'insert' });
+   *
+   * // Only active in normal mode
+   * boundKeyboard('j', moveDown, { mode: 'normal' });
+   *
+   * // Active in all modes (default)
+   * boundKeyboard('ctrl+q', quit);
+   * ```
+   */
+  mode?: string;
 }
 
 /**
@@ -130,6 +155,15 @@ export interface BoundKeyEntry {
    * Requires `times` to be set; throws at registration otherwise.
    */
   observer?: (remaining: number) => void;
+  /**
+   * Restrict this binding to a specific mode.
+   *
+   * Copied from {@link BoundKeyboardOptions.mode} at registration time.
+   * Checked by {@link tryMatchBindings} before `when`, `onlyThis`, and
+   * key-match evaluation. When the active mode does not match, the binding
+   * is skipped entirely.
+   */
+  mode?: string;
 }
 
 /**
@@ -492,6 +526,22 @@ export interface GlobalKeyEntry {
    * @param remaining - How many more presses are needed before the handler fires.
    */
   observer?: (remaining: number) => void;
+
+  /**
+   * Restrict this global key to a specific mode.
+   *
+   * When set, the processor skips this entry unless
+   * {@link PipelineContext.currentMode} matches. Checked before `when`,
+   * `affectOverlay`, `category`, and `cover` evaluation. When omitted,
+   * the global key fires in all modes (including no-mode).
+   *
+   * @example
+   * ```ts
+   * // Only active in normal mode
+   * globalKeys([{ key: 'j', operate: moveDown, mode: 'normal' }]);
+   * ```
+   */
+  mode?: string;
 }
 
 /**
@@ -583,6 +633,22 @@ export interface GlobalSequenceEntry {
    */
   when?: () => boolean;
   executeWhenNoOverlay?: boolean;
+
+  /**
+   * Restrict this global sequence to a specific mode.
+   *
+   * When set, the processor skips this entry unless
+   * {@link PipelineContext.currentMode} matches. Checked before `when`,
+   * `affectOverlay`, `category`, and `cover` evaluation. When omitted,
+   * the sequence is active in all modes (including no-mode).
+   *
+   * @example
+   * ```ts
+   * // Only active in normal mode
+   * globalSequence([{ keys: ['g', 'g'], operate: scrollToTop, mode: 'normal' }]);
+   * ```
+   */
+  mode?: string;
 }
 
 /**
@@ -655,6 +721,7 @@ export interface ResolvedGlobalKeyEntry {
   pressCount?: number;
   executeWhenNoOverlay?: boolean;
   when?: () => boolean;
+  mode?: string;
 }
 
 /**
@@ -724,6 +791,8 @@ export interface PipelineContext {
 
   // --- Mutable pipeline coordination state ---
   anyOverlayConsumed: boolean;
+
+  readonly currentMode: string | null;
 }
 
 /**

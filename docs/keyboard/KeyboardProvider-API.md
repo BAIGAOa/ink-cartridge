@@ -5,7 +5,7 @@ Mounts the keyboard engine. Must be nested inside `ScenarioManagementProvider`.
 ## Signature
 
 ```tsx
-function KeyboardProvider({ children, processors }: KeyboardProviderProps): JSX.Element
+function KeyboardProvider({ children, modes, defaultMode, processors }: KeyboardProviderProps): JSX.Element
 ```
 
 ## Parameters
@@ -13,6 +13,8 @@ function KeyboardProvider({ children, processors }: KeyboardProviderProps): JSX.
 | Param | Type | Description |
 |-------|------|-------------|
 | `children` | `ReactNode` | App content |
+| `modes` | `string[]` | (Optional) Initial mode names. See [Mode System](./mode-system-API.md). |
+| `defaultMode` | `string \| null` | (Optional) Active mode on mount. Must be in `modes` or `null`. |
 | `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
 
 ### `processors` prop

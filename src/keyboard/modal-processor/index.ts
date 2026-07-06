@@ -157,6 +157,7 @@ export function createModalProcessor(): PipelineProcessor {
           1,     // activeCount — modal is singleton
           true,  // isOverlay — modal is treated as a floating layer for onlyThis semantics
           ctx.wildcardFirst,
+          ctx.currentMode
         );
       }
 
