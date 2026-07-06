@@ -104,3 +104,4 @@ addProcessor(myProcessor, { after: 'overlay' });
 - `addProcessor` is a module-level function. Processors are registered once and persist for the lifetime of the module. Call it at module scope or during app initialization — not inside React component lifecycle.
 - Duplicate ID detection runs on every call. If the processor ID already exists in the pipeline, the function throws **before** mutating the array.
 - There is no `removeProcessor`. If you need dynamic add/remove at runtime, implement the filtering logic inside your processor's `process` method.
+- For per-instance (scoped to a single `KeyboardProvider` subtree) custom processors, use the [`processors` prop](./KeyboardProvider-API.md#processors-prop) on `KeyboardProvider` instead.

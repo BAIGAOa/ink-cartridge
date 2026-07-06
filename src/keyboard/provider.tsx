@@ -27,6 +27,7 @@ import {
   ModalMissCallback,
   ModalMissOptions,
   KeyRule,
+  KeyboardProcessorProps,
 } from './types.js';
 import { useScreenSystem } from '../screen/hook.js';
 import { buildPipelineContext } from './pipeline/index.js';
@@ -281,6 +282,7 @@ function finalizeBoundKeyboard(
 
 export interface KeyboardProviderProps {
   children: ReactNode;
+  processors?: KeyboardProcessorProps[]
 }
 
 /**
@@ -298,7 +300,7 @@ export interface KeyboardProviderProps {
  * Must be nested inside a {@link ScenarioManagementProvider} so that the
  * current screen path and overlay state are available.
  */
-export function KeyboardProvider({ children }: KeyboardProviderProps) {
+export function KeyboardProvider({ children, processors }: KeyboardProviderProps) {
   const {
     currentPath,
     activeOverlayIds,
@@ -1103,7 +1105,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
           if (!entry) {
             throw new Error(`[Ink-Cartridge]You want to call the shortcut ${each.operate} in the global key, but it is not registered`);
           }
-          
+
           return {
             key: each.key,
             operate: entry.action,
@@ -1394,7 +1396,8 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       wildcardPriorityCountRef,
       notifyFocusChange,
     });
-    runPipeline(ctx);
+
+    runPipeline(ctx, processors);
   });
 
   return (

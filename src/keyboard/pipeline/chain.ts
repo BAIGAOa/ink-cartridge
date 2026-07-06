@@ -1,19 +1,23 @@
-import type { PipelineContext, PipelineProcessor } from '../types.js';
-import { createModalProcessor } from '../modal-processor/index.js';
-import { createGlobalSequenceProcessor } from '../global-sequence-processor/index.js';
-import { createGlobalKeyProcessor } from '../global-key-processor/index.js';
-import { createOverlayProcessor } from '../overlay-processor/index.js';
-import { createScreenStackProcessor } from '../screen-stack-processor/index.js';
+import type {
+  KeyboardProcessorProps,
+  PipelineContext,
+  PipelineProcessor,
+} from "../types.js";
+import { createModalProcessor } from "../modal-processor/index.js";
+import { createGlobalSequenceProcessor } from "../global-sequence-processor/index.js";
+import { createGlobalKeyProcessor } from "../global-key-processor/index.js";
+import { createOverlayProcessor } from "../overlay-processor/index.js";
+import { createScreenStackProcessor } from "../screen-stack-processor/index.js";
 
 /** Known IDs of the 7 built-in pipeline processors. */
-type BuiltinProcessorId =
-  | 'modal'
-  | 'global-sequence-overlay'
-  | 'global-key-overlay'
-  | 'overlay'
-  | 'global-sequence-screen'
-  | 'global-key-screen'
-  | 'screen-stack';
+export type BuiltinProcessorId =
+  | "modal"
+  | "global-sequence-overlay"
+  | "global-key-overlay"
+  | "overlay"
+  | "global-sequence-screen"
+  | "global-key-screen"
+  | "screen-stack";
 
 const _processors: PipelineProcessor[] = [
   createModalProcessor(),
@@ -25,7 +29,10 @@ const _processors: PipelineProcessor[] = [
   createScreenStackProcessor(),
 ];
 
-function thereIsRepetition(processors: PipelineProcessor[]): { hasRepetition: boolean; duplicateIds: BuiltinProcessorId[] } {
+function thereIsRepetition(processors: PipelineProcessor[]): {
+  hasRepetition: boolean;
+  duplicateIds: BuiltinProcessorId[];
+} {
   const seenIds = new Set<string>();
   const duplicateIds = new Set<string>();
 
@@ -65,10 +72,16 @@ function thereIsRepetition(processors: PipelineProcessor[]): { hasRepetition: bo
  */
 export function addProcessor(
   processor: PipelineProcessor,
-  options?: { before?: BuiltinProcessorId | (string & {}) } | { after?: BuiltinProcessorId | (string & {}) } | { index?: number },
+  options?:
+    | { before?: BuiltinProcessorId | (string & {}) }
+    | { after?: BuiltinProcessorId | (string & {}) }
+    | { index?: number },
 ): void {
   // Validate no duplicate ID
-  const { hasRepetition, duplicateIds } = thereIsRepetition([..._processors, processor]);
+  const { hasRepetition, duplicateIds } = thereIsRepetition([
+    ..._processors,
+    processor,
+  ]);
   if (hasRepetition) {
     throw new Error(
       `[ink-cartridge] Cannot add processor "${processor.id}": duplicate id "${duplicateIds[0]}"`,
@@ -77,24 +90,23 @@ export function addProcessor(
 
   const opts = options ?? {};
 
-  if ('index' in opts && typeof opts.index === 'number') {
+  if ("index" in opts && typeof opts.index === "number") {
     _processors.splice(opts.index, 0, processor);
     return;
   }
 
-  const target = 'before' in opts ? opts.before
-    : 'after' in opts ? opts.after
-    : undefined;
+  const target =
+    "before" in opts ? opts.before : "after" in opts ? opts.after : undefined;
 
   if (target) {
-    const kind = 'before' in opts ? 'before' : 'after';
-    const idx = _processors.findIndex(p => p.id === target);
+    const kind = "before" in opts ? "before" : "after";
+    const idx = _processors.findIndex((p) => p.id === target);
     if (idx === -1) {
       throw new Error(
         `[ink-cartridge] Cannot insert ${kind} "${target}": processor not found`,
       );
     }
-    _processors.splice(kind === 'before' ? idx : idx + 1, 0, processor);
+    _processors.splice(kind === "before" ? idx : idx + 1, 0, processor);
     return;
   }
 
@@ -121,6 +133,63 @@ function buildProcessors(): PipelineProcessor[] {
 }
 
 /**
+ * Insert custom processors into the pipeline array relative to built-in processors.
+ *
+ * Supports three positioning modes (checked in order):
+ * 1. `{ processor, index }` — insert at the given 0-based index
+ * 2. `{ processor, target, position }` — insert before/after a named processor
+ * 3. `{ processor }` — append to the end
+ *
+ * @throws If the target processor is not found, or if a duplicate ID is detected.
+ */
+function insertRelative(
+  arr: PipelineProcessor[],
+  items: KeyboardProcessorProps[],
+): PipelineProcessor[] {
+  let currentArr = [...arr];
+
+  for (const each of items) {
+    const { processor } = each;
+
+    if (currentArr.some((p) => p.id === processor.id)) {
+      throw new Error(
+        `[ink-cartridge] Cannot insert processor: duplicate id "${processor.id}"`,
+      );
+    }
+
+    if (typeof each.index === 'number') {
+      currentArr = [
+        ...currentArr.slice(0, each.index),
+        processor,
+        ...currentArr.slice(each.index),
+      ];
+      continue;
+    }
+
+    if (each.target && each.position) {
+      const idx = currentArr.findIndex((p) => p.id === each.target);
+      if (idx === -1) {
+        throw new Error(
+          `[ink-cartridge] Cannot insert processor: target "${each.target}" not found`,
+        );
+      }
+      const insertIdx = each.position === 'before' ? idx : idx + 1;
+      currentArr = [
+        ...currentArr.slice(0, insertIdx),
+        processor,
+        ...currentArr.slice(insertIdx),
+      ];
+      continue;
+    }
+
+    // Default: append
+    currentArr = [...currentArr, processor];
+  }
+
+  return currentArr;
+}
+
+/**
  * Run a keyboard event through the full processor chain.
  *
  * Each processor's `PipelineProcessor.process` is called in order.
@@ -128,8 +197,14 @@ function buildProcessors(): PipelineProcessor[] {
  *
  * @param ctx - Snapshot context built by {@link buildPipelineContext}.
  */
-export function runPipeline(ctx: PipelineContext): void {
-  const processors = buildProcessors();
+export function runPipeline(
+  ctx: PipelineContext,
+  extra?: KeyboardProcessorProps[],
+): void {
+  let processors = buildProcessors();
+  if (extra) {
+    processors = insertRelative(processors, extra);
+  }
   for (const processor of processors) {
     if (processor.process(ctx)) return;
   }
@@ -150,13 +225,22 @@ export function resetProcessors(): void {
 }
 
 /** @internal Exposed for testing. */
-export function _thereIsRepetition(
-  processors: PipelineProcessor[],
-): { hasRepetition: boolean; duplicateIds: BuiltinProcessorId[] } {
+export function _thereIsRepetition(processors: PipelineProcessor[]): {
+  hasRepetition: boolean;
+  duplicateIds: BuiltinProcessorId[];
+} {
   return thereIsRepetition(processors);
 }
 
 /** @internal Exposed for testing. */
 export function _getProcessors(): readonly PipelineProcessor[] {
   return _processors;
+}
+
+/** @internal Exposed for testing. */
+export function _insertRelative(
+  arr: PipelineProcessor[],
+  items: KeyboardProcessorProps[],
+): PipelineProcessor[] {
+  return insertRelative(arr, items);
 }
