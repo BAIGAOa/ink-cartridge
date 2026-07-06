@@ -4,23 +4,33 @@ import type {
   PipelineProcessor,
   ScreenKeyboardLayer,
   BoundKeyEntry,
+  KeyRule,
 } from '../types.js';
 import { handleLayer } from '../layer-handler.js';
 
+
+function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNames: string[]): boolean {
+  return allowedKeys.some((k) => !blockedKeys.includes(k.key) && eventNames.includes(k.key));
+}
 
 /**
  * Check whether a key event matches any entry in the allow-list of
  * the active focus target or the layer itself.
  */
 function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[]): boolean {
-  if (layer.allowedKeys.some((r) => eventNames.includes(r.key))) {
-    return true;
-  }
+  const blockedKeys = layer.allowedKeys
+    .filter((r) => r.when?.() === false)
+    .map((r) => r.key);
+
   if (layer.currentFocusId) {
     const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft?.allowedKeys.some((r) => eventNames.includes(r.key))) {
+    if (ft && passAllowedKeys(ft.allowedKeys, blockedKeys, eventNames)) {
       return true;
     }
+  }
+
+  if (passAllowedKeys(layer.allowedKeys, blockedKeys, eventNames)) {
+    return true;
   }
   return false;
 }

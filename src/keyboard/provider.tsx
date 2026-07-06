@@ -594,7 +594,7 @@ export function KeyboardProvider({ children }: KeyboardProviderProps) {
       const container: KeyRuleContainer = options?.focusId
         ? getOrCreateFocusTarget(layer, options.focusId)
         : layer;
-      return pushKeyEntries(container, 'allowedKeys', keys, (key) => ({ key }));
+      return pushKeyEntries(container, 'allowedKeys', keys, (key) => ({ key, when: options?.when }));
     },
     [getCurrentOwner, getLayer, getOrCreateFocusTarget],
   );
