@@ -8,6 +8,24 @@ Single-API demos for ink-cartridge components. Each directory contains one demo 
 npx tsx examples/<component>/<Demo>.demo.tsx
 ```
 
+## Core System Demos
+
+Screen navigation and keyboard system demos. Each demo is a self-contained file showcasing a specific scenario.
+
+| Demo | Description | Command |
+|------|-------------|---------|
+| counter | boundKeyboard with once, times, when, observer | `npx tsx examples/core/counter.demo.tsx` |
+| navigation | skip, back, gotoScreen with multi-level tree | `npx tsx examples/core/navigation.demo.tsx` |
+| overlay | open/close/activate/deactivate overlays + persistent | `npx tsx examples/core/overlay.demo.tsx` |
+| propagation | penetration and stop with overlay-screen layer interaction | `npx tsx examples/core/propagation.demo.tsx` |
+| focus-management | focusId, Tab navigation, useFocusState, programmatic focus | `npx tsx examples/core/focus-management.demo.tsx` |
+| modal | openModal/closeModal, renderNow, persistent, modal stacking | `npx tsx examples/core/modal.demo.tsx` |
+| global-keys | globalKeys with cover, category, affectOverlay, times, observer | `npx tsx examples/core/global-keys.demo.tsx` |
+| sequences | boundSequence + globalSequence, exclusive mode, timeouts | `npx tsx examples/core/sequences.demo.tsx` |
+| modal-keyboard | allowModal + useModalMissListener for pass-through and miss detection | `npx tsx examples/core/modal-keyboard.demo.tsx` |
+| shortcut-actions | defineShortcutAction, add/remove/modify, rebindable controls | `npx tsx examples/core/shortcut-actions.demo.tsx` |
+| wildcard | enableWildcardPriority + * binding for text capture mode | `npx tsx examples/core/wildcard.demo.tsx` |
+
 ## Component demos
 
 | Component | Demo | Command |
