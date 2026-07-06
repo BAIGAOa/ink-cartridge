@@ -32,5 +32,6 @@ export function createScreenStackProcessor(): PipelineProcessor {
       }
       return false;
     },
+    id: 'screen-stack',
   };
 }

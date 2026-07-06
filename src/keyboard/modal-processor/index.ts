@@ -179,5 +179,6 @@ export function createModalProcessor(): PipelineProcessor {
 
       return true;
     },
+    id: 'modal',
   };
 }

@@ -254,5 +254,6 @@ export function createGlobalSequenceProcessor(config: {
       if (tryStartGlobalSequence(ctx.globalSequences, affectOverlay, ctx)) return true;
       return false;
     },
+    id: `global-sequence-${affectOverlay ? 'overlay' : 'screen'}`,
   };
 }
