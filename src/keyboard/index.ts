@@ -2,7 +2,7 @@ export { KeyboardProvider } from "./provider.js";
 export type { KeyboardProviderProps } from "./provider.js";
 export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
 export { normalizeKeyNames, isNormalCharacter } from "./keyNormalizer.js";
-export { addProcessor } from "./pipeline/chain.js";
+export { addProcessor, removeProcessor } from "./pipeline/chain.js";
 export type { BuiltinProcessorId } from "./pipeline/chain.js";
 export type {
   KeyboardProcessorProps,

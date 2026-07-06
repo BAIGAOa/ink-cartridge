@@ -115,6 +115,37 @@ export function addProcessor(
 }
 
 /**
+ * Remove a processor from the pipeline by its ID.
+ *
+ * Works on any processor — both built-in and custom. If you remove a
+ * built-in processor, use {@link resetProcessors} to restore the default
+ * pipeline in tests.
+ *
+ * @param processorId — The `id` of the processor to remove.
+ * @returns `true` if the processor was found and removed, `false` if no
+ *          processor with the given ID exists in the pipeline.
+ *
+ * @example
+ * ```ts
+ * import { addProcessor, removeProcessor } from 'ink-cartridge';
+ *
+ * addProcessor({ id: 'my-logger', process: () => false });
+ * removeProcessor('my-logger'); // true
+ * removeProcessor('my-logger'); // false (already removed)
+ * ```
+ */
+export function removeProcessor(processorId: string): boolean {
+  const idx = _processors.findIndex((each) => each.id === processorId);
+
+  if (idx === -1) {
+    return false;
+  }
+
+  _processors.splice(idx, 1);
+  return true;
+}
+
+/**
  * Build the canonical 7-stage processor chain.
  *
  * Priority order (highest first):
@@ -157,7 +188,7 @@ function insertRelative(
       );
     }
 
-    if (typeof each.index === 'number') {
+    if (typeof each.index === "number") {
       currentArr = [
         ...currentArr.slice(0, each.index),
         processor,
@@ -173,7 +204,7 @@ function insertRelative(
           `[ink-cartridge] Cannot insert processor: target "${each.target}" not found`,
         );
       }
-      const insertIdx = each.position === 'before' ? idx : idx + 1;
+      const insertIdx = each.position === "before" ? idx : idx + 1;
       currentArr = [
         ...currentArr.slice(0, insertIdx),
         processor,
