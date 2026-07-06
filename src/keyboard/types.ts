@@ -405,6 +405,8 @@ export interface PenetrationOptions {
 export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
   focusId?: string;
+  /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
+  when?: () => boolean;
 }
 
 /**
