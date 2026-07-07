@@ -15,6 +15,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | Demo | Description | Command |
 |------|-------------|---------|
 | counter | boundKeyboard with once, times, when, observer | `npx tsx examples/core/counter.demo.tsx` |
+| conditions | addCondition, setCondition, removeCondition + when: string | `npx tsx examples/core/conditions.demo.tsx` |
 | navigation | skip, back, gotoScreen with multi-level tree | `npx tsx examples/core/navigation.demo.tsx` |
 | overlay | open/close/activate/deactivate overlays + persistent | `npx tsx examples/core/overlay.demo.tsx` |
 | propagation | penetration and stop with overlay-screen layer interaction | `npx tsx examples/core/propagation.demo.tsx` |

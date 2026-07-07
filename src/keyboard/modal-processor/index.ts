@@ -7,6 +7,7 @@ import type {
   KeyRule,
 } from '../types.js';
 import { handleLayer } from '../layer-handler.js';
+import { checkWhen } from '../checkWhen.js';
 
 
 function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNames: string[]): boolean {
@@ -17,9 +18,9 @@ function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNam
  * Check whether a key event matches any entry in the allow-list of
  * the active focus target or the layer itself.
  */
-function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[]): boolean {
+function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[], conditions: Map<string, boolean>): boolean {
   const blockedKeys = layer.allowedKeys
-    .filter((r) => r.when?.() === false)
+    .filter((r) => !checkWhen(r.when, conditions))
     .map((r) => r.key);
 
   if (layer.currentFocusId) {
@@ -42,10 +43,11 @@ function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[]): boolean {
 function hasWhenFalseBinding(
   bindings: BoundKeyEntry[],
   eventNames: string[],
+  conditions: Map<string, boolean>,
 ): boolean {
   return bindings.some(
     (b) =>
-      b.when?.() === false &&
+      !checkWhen(b.when, conditions) &&
       b.keys.some((k) => eventNames.includes(k)),
   );
 }
@@ -74,10 +76,11 @@ function matchesOtherFocusTarget(
  */
 function invokeMissIfNeeded(
   layer: ScreenKeyboardLayer,
-  handled: boolean, 
+  handled: boolean,
   key: Key,
   input: string,
   eventNames: string[],
+  conditions: Map<string, boolean>,
 ): boolean {
   if (!layer.onMiss) return false;
 
@@ -96,7 +99,7 @@ function invokeMissIfNeeded(
 
   // handled === false — key was not consumed by handleLayer.
 
-  if (opts.monitorWhen && hasWhenFalseBinding(layer.bindings, eventNames)) {
+  if (opts.monitorWhen && hasWhenFalseBinding(layer.bindings, eventNames, conditions)) {
     layer.onMiss({ miss: true, key, input, eventNames });
     return true;
   }
@@ -106,7 +109,7 @@ function invokeMissIfNeeded(
     layer.currentFocusId
   ) {
     const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft && hasWhenFalseBinding(ft.bindings, eventNames)) {
+    if (ft && hasWhenFalseBinding(ft.bindings, eventNames, conditions)) {
       layer.onMiss({ miss: true, key, input, eventNames });
       return true;
     }
@@ -157,14 +160,15 @@ export function createModalProcessor(): PipelineProcessor {
           1,     // activeCount — modal is singleton
           true,  // isOverlay — modal is treated as a floating layer for onlyThis semantics
           ctx.wildcardFirst,
-          ctx.currentMode
+          ctx.currentMode,
+          ctx.conditions
         );
       }
 
       // If the key was not handled by any modal binding but it is in
       // the allow-list (layer-level or active focus target), pass it
       // through to the next pipeline stage instead of blocking.
-      if (!handled && layer && isAllowed(layer, ctx.eventNames)) {
+      if (!handled && layer && isAllowed(layer, ctx.eventNames, ctx.conditions)) {
         return false;
       }
 
@@ -175,6 +179,7 @@ export function createModalProcessor(): PipelineProcessor {
           ctx.key,
           ctx.input,
           ctx.eventNames,
+          ctx.conditions,
         );
       }
 

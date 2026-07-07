@@ -573,6 +573,45 @@ export interface KeyboardContextValue {
    * A no-op when no modes are registered. Does not trigger a re-render.
    */
   prevMode: () => void;
+
+  /**
+   * Register a named condition for dynamic `when` evaluation.
+   *
+   * Conditions allow keyboard bindings to use `when: "conditionName"` instead
+   * of a closure function. The condition's boolean value is evaluated from the
+   * internal {@link Map} each time a key event is processed.
+   *
+   * Each condition id can only be registered once — subsequent calls with the
+   * same id return `false` without modifying the existing entry.
+   *
+   * @param id         - Unique name for this condition (used in `when: "id"`).
+   * @param defaultVal - Initial boolean value for the condition.
+   * @returns `true` if the condition was registered, `false` if the id already exists.
+   */
+  addCondition: (id: string, defaultVal: boolean) => boolean;
+
+  /**
+   * Update the boolean value of a registered condition.
+   *
+   * Bindings referencing this condition via `when: "id"` will use the new value
+   * on the next key event.
+   *
+   * @param target - The condition id to update.
+   * @param value  - The new boolean value.
+   * @returns `true` if the condition was found and updated, `false` if not registered.
+   */
+  setCondition: (target: string, value: boolean) => boolean;
+
+  /**
+   * Remove a registered condition from the internal map.
+   *
+   * Once removed, bindings with `when: "id"` will behave as if the condition
+   * does not exist (the binding is not skipped).
+   *
+   * @param target - The condition id to remove.
+   * @returns `true` if the condition existed and was removed.
+   */
+  removeCondition: (target: string) => boolean;
 }
 
 /**

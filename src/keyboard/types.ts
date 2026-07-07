@@ -15,7 +15,7 @@ export interface KeyRule {
    * If provided, the rule only applies when this callback returns `true`.
    * When `false` or omitted, the rule always applies.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 }
 
 /**
@@ -88,7 +88,7 @@ export interface BoundKeyboardOptions {
    * - `when: () => isEditing` — binding only active during editing
    * - `when: () => isEditing && !isReadOnly`
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 
   /**
    * Callback invoked on every key press while counting toward `times`.
@@ -148,7 +148,7 @@ export interface BoundKeyEntry {
    * When `false`, the binding is skipped as if it does not exist — the
    * event continues to the next binding or layer.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   /**
    * Callback invoked on every key press while counting toward `times`.
    * Receives the number of remaining presses before the handler fires.
@@ -250,7 +250,7 @@ export interface PendingSequence {
    * Optional condition callback (copied from SequenceBinding at start).
    * Checked at each key press; if it returns `false`, the sequence is cancelled.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   /**
    * When multiple sequences share the same first key (non-exclusive
    * mode), stores all eligible {@link SequenceBinding} candidates so
@@ -288,7 +288,7 @@ export interface SequenceBinding {
    * Optional condition callback (extracted from options.when at registration).
    * When provided, the sequence only starts and continues when this returns `true`.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 }
 
 /**
@@ -411,11 +411,12 @@ export interface StopOptions {
    */
   stopAction?: boolean;
   /**
-   * Optional condition callback. When provided, the key is only stopped
-   * (propagation barrier) when this returns `true`. When `false`, the
-   * stop rule is ignored and the key propagates normally.
+   * Optional condition — function or registered condition id.
+   * When provided, the key is only stopped (propagation barrier)
+   * when this evaluates to `true`. When `false`, the stop rule is
+   * ignored and the key propagates normally.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 }
 
 /**
@@ -430,7 +431,7 @@ export interface PenetrationOptions {
    * when this returns `true`. When `false`, the penetration rule
    * is ignored and the key is not passed through.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 }
 
 /**
@@ -441,7 +442,7 @@ export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
   focusId?: string;
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
 }
 
 /**
@@ -515,7 +516,7 @@ export interface GlobalKeyEntry {
    * the entry is skipped entirely — `cover`, `category`, and other options
    * are not evaluated.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   executeWhenNoOverlay?: boolean;
 
   /**
@@ -631,7 +632,7 @@ export interface GlobalSequenceEntry {
    * Optional condition callback. When provided, the global sequence only
    * starts and continues when this returns `true`.
    */
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   executeWhenNoOverlay?: boolean;
 
   /**
@@ -720,7 +721,7 @@ export interface ResolvedGlobalKeyEntry {
   observer?: (times: number) => void;
   pressCount?: number;
   executeWhenNoOverlay?: boolean;
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   mode?: string;
 }
 
@@ -743,7 +744,7 @@ export interface GlobalPendingSequence {
   cover: boolean;
   category?: React.ComponentType<any>[] | "*";
   executeWhenNoOverlay?: boolean;
-  when?: () => boolean;
+  when?: (() => boolean) | string;
   /**
    * When multiple global sequences share the same first key (non-exclusive
    * mode), stores all eligible {@link ResolvedGlobalSequenceEntry} candidates
@@ -793,6 +794,7 @@ export interface PipelineContext {
   anyOverlayConsumed: boolean;
 
   readonly currentMode: string | null;
+  readonly conditions: Map<string, boolean>
 }
 
 /**

@@ -28,7 +28,8 @@ export function createScreenStackProcessor(): PipelineProcessor {
           layer, ctx.eventNames, ctx.input, ctx.key,
           isTop, ctx.notifyFocusChange, ctx.activeCount,
           false, ctx.wildcardFirst,
-          ctx.currentMode
+          ctx.currentMode,
+          ctx.conditions
         )) break;
       }
       return false;
