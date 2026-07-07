@@ -6,6 +6,7 @@ import type {
   KeyRule,
 } from './types.js';
 import { isNormalCharacter } from './keyNormalizer.js';
+import { checkWhen } from './checkWhen.js';
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
 
@@ -19,10 +20,11 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
 export function keyMatchesRule(
   keyName: string,
   rules: KeyRule[],
+  conditions: Map<string, boolean>,
 ): boolean {
   for (const rule of rules) {
     if (rule.key === keyName) {
-      if (!rule.when || rule.when()) return true;
+      if (checkWhen(rule.when, conditions)) return true;
     }
   }
   return false;
@@ -58,6 +60,7 @@ export function tryMatchBindings(
   availableKeys: string[],
   input: string,
   key: Key,
+  conditions: Map<string, boolean>,
   skipBinding?: (binding: BoundKeyEntry) => boolean,
 ): boolean {
   if (availableKeys.length === 0) return false;
@@ -65,7 +68,8 @@ export function tryMatchBindings(
   for (const binding of bindings) {
     if (binding.mode && binding.mode !== currentMode) continue;
     if (skipBinding && skipBinding(binding)) continue;
-    if (binding.when?.() === false) continue;
+
+    if (!checkWhen(binding.when, conditions)) continue;
     if (binding.keys.some((k) => availableKeys.includes(k))) {
       binding.handler(input, key);
       return true;
@@ -76,7 +80,7 @@ export function tryMatchBindings(
   if (wildcardBinding && isNormalCharacter(input, key)) {
     if (!skipBinding || !skipBinding(wildcardBinding)) {
       if (wildcardBinding.mode && wildcardBinding.mode !== currentMode) return false;
-      if (wildcardBinding.when?.() === false) return false;
+      if (!checkWhen(wildcardBinding.when, conditions)) return false;
       wildcardBinding.handler(input, key);
       return true;
     }
@@ -135,6 +139,7 @@ export function handleLayer(
   isOverlay: boolean,
   wildcardFirst: boolean,
   currentMode: string | null,
+  conditions: Map<string, boolean>
 ): boolean {
   // The reason it has the highest priority is to ensure that tab/shift+tab have the highest priority, avoiding conflicts with business-bound actions.
   // However, when there is no Focus Target in the Current Screen, handleTabNavigation will return false, which allows users to retain flexibility. When tab/shift+tab do not need to be enforced,
@@ -142,7 +147,7 @@ export function handleLayer(
   if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
 
   const penetrated = layer.penetrationKeys;
-  const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated));
+  const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated, conditions));
 
   // onlyThis semantics differ between screens and overlays:
   // - Screen: skip when any overlay is active (activeOverlayCount > 0)
@@ -162,12 +167,12 @@ export function handleLayer(
       const ft = layer.focusTargets.get(layer.currentFocusId);
       if (ft) {
         const fPenetrated = ft.penetrationKeys;
-        const fAvailable = available.filter(n => !keyMatchesRule(n, fPenetrated));
+        const fAvailable = available.filter(n => !keyMatchesRule(n, fPenetrated, conditions));
         if (fAvailable.length > 0) {
           const wb = ft.bindings.find(b => b.keys.includes('*'));
           if (wb && isNormalCharacter(input, key)) {
             if (wb.mode && wb.mode !== currentMode) { /* skip */ }
-            else if (wb.when?.() === false) { /* skip */ }
+            else if (!checkWhen(wb.when, conditions)) { /* skip */ }
             else if (!shouldSkipOnlyThis(wb)) {
               wb.handler(input, key);
               return true;
@@ -180,7 +185,7 @@ export function handleLayer(
     const wb = layer.bindings.find(b => b.keys.includes('*'));
     if (wb && isNormalCharacter(input, key)) {
       if (wb.mode && wb.mode !== currentMode) { /* skip */ }
-      else if (wb.when?.() === false) { /* skip */ }
+      else if (!checkWhen(wb.when, conditions)) { /* skip */ }
       else if (!shouldSkipOnlyThis(wb)) {
         wb.handler(input, key);
         return true;
@@ -197,7 +202,7 @@ export function handleLayer(
     if (pending !== null) {
       // If the when condition changed to false mid-sequence, cancel
       // the pending sequence and let the key fall through to normal processing.
-      if (pending.when?.() === false) {
+      if (!checkWhen(pending.when, conditions)) {
         clearTimeout(pending.timer);
         layer.pendingSequence = null;
         // Fall through to normal bindings — do NOT return true.
@@ -305,7 +310,7 @@ export function handleLayer(
           if (binding.options?.focusId) {
             return layer.currentFocusId === binding.options.focusId;
           }
-          if (binding.when?.() === false) return false;
+          if (!checkWhen(binding.when, conditions)) return false
           return true;
         });
         if (matching.length === 0) continue;
@@ -345,19 +350,19 @@ export function handleLayer(
     const ft = layer.focusTargets.get(layer.currentFocusId);
     if (ft) {
       const fPenetrated = ft.penetrationKeys;
-      const fAvailable = available.filter((n) => !keyMatchesRule(n, fPenetrated));
+      const fAvailable = available.filter((n) => !keyMatchesRule(n, fPenetrated, conditions));
 
-      if (tryMatchBindings(ft.bindings, currentMode, fAvailable, input, key, shouldSkipOnlyThis)) return true;
+      if (tryMatchBindings(ft.bindings, currentMode, fAvailable, input, key, conditions,  shouldSkipOnlyThis)) return true;
 
-      if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys))) {
+      if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys, conditions))) {
         return true;
       }
     }
   }
 
-  if (tryMatchBindings(layer.bindings, currentMode, available, input, key, shouldSkipOnlyThis)) return true;
+  if (tryMatchBindings(layer.bindings, currentMode, available, input, key, conditions,  shouldSkipOnlyThis)) return true;
 
-  if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys))) {
+  if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys, conditions))) {
     return true;
   }
 

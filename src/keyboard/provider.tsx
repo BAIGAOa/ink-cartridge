@@ -332,6 +332,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
   const modesRef = useRef<Set<string>>(new Set(modes ?? []));
   const currentModeRef = useRef<string | null>(defaultMode ?? null);
 
+  const conditions = useRef<Map<string, boolean>>(new Map());
+
   const globalKeysRef = useRef<{
     key: string | string[];
     operate: () => void;
@@ -1366,6 +1368,31 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
     currentModeRef.current = modes[prevIndex];
   }, []);
 
+
+
+  const addCondition = useCallback((id: string, defaultVal: boolean) => {
+    if (conditions.current.has(id)) {
+      return false;
+    }
+    conditions.current.set(id, defaultVal);
+    return true;
+  }, []);
+
+  const removeCondition = useCallback((target: string) => {
+    return conditions.current.delete(target)
+  }, [])
+
+  const setCondition = useCallback((target: string, value: boolean) => {
+    if (!conditions.current.has(target)) {
+      return false
+    }
+
+    conditions.current.set(target, value)
+    return true
+  }, [])
+
+  
+
   const value = useMemo(
     () => ({
       boundKeyboard,
@@ -1407,6 +1434,9 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       setMode,
       nextMode,
       prevMode,
+      addCondition,
+      setCondition,
+      removeCondition,
     }),
     [
       boundKeyboard,
@@ -1447,6 +1477,9 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       setMode,
       nextMode,
       prevMode,
+      addCondition,
+      setCondition,
+      removeCondition,
     ],
   );
 
@@ -1462,7 +1495,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       globalPendingSeqRef,
       wildcardPriorityCountRef,
       notifyFocusChange,
-      currentModeRef
+      currentModeRef,
+      conditions
     });
 
     runPipeline(ctx, processors);

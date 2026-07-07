@@ -1,5 +1,6 @@
 import type { PipelineContext, PipelineProcessor } from '../types.js';
 import { checkGlobalKey } from '../check-global-key.js';
+import { checkWhen } from '../checkWhen.js';
 
 /**
  * Create a processor for global single-key bindings.
@@ -26,7 +27,7 @@ export function createGlobalKeyProcessor(config: {
         if (entry.mode && entry.mode !== ctx.currentMode) continue;
 
         // when=false → entry treated as if not registered
-        if (entry.when?.() === false) continue;
+        if (!checkWhen(entry.when, ctx.conditions)) continue;
 
         if (affectOverlay) {
           if (ctx.activeCount === 0 && !entry.executeWhenNoOverlay) continue;

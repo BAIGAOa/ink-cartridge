@@ -28,6 +28,7 @@ export interface PipelineRefs {
   wildcardPriorityCountRef: React.MutableRefObject<number>;
   notifyFocusChange: () => void;
   currentModeRef: React.MutableRefObject<string | null>;
+  conditions: React.MutableRefObject<Map<string, boolean>>
 }
 
 /**
@@ -58,6 +59,7 @@ export function buildPipelineContext(
   const activeCount = activeIds.size;
   const wildcardFirst = refs.wildcardPriorityCountRef.current > 0;
   const currentMode = refs.currentModeRef.current;
+  const conditions = refs.conditions.current
 
   return {
     input,
@@ -76,5 +78,6 @@ export function buildPipelineContext(
     notifyFocusChange: refs.notifyFocusChange,
     anyOverlayConsumed: false,
     currentMode,
+    conditions
   };
 }
