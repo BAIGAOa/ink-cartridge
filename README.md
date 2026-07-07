@@ -21,6 +21,7 @@
 - [Installation](#installation)
 - [Scaffold](#scaffold)
 - [Documentation](#documentation)
+- [For AI](#for-ai)
 - [Other](#other)
 - [License](#license)
 
@@ -167,6 +168,20 @@ npx ink-cartridge init my-tui
 - [openDevTool](docs/dev-tool/openDevTool-API.md)
 - [closeDevTool](docs/dev-tool/closeDevTool-API.md)
 </details>
+
+## For AI
+
+ink-cartridge is an **AI-native** project — the codebase is designed from the ground up to be readable, navigable, and maintainable by AI coding agents as well as humans. Consistent patterns, explicit conventions, and layered reference docs make the codebase machine-friendly without sacrificing human clarity.
+
+We actively support human-AI collaborative development — AI writes, humans lead and review. Every AI-generated change must be understood, verified, and signed off by a person.
+
+The project ships with specifications and workflows purpose-built for AI coding agents:
+
+- **[AGENTS.md](AGENTS.md)** — project conventions: stack, architecture, coding rules, testing principles
+- **[agents/rules/](agents/rules/)** — conditional rules auto-loaded by file path (testing, components, public API, comments, examples)
+- **[skills/](skills/README.md)** — custom AI skills for project-specific workflows (`write-test`, `write-docs`)
+
+See also [docs-agents/](docs-agents/) for agent reference material (test patterns, coding patterns, React guidelines, comment conventions).
 
 ## Examples
 
