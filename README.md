@@ -172,8 +172,6 @@ npx ink-cartridge init my-tui
 
 ## For AI
 
-ink-cartridge is an **AI-native** project — the codebase is designed from the ground up to be readable, navigable, and maintainable by AI coding agents as well as humans. Consistent patterns, explicit conventions, and layered reference docs make the codebase machine-friendly without sacrificing human clarity.
-
 We actively support human-AI collaborative development — AI writes, humans lead and review. Every AI-generated change must be understood, verified, and signed off by a person.
 
 The project ships with specifications and workflows purpose-built for AI coding agents:
