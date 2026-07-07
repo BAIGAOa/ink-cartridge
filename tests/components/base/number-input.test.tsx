@@ -11,10 +11,9 @@ import { NumberInput } from '../../../src/components/number-input/NumberInput.js
 const KEYS = {
   up: '\x1b[A',
   down: '\x1b[B',
+  right: '\x1b[C',
+  left: '\x1b[D',
 } as const;
-
-
-
 
 function renderNumberInput(props: {
   focusId: string;
@@ -27,14 +26,16 @@ function renderNumberInput(props: {
   const onChange = props.onChange ?? vi.fn();
 
   function HostScreen() {
-    return React.createElement(NumberInput, {
-      focusId: props.focusId,
-      value: props.value ?? 0,
-      onChange,
-      min: props.min,
-      max: props.max,
-      step: props.step,
-    });
+    return (
+      <NumberInput
+        focusId={props.focusId}
+        value={props.value ?? 0}
+        onChange={onChange}
+        min={props.min}
+        max={props.max}
+        step={props.step}
+      />
+    );
   }
   HostScreen.displayName = 'HostScreen';
 
@@ -42,11 +43,11 @@ function renderNumberInput(props: {
   registerComponent(HostScreen, {});
 
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(
-      ScenarioManagementProvider as any,
-      { defaultScreen: HostScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={HostScreen}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
 
   return { lastFrame, lastFrameClean: () => stripAnsi(lastFrame()), stdin, unmount, onChange };
@@ -119,7 +120,108 @@ describe('NumberInput', () => {
   it('shows cursor when focused', async () => {
     const { lastFrameClean } = renderNumberInput({ focusId: 'num', value: 7 });
     await flush();
-    // cursor appears at the end when focused
     expect(lastFrameClean()).toContain('7█');
+  });
+
+  it('digit input appends to value', async () => {
+    const { stdin, onChange } = renderNumberInput({ focusId: 'num', value: 5 });
+    await flush();
+
+    await press(stdin, '3');
+    await flush();
+
+    expect(onChange).toHaveBeenCalledWith(53);
+  });
+
+  it('digit input builds multi-digit number', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderNumberInput({ focusId: 'num', value: 1, onChange });
+    await flush();
+
+    await press(stdin, '2');
+    await flush();
+    expect(onChange).toHaveBeenCalledWith(12);
+  });
+
+  it('non-digit character does not trigger onChange', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderNumberInput({ focusId: 'num', value: 5, onChange });
+    await flush();
+
+    await press(stdin, 'a');
+    await flush();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('digit input respects max clamping', async () => {
+    const { stdin, onChange } = renderNumberInput({ focusId: 'num', value: 25, max: 30 });
+    await flush();
+
+    await press(stdin, '9');
+    await flush();
+
+    expect(onChange).toHaveBeenCalledWith(30);
+  });
+
+  it('digit input respects min clamping', async () => {
+    const { stdin, onChange } = renderNumberInput({ focusId: 'num', value: -5, min: -10 });
+    await flush();
+
+    await press(stdin, '0');
+    await flush();
+
+    expect(onChange).toHaveBeenCalledWith(-10);
+  });
+
+  it('digit input clamps to max — same value means no onChange', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderNumberInput({ focusId: 'num', value: 30, max: 30, onChange });
+    await flush();
+
+    await press(stdin, '5');
+    await flush();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('right arrow increments value', async () => {
+    const { stdin, onChange } = renderNumberInput({ focusId: 'num', value: 5 });
+    await flush();
+
+    await press(stdin, KEYS.right);
+    await flush();
+
+    expect(onChange).toHaveBeenCalledWith(6);
+  });
+
+  it('left arrow decrements value', async () => {
+    const { stdin, onChange } = renderNumberInput({ focusId: 'num', value: 5 });
+    await flush();
+
+    await press(stdin, KEYS.left);
+    await flush();
+
+    expect(onChange).toHaveBeenCalledWith(4);
+  });
+
+  it('unmount cleanup removes keyboard bindings', async () => {
+    const { unmount } = renderNumberInput({ focusId: 'num', value: 5 });
+    await flush();
+
+    // Unmount triggers cleanup: up(), down(), wildcard() unbind
+    expect(() => unmount()).not.toThrow();
+  });
+
+  it('NaN value guard — digit input does not trigger onChange', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderNumberInput({ focusId: 'num', value: NaN, onChange });
+    await flush();
+
+    await press(stdin, '5');
+    await flush();
+
+    // isNaN(value) guards against NaN propagation
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

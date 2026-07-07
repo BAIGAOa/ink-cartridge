@@ -80,4 +80,115 @@ describe('useModalMissListener', () => {
     expect(error).not.toBeNull()
     expect(error!.message).toContain('modal')
   })
+
+  test('monitorWhen — screen-level when-false binding treated as miss', async () => {
+    const onMiss = vi.fn()
+    let toggle = false
+
+    function TestModal() {
+      const kb = useKeyboard()
+      useEffect(() => {
+        kb.boundKeyboard(['x'], vi.fn(), { when: () => toggle })
+        kb.useModalMissListener(onMiss, { monitorWhen: true })
+      }, [])
+      return <Text>Modal</Text>
+    }
+    TestModal.displayName = 'TestModal'
+    registerComponent(TestModal, {})
+
+    const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {
+      sc.openModal('m', TestModal, {})
+    })
+    await flush()
+    await flush()
+
+    await pressKey(stdin, 'x')
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: true })
+    )
+  })
+
+  test('monitorWhen — focus-target-level when-false binding treated as miss', async () => {
+    const onMiss = vi.fn()
+    let toggle = false
+
+    function TestModal() {
+      const kb = useKeyboard()
+      useEffect(() => {
+        kb.boundKeyboard(['x'], vi.fn(), { when: () => toggle, focusId: 'fa' })
+        kb.focusSet('fa')
+        kb.useModalMissListener(onMiss, { monitorWhen: true })
+      }, [])
+      return <Text>Modal</Text>
+    }
+    TestModal.displayName = 'TestModal'
+    registerComponent(TestModal, {})
+
+    const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {
+      sc.openModal('m', TestModal, {})
+    })
+    await flush()
+    await flush()
+
+    await pressKey(stdin, 'x')
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: true })
+    )
+  })
+
+  test('monitorFocusMismatch — key matching inactive focus target treated as miss', async () => {
+    const onMiss = vi.fn()
+
+    function TestModal() {
+      const kb = useKeyboard()
+      useEffect(() => {
+        kb.boundKeyboard(['x'], vi.fn(), { focusId: 'fa' })
+        kb.boundKeyboard(['y'], vi.fn(), { focusId: 'fb' })
+        kb.focusSet('fa')
+        kb.useModalMissListener(onMiss, { monitorFocusMismatch: true })
+      }, [])
+      return <Text>Modal</Text>
+    }
+    TestModal.displayName = 'TestModal'
+    registerComponent(TestModal, {})
+
+    const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {
+      sc.openModal('m', TestModal, {})
+    })
+    await flush()
+    await flush()
+
+    await pressKey(stdin, 'y')
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: true })
+    )
+  })
+
+  test('monitorFocusMismatch — no inactive target matches, still reports miss', async () => {
+    const onMiss = vi.fn()
+
+    function TestModal() {
+      const kb = useKeyboard()
+      useEffect(() => {
+        kb.boundKeyboard(['x'], vi.fn(), { focusId: 'fa' })
+        kb.boundKeyboard(['y'], vi.fn(), { focusId: 'fb' })
+        kb.focusSet('fa')
+        kb.useModalMissListener(onMiss, { monitorFocusMismatch: true })
+      }, [])
+      return <Text>Modal</Text>
+    }
+    TestModal.displayName = 'TestModal'
+    registerComponent(TestModal, {})
+
+    const { stdin } = renderKeyboardApp(Menu, (kb, sc) => {
+      sc.openModal('m', TestModal, {})
+    })
+    await flush()
+    await flush()
+
+    await pressKey(stdin, 'z')
+    expect(onMiss).toHaveBeenCalledWith(
+      expect.objectContaining({ miss: true })
+    )
+  })
 })

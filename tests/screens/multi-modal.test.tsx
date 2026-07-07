@@ -199,10 +199,85 @@ describe('multi-modal keyboard integration', () => {
       await pressKey(stdin, 'x');
       expect(screenX).not.toHaveBeenCalled();
     });
+
+    it('allowModal with focusId passes through only when that focus target is active', async () => {
+      const screenX = vi.fn();
+
+      function ScreenWithKey() {
+        const kb = useKeyboard();
+        useEffect(() => kb.boundKeyboard(['x'], screenX), [kb.boundKeyboard]);
+        return <Text>ScreenWithKey</Text>;
+      }
+      ScreenWithKey.displayName = 'ScreenWithKey';
+      registerComponent(ScreenWithKey, {});
+
+      function ModalWithFocus() {
+        const kb = useKeyboard();
+        useEffect(() => {
+          kb.boundKeyboard(['tab'], vi.fn(), { focusId: 'fa' });
+          kb.boundKeyboard(['x'], vi.fn(), { focusId: 'fb' });
+          kb.focusSet('fa');
+          return kb.allowModal(['x'], { focusId: 'fa' });
+        }, []);
+        return <Text>ModalWithFocus</Text>;
+      }
+      ModalWithFocus.displayName = 'ModalWithFocus';
+      registerComponent(ModalWithFocus, {});
+
+      const { stdin } = renderMultiModalApp(ScreenWithKey, (_kb, sc) => {
+        sc.openModal('M', ModalWithFocus, {});
+      });
+      await flush();
+      await flush();
+
+      // 'fa' is active, allowModal scoped to 'fa' → 'x' passes through
+      await pressKey(stdin, 'x');
+      expect(screenX).toHaveBeenCalledTimes(1);
+
+      // Switch focus to 'fb' — allowModal no longer applies → 'x' blocked
+      await pressKey(stdin, '\t');
+      screenX.mockClear();
+
+      await pressKey(stdin, 'x');
+      expect(screenX).not.toHaveBeenCalled();
+    });
   });
 
   describe('useModalMissListener with multiple modals', () => {
     it('miss callback only fires on the active modal', async () => {
+      const missA = vi.fn();
+      const missB = vi.fn();
+
+      function ModalA() {
+        const kb = useKeyboard();
+        useEffect(() => {
+          kb.useModalMissListener(missA);
+        }, []);
+        return <Text>ModalA</Text>;
+      }
+      ModalA.displayName = 'ModalA';
+      registerComponent(ModalA, {});
+
+      function ModalB() {
+        const kb = useKeyboard();
+        useEffect(() => {
+          kb.useModalMissListener(missB);
+        }, []);
+        return <Text>ModalB</Text>;
+      }
+      ModalB.displayName = 'ModalB';
+      registerComponent(ModalB, {});
+
+      const { stdin } = renderMultiModalApp(MainScreen, (_kb, sc) => {
+        sc.openModal('A', ModalA, {}, { zIndex: 1 });
+        sc.openModal('B', ModalB, {}, { zIndex: 2 });
+      });
+      await flush();
+      await flush();
+
+      await pressKey(stdin, 'x');
+      expect(missB).toHaveBeenCalledTimes(1);
+      expect(missA).not.toHaveBeenCalled();
     });
   });
 });

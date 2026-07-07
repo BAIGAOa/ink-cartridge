@@ -7,6 +7,8 @@ import {
   ScenarioManagementProvider,
   skip,
   back,
+  gotoScreen,
+  openOverlay,
 } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { flush } from '../../components/base/_helpers.js';
@@ -88,5 +90,45 @@ describe('module-level dispatch multi-instance isolation', () => {
     expect(() => back()).not.toThrow();
 
     r1.unmount();
+  });
+});
+
+describe('navigation error branches', () => {
+  it('skip throws when component is not registered', () => {
+    function Unregistered() {
+      return <Text>Bad</Text>;
+    }
+
+    renderProvider();
+    expect(() => skip(Unregistered, {})).toThrow(
+      /is not registered.*registerComponent/,
+    );
+  });
+
+  it('back throws when levels < 1', () => {
+    renderProvider();
+    expect(() => back(0)).toThrow(/levels must be >= 1/);
+  });
+
+  it('gotoScreen throws when component is not registered', () => {
+    function Unregistered() {
+      return <Text>Bad</Text>;
+    }
+
+    renderProvider();
+    expect(() => gotoScreen(Unregistered, {})).toThrow(
+      /is not registered.*registerComponent/,
+    );
+  });
+
+  it('openOverlay throws when component is not registered', () => {
+    function Unregistered() {
+      return <Text>Bad</Text>;
+    }
+
+    renderProvider();
+    expect(() => openOverlay('bad-id', Unregistered, {})).toThrow(
+      /is not registered.*registerComponent/,
+    );
   });
 });

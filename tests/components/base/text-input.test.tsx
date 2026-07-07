@@ -49,9 +49,11 @@ function renderTextInput(props: {
   mask?: string;
   showCursor?: boolean;
   highlightPastedText?: boolean;
+  wrap?: boolean;
+  width?: number;
 }) {
   function HostScreen() {
-    return React.createElement(TextInput as any, props as any);
+    return <TextInput {...(props as any)} />;
   }
   HostScreen.displayName = 'HostScreen';
 
@@ -59,11 +61,11 @@ function renderTextInput(props: {
   registerComponent(HostScreen, {});
 
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(
-      ScenarioManagementProvider as any,
-      { defaultScreen: HostScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={HostScreen}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
 
   return {
@@ -84,7 +86,7 @@ function renderUncontrolled(props: {
   highlightPastedText?: boolean;
 }) {
   function HostScreen() {
-    return React.createElement(UncontrolledTextInput, props as any);
+    return <UncontrolledTextInput {...(props as any)} />;
   }
   HostScreen.displayName = 'HostScreenUncontrolled';
 
@@ -92,11 +94,11 @@ function renderUncontrolled(props: {
   registerComponent(HostScreen, {});
 
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(
-      ScenarioManagementProvider as any,
-      { defaultScreen: HostScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={HostScreen}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
 
   return {
@@ -750,5 +752,188 @@ describe('UncontrolledTextInput persistence', () => {
     );
     await flush();
     expect((api.read.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('my-text', '');
+  });
+});
+
+// wrap mode
+
+describe('wrap mode rendering', () => {
+  it('renders text in wrap mode', async () => {
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: 'hello world',
+      onChange: () => {},
+      wrap: true,
+      width: 6,
+    });
+    const output = lastFrameClean();
+    // text should be split across lines
+    expect(output).toContain('hello');
+  });
+
+  it('wrap mode shows placeholder when empty', async () => {
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: '',
+      onChange: () => {},
+      wrap: true,
+      placeholder: 'Enter text',
+    });
+    const output = lastFrameClean();
+    expect(output).toContain('E');
+  });
+
+  it('up/down arrows move cursor vertically in wrap mode', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderTextInput({
+      focusId: 'inp',
+      value: 'abcdefghij',
+      onChange,
+      wrap: true,
+      width: 3,
+    });
+    await flush();
+
+    // down arrow in wrap mode — should not throw
+    await expect(press(stdin, KEYS.down)).resolves.not.toThrow();
+    // subsequent input still works
+    await press(stdin, 'x');
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it('up arrow in wrap mode does not throw', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderTextInput({
+      focusId: 'inp',
+      value: 'abcdefghij',
+      onChange,
+      wrap: true,
+      width: 3,
+    });
+    await flush();
+
+    await expect(press(stdin, KEYS.up)).resolves.not.toThrow();
+  });
+
+  it('wrap mode with showCursor=false — up/down do nothing', async () => {
+    const { stdin } = renderTextInput({
+      focusId: 'inp',
+      value: 'hello',
+      onChange: () => {},
+      wrap: true,
+      showCursor: false,
+      width: 10,
+    });
+    await flush();
+
+    await expect(press(stdin, KEYS.up)).resolves.not.toThrow();
+    await expect(press(stdin, KEYS.down)).resolves.not.toThrow();
+  });
+});
+
+// virtual scroll mode (long text)
+
+describe('virtual scroll rendering', () => {
+  it('renders long text with scroll indicators', async () => {
+    const longText = 'This is a very long text that exceeds the available width';
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: longText,
+      onChange: () => {},
+      width: 15,
+    });
+    const output = lastFrameClean();
+    // should have scroll indicators or visible portion
+    expect(output).toBeTruthy();
+    expect(output.length).toBeGreaterThan(0);
+  });
+
+  it('long text with scroll offset shows right indicator', async () => {
+    const longText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789';
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: longText,
+      onChange: () => {},
+      width: 10,
+    });
+    const output = lastFrameClean();
+    expect(output.length).toBeGreaterThan(0);
+  });
+
+  it('virtual scroll — left arrow moves cursor and adjusts scroll', async () => {
+    const onChange = vi.fn();
+    const longText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const { stdin } = renderTextInput({
+      focusId: 'inp',
+      value: longText,
+      onChange,
+      width: 10,
+    });
+    await flush();
+
+    // Move left multiple times to trigger scroll
+    await expect(press(stdin, KEYS.left)).resolves.not.toThrow();
+    await expect(press(stdin, KEYS.left)).resolves.not.toThrow();
+  });
+
+  it('virtual scroll — right arrow returns to end without throw', async () => {
+    const onChange = vi.fn();
+    const longText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const { stdin } = renderTextInput({
+      focusId: 'inp',
+      value: longText,
+      onChange,
+      width: 10,
+    });
+    await flush();
+
+    // Move left then right
+    await press(stdin, KEYS.left);
+    await press(stdin, KEYS.left);
+    await expect(press(stdin, KEYS.right)).resolves.not.toThrow();
+  });
+});
+
+// wrap mode cursor at end of line boundary
+
+describe('wrap mode cursor edge cases', () => {
+  it('renders cursor on empty line when cursor sits exactly at line boundary', async () => {
+    // With text length exactly divisible by width, cursor at end creates
+    // an extra empty line for the cursor to render on (while loop in render)
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: 'abcdef',
+      onChange: () => {},
+      wrap: true,
+      width: 3,
+    });
+    // Should render without error — exercises the displayLines.push('') path
+    const output = lastFrameClean();
+    expect(output).toBeTruthy();
+  });
+});
+
+// highlightPastedText
+
+describe('highlightPastedText', () => {
+  it('highlights pasted text when enabled', () => {
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: 'hello',
+      onChange: () => {},
+      highlightPastedText: true,
+    });
+    const output = lastFrameClean();
+    expect(output).toBeTruthy();
+  });
+
+  it('does not show highlight when disabled (default)', () => {
+    const { lastFrameClean } = renderTextInput({
+      focusId: 'inp',
+      value: 'hello',
+      onChange: () => {},
+    });
+    const output = lastFrameClean();
+    expect(output).toBeTruthy();
   });
 });

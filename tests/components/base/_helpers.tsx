@@ -68,7 +68,7 @@ export function renderComponent<P extends Record<string, any>>(
   Component: React.ComponentType<P>,
   props?: P,
 ) {
-  const rendered = render(React.createElement(Component, props ?? ({} as P)));
+  const rendered = render(<Component {...(props ?? ({} as P))} />);
   return {
     lastFrame: () => rendered.lastFrame(),
     lastFrameClean: () => stripAnsi(rendered.lastFrame() ?? ''),
@@ -81,11 +81,11 @@ export function renderInApp(host: React.ComponentType<any>) {
   clearRegistry();
   registerComponent(host, {});
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(
-      ScenarioManagementProvider as any,
-      { defaultScreen: host },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={host}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
   return {
     lastFrame: () => lastFrame(),

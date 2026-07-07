@@ -141,4 +141,18 @@ describe('component tree', () => {
     expect(roots).toContain(Menu);
     expect(roots).toContain(Standalone);
   });
+
+  it('throws when parent component is not registered', () => {
+    function Child() {
+      return React.createElement('div', null);
+    }
+    function UnregisteredParent() {
+      return React.createElement('div', null);
+    }
+    UnregisteredParent.displayName = 'UnregisteredParent';
+
+    expect(() => {
+      registerComponent(Child, {}, { parent: UnregisteredParent });
+    }).toThrow(/parent component.*is not registered/);
+  });
 });
