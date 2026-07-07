@@ -120,7 +120,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
         globalKeysRef.current = processed;
       }
     },
-    [],
+    [globalKeysRef, shortcutOperationsRef],
   );
 
   /**
@@ -128,7 +128,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
    */
   const getGlobalKeys = useCallback(
     (): ResolvedGlobalKeyEntry[] => [...globalKeysRef.current],
-    [],
+    [globalKeysRef],
   );
 
   /**
@@ -136,7 +136,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
    */
   const getGlobalSequences = useCallback(
     (): ResolvedGlobalSequenceEntry[] => [...globalSequencesRef.current],
-    [],
+    [globalSequencesRef],
   );
 
   /**
@@ -144,7 +144,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
    */
   const getGlobalPendingSequence = useCallback(
     (): GlobalPendingSequence | null => globalPendingSeqRef.current,
-    [],
+    [globalPendingSeqRef],
   );
 
   /**
@@ -183,7 +183,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
         globalSequencesRef.current = resolved;
       }
     },
-    [],
+    [globalSequencesRef, globalPendingSeqRef, sequenceOperationsRef],
   );
 
   const defineShortcutAction = useCallback((entries: ShortcutOperationEntry[]) => {
@@ -193,7 +193,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
         keys: each.keys,
       }, `[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${each.actionId}`);
     }
-  }, []);
+  }, [shortcutOperationsRef]);
 
   const defineSequenceAction = useCallback((entries: SequenceOperationEntry[]) => {
     for (const each of entries) {
@@ -203,7 +203,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
         timeout: each.timeout,
       }, `[Ink-Cartridge] Sequence Action ${each.sequenceActionId} may not be defined repeatedly`);
     }
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const modifySequenceAction = useCallback((actionId: string, keys: string[], timeout?: number) => {
     const entry = modifyEntryKeys(
@@ -221,7 +221,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
       }
       entry.timeout = timeout;
     }
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const modifyAction = useCallback((actionId: string, keys: string[]) => {
     modifyEntryKeys(
@@ -231,7 +231,7 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
       `[Ink-Cartridge] Cannot modify action "${actionId}": action not registered.`,
       `[Ink-Cartridge] Cannot modify action "${actionId}": action was not registered with a 'keys' field.`,
     );
-  }, []);
+  }, [shortcutOperationsRef]);
 
   const addSequenceAction = useCallback((entry: SequenceOperationEntry) => {
     setIfAbsent(sequenceOperationsRef.current, entry.sequenceActionId, {
@@ -239,38 +239,38 @@ export function useKeyboardRegistry(refs: RegistryRefs) {
       keys: entry.keys,
       timeout: entry.timeout,
     }, `[Ink-Cartridge] Sequence Action ${entry.sequenceActionId} may not be defined repeatedly`);
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const hasSequenceAction = useCallback((sequenceActionId: string): boolean => {
     return sequenceOperationsRef.current.has(sequenceActionId);
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const removeSequenceAction = useCallback((sequenceActionId: string) => {
     deleteIfPresent(sequenceOperationsRef.current, sequenceActionId, `[Ink-Cartridge] Cannot remove sequence action "${sequenceActionId}": action not registered.`);
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const clearSequenceOperations = useCallback(() => {
     sequenceOperationsRef.current.clear();
-  }, []);
+  }, [sequenceOperationsRef]);
 
   const addAction = useCallback((entry: ShortcutOperationEntry) => {
     setIfAbsent(shortcutOperationsRef.current, entry.actionId, {
       action: entry.action,
       keys: entry.keys,
     }, `[Ink-Cartridge] Duplicate shortcut cannot be defined with ID ${entry.actionId}`);
-  }, []);
+  }, [shortcutOperationsRef]);
 
   const hasAction = useCallback((actionId: string): boolean => {
     return shortcutOperationsRef.current.has(actionId);
-  }, []);
+  }, [shortcutOperationsRef]);
 
   const removeAction = useCallback((actionId: string) => {
     deleteIfPresent(shortcutOperationsRef.current, actionId, `[Ink-Cartridge] Cannot remove action "${actionId}": action not registered.`);
-  }, []);
+  }, [shortcutOperationsRef]);
 
   const clearShortcutOperations = useCallback(() => {
     shortcutOperationsRef.current.clear();
-  }, []);
+  }, [shortcutOperationsRef]);
 
   return {
     globalKeys,

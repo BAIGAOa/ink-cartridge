@@ -279,7 +279,7 @@ export function useKeyboardBindings(deps: BindingDeps) {
         options,
       );
     },
-    [getCurrentOwner, getLayer, getOrCreateFocusTarget],
+    [getCurrentOwner, getLayer, getOrCreateFocusTarget, globalKeysRef, shortcutOperationsRef],
   );
 
   boundKeyboardSelfRef.current = boundKeyboard;
@@ -450,7 +450,7 @@ export function useKeyboardBindings(deps: BindingDeps) {
         }
       };
     },
-    [getCurrentOwner, getLayer],
+    [getCurrentOwner, getLayer, globalSequencesRef, sequenceOperationsRef],
   );
 
   boundSequenceSelfRef.current = boundSequence;
