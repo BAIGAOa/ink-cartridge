@@ -497,7 +497,7 @@ describe('multi-overlay keyboard integration', () => {
         const o = vi.fn();
 
         const ovl = createOverlay('Ovl', { x: o });
-        
+
         const { stdin } = renderMultiOverlayApp(MainScreen, (kb, sc) => {
           kb.globalKeys([{ key: 'x', operate: g, affectOverlay: true, cover: true }]);
           sc.openOverlay('A', ovl.Component, {}, { zIndex: 1 });
@@ -510,6 +510,21 @@ describe('multi-overlay keyboard integration', () => {
         expect(g).toHaveBeenCalledTimes(0);
         expect(o).toHaveBeenCalledTimes(1);
     })
+
+    it('affectOverlay: true, cover: false — no overlay override, global key fires', async () => {
+      const globalH = vi.fn();
+
+      const ovl = createOverlay('Ovl', { y: vi.fn() });
+
+      const { stdin } = renderMultiOverlayApp(MainScreen, (kb, sc) => {
+        kb.globalKeys([{ key: 'x', operate: globalH, affectOverlay: true, cover: false }]);
+        sc.openOverlay('A', ovl.Component, {}, { zIndex: 1 });
+      });
+      await flush();
+
+      await pressKey(stdin, 'x');
+      expect(globalH).toHaveBeenCalledTimes(1);
+    });
 
     it('affectOverlay: false — global key fires after overlay, both fire', async () => {
       const globalH = vi.fn();
@@ -526,6 +541,47 @@ describe('multi-overlay keyboard integration', () => {
       await pressKey(stdin, 'x');
       expect(ovlH).toHaveBeenCalledTimes(1);
       expect(globalH).toHaveBeenCalledTimes(1);
+    });
+
+    it('affectOverlay: false, cover: false — override check skipped, global key fires', async () => {
+      const globalH = vi.fn();
+
+      function ScreenClean() {
+        return <Text>ScreenClean</Text>;
+      }
+      ScreenClean.displayName = 'ScreenClean';
+      registerComponent(ScreenClean, {});
+
+      const { stdin } = renderMultiOverlayApp(ScreenClean, (kb) => {
+        kb.globalKeys([{ key: 'x', operate: globalH, affectOverlay: false, cover: false }]);
+      });
+      await flush();
+
+      await pressKey(stdin, 'x');
+      expect(globalH).toHaveBeenCalledTimes(1);
+    });
+
+    it('affectOverlay: false, cover: true — screen binding overrides global key', async () => {
+      const globalH = vi.fn();
+      const screenH = vi.fn();
+
+      function ScreenWithKey() {
+        const kb = useKeyboard();
+        useEffect(() => {
+          kb.globalKeys([{ key: 'x', operate: globalH }]);
+          return kb.boundKeyboard(['x'], screenH);
+        }, []);
+        return <Text>ScreenWithKey</Text>;
+      }
+      ScreenWithKey.displayName = 'ScreenWithKey';
+      registerComponent(ScreenWithKey, {});
+
+      const { stdin } = renderMultiOverlayApp(ScreenWithKey);
+      await flush();
+
+      await pressKey(stdin, 'x');
+      expect(screenH).toHaveBeenCalledTimes(1);
+      expect(globalH).not.toHaveBeenCalled();
     });
   });
 

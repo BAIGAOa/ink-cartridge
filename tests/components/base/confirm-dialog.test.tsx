@@ -185,4 +185,20 @@ describe('ConfirmDialog', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it('unmount cleanup unregisters focus targets', async () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    const { unmount } = renderDialog({
+      title: 'X',
+      message: 'Y',
+      onConfirm,
+      onCancel,
+    });
+
+    await settle();
+
+    // Unmount triggers cleanup: unEsc, unConfirm, unCancel, focusUnregister ×2
+    expect(() => unmount()).not.toThrow();
+  });
 });

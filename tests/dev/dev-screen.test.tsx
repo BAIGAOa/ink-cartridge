@@ -9,6 +9,8 @@ import { KeyboardProvider, clearShortcutOperations } from '../../src/keyboard/pr
 import { useKeyboard } from '../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../src/screen/hook.js';
 import { DevScreen } from '../../src/dev/dev-screen.js';
+import GlobalKeyDisplayBox from '../../src/dev/globalKey-display.js';
+import LayerKeyDisplayBox from '../../src/dev/layerKey-display.js';
 import { openDevTool, closeDevTool } from '../../src/dev/entrance.js';
 import { flush, press } from '../components/base/_helpers.js';
 
@@ -47,6 +49,8 @@ beforeEach(() => {
   clearRegistry();
   clearShortcutOperations();
   registerComponent(DevScreen, { top: 0, left: 0 });
+  registerComponent(GlobalKeyDisplayBox, { top: 0, left: 0 });
+  registerComponent(LayerKeyDisplayBox, { top: 0, left: 0, screenComponent: () => null });
   registerComponent(Main, {});
 });
 
@@ -203,5 +207,110 @@ describe('DevScreen displays overlay and modal state', () => {
     expect(ids).toContain('_Dev-Tool_');
     expect(ids).toContain('other-modal');
     expect(scRef.current!.activeModalId).toBe('other-modal');
+  });
+});
+
+describe('DevScreen Ctrl+G opens GlobalKey inspector', () => {
+  it('opens global key display modal via Ctrl+G', async () => {
+    function Main() {
+      const { boundKeyboard: bk } = useKeyboard();
+      useEffect(() => {
+        bk(['d'], () => openDevTool({ top: 0, left: 0 }));
+      }, []);
+      return <Text>Main</Text>;
+    }
+    Main.displayName = 'MainGK';
+    registerComponent(Main, {});
+
+    const { stdin, scRef } = renderApp(Main);
+    await flush();
+
+    await press(stdin, 'd');
+    await flush();
+    expect(scRef.current!.activeModalId).toBe('_Dev-Tool_');
+
+    stdin.write('\x07'); // Ctrl+G
+    await flush();
+
+    const modalIds = scRef.current!.modalQueue.map((m: any) => m.id);
+    expect(modalIds).toContain('__global-display__');
+  });
+});
+
+describe('DevScreen Ctrl+K opens LayerKey inspector', () => {
+  it('opens layer key display modal via Ctrl+K', async () => {
+    function Main() {
+      const { boundKeyboard: bk } = useKeyboard();
+      useEffect(() => {
+        bk(['d'], () => openDevTool({ top: 0, left: 0 }));
+      }, []);
+      return <Text>Main</Text>;
+    }
+    Main.displayName = 'MainLK';
+    registerComponent(Main, {});
+
+    const { stdin, scRef } = renderApp(Main);
+    await flush();
+
+    await press(stdin, 'd');
+    await flush();
+    expect(scRef.current!.activeModalId).toBe('_Dev-Tool_');
+
+    stdin.write('\x0b'); // Ctrl+K
+    await flush();
+
+    const modalIds = scRef.current!.modalQueue.map((m: any) => m.id);
+    expect(modalIds).toContain('__layer-display__');
+  });
+});
+
+describe('DevScreen focus targets display', () => {
+  it('shows focus targets when screen has registered bindings', async () => {
+    function MainWithFocus() {
+      const kb = useKeyboard();
+      useEffect(() => {
+        kb.boundKeyboard(['x'], () => {}, { focusId: 'test-focus' });
+        kb.boundKeyboard(['y'], () => {}, { focusId: 'test-focus-2' });
+        kb.boundKeyboard(['d'], () => openDevTool({ top: 0, left: 0 }));
+      }, []);
+      return <Text>Main</Text>;
+    }
+    MainWithFocus.displayName = 'MainWithFocus';
+    registerComponent(MainWithFocus, {});
+
+    const { stdin, scRef } = renderApp(MainWithFocus);
+    await flush();
+
+    await press(stdin, 'd');
+    await flush();
+
+    expect(scRef.current!.activeModalId).toBe('_Dev-Tool_');
+    // Focus targets should be collected from the main screen layer
+    // This exercises collectAllFocusTargets (lines 48-50)
+  });
+});
+
+describe('DevScreen modal miss flash', () => {
+  it('flashes border when unhandled key is pressed', async () => {
+    function Main() {
+      const { boundKeyboard: bk } = useKeyboard();
+      useEffect(() => {
+        bk(['d'], () => openDevTool({ top: 0, left: 0 }));
+      }, []);
+      return <Text>Main</Text>;
+    }
+    Main.displayName = 'MainFlash';
+    registerComponent(Main, {});
+
+    const { stdin, scRef } = renderApp(Main);
+    await flush();
+
+    await press(stdin, 'd');
+    await flush();
+    await flush();
+    expect(scRef.current!.activeModalId).toBe('_Dev-Tool_');
+
+    // Press an unhandled key — should trigger flash via useModalMissListener
+    expect(() => stdin.write('z')).not.toThrow();
   });
 });

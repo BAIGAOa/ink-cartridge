@@ -1,7 +1,8 @@
 import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Text } from 'ink';
 import { registerComponent, clearRegistry } from '../../../src/screen/registry.js';
 import { ScenarioManagementProvider } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
@@ -11,9 +12,6 @@ import { SearchInput } from '../../../src/components/search-input/SearchInput.js
 const KEYS = {
   escape: '\x1b',
 } as const;
-
-
-
 
 function renderSearchInput(props: {
   focusId: string;
@@ -26,13 +24,15 @@ function renderSearchInput(props: {
   const onSubmit = props.onSubmit ?? vi.fn();
 
   function HostScreen() {
-    return React.createElement(SearchInput, {
-      focusId: props.focusId,
-      value: props.value ?? '',
-      onChange,
-      placeholder: props.placeholder,
-      onSubmit,
-    });
+    return (
+      <SearchInput
+        focusId={props.focusId}
+        value={props.value ?? ''}
+        onChange={onChange}
+        placeholder={props.placeholder}
+        onSubmit={onSubmit}
+      />
+    );
   }
   HostScreen.displayName = 'HostScreen';
 
@@ -40,11 +40,11 @@ function renderSearchInput(props: {
   registerComponent(HostScreen, {});
 
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(
-      ScenarioManagementProvider as any,
-      { defaultScreen: HostScreen },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={HostScreen}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
 
   return { lastFrame, lastFrameClean: () => stripAnsi(lastFrame()), stdin, unmount, onChange, onSubmit };
@@ -109,5 +109,66 @@ describe('SearchInput', () => {
     await flush();
 
     expect(onChange).toHaveBeenCalledWith('');
+  });
+
+  it('unmount cleanup handles focusId change without error', async () => {
+    const onChange = vi.fn();
+
+    function DynamicSearchHost() {
+      const [fid, setFid] = useState('search-a');
+      useEffect(() => {
+        const timer = setTimeout(() => setFid('search-b'), 5);
+        return () => clearTimeout(timer);
+      }, []);
+      return (
+        <SearchInput
+          focusId={fid}
+          value=""
+          onChange={onChange}
+        />
+      );
+    }
+    DynamicSearchHost.displayName = 'DynamicSearchHost';
+
+    clearRegistry();
+    registerComponent(DynamicSearchHost, {});
+
+    const { stdin } = render(
+      <ScenarioManagementProvider defaultScreen={DynamicSearchHost}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+    await flush(); // Allow focusId change to propagate
+
+    await expect(press(stdin, 'x')).resolves.not.toThrow();
+  });
+
+  it('unmount triggers cleanup without error', async () => {
+    const onChange = vi.fn();
+
+    function ToggleHost() {
+      const [show] = useState(true);
+      return show
+        ? <SearchInput focusId="search" value="hello" onChange={onChange} />
+        : <Text>Gone</Text>;
+    }
+    ToggleHost.displayName = 'ToggleHost';
+
+    clearRegistry();
+    registerComponent(ToggleHost, {});
+
+    const { unmount } = render(
+      <ScenarioManagementProvider defaultScreen={ToggleHost}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+
+    expect(() => unmount()).not.toThrow();
   });
 });

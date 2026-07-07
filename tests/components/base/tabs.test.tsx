@@ -260,3 +260,111 @@ describe('Tabs persistence', () => {
     expect((api.read.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('custom-tab', 'a');
   });
 });
+
+describe('Tabs prev navigation', () => {
+  it('left arrow wraps to last tab when at first tab', async () => {
+    function Host() {
+      const [tab, setTab] = React.useState('a');
+      return (
+        <Box flexDirection="column">
+          <Tabs
+            focusId="main"
+            tabs={[
+              { id: 'a', label: 'One', content: <Text>First page</Text> },
+              { id: 'b', label: 'Two', content: <Text>Second page</Text> },
+              { id: 'c', label: 'Three', content: <Text>Third page</Text> },
+            ]}
+            activeTab={tab}
+            onChange={setTab}
+          />
+        </Box>
+      );
+    }
+
+    registerComponent(Host, {});
+    const { stdin, lastFrame } = render(
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('First page');
+
+    // Left from first tab should wrap to last
+    stdin.write(KEYS.left);
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('Third page');
+  });
+
+  it('left arrow from middle tab goes to previous (non-wrap)', async () => {
+    function Host() {
+      const [tab, setTab] = React.useState('b');
+      return (
+        <Box flexDirection="column">
+          <Tabs
+            focusId="main"
+            tabs={[
+              { id: 'a', label: 'One', content: <Text>First page</Text> },
+              { id: 'b', label: 'Two', content: <Text>Second page</Text> },
+              { id: 'c', label: 'Three', content: <Text>Third page</Text> },
+            ]}
+            activeTab={tab}
+            onChange={setTab}
+          />
+        </Box>
+      );
+    }
+
+    registerComponent(Host, {});
+    const { stdin, lastFrame } = render(
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('Second page');
+
+    // Left from middle tab goes to first (activeIndex > 0 branch)
+    stdin.write(KEYS.left);
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('First page');
+  });
+
+  it('uncontrolled prev wraps around and persists', async () => {
+    const { api } = makeMockStorage();
+
+    function Host() {
+      return (
+        <Tabs
+          focusId="main"
+          storage={api}
+          tabs={[
+            { id: 'a', label: 'A', content: <Text>Page A</Text> },
+            { id: 'b', label: 'B', content: <Text>Page B</Text> },
+          ]}
+        />
+      );
+    }
+    clearRegistry();
+    registerComponent(Host, {});
+    const { stdin, lastFrame } = render(
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('Page A');
+
+    // Left from first tab wraps to last
+    stdin.write(KEYS.left);
+    await flush();
+    expect(stripAnsi(lastFrame())).toContain('Page B');
+    expect((api.write.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('tabs:main', 'b');
+  });
+});

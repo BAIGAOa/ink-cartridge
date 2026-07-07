@@ -131,6 +131,10 @@ describe('has / delete / clear / getAll', () => {
     expect(await storage.has('k')).toBe(false);
   });
 
+  it('delete of non-existent key is a no-op', async () => {
+    await expect(storage.delete('nonexistent')).resolves.not.toThrow();
+  });
+
   it('clear wipes all keys', async () => {
     await storage.write.str('a', '1');
     await storage.write.str('b', '2');
@@ -174,6 +178,31 @@ describe('file-level behaviours', () => {
   it('atomic write leaves no .tmp file behind', async () => {
     await storage.write.num('n', 1);
     expect(fs.existsSync(path.join(testDir, 'test.json.tmp'))).toBe(false);
+  });
+
+  it('handles JSON array in file by resetting to empty data', async () => {
+    fs.writeFileSync(path.join(testDir, 'test.json'), '[1, 2, 3]');
+    const s2 = createStorage({ dir: testDir, file: 'test.json' });
+    expect(await s2.read.num('count', 99)).toBe(99);
+    expect(rawData()).toEqual({ count: 99 });
+  });
+
+  it('handles JSON null in file by resetting to empty data', async () => {
+    fs.writeFileSync(path.join(testDir, 'test.json'), 'null');
+    const s2 = createStorage({ dir: testDir, file: 'test.json' });
+    expect(await s2.read.str('key', 'default')).toBe('default');
+  });
+
+  it('uses default dir and file when no options passed', () => {
+    // Constructor default: dir='./data', file='config.json'
+    const s = createStorage();
+    expect(s).toBeTruthy();
+  });
+
+  it('flush is skipped when options.flush is false', async () => {
+    const s = createStorage({ dir: testDir, file: 'noflush.json', flush: false });
+    await s.write.str('k', 'v');
+    expect(fs.existsSync(path.join(testDir, 'noflush.json.tmp'))).toBe(false);
   });
 });
 

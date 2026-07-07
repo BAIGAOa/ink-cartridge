@@ -10,25 +10,37 @@ import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { Fold } from '../../../src/components/fold/Fold.js';
 import type { StorageAPI } from '../../../src/storage/index.js';
 
-function renderFold(props?: { expanded?: boolean; onToggle?: () => void; preview?: React.ReactNode; storage?: StorageAPI; storageKey?: string }) {
+function renderFold(props?: {
+  expanded?: boolean;
+  onToggle?: () => void;
+  preview?: React.ReactNode;
+  storage?: StorageAPI;
+  storageKey?: string;
+}) {
   function Host() {
-    return React.createElement(Fold as any, {
-      focusId: 'fold',
-      label: 'Settings',
-      expanded: props?.expanded,
-      onToggle: props?.onToggle,
-      preview: props?.preview,
-      storage: props?.storage,
-      storageKey: props?.storageKey,
-    }, React.createElement(Text, null, 'Hidden content'));
+    return (
+      <Fold
+        focusId="fold"
+        label="Settings"
+        expanded={props?.expanded}
+        onToggle={props?.onToggle}
+        preview={props?.preview}
+        storage={props?.storage}
+        storageKey={props?.storageKey}
+      >
+        <Text>Hidden content</Text>
+      </Fold>
+    );
   }
 
   clearRegistry();
   registerComponent(Host, {});
   const { lastFrame, stdin, unmount } = render(
-    React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-      React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-    ),
+    <ScenarioManagementProvider defaultScreen={Host}>
+      <KeyboardProvider>
+        <CurrentScreen />
+      </KeyboardProvider>
+    </ScenarioManagementProvider>,
   );
   return { lastFrame, lastFrameClear: () => stripAnsi(lastFrame() ?? ''), stdin, unmount };
 }
@@ -38,7 +50,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('Fold', () => {
   it('collapsed state shows preview, not children', () => {
-    const { lastFrameClear } = renderFold({ preview: React.createElement(Text, null, 'Preview text') });
+    const { lastFrameClear } = renderFold({ preview: <Text>Preview text</Text> });
     expect(lastFrameClear()).toContain('Settings');
     expect(lastFrameClear()).toContain('Preview text');
     expect(lastFrameClear()).not.toContain('Hidden content');
@@ -64,29 +76,29 @@ describe('Fold', () => {
     });
     expect(lastFrameClear()).not.toContain('Hidden content');
 
-    // simulate Space + re-render (controlled mode: onToggle does not update internal state)
     stdin.write(' ');
     await new Promise(r => setTimeout(r, 10));
 
-    // controlled mode: onToggle is called, but parent must update expanded prop
     expect(expanded).toBe(true);
   });
 
   it('uncontrolled mode defaultExpanded=true initially expanded', () => {
     function Host() {
-      return React.createElement(Fold as any, {
-        focusId: 'fold',
-        label: 'Test',
-        defaultExpanded: true,
-      }, React.createElement(Text, null, 'Content inside'));
+      return (
+        <Fold focusId="fold" label="Test" defaultExpanded>
+          <Text>Content inside</Text>
+        </Fold>
+      );
     }
 
     clearRegistry();
     registerComponent(Host, {});
     const { lastFrame } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
     );
     const output = stripAnsi(lastFrame());
     expect(output).toContain('Content inside');
@@ -94,23 +106,24 @@ describe('Fold', () => {
 });
 
 describe('Fold persistence', () => {
-
   it('writes to storage after expand/collapse when storage is passed', async () => {
     const { api } = makeMockStorage();
 
     function Host() {
-      return React.createElement(Fold as any, {
-        focusId: 'pf',
-        label: 'Test',
-        storage: api,
-      }, React.createElement(Text, null, 'Inside'));
+      return (
+        <Fold focusId="pf" label="Test" storage={api}>
+          <Text>Inside</Text>
+        </Fold>
+      );
     }
     clearRegistry();
     registerComponent(Host, {});
     const { stdin } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
     );
     await flush();
 
@@ -124,19 +137,20 @@ describe('Fold persistence', () => {
     const { api } = makeMockStorage();
 
     function Host() {
-      return React.createElement(Fold as any, {
-        focusId: 'pf',
-        label: 'Test',
-        storage: api,
-        storageKey: 'custom-fold-key',
-      }, React.createElement(Text, null, 'Inside'));
+      return (
+        <Fold focusId="pf" label="Test" storage={api} storageKey="custom-fold-key">
+          <Text>Inside</Text>
+        </Fold>
+      );
     }
     clearRegistry();
     registerComponent(Host, {});
     render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
     );
     await flush();
 
@@ -145,20 +159,49 @@ describe('Fold persistence', () => {
 
   it('does not affect existing behavior when storage is not passed', async () => {
     function Host() {
-      return React.createElement(Fold as any, {
-        focusId: 'pf',
-        label: 'Test',
-      }, React.createElement(Text, null, 'Inside'));
+      return (
+        <Fold focusId="pf" label="Test">
+          <Text>Inside</Text>
+        </Fold>
+      );
     }
     clearRegistry();
     registerComponent(Host, {});
     const { lastFrame } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
     );
     await flush();
     expect(stripAnsi(lastFrame())).toContain('Test');
     expect(stripAnsi(lastFrame())).not.toContain('Inside');
+  });
+
+  it('reads expanded state from storage on mount', async () => {
+    const { store, api } = makeMockStorage();
+    store['fold:pf'] = true;
+
+    function Host() {
+      return (
+        <Fold focusId="pf" label="Test" storage={api}>
+          <Text>Inside</Text>
+        </Fold>
+      );
+    }
+    clearRegistry();
+    registerComponent(Host, {});
+    render(
+      <ScenarioManagementProvider defaultScreen={Host}>
+        <KeyboardProvider>
+          <CurrentScreen />
+        </KeyboardProvider>
+      </ScenarioManagementProvider>,
+    );
+    await flush();
+
+    // Verify storage was queried with the correct key
+    expect((api.read.b as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('fold:pf', false);
   });
 });
