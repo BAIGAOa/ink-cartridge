@@ -41,9 +41,9 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
     displayedModals,
   });
 
-  useEffect(() => { engine.cleanLayers(); }, [currentPath]);
-  useEffect(() => { engine.cleanOverlayLayers(); }, [displayedOverlays]);
-  useEffect(() => { engine.cleanModalLayers(); }, [displayedModals]);
+  useEffect(() => { engine.cleanLayers(); }, [currentPath, engine]);
+  useEffect(() => { engine.cleanOverlayLayers(); }, [displayedOverlays, engine]);
+  useEffect(() => { engine.cleanModalLayers(); }, [displayedModals, engine]);
 
   const value = useMemo(
     () => ({
