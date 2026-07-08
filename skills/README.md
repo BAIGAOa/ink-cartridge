@@ -8,6 +8,7 @@ Project-specific workflow skills for ink-cartridge. Each skill is a Claude Code 
 |-------|---------|
 | [write-test](write-test/SKILL.md) | Write tests following project conventions |
 | [write-docs](write-docs/SKILL.md) | Write, update, sync, or fix documentation |
+| [write-example](write-example/SKILL.md) | Write demo/example files for ink-cartridge components and APIs |
 
 ## Format
 
