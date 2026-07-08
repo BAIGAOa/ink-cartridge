@@ -1,88 +1,85 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import {
-  addProcessor,
-  removeProcessor,
-  resetProcessors,
-  _getProcessors,
-} from '../../../src/keyboard/pipeline/chain.js';
+import { describe, test, expect } from 'vitest';
+import KeyboardEngine from '../../../src/keyboard/engine/KeyboardEngine.js';
 import type { PipelineProcessor } from '../../../src/keyboard/types.js';
 
 function createProcessor(id: string): PipelineProcessor {
-  return {
-    id,
-    process: () => false,
-  };
+  return { id, process: () => false };
 }
 
-describe('removeProcessor', () => {
+function createEngine() {
+  return new KeyboardEngine({
+    normalizeKeyNames: (input: string, _key: unknown) => input ? [input] : [],
+  });
+}
+
+describe('KeyboardEngine.removeProcessor', () => {
   const DEFAULT_COUNT = 7;
 
-  beforeEach(() => {
-    resetProcessors();
-  });
-
-  afterEach(() => {
-    resetProcessors();
-  });
-
   test('returns false when processor ID does not exist', () => {
-    const result = removeProcessor('non-existent');
+    const engine = createEngine();
+    const result = engine.removeProcessor('non-existent');
     expect(result).toBe(false);
-    expect(_getProcessors().length).toBe(DEFAULT_COUNT);
+    expect(engine.getProcessors().length).toBe(DEFAULT_COUNT);
   });
 
   test('removes a custom processor and returns true', () => {
-    addProcessor(createProcessor('my-processor'));
-    expect(_getProcessors().length).toBe(DEFAULT_COUNT + 1);
+    const engine = createEngine();
+    engine.addProcessor(createProcessor('my-processor'));
+    expect(engine.getProcessors().length).toBe(DEFAULT_COUNT + 1);
 
-    const result = removeProcessor('my-processor');
+    const result = engine.removeProcessor('my-processor');
     expect(result).toBe(true);
-    expect(_getProcessors().length).toBe(DEFAULT_COUNT);
-    expect(_getProcessors().find((p) => p.id === 'my-processor')).toBeUndefined();
+    expect(engine.getProcessors().length).toBe(DEFAULT_COUNT);
+    expect(engine.getProcessors().find((p) => p.id === 'my-processor')).toBeUndefined();
   });
 
   test('removing the same processor twice returns false the second time', () => {
-    addProcessor(createProcessor('my-processor'));
+    const engine = createEngine();
+    engine.addProcessor(createProcessor('my-processor'));
 
-    expect(removeProcessor('my-processor')).toBe(true);
-    expect(removeProcessor('my-processor')).toBe(false);
+    expect(engine.removeProcessor('my-processor')).toBe(true);
+    expect(engine.removeProcessor('my-processor')).toBe(false);
   });
 
   test('can remove a built-in processor', () => {
-    expect(_getProcessors().find((p) => p.id === 'modal')).toBeDefined();
+    const engine = createEngine();
+    expect(engine.getProcessors().find((p) => p.id === 'modal')).toBeDefined();
 
-    const result = removeProcessor('modal');
+    const result = engine.removeProcessor('modal');
     expect(result).toBe(true);
-    expect(_getProcessors().length).toBe(DEFAULT_COUNT - 1);
-    expect(_getProcessors().find((p) => p.id === 'modal')).toBeUndefined();
+    expect(engine.getProcessors().length).toBe(DEFAULT_COUNT - 1);
+    expect(engine.getProcessors().find((p) => p.id === 'modal')).toBeUndefined();
   });
 
   test('removes the correct processor when multiple are registered', () => {
-    addProcessor(createProcessor('a'));
-    addProcessor(createProcessor('b'));
-    addProcessor(createProcessor('c'));
+    const engine = createEngine();
+    engine.addProcessor(createProcessor('a'));
+    engine.addProcessor(createProcessor('b'));
+    engine.addProcessor(createProcessor('c'));
 
-    removeProcessor('b');
+    engine.removeProcessor('b');
 
-    const all = _getProcessors();
+    const all = engine.getProcessors();
     expect(all.find((p) => p.id === 'b')).toBeUndefined();
     expect(all.find((p) => p.id === 'a')).toBeDefined();
     expect(all.find((p) => p.id === 'c')).toBeDefined();
   });
 
   test('removing a processor does not affect subsequent addProcessor calls', () => {
-    addProcessor(createProcessor('a'));
-    removeProcessor('a');
-    addProcessor(createProcessor('a'));
+    const engine = createEngine();
+    engine.addProcessor(createProcessor('a'));
+    engine.removeProcessor('a');
+    engine.addProcessor(createProcessor('a'));
 
-    const all = _getProcessors();
+    const all = engine.getProcessors();
     const matches = all.filter((p) => p.id === 'a');
     expect(matches.length).toBe(1);
   });
 
   test('returns false for empty string ID (never matches)', () => {
-    const result = removeProcessor('');
+    const engine = createEngine();
+    const result = engine.removeProcessor('');
     expect(result).toBe(false);
-    expect(_getProcessors().length).toBe(DEFAULT_COUNT);
+    expect(engine.getProcessors().length).toBe(DEFAULT_COUNT);
   });
 });

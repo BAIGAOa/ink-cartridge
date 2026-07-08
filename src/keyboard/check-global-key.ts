@@ -1,8 +1,7 @@
-import type React from 'react';
-import type { LayerOwner } from './context.js';
 import type {
   GlobalKeyEntry,
   ScreenKeyboardLayer,
+  MutableRef,
 } from './types.js';
 
 /**
@@ -22,8 +21,8 @@ import type {
 export function checkGlobalKey(
   entry: GlobalKeyEntry,
   eventNames: string[],
-  topComponent: React.ComponentType<any> | null,
-  layersRef: React.MutableRefObject<Map<LayerOwner, ScreenKeyboardLayer>>,
+  topComponent: unknown | null,
+  layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>>,
 ): boolean {
   const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
   if (!keyNames.some((k) => eventNames.includes(k))) return false;

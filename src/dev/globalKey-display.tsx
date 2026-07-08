@@ -36,7 +36,7 @@ function buildLabel(entry: ResolvedGlobalKeyEntry): string {
 
 function fmtCategory(category: ResolvedGlobalKeyEntry['category']): string {
   if (category === undefined || category === '*') return '*';
-  return category.map(c => c.displayName || c.name || '?').join(', ');
+  return category.map(c => (c as any).displayName || (c as any).name || '?').join(', ');
 }
 
 /** Renders a boolean value in green (true) or red (false). */

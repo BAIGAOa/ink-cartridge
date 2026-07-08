@@ -12,7 +12,10 @@ The rule: **each layer minds its own keys; the chain decides who wins.**
 useInput (Ink)
     │
     ▼
-KeyboardProvider — owns a useRef Map of all layers
+KeyboardProvider — creates a KeyboardEngine instance, syncs state on render
+    │
+    ▼
+KeyboardEngine — framework-agnostic state machine
     │
     ▼
 7-stage Pipeline (highest to lowest priority):
@@ -27,11 +30,14 @@ KeyboardProvider — owns a useRef Map of all layers
 
 Each stage is an independent processor. The first to return `true` consumes the event. The only exception is stage 3 (overlay broadcast), which always returns `false` to let the chain continue.
 
+The engine is framework-agnostic — any UI framework can drive it via `sync()` + `processKey()`. See [KeyboardEngine](./KeyboardEngine-API.md) for integration examples with Blessed, Vue, and other frameworks.
+
 ## API Index
 
 | API | Purpose |
 |-----|---------|
-| [KeyboardProvider](./KeyboardProvider-API.md) | Mount the keyboard engine |
+| [KeyboardEngine](./KeyboardEngine-API.md) | Framework-agnostic keyboard state machine |
+| [KeyboardProvider](./KeyboardProvider-API.md) | Mount the keyboard engine (React/Ink) |
 | [useKeyboard](./useKeyboard-API.md) | Access all layer methods |
 | [boundKeyboard](./boundKeyboard-API.md) | Per-layer single-key binding |
 | [boundSequence](./boundSequence-API.md) | Per-layer multi-key sequence |
@@ -46,8 +52,8 @@ Each stage is an independent processor. The first to return `true` consumes the 
 | [useModalMissListener](./useModalMissListener-API.md) | Listen for unhandled keys inside a modal |
 | [enableWildcardPriority](./enableWildcardPriority-API.md) | Absolute priority for `*` wildcard bindings |
 | [Mode System](./mode-system-API.md) | Declare named modes (`"normal"`, `"insert"`), tag bindings, switch at runtime |
-| [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline (global) |
-| [removeProcessor](./removeProcessor-API.md) | Remove a previously added custom processor |
+| [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline (per-instance) |
+| [removeProcessor](./removeProcessor-API.md) | Remove a previously added custom processor (per-instance) |
 | [KeyboardProvider `processors` prop](./KeyboardProvider-API.md#processors-prop) | Per-instance custom processors |
 
 ## Advanced

@@ -1,12 +1,17 @@
 # removeProcessor
 
-Remove a processor from the keyboard event pipeline by its ID.
+Remove a processor from this instance's keyboard event pipeline by its ID.
 
-Works on both built-in and custom processors. For built-in processors, call [`resetProcessors`](#resetProcessors) afterwards to restore the default 7-stage chain (exposed as an internal helper for testing).
+Works on both built-in and custom processors. For built-in processors, call `resetProcessors()` afterwards to restore the default 7-stage chain.
+
+This is **per-instance** — each `KeyboardProvider` has its own pipeline. Removing a processor from one provider does not affect others in the same process.
 
 ## Signature
 
 ```ts
+// Access via useKeyboard() hook
+const { removeProcessor } = useKeyboard();
+
 function removeProcessor(processorId: string): boolean
 ```
 
@@ -22,19 +27,23 @@ function removeProcessor(processorId: string): boolean
 
 ## Example
 
-```ts
-import { addProcessor, removeProcessor } from 'ink-cartridge';
+```tsx
+import { useKeyboard } from 'ink-cartridge';
 
-addProcessor({ id: 'my-logger', process: () => false });
+function MyComponent() {
+  const { addProcessor, removeProcessor } = useKeyboard();
 
-removeProcessor('my-logger'); // true
-removeProcessor('my-logger'); // false (already removed)
+  useEffect(() => {
+    addProcessor({ id: 'my-logger', process: () => false });
+    return () => { removeProcessor('my-logger'); };
+  }, []);
+}
 ```
 
 ## Notes
 
-- `removeProcessor` is a module-level function — it mutates the global pipeline shared by all `KeyboardProvider` instances.  
-- Removing a built-in processor (e.g. `'modal'`) will alter keyboard behavior application-wide. Use with caution.  
-- After removing a processor, its ID can be reused immediately — `addProcessor` will accept a processor with that ID again.  
-- For per-instance processors (those passed via the [`processors` prop](./KeyboardProvider-API.md#processors-prop) on `KeyboardProvider`), manage their lifecycle by changing the prop array instead — `removeProcessor` only affects the global pipeline.  
+- `removeProcessor` is per-instance — call it inside a React component via `useKeyboard()`. It only affects the nearest `KeyboardProvider`'s pipeline.
+- Removing a built-in processor (e.g. `'modal'`) will alter keyboard behavior for that provider instance. Use with caution.
+- After removing a processor, its ID can be reused immediately — `addProcessor` will accept a processor with that ID again.
+- For per-instance processors (those passed via the [`processors` prop](./KeyboardProvider-API.md#processors-prop) on `KeyboardProvider`), manage their lifecycle by changing the prop array instead.
 - See [`addProcessor`](./addProcessor-API.md) for details on the pipeline architecture and built-in processor IDs.
