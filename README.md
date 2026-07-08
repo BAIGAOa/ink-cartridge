@@ -182,6 +182,8 @@ The project ships with specifications and workflows purpose-built for AI coding 
 
 See also [docs-agents/](docs-agents/) for agent reference material (test patterns, coding patterns, React guidelines, comment conventions).
 
+*This does not mean that we will maintain unlimited tolerance for the code produced by AI. Like many projects, we do not accept the junk code produced by AI.*
+
 ## Examples
 
 Runnable demos for every component. See [examples/README.md](examples/README.md) for the full list and run commands.
