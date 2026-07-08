@@ -1,12 +1,17 @@
 # addProcessor
 
-Register a custom processor into the keyboard event pipeline at a specified position.
+Insert a custom processor into the keyboard event pipeline at a specified position.
 
 The pipeline is a fixed 7-stage chain. `addProcessor` lets you inject custom logic at any point — for logging, auditing, special key interception, or altering the default priority order.
+
+Unlike the old global `addProcessor`, this is **per-instance**: each `KeyboardProvider` has its own pipeline. Processors added via one provider do not affect others in the same process.
 
 ## Signature
 
 ```ts
+// Access via useKeyboard() hook
+const { addProcessor } = useKeyboard();
+
 function addProcessor(
   processor: PipelineProcessor,
   options?: { before?: string } | { after?: string } | { index?: number }
@@ -60,26 +65,33 @@ Return `true` to consume the event (stop propagation); return `false` to let it 
 
 Insert a no-op processor at the front to trace every keystroke:
 
-```ts
-import { addProcessor } from 'ink-cartridge';
+```tsx
+import { useKeyboard } from 'ink-cartridge';
 import type { PipelineProcessor } from 'ink-cartridge';
 
-const logProcessor: PipelineProcessor = {
-  id: 'keystroke-logger',
-  process(ctx) {
-    console.log(`[key] ${ctx.input} | top=${ctx.topComponent?.displayName}`);
-    return false; // don't consume — let the pipeline continue
-  },
-};
+function useKeystrokeLogger() {
+  const { addProcessor } = useKeyboard();
 
-addProcessor(logProcessor, { index: 0 });
+  useEffect(() => {
+    const logProcessor: PipelineProcessor = {
+      id: 'keystroke-logger',
+      process(ctx) {
+        console.log(`[key] ${ctx.input}`);
+        return false; // don't consume — let the pipeline continue
+      },
+    };
+    addProcessor(logProcessor, { index: 0 });
+    return () => { /* removeProcessor('keystroke-logger') if needed */ };
+  }, []);
+}
 ```
 
 ### Custom key interception
 
 Insert a processor that handles a special key before the modal stage:
 
-```ts
+```tsx
+const { addProcessor } = useKeyboard();
 addProcessor({
   id: 'emergency-exit',
   process(ctx) {
@@ -94,14 +106,14 @@ addProcessor({
 
 ### Insert after a built-in stage
 
-```ts
+```tsx
 // Run custom logic right after the overlay stage processes a key
 addProcessor(myProcessor, { after: 'overlay' });
 ```
 
 ## Notes
 
-- `addProcessor` is a module-level function. Processors are registered once and persist for the lifetime of the module. Call it at module scope or during app initialization — not inside React component lifecycle.
+- `addProcessor` is per-instance — call it inside a React component via `useKeyboard()`. The processor is scoped to the nearest `KeyboardProvider`.
 - Duplicate ID detection runs on every call. If the processor ID already exists in the pipeline, the function throws **before** mutating the array.
 - Use [`removeProcessor`](./removeProcessor-API.md) to dynamically remove a processor from the pipeline at runtime.
-- For per-instance (scoped to a single `KeyboardProvider` subtree) custom processors, use the [`processors` prop](./KeyboardProvider-API.md#processors-prop) on `KeyboardProvider` instead.
+- For per-instance (scoped to a single `KeyboardProvider` subtree) custom processors at initialization time, use the [`processors` prop](./KeyboardProvider-API.md#processors-prop) on `KeyboardProvider` instead.

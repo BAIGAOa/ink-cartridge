@@ -2,6 +2,8 @@
 
 Mounts the keyboard engine. Must be nested inside `ScenarioManagementProvider`.
 
+Internally creates a [KeyboardEngine](./KeyboardEngine-API.md) instance and wires the Ink `useInput` callback to `engine.processKey()`. The engine is framework-agnostic — the provider serves as the React/Ink adapter.
+
 ## Signature
 
 ```tsx
@@ -30,7 +32,7 @@ Each entry in `processors` describes where to insert a custom processor relative
 
 Positioning priorities (checked in order): `index` → `target` + `position` → append.
 
-This is the per-instance counterpart to [`addProcessor`](./addProcessor-API.md). Prefer `processors` when the custom logic should only apply to a specific `KeyboardProvider` subtree; use `addProcessor` when it should apply globally.
+For dynamic processor management at runtime, use [`addProcessor`](./addProcessor-API.md) and [`removeProcessor`](./removeProcessor-API.md) via the `useKeyboard()` hook. Prefer the `processors` prop when the custom logic should only apply to a specific `KeyboardProvider` subtree; use runtime `addProcessor` when processors need to be added/removed based on user interaction or application state.
 
 ```tsx
 <KeyboardProvider
@@ -49,10 +51,11 @@ A React element that provides keyboard context to all descendants.
 
 ## Behavior
 
-- Connects to Ink's `useInput` to receive raw key events.
-- Creates a `useRef`-based layer store that persists across the provider's lifetime.
+- Wires to Ink's `useInput` to receive raw key events, forwarding them to `engine.processKey()`.
+- Creates the engine once via `useRef` — it persists for the component lifetime.
+- On every render, calls `engine.sync()` to push screen-path and overlay/modal state into the engine.
 - Runs each key event through the 7-stage pipeline (modal → global sequences → global keys → overlay broadcast → screen stack).
-- Cleans up layers for screens, overlays, and modals that leave the tree.
+- Cleans up layers for screens, overlays, and modals that leave the tree via post-render effects.
 
 ## Best Practice
 

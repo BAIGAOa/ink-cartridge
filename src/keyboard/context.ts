@@ -16,13 +16,15 @@ import type {
   ResolvedGlobalSequenceEntry,
   GlobalPendingSequence,
   ScreenKeyboardLayer,
+  PipelineProcessor,
 } from "./types.js";
+import type { BuiltinProcessorId } from "./pipeline/chain.js";
 
 /**
  * Type for the owner stack used to track overlay context.
  * Can be a component type (for screens) or a string (for overlay IDs).
  */
-export type LayerOwner = React.ComponentType<any> | string;
+export type LayerOwner = unknown | string;
 
 /**
  * Value provided by {@link KeyboardProvider} via React context.
@@ -612,6 +614,51 @@ export interface KeyboardContextValue {
    * @returns `true` if the condition existed and was removed.
    */
   removeCondition: (target: string) => boolean;
+
+  /**
+   * Insert a custom processor into this instance's pipeline at a specified position.
+   *
+   * Unlike the old global `addProcessor`, this operates on the
+   * {@link KeyboardProvider} instance's own pipeline — it does not affect
+   * other providers in the same process.
+   *
+   * @param processor - The processor to insert (must have a unique `id`).
+   * @param options   - Positioning:
+   *   - `{ index: n }`            — insert at 0-based index
+   *   - `{ before: "id" }`        — insert before the named processor
+   *   - `{ after: "id" }`         — insert after the named processor
+   *   - omitted                   — append to the end
+   * @throws If `processor.id` duplicates an existing processor, or the
+   *         `before`/`after` target is not found.
+   */
+  addProcessor: (
+    processor: PipelineProcessor,
+    options?:
+      | { before?: BuiltinProcessorId | (string & {}) }
+      | { after?: BuiltinProcessorId | (string & {}) }
+      | { index?: number },
+  ) => void;
+
+  /**
+   * Remove a processor from this instance's pipeline by its id.
+   *
+   * @param processorId - The `id` of the processor to remove.
+   * @returns `true` if the processor was found and removed, `false` if not found.
+   */
+  removeProcessor: (processorId: string) => boolean;
+
+  /**
+   * Get a read-only snapshot of this instance's current processor pipeline.
+   *
+   * @returns The ordered list of processors currently in the pipeline.
+   */
+  getProcessors: () => readonly PipelineProcessor[];
+
+  /**
+   * Restore this instance's processor pipeline to the default 7-stage chain,
+   * removing all custom processors.
+   */
+  resetProcessors: () => void;
 }
 
 /**

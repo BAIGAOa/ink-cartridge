@@ -1,4 +1,3 @@
-import { Key } from 'ink';
 import {
   BoundKeyEntry,
   KeyHandler,
@@ -231,7 +230,7 @@ export function finalizeBoundKeyboard(
     entry.pressCount = 0;
     entry.observer = options?.observer;
     const originalHandler = entry.handler;
-    entry.handler = (input: string, key: Key) => {
+    entry.handler = (input: string, key: unknown) => {
       entry.pressCount! += 1;
       entry.observer?.(entry.times! - entry.pressCount!);
       if (entry.pressCount! < entry.times!) {
@@ -245,7 +244,7 @@ export function finalizeBoundKeyboard(
     };
   } else if (options?.once) {
     const originalHandler = entry.handler;
-    entry.handler = (input: string, key: Key) => {
+    entry.handler = (input: string, key: unknown) => {
       doUnbind();
       originalHandler(input, key);
     };

@@ -1,4 +1,3 @@
-import type { Key } from 'ink';
 import type {
   ScreenKeyboardLayer,
   BoundKeyEntry,
@@ -59,7 +58,7 @@ export function tryMatchBindings(
   currentMode: string | null,
   availableKeys: string[],
   input: string,
-  key: Key,
+  key: unknown,
   conditions: Map<string, boolean>,
   skipBinding?: (binding: BoundKeyEntry) => boolean,
 ): boolean {
@@ -132,7 +131,7 @@ export function handleLayer(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
   input: string,
-  key: Key,
+  key: unknown,
   isTop: boolean,
   notifyFocusChange: () => void,
   activeOverlayCount: number,
@@ -144,7 +143,7 @@ export function handleLayer(
   // The reason it has the highest priority is to ensure that tab/shift+tab have the highest priority, avoiding conflicts with business-bound actions.
   // However, when there is no Focus Target in the Current Screen, handleTabNavigation will return false, which allows users to retain flexibility. When tab/shift+tab do not need to be enforced,
   // they can also be bound to business-specific keys.
-  if (isTop && handleTabNavigation(layer, eventNames, key.shift, notifyFocusChange)) return true;
+  if (isTop && handleTabNavigation(layer, eventNames, (key as any).shift, notifyFocusChange)) return true;
 
   const penetrated = layer.penetrationKeys;
   const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated, conditions));
@@ -295,7 +294,7 @@ export function handleLayer(
         // Shift is exempt because it changes the character (d → D), so the
         // bare key name 'D' faithfully represents shift+d.
         // @2026-06-23 v3.6.1
-        if ((key.ctrl || key.meta) && !keyName.includes('+')) {
+        if (((key as any).ctrl || (key as any).meta) && !keyName.includes('+')) {
           continue;
         }
         const candidates = layer.sequences.get(keyName);

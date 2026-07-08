@@ -40,8 +40,8 @@ export type {
 } from "./screen/index.js";
 
 // ── Keyboard System ────────────────────────────────────────
-export { KeyboardProvider, useKeyboard } from "./keyboard/index.js";
-export { normalizeKeyNames, isNormalCharacter, addProcessor, removeProcessor } from "./keyboard/index.js";
+export { KeyboardProvider, useKeyboard, KeyboardEngine } from "./keyboard/index.js";
+export { normalizeKeyNames, isNormalCharacter } from "./keyboard/index.js";
 
 export type {
   KeyHandler,
@@ -53,6 +53,8 @@ export type {
   GlobalSequenceEntry,
   KeyboardProcessorProps,
   BuiltinProcessorId,
+  PipelineProcessor,
+  EngineProps,
 } from "./keyboard/index.js";
 
 export type {

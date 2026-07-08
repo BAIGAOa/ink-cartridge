@@ -93,7 +93,7 @@ function BindingDetail({ entry }: { entry: BoundKeyEntry }) {
         <Row label="Keys"><Text color="white">{entry.keys.join(', ')}</Text></Row>
         <Row label="Handler"><BoolVal v={entry.handler != null} /></Row>
         <Row label="OnlyThis"><BoolVal v={entry.onlyThis} /></Row>
-        <Row label="Owner (focusId)"><Text color="white">{typeof entry.owner === 'string' ? entry.owner : (entry.owner.displayName || entry.owner.name || 'Component')}</Text></Row>
+        <Row label="Owner (focusId)"><Text color="white">{typeof entry.owner === 'string' ? entry.owner : ((entry.owner as any).displayName || (entry.owner as any).name || 'Component')}</Text></Row>
         <Row label="Times"><Text color="white">{entry.times ?? '—'}</Text></Row>
         <Row label="PressCount"><Text color="white">{entry.pressCount ?? '—'}</Text></Row>
         <Row label="When"><BoolVal v={entry.when != null} /></Row>
@@ -210,7 +210,7 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
   const layerName = (
     typeof screenComponent === 'string'
       ? screenComponent
-      : (screenComponent.displayName || screenComponent.name || 'Unknown')
+      : ((screenComponent as any).displayName || (screenComponent as any).name || 'Unknown')
   ) as string;
 
   // Enter collapses detail card back to list

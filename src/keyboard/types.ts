@@ -1,6 +1,9 @@
-import type { Key } from "ink";
 import type { OverlayEntry } from "../screen/types.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
+
+export interface MutableRef<T> {
+    current: T;
+}
 
 /**
  * A single key rule with an optional when condition.
@@ -24,7 +27,7 @@ export interface KeyRule {
  * @param input  The raw character string (empty for special keys).
  * @param key    The key descriptor (booleans for special keys, modifiers).
  */
-export type KeyHandler = (input: string, key: Key) => void;
+export type KeyHandler = (input: string, key: unknown) => void;
 
 /**
  * Options for {@link KeyboardContextValue.boundKeyboard}.
@@ -136,7 +139,7 @@ export interface BoundKeyEntry {
   /** Whether this binding requires the owner to be stack top. */
   onlyThis: boolean;
   /** The screen component or overlay ID that owns this binding. */
-  owner: React.ComponentType<any> | string;
+  owner: unknown | string;
   /** Number of presses needed before the handler fires (from options). */
   times?: number;
   /** Current press count. Managed internally by the keyboard provider. */
@@ -363,7 +366,7 @@ export interface ScreenKeyboardLayer {
  */
 export type ModalMissEvent =
   | { miss: false }
-  | { miss: true; key: import("ink").Key; input: string; eventNames: string[] };
+  | { miss: true; key: unknown; input: string; eventNames: string[] };
 
 /**
  * Callback signature for {@link useModalMissListener}.
@@ -504,7 +507,7 @@ export interface GlobalKeyEntry {
    * - `[]`: no screens (effectively disabled)
    * - `[Menu, Game]`: only when the stack top is exactly Menu or Game
    */
-  category?: React.ComponentType<any>[] | "*";
+  category?: unknown[] | "*";
 
   /**
    * This key also works when you have affectOverlay turned on, but you want to have no floating layer
@@ -599,7 +602,7 @@ export interface GlobalSequenceEntry {
    * - `[]`: no screens (effectively disabled)
    * - `[Menu, Game]`: only when the stack top is exactly Menu or Game
    */
-  category?: React.ComponentType<any>[] | "*";
+  category?: unknown[] | "*";
 
   /**
    * Maximum time in milliseconds between key presses within the sequence.
@@ -716,7 +719,7 @@ export interface ResolvedGlobalKeyEntry {
   operate: () => void;
   cover?: boolean;
   affectOverlay?: boolean;
-  category?: React.ComponentType<any>[] | "*";
+  category?: unknown[] | "*";
   times?: number;
   observer?: (times: number) => void;
   pressCount?: number;
@@ -742,7 +745,7 @@ export interface GlobalPendingSequence {
   exclusive: boolean;
   affectOverlay: boolean;
   cover: boolean;
-  category?: React.ComponentType<any>[] | "*";
+  category?: unknown[] | "*";
   executeWhenNoOverlay?: boolean;
   when?: (() => boolean) | string;
   /**
@@ -769,23 +772,23 @@ export interface GlobalPendingSequence {
 export interface PipelineContext {
   // --- Immutable per-event snapshots ---
   readonly input: string;
-  readonly key: Key;
+  readonly key: unknown;
   readonly eventNames: string[];
-  readonly topComponent: React.ComponentType<any> | null;
+  readonly topComponent: unknown | null;
   readonly globalKeys: ResolvedGlobalKeyEntry[];
   readonly globalSequences: ResolvedGlobalSequenceEntry[];
   readonly activeOverlays: OverlayEntry[];
   readonly activeCount: number;
   readonly wildcardFirst: boolean;
-  readonly screenPath: React.ComponentType<any>[];
+  readonly screenPath: unknown[];
   /** ID of the currently active modal, or null if none. */
   readonly activeModalId: string | null;
 
   // --- Mutable refs (shared with provider) ---
-  readonly layersRef: React.MutableRefObject<
-    Map<React.ComponentType<any> | string, ScreenKeyboardLayer>
+  readonly layersRef: MutableRef<
+    Map<unknown | string, ScreenKeyboardLayer>
   >;
-  readonly pendingSeqRef: React.MutableRefObject<GlobalPendingSequence | null>;
+  readonly pendingSeqRef: MutableRef<GlobalPendingSequence | null>;
 
   // --- Callbacks ---
   readonly notifyFocusChange: () => void;

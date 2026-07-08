@@ -1,4 +1,3 @@
-import type { Key } from 'ink';
 import type {
   PipelineContext,
   PipelineProcessor,
@@ -77,7 +76,7 @@ function matchesOtherFocusTarget(
 function invokeMissIfNeeded(
   layer: ScreenKeyboardLayer,
   handled: boolean,
-  key: Key,
+  key: unknown,
   input: string,
   eventNames: string[],
   conditions: Map<string, boolean>,
