@@ -182,7 +182,7 @@ The project ships with specifications and workflows purpose-built for AI coding 
 
 See also [docs-agents/](docs-agents/) for agent reference material (test patterns, coding patterns, React guidelines, comment conventions).
 
-*This does not mean that we will maintain unlimited tolerance for the code produced by AI. Like many projects, we do not accept the junk code produced by AI.*
+**This does not mean that we will maintain unlimited tolerance for the code produced by AI. Like many projects, we do not accept the junk code produced by AI.**
 
 ## Examples
 
