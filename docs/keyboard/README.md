@@ -55,6 +55,8 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline (per-instance) |
 | [removeProcessor](./removeProcessor-API.md) | Remove a previously added custom processor (per-instance) |
 | [KeyboardProvider `processors` prop](./KeyboardProvider-API.md#processors-prop) | Per-instance custom processors |
+| [thereGlobalQueueWaiting](./thereGlobalQueueWaiting-API.md) | Check whether a global sequence is pending |
+| [currentScreenHasSequenceWaiting](./currentScreenHasSequenceWaiting-API.md) | Check whether the current layer has a pending sequence |
 
 ## Advanced
 

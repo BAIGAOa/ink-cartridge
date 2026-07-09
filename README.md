@@ -72,6 +72,8 @@ npx ink-cartridge init my-tui
 - [Mode System](docs/keyboard/mode-system-API.md)
 - [addProcessor](docs/keyboard/addProcessor-API.md)
 - [removeProcessor](docs/keyboard/removeProcessor-API.md)
+- [thereGlobalQueueWaiting](docs/keyboard/thereGlobalQueueWaiting-API.md)
+- [currentScreenHasSequenceWaiting](docs/keyboard/currentScreenHasSequenceWaiting-API.md)
 - [advanced](docs/keyboard/advanced.md)
 </details>
 

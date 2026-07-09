@@ -13,7 +13,7 @@ import {
 
 function MainScreen() {
   const { boundKeyboard, globalKeys } = useKeyboard();
-  const { overlay: showOverlay } = useScreenSystem();
+  const { openOverlay: showOverlay } = useScreenSystem();
   const [dirty, setDirty] = useState(true);
 
   useEffect(() => {
@@ -22,13 +22,13 @@ function MainScreen() {
         key: 'escape',
         operate: () => {
           if (dirty) {
-            showOverlay(ConfirmDialog, {
+            showOverlay('confirm-dialog', ConfirmDialog, {
               title: 'Discard changes',
               message: 'You have unsaved changes. Are you sure you want to quit?',
               confirmLabel: 'Discard and quit',
               cancelLabel: 'Keep editing',
               onConfirm: () => process.exit(0),
-              onCancel: () => closeOverlay(),
+              onCancel: () => closeOverlay('confirm-dialog'),
             });
           } else {
             process.exit(0);

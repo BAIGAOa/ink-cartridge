@@ -273,7 +273,7 @@ describe('generateTypesContent', () => {
 describe('generateRuntimeContent', () => {
   it('imports from the given package', () => {
     const content = generateRuntimeContent('ink-cartridge');
-    expect(content).toContain("import { t as rawT, useI18n as rawUseI18n } from 'ink-cartridge'");
+    expect(content).toContain("import { useI18n as rawUseI18n } from 'ink-cartridge'");
   });
 
   it('imports from custom package', () => {
