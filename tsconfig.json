@@ -13,9 +13,6 @@
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
     "moduleResolution": "Node16",
-    "paths": {
-      "@cartridge-engine/keyboard-engine": ["./src/keyboard-engine/src/index.ts"]
-    },
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
