@@ -1,6 +1,6 @@
 {
     "name": "ink-cartridge",
-    "version": "4.0.4",
+    "version": "4.0.5",
     "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
