@@ -140,10 +140,16 @@ export function handleLayer(
   currentMode: string | null,
   conditions: Map<string, boolean>
 ): boolean {
-  // The reason it has the highest priority is to ensure that tab/shift+tab have the highest priority, avoiding conflicts with business-bound actions.
-  // However, when there is no Focus Target in the Current Screen, handleTabNavigation will return false, which allows users to retain flexibility. When tab/shift+tab do not need to be enforced,
-  // they can also be bound to business-specific keys.
-  if (isTop && handleTabNavigation(layer, eventNames, (key as any).shift, notifyFocusChange)) return true;
+  // Tab/Shift+Tab has the highest priority to avoid conflicts with business-bound actions.
+  // However, when there is no Focus Target in the Current Screen, handleTabNavigation will
+  // return false, which allows users to retain flexibility. When tab/shift+tab do not need
+  // to be enforced, they can also be bound to business-specific keys.
+  //
+  // Detect shift from normalized event names rather than reading (key as any).shift.
+  // This keeps the engine framework-agnostic — normalizeKeyNames is responsible for
+  // adding "shift+" prefixed variants; we just check the output it produces.
+  const shift = eventNames.some(n => n.startsWith('shift+'));
+  if (isTop && handleTabNavigation(layer, eventNames, shift, notifyFocusChange)) return true;
 
   const penetrated = layer.penetrationKeys;
   const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated, conditions));
@@ -293,8 +299,13 @@ export function handleLayer(
         // letting boundKeyboard(['ctrl+d'], ...) consume the event.
         // Shift is exempt because it changes the character (d → D), so the
         // bare key name 'D' faithfully represents shift+d.
+        //
+        // Detect modifiers from normalized event names rather than reading
+        // (key as any).ctrl / (key as any).meta. This keeps the engine
+        // framework-agnostic.
         // @2026-06-23 v3.6.1
-        if (((key as any).ctrl || (key as any).meta) && !keyName.includes('+')) {
+        const hasCtrlOrMeta = eventNames.some(n => n.startsWith('ctrl+') || n.startsWith('meta+'));
+        if (hasCtrlOrMeta && !keyName.includes('+')) {
           continue;
         }
         const candidates = layer.sequences.get(keyName);
