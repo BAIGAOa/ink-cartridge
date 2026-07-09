@@ -212,6 +212,39 @@ useInput((input, key) => engine.processKey(input, key))
 | `cleanOverlayLayers()` | Post-render, when overlays change |
 | `cleanModalLayers()` | Post-render, when modals change |
 
+## Sequence State Queries
+
+While a multi-key sequence is in progress, the engine can report its pending state:
+
+- **Global sequences** (registered via `globalSequence()`) use an engine-level pending state. The first matching key starts the pending state; subsequent keys complete or cancel it.
+- **Local sequences** (registered via `boundSequence()`) use each layer's own pending state, scoped to that screen, overlay, or modal.
+
+| Method | Scope | Returns |
+|--------|-------|---------|
+| `getGlobalPendingSequence()` | Engine | `GlobalPendingSequence \| null` — full state including remaining keys, timeout, and handler |
+| `thereGlobalQueueWaiting()` | Engine | `boolean` — lightweight yes/no, equivalent to `getGlobalPendingSequence() !== null` |
+| `currentScreenHasSequenceWaiting()` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or overlay |
+
+### Best Practice
+
+```ts
+// Guard navigation while a local sequence is in progress
+if (engine.currentScreenHasSequenceWaiting()) {
+  return; // let the sequence complete first
+}
+
+// Defer work while a global sequence is pending
+if (engine.thereGlobalQueueWaiting()) {
+  return;
+}
+
+// Inspect the pending global sequence for debug/tooltip purposes
+const pending = engine.getGlobalPendingSequence();
+if (pending) {
+  console.log(`Waiting for key ${pending.nextIndex + 1}/${pending.sequences.length}`);
+}
+```
+
 ## Instance vs Global Processors
 
 The engine supports processor injection at the instance level:
@@ -227,4 +260,6 @@ Prefer instance-level — it avoids cross-app contamination.
 - [KeyboardProvider](./KeyboardProvider-API.md) — React/Ink adapter
 - [addProcessor](./addProcessor-API.md) — Per-instance processor injection
 - [boundKeyboard](./boundKeyboard-API.md) — Key binding API
+- [boundSequence](./boundSequence-API.md) — Local multi-key sequences
+- [globalSequence](./globalSequence-API.md) — Global multi-key sequences
 - [Mode System](./mode-system-API.md) — Modal modes

@@ -1383,6 +1383,36 @@ export default class KeyboardEngine<TComponent = unknown> {
     }
 
     /**
+     * Check whether a global multi-key sequence is currently pending
+     * (i.e. the first key was pressed and the engine is waiting for
+     * subsequent keys or a timeout).
+     */
+    thereGlobalQueueWaiting(): boolean {
+        return this.globalPendingSeqRef !== null;
+    }
+
+    /**
+     * Check whether the current screen/overlay layer has an active
+     * pending multi-key sequence (registered via {@link boundSequence}).
+     * Unlike {@link thereGlobalQueueWaiting}, this only checks the layer
+     * belonging to the current owner.
+     *
+     * @throws If there is no current owner (no active screen or overlay).
+     */
+    currentScreenHasSequenceWaiting(): boolean {
+        const owner = this.getCurrentOwner();
+
+        if (!owner) {
+            throw new Error(
+                '[Ink-Cartridge] currentScreenHasSequenceWaiting() must be called inside a screen component or overlay. There is currently no active screen.',
+            );
+        }
+
+        const layer = this.readLayer(owner);
+        return layer?.pendingSequence !== null && layer?.pendingSequence !== undefined;
+    }
+
+    /**
      * Build a snapshot of all mutable state needed to process a single key
      * event through the pipeline.
      *

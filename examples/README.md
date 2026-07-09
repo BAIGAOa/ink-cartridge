@@ -23,6 +23,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | modal | openModal/closeModal, renderNow, persistent, modal stacking | `npx tsx examples/core/modal.demo.tsx` |
 | global-keys | globalKeys with cover, category, affectOverlay, times, observer | `npx tsx examples/core/global-keys.demo.tsx` |
 | sequences | boundSequence + globalSequence, exclusive mode, timeouts | `npx tsx examples/core/sequences.demo.tsx` |
+| sequence-state-queries | thereGlobalQueueWaiting + currentScreenHasSequenceWaiting, pending-state UI feedback | `npx tsx examples/core/sequence-state-queries.demo.tsx` |
 | modal-keyboard | allowModal + useModalMissListener for pass-through and miss detection | `npx tsx examples/core/modal-keyboard.demo.tsx` |
 | shortcut-actions | defineShortcutAction, add/remove/modify, rebindable controls | `npx tsx examples/core/shortcut-actions.demo.tsx` |
 | wildcard | enableWildcardPriority + * binding for text capture mode | `npx tsx examples/core/wildcard.demo.tsx` |

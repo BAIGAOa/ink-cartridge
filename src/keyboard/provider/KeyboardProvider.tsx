@@ -56,6 +56,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       globalSequence: engine.globalSequence.bind(engine),
       getGlobalSequences: engine.getGlobalSequences.bind(engine),
       getGlobalPendingSequence: engine.getGlobalPendingSequence.bind(engine),
+      thereGlobalQueueWaiting: engine.thereGlobalQueueWaiting.bind(engine),
+      currentScreenHasSequenceWaiting: engine.currentScreenHasSequenceWaiting.bind(engine),
       focusSet: engine.focusSet.bind(engine),
       focusNext: engine.focusNext.bind(engine),
       focusPrev: engine.focusPrev.bind(engine),
