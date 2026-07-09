@@ -1,5 +1,5 @@
 import type { PipelineContext, PipelineProcessor } from '../types.js';
-import { checkGlobalKey } from '../check-global-key.js';
+import { checkGlobalKey } from '../checkGlobalKey.js';
 import { checkWhen } from '../checkWhen.js';
 
 /**
@@ -11,8 +11,6 @@ import { checkWhen } from '../checkWhen.js';
  *
  * @param config.affectOverlay - Which priority group this processor serves.
  * @returns A PipelineProcessor for the global key stage.
- *
- * @2026-06-14 v3.4.0
  */
 export function createGlobalKeyProcessor(config: {
   affectOverlay: boolean;
@@ -65,7 +63,6 @@ export function createGlobalKeyProcessor(config: {
             // 2nd press: pressCount=2, observer(1), returns true (swallowed)
             // 3rd press: pressCount=3, observer(0), pressCount→0, handler fires
             // Next press starts a new cycle: pressCount=1, observer(2)…
-            // @2026-06-19 v3.5.2
             entry.observer?.(entry.times - entry.pressCount!);
 
             if (entry.pressCount! < entry.times!) {

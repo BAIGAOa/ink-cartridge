@@ -4,7 +4,7 @@ import type {
   PendingSequence,
   KeyRule,
 } from './types.js';
-import { isNormalCharacter } from './keyNormalizer.js';
+import { isNormalCharacter } from './isNormalCharacter.js';
 import { checkWhen } from './checkWhen.js';
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
@@ -47,8 +47,8 @@ export function keyMatchesRule(
  *
  * @param bindings      Ordered list of key bindings to try.
  * @param availableKeys Normalized key names available for matching at this layer.
- * @param input         Raw character from Ink's useInput.
- * @param key           Full Key descriptor from Ink.
+ * @param input         Raw character from the framework's keyboard event.
+ * @param key           Full Key descriptor from the framework.
  * @param skipBinding   Optional predicate to skip individual bindings
  *                      (used for `onlyThis` enforcement).
  * @returns `true` if a binding matched and consumed the event.
@@ -124,8 +124,6 @@ export function handleTabNavigation(
  * keys — in that order.
  *
  * @returns true if the event was consumed by this layer.
- *
- * @2026-06-14 v3.4.0
  */
 export function handleLayer(
   layer: ScreenKeyboardLayer,
@@ -303,7 +301,6 @@ export function handleLayer(
         // Detect modifiers from normalized event names rather than reading
         // (key as any).ctrl / (key as any).meta. This keeps the engine
         // framework-agnostic.
-        // @2026-06-23 v3.6.1
         const hasCtrlOrMeta = eventNames.some(n => n.startsWith('ctrl+') || n.startsWith('meta+'));
         if (hasCtrlOrMeta && !keyName.includes('+')) {
           continue;

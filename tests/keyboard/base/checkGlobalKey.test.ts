@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { checkGlobalKey } from '../../../src/keyboard/check-global-key.js';
-import type { GlobalKeyEntry, ScreenKeyboardLayer } from '../../../src/keyboard/types.js';
+import { checkGlobalKey } from '../../../src/keyboard/index.js';
+import type { GlobalKeyEntry, ScreenKeyboardLayer } from '../../../src/keyboard/index.js';
 
 function fakeLayer(overrides: Partial<ScreenKeyboardLayer> = {}): ScreenKeyboardLayer {
   return {

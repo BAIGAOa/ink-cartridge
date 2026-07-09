@@ -8,7 +8,7 @@ import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
-import type { PenetrationOptions, StopOptions, SequenceOptions } from '../../../src/keyboard/types.js';
+import type { PenetrationOptions, StopOptions, SequenceOptions } from '../../../src/keyboard/index.js';
 
 /**
  * Wait for asynchronous effects (useEffect, state updates) to flush.

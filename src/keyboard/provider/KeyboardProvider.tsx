@@ -1,9 +1,10 @@
 import React, { ReactNode, useEffect, useMemo, useRef } from 'react';
 import { useInput } from 'ink';
+import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import type { KeyboardProcessorProps } from '@cartridge/keyboard-engine';
+import { clearShortcutOperations } from '@cartridge/keyboard-engine';
 import { KeyboardContext } from '../context.js';
-import { KeyboardProcessorProps } from '../types.js';
 import { useScreenSystem } from '../../screen/hook.js';
-import KeyboardEngine from '../engine/KeyboardEngine.js';
 import { normalizeKeyNames } from '../keyNormalizer.js';
 
 export interface KeyboardProviderProps {
@@ -36,9 +37,9 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
   engine.sync({
     path: currentPath,
     activeOverlayIds,
-    displayedOverlays,
+    displayedOverlays: displayedOverlays.map(o => ({ id: o.id })),
     activeModalId,
-    displayedModals,
+    displayedModals: displayedModals.map(m => ({ id: m.id })),
   });
 
   useEffect(() => { engine.cleanLayers(); }, [currentPath, engine]);
@@ -107,3 +108,5 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
     </KeyboardContext.Provider>
   );
 }
+
+export { clearShortcutOperations };

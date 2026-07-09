@@ -1,5 +1,5 @@
 import type { PipelineContext, PipelineProcessor } from '../types.js';
-import { handleLayer } from '../layer-handler.js';
+import { handleLayer } from '../layerHandler.js';
 
 /**
  * Create a processor for the screen stack stage.
@@ -10,8 +10,6 @@ import { handleLayer } from '../layer-handler.js';
  * that returns `true` stops the iteration.
  *
  * @returns A PipelineProcessor for the screen stack stage.
- *
- * @2026-06-14 v3.4.0
  */
 export function createScreenStackProcessor(): PipelineProcessor {
   return {

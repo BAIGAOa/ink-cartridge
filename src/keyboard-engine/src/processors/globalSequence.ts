@@ -19,8 +19,6 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
  * @param affectOverlay  Which group to filter (true = overlay-phase, false = screen-phase).
  * @param ctx            Full pipeline context.
  * @returns true when a new pending sequence was started (event consumed).
- *
- * @2026-06-14 v3.4.0
  */
 function tryStartGlobalSequence(
   entries: ResolvedGlobalSequenceEntry[],
@@ -31,7 +29,6 @@ function tryStartGlobalSequence(
   // matches the current event. When multiple entries share the same
   // first key, they are stored as candidates on the pending sequence
   // so that subsequent keys can disambiguate.
-  // @2026-06-27 v3.8.0
   const matching: ResolvedGlobalSequenceEntry[] = [];
 
   for (const entry of entries) {
@@ -123,8 +120,6 @@ function tryStartGlobalSequence(
  *
  * @param ctx  Full pipeline context.
  * @returns true when the event was consumed by the pending sequence.
- *
- * @2026-06-14 v3.4.0
  */
 function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
   const pending = ctx.pendingSeqRef.current;

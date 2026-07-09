@@ -1,7 +1,6 @@
 /**
  * Evaluate a `when` condition — either a function `() => boolean`, a
- * string referencing a named condition registered via
- * {@link addCondition}, or `undefined` (always passes).
+ * string referencing a named condition, or `undefined` (always passes).
  *
  * When `when` is a string and the named condition has not been
  * registered, this throws a descriptive error so the missing

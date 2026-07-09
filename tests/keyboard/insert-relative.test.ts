@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import { _insertRelative } from '../../src/keyboard/pipeline/chain.js';
-import type { PipelineProcessor } from '../../src/keyboard/types.js';
+import { _insertRelative } from '../../src/keyboard/index.js';
+import type { PipelineProcessor } from '../../src/keyboard/index.js';
 
 function createProcessor(id: string): PipelineProcessor {
   return { id, process: () => false };

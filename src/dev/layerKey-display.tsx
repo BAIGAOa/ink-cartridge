@@ -11,7 +11,7 @@ import type {
   SequenceBinding,
   KeyRule,
   FocusTarget,
-} from "../keyboard/types.js";
+} from "@cartridge/keyboard-engine";
 import type { LayerOwner } from "../keyboard/context.js";
 
 // Modal panel showing the full keyboard-layer details for a given

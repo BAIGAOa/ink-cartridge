@@ -12,7 +12,7 @@ const hooksRules = reactHooks.configs.recommended.rules;
 export default tseslint.config(
   // ── Global ignores ───────────────────────────────────────────
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'src/keyboard-engine/dist/**'],
   },
 
   // ── Base recommended rulesets ─────────────────────────────────

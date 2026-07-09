@@ -21,11 +21,8 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "emitDecoratorMetadata": false,
-    "experimentalDecorators": false,
-    "jsx": "react",
     "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/keyboard-engine"]
+  "exclude": ["node_modules", "dist"]
 }

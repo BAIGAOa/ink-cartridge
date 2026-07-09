@@ -5,7 +5,7 @@ import type {
   BoundKeyEntry,
   KeyRule,
 } from '../types.js';
-import { handleLayer } from '../layer-handler.js';
+import { handleLayer } from '../layerHandler.js';
 import { checkWhen } from '../checkWhen.js';
 
 
@@ -84,12 +84,6 @@ function invokeMissIfNeeded(
   if (!layer.onMiss) return false;
 
   const opts = layer.onMissOptions ?? {};
-
-  // fix: The stop API and penetration API cases are no longer handled.
-  // Instead, it is left to handlerLayer to handle natural
-  // So the expectation is that, So the Stop API returns miss: false, but the penetration API returns miss: true
-  // TODO: You need to modify the corresponding test and do it later.
-  // @2026-06-23 3.6.1
 
   if (handled) {
     layer.onMiss({ miss: false });

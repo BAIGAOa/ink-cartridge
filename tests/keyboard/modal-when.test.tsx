@@ -7,7 +7,7 @@ import { Text } from "ink";
 import { registerComponent } from "../../src/screen/registry.js";
 import { useKeyboard } from "../../src/keyboard/hook.js";
 import { useScreenSystem } from "../../src/screen/hook.js";
-import type { AllowModalOptions } from "../../src/keyboard/types.js";
+import type { AllowModalOptions } from "../../src/keyboard/index.js";
 
 beforeEach(() => {
   setupKeyboardTests();
