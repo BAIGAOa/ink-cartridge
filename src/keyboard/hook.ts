@@ -3,7 +3,7 @@ import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { OverlayContext } from "../screen/OverlayContext.js";
 import { ModalContext } from "../screen/ModalContext.js";
 import { useScreenSystem } from "../screen/hook.js";
-import type { ModalMissCallback, ModalMissOptions } from "./types.js";
+import type { ModalMissCallback, ModalMissOptions } from "@cartridge/keyboard-engine";
 
 /**
  * Access the keyboard API from within a React component.
@@ -17,8 +17,7 @@ import type { ModalMissCallback, ModalMissOptions } from "./types.js";
  *
  * When called inside a modal component (wrapped in ModalContext.Provider),
  * the same isolation mechanism applies: bindings are scoped to the modal's
- * own layer, keyed by modal ID. This is architecturally symmetric to overlay
- * isolation.
+ * own layer, keyed by modal ID.
  *
  * Must be used inside a {@link KeyboardProvider}.
  *
@@ -42,7 +41,6 @@ export function useKeyboard(): KeyboardContextValue {
   const { _pushOwner, _popOwner } = ctx;
   const ownerPushedRef = useRef(false);
 
-  // Lifecycle: overlay mount → push, unmount → pop.
   useEffect(() => {
     if (overlayId) {
       if (!ownerPushedRef.current) {
@@ -57,7 +55,6 @@ export function useKeyboard(): KeyboardContextValue {
     return;
   }, [overlayId, _pushOwner, _popOwner]);
 
-  // Lifecycle: modal mount → push, unmount → pop.
   useEffect(() => {
     if (modalId) {
       if (!ownerPushedRef.current) {
@@ -85,8 +82,6 @@ export function useKeyboard(): KeyboardContextValue {
    * subject to sibling ordering: screen components' effects fire before
    * the persisting layer's effect, causing bindings to leak into the
    * wrong keyboard layer.
-   *
-   * @2026-07-04 v3.8.0
    */
   const ownerCtx = modalCtx ?? overlayCtx;
   const ownerId = ownerCtx?.id ?? null;
@@ -110,18 +105,6 @@ export function useKeyboard(): KeyboardContextValue {
   return ctx;
 }
 
-/**
- * Subscribe to the focus state of a named focus target.
- *
- * Returns `true` when the target with the given `focusId` is the currently
- * active focus target on the current screen layer, `false` otherwise.
- *
- * Re-renders the component when the focus target changes (via Tab,
- * `focusSet`, `focusNext`, `focusPrev`, or `focusUnregister`).
- *
- * @param focusId The focus target id to watch.
- * @returns Whether the named target is currently focused.
- */
 export function useFocusState(focusId: string): boolean {
   const { focusCurrent, subscribeFocus } = useKeyboard();
   const [isFocused, setIsFocused] = useState<boolean>(
@@ -137,21 +120,6 @@ export function useFocusState(focusId: string): boolean {
   return isFocused;
 }
 
-/**
- * Subscribe to unhandled key presses inside a modal.
- *
- * When the active modal receives a key that was not consumed by any
- * binding, the callback is invoked. The definition of "consumed" is
- * controlled by {@link ModalMissOptions}.
- *
- * Only functions when called inside a modal component (where
- * {@link ModalContext} is set). Outside a modal the hook is a silent
- * no-op — the callback is never invoked.
- *
- * @param cb      - Callback invoked on every key press in the modal.
- * @param options - Controls which mechanics count as "handled".
- * @returns An unsubscribe function.
- */
 export function useModalMissListener(
   cb: ModalMissCallback,
   options?: ModalMissOptions,

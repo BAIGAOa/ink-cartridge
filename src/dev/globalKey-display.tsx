@@ -7,7 +7,7 @@ import { useScreenSystem } from "../screen/hook.js";
 import { registerComponent } from "../screen/registry.js";
 import { SelectInput } from "../components/select/SelectInput.js";
 import type { Item } from "../components/select/types.js";
-import type { ResolvedGlobalKeyEntry } from "../keyboard/types.js";
+import type { ResolvedGlobalKeyEntry } from "@cartridge/keyboard-engine";
 
 // This modal box displays information about all registered global keys.
 // Because it is a modal, its keyboard is independent and will not be

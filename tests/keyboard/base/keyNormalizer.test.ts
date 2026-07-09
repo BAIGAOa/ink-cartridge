@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeKeyNames, isNormalCharacter } from '../../../src/keyboard/keyNormalizer.js';
+import { normalizeKeyNames } from '../../../src/keyboard/keyNormalizer.js';
+import { isNormalCharacter } from '../../../src/keyboard/index.js';
 import type { Key } from 'ink';
 
 function makeKey(overrides: Partial<Key> = {}): Key {

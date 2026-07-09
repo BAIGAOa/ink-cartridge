@@ -1,5 +1,5 @@
 import type { PipelineContext, PipelineProcessor } from '../types.js';
-import { handleLayer } from '../layer-handler.js';
+import { handleLayer } from '../layerHandler.js';
 
 /**
  * Create a processor for the overlay broadcast stage.
@@ -12,8 +12,6 @@ import { handleLayer } from '../layer-handler.js';
  * whether the screen stack (stage ⑥) runs.
  *
  * @returns A PipelineProcessor for the overlay broadcast stage.
- *
- * @2026-06-14 v3.4.0
  */
 export function createOverlayProcessor(): PipelineProcessor {
   return {

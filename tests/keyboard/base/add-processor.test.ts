@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import KeyboardEngine from '../../../src/keyboard/engine/KeyboardEngine.js';
-import type { PipelineProcessor } from '../../../src/keyboard/types.js';
+import { KeyboardEngine } from '../../../src/keyboard/index.js';
+import type { PipelineProcessor } from '../../../src/keyboard/index.js';
 
 function createProcessor(id: string): PipelineProcessor {
   return { id, process: () => false };

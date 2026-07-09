@@ -100,7 +100,6 @@ export function pushKeyEntries(
 // Map<string, { action, keys?, timeout? }> shape.  The CRUD callbacks
 // below differ only in which ref they target and the error-message label.
 // These three functions eliminate that duplication.
-// @2026-06-27 v3.8.0
 
 /**
  * Insert a value into the map, throwing if the id already exists.
@@ -163,14 +162,18 @@ export function modifyEntryKeys<T extends { keys?: string[] }>(
  *
  * NOTE: Since the refactoring to per-instance useRef state, this function
  * is a no-op at module level. Shortcut operations are now scoped to each
- * {@link KeyboardProvider} instance and are automatically cleaned up when
- * the provider unmounts.
+ * {@link KeyboardEngine} instance and are automatically cleaned up when
+ * the instance is garbage-collected.
  *
  * Kept for backward compatibility with tests and external consumers that
  * call this function in cleanup routines.
+ *
+ * @deprecated State is now per-instance via KeyboardEngine. Module-level
+ *             clearShortcutOperations is a no-op. Use engine.clearShortcutOperations()
+ *             for instance-level cleanup.
  */
 export function clearShortcutOperations(): void {
-  // No-op: state is now per-instance via useRef inside KeyboardProvider
+  // No-op: state is now per-instance via KeyboardEngine
 }
 
 /**
@@ -179,9 +182,9 @@ export function clearShortcutOperations(): void {
  * the binding and global-key overrides, and optionally wrap the handler with
  * times/once lifecycle.
  *
- * Extracted from {@link boundKeyboard} to eliminate the duplicate 36‑line
- * block that previously appeared identically in both the focus‑target and
- * layer‑level branches.
+ * Extracted from {@link KeyboardEngine.boundKeyboard} to eliminate the
+ * duplicate block that previously appeared identically in both the
+ * focus‑target and layer‑level branches.
  *
  * @param bindingsArray  The array the entry was pushed into
  *                       ({@link ScreenKeyboardLayer.bindings} or
@@ -193,7 +196,6 @@ export function clearShortcutOperations(): void {
  * @param keys           Normalized key names.
  * @param options        Original {@link BoundKeyboardOptions}.
  * @returns              An unbind function that reverses the registration.
- * @2026-06-27 v3.8.0
  */
 export function finalizeBoundKeyboard(
   bindingsArray: BoundKeyEntry[],

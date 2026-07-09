@@ -12,11 +12,9 @@ import type {
  *
  * @param entry        The global key entry to evaluate.
  * @param eventNames   Normalized key names from the current event.
- * @param topComponent The topmost screen component, or null if no screen is active.
+ * @param topComponent The topmost screen component, or null.
  * @param layersRef    Mutable ref to all keyboard layers.
  * @returns true if the global key matches and is not overridden.
- *
- * @2026-06-14 v3.4.0
  */
 export function checkGlobalKey(
   entry: GlobalKeyEntry,
@@ -39,7 +37,7 @@ export function checkGlobalKey(
 
   const topLayer = layersRef.current.get(topComponent);
 
-  // Global Key rules (affectOverlay + cover)
+  // Global Key rules (affectOverlay + cover):
   //
   // When an Overlay is active:
   // - [true,  true] : Affects Overlay, can be overridden only by Overlay
@@ -53,7 +51,6 @@ export function checkGlobalKey(
   //
   // Option executeWhenNoOverlay (only if affectOverlay = true):
   // Keeps the key active on Screen Stack even without an Overlay, while preserving the original cover rule.
-  // @2026-06-11 v3.3.0
   if (topLayer && !entry.affectOverlay && (entry.cover ?? true)) {
     if (keyNames.some((k) => topLayer.globalKeyOverrides.has(k))) return false;
   }

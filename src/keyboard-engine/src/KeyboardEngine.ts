@@ -1,5 +1,6 @@
-import { ModalEntry, OverlayEntry } from "../../screen/types.js";
 import {
+    EngineOverlayEntry,
+    EngineModalEntry,
     ResolvedGlobalSequenceEntry,
     GlobalPendingSequence,
     ShortcutOperationEntry,
@@ -22,7 +23,7 @@ import {
     KeyboardProcessorProps,
     PipelineContext,
     MutableRef,
-} from "../types.js";
+} from "./types.js";
 import {
     KeyRuleContainer,
     pushKeyEntries,
@@ -30,13 +31,13 @@ import {
     setIfAbsent,
     deleteIfPresent,
     modifyEntryKeys,
-} from "../provider/helpers.js";
-import { createModalProcessor } from "../modal-processor/index.js";
-import { createGlobalSequenceProcessor } from "../global-sequence-processor/index.js";
-import { createGlobalKeyProcessor } from "../global-key-processor/index.js";
-import { createOverlayProcessor } from "../overlay-processor/index.js";
-import { createScreenStackProcessor } from "../screen-stack-processor/index.js";
-import { _insertRelative } from "../pipeline/chain.js";
+} from "./providers/helpers.js";
+import { createModalProcessor } from "./processors/modal.js";
+import { createGlobalSequenceProcessor } from "./processors/globalSequence.js";
+import { createGlobalKeyProcessor } from "./processors/globalKey.js";
+import { createOverlayProcessor } from "./processors/overlay.js";
+import { createScreenStackProcessor } from "./processors/screenStack.js";
+import { _insertRelative } from "./pipeline/chain.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -95,8 +96,6 @@ export interface EngineProps {
  * engine.sync({ path, activeOverlayIds, displayedOverlays, activeModalId, displayedModals });
  * useInput((input, key) => engine.processKey(input, key));
  * ```
- *
- * @2026-07-08 v3.8.5
  */
 export default class KeyboardEngine<TComponent = unknown> {
 
@@ -108,11 +107,11 @@ export default class KeyboardEngine<TComponent = unknown> {
     /** Set of overlay IDs currently receiving keyboard events. */
     activeOverlayIds: Set<string> = new Set()
     /** All open overlays, sorted by zIndex ascending. */
-    displayedOverlays: OverlayEntry[] = []
+    displayedOverlays: EngineOverlayEntry[] = []
     /** ID of the currently active modal (highest zIndex), or null. */
     activeModalIdRef: string | null = null
     /** All open modals, sorted by zIndex ascending. */
-    displayedModalsRef: ModalEntry[] = []
+    displayedModalsRef: EngineModalEntry[] = []
 
     /** Set of registered mode names. */
     modesRef: Set<string>
@@ -227,9 +226,9 @@ export default class KeyboardEngine<TComponent = unknown> {
     sync(state: {
         path: TComponent[]
         activeOverlayIds: string[]
-        displayedOverlays: OverlayEntry[]
+        displayedOverlays: EngineOverlayEntry[]
         activeModalId: string | null
-        displayedModals: ModalEntry[]
+        displayedModals: EngineModalEntry[]
     }) {
         this.path = state.path
         this.activeOverlayIds = new Set(state.activeOverlayIds)
@@ -449,7 +448,7 @@ export default class KeyboardEngine<TComponent = unknown> {
         if (!layer) {
             throw new Error(
                 `focusSet("${focusId}"): no keyboard layer found for "${ownerName}". ` +
-                `Did you forget to wrap the screen in <KeyboardProvider>?`,
+                `Did you forget to wrap the screen in a keyboard provider?`,
             );
         }
         this.clearPendingSequence(layer);
@@ -1293,8 +1292,6 @@ export default class KeyboardEngine<TComponent = unknown> {
      *   6. Screen stack
      *
      * Custom processors are inserted via index, before/after target, or appended.
-     *
-     * @2026-07-08 v3.8.5
      */
     _buildDefaultProcessors(custom?: KeyboardProcessorProps[]): PipelineProcessor[] {
         const defaults: PipelineProcessor[] = [

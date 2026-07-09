@@ -1,8 +1,27 @@
-import type { OverlayEntry } from "../screen/types.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
 
 export interface MutableRef<T> {
     current: T;
+}
+
+/**
+ * A minimal overlay entry for the engine.
+ *
+ * The engine only needs the `id` field to look up keyboard layers;
+ * all other fields (component, props, zIndex) are framework concerns.
+ */
+export interface EngineOverlayEntry {
+  id: string;
+}
+
+/**
+ * A minimal modal entry for the engine.
+ *
+ * Same pattern as {@link EngineOverlayEntry} — only `id` is required
+ * for layer lookup; framework-specific fields live in the adapter.
+ */
+export interface EngineModalEntry {
+  id: string;
 }
 
 /**
@@ -30,7 +49,7 @@ export interface KeyRule {
 export type KeyHandler = (input: string, key: unknown) => void;
 
 /**
- * Options for {@link KeyboardContextValue.boundKeyboard}.
+ * Options for {@link KeyboardEngine.boundKeyboard}.
  */
 export interface BoundKeyboardOptions {
   /**
@@ -103,15 +122,15 @@ export interface BoundKeyboardOptions {
   observer?: (remaining: number) => void;
 
   /**
-   * Restrict this binding to a specific mode set via {@link KeyboardContextValue.setMode}.
+   * Restrict this binding to a specific mode set via {@link KeyboardEngine.setMode}.
    *
    * When the active mode (read from the pipeline context) does not match
    * this value, the binding is skipped as if it does not exist — the event
    * continues to the next binding or layer. When omitted, the binding fires
    * in all modes (including no-mode, i.e. `currentMode === null`).
    *
-   * Modes must be registered before use — via {@link KeyboardProviderProps.modes}
-   * or {@link KeyboardContextValue.addMode}.
+   * Modes must be registered before use — via {@link EngineProps.modes}
+   * or {@link KeyboardEngine.addMode}.
    *
    * @example
    * ```ts
@@ -186,7 +205,7 @@ export interface FocusTarget {
   /**
    * Key rules allowed to pass through the modal barrier, scoped to
    * this focus target. Only meaningful on modal layers.
-   * Registered via {@link KeyboardContextValue.allowModal} with a `focusId`.
+   * Registered via {@link KeyboardEngine.allowModal} with a `focusId`.
    */
   allowedKeys: KeyRule[];
   /** Maps action IDs to the normalized keys that trigger them (for stopAction). */
@@ -194,7 +213,7 @@ export interface FocusTarget {
 }
 
 /**
- * Options for {@link KeyboardContextValue.boundSequence}.
+ * Options for {@link KeyboardEngine.boundSequence}.
  *
  * Extends {@link BoundKeyboardOptions} with sequence-specific settings:
  * a per-sequence timeout and an exclusive flag that controls behavior
@@ -305,7 +324,7 @@ export type LayerKind = "screen" | "overlay" | "modal";
  * and focus targets.
  */
 export interface ScreenKeyboardLayer {
-  /** What kind of layer this is. Set on first creation by {@link KeyboardProvider}. */
+  /** What kind of layer this is. Set on first creation by the engine. */
   kind: LayerKind;
   /** Registered screen-level key bindings (evaluation order). */
   bindings: BoundKeyEntry[];
@@ -321,7 +340,7 @@ export interface ScreenKeyboardLayer {
    * processor — it falls through to the next pipeline stage (global keys,
    * overlays, or screens).
    *
-   * Registered via {@link KeyboardContextValue.allowModal}.
+   * Registered via {@link KeyboardEngine.allowModal}.
    */
   allowedKeys: KeyRule[];
   /** Keys from globalKeys that this layer has overridden. */
@@ -395,7 +414,7 @@ export interface ModalMissOptions {
 }
 
 /**
- * Options for {@link KeyboardContextValue.stop} when stopping keys
+ * Options for {@link KeyboardEngine.stop} when stopping keys
  * within a specific focus target.
  */
 export interface StopOptions {
@@ -423,7 +442,7 @@ export interface StopOptions {
 }
 
 /**
- * Options for {@link KeyboardContextValue.penetration} when marking keys
+ * Options for {@link KeyboardEngine.penetration} when marking keys
  * as transparent within a specific focus target.
  */
 export interface PenetrationOptions {
@@ -438,7 +457,7 @@ export interface PenetrationOptions {
 }
 
 /**
- * Options for {@link KeyboardContextValue.allowModal} when allowing keys
+ * Options for {@link KeyboardEngine.allowModal} when allowing keys
  * to pass through the modal barrier within a specific focus target.
  */
 export interface AllowModalOptions {
@@ -510,10 +529,6 @@ export interface GlobalKeyEntry {
   category?: unknown[] | "*";
 
   /**
-   * This key also works when you have affectOverlay turned on, but you want to have no floating layer
-   * You turn it on.
-   */
-  /**
    * Optional condition callback. When provided, the global key only fires
    * if this returns `true` at the moment of the key press. When `false`,
    * the entry is skipped entirely — `cover`, `category`, and other options
@@ -556,8 +571,6 @@ export interface GlobalKeyEntry {
  * (e.g. `['g', 'g']`, `['ctrl+w', 'q']`) instead of single key presses.
  *
  * Unlike global keys, global sequences do NOT support `times`.
- *
- * @see {@link KeyboardContextValue.globalSequence}
  */
 export interface GlobalSequenceEntry {
   /**
@@ -572,8 +585,8 @@ export interface GlobalSequenceEntry {
    * Can also be a string referencing a registered {@link SequenceOperationEntry}
    * by its `sequenceActionId`. When a string is provided, the action's
    * `action` callback is used. The action must be registered via
-   * {@link KeyboardContextValue.defineSequenceAction} or
-   * {@link KeyboardContextValue.addSequenceAction} before calling
+   * {@link KeyboardEngine.defineSequenceAction} or
+   * {@link KeyboardEngine.addSequenceAction} before calling
    * `globalSequence`.
    */
   operate: (() => void) | string;
@@ -625,12 +638,6 @@ export interface GlobalSequenceEntry {
    */
   exclusive?: boolean;
 
-  /**
-   * When `affectOverlay` is `true` but no overlays are active, setting
-   * this to `true` makes the global sequence still fire (acting on the
-   * screen stack instead). When `false` (default), `affectOverlay: true`
-   * global sequences only fire when at least one overlay is active.
-   */
   /**
    * Optional condition callback. When provided, the global sequence only
    * starts and continues when this returns `true`.
@@ -762,12 +769,10 @@ export interface GlobalPendingSequence {
  * Snapshot of all mutable state needed to process a single key event
  * through the keyboard pipeline.
  *
- * Created once per event by {@link buildPipelineContext}. Immutable
- * snapshot fields reflect the state at the moment the event arrived;
- * mutable coordination fields allow cross-processor communication
+ * Created once per event by {@link KeyboardEngine.buildPipelineContext}.
+ * Immutable snapshot fields reflect the state at the moment the event
+ * arrived; mutable coordination fields allow cross-processor communication
  * within a single pipeline run.
- *
- * @2026-06-14 v3.4.0
  */
 export interface PipelineContext {
   // --- Immutable per-event snapshots ---
@@ -777,14 +782,14 @@ export interface PipelineContext {
   readonly topComponent: unknown | null;
   readonly globalKeys: ResolvedGlobalKeyEntry[];
   readonly globalSequences: ResolvedGlobalSequenceEntry[];
-  readonly activeOverlays: OverlayEntry[];
+  readonly activeOverlays: EngineOverlayEntry[];
   readonly activeCount: number;
   readonly wildcardFirst: boolean;
   readonly screenPath: unknown[];
   /** ID of the currently active modal, or null if none. */
   readonly activeModalId: string | null;
 
-  // --- Mutable refs (shared with provider) ---
+  // --- Mutable refs (shared with engine instance) ---
   readonly layersRef: MutableRef<
     Map<unknown | string, ScreenKeyboardLayer>
   >;
@@ -813,9 +818,9 @@ export interface PipelineProcessor {
 }
 
 /**
- * Per-instance custom processor injection for {@link KeyboardProvider}.
+ * Per-instance custom processor injection for the engine.
  *
- * Supports the same positioning as {@link addProcessor}:
+ * Supports the same positioning as {@link KeyboardEngine.addProcessor}:
  * - `{ processor, target, position }` — insert before/after a built-in processor
  * - `{ processor, index }`              — insert at a 0-based position
  * - `{ processor }`                      — append to the end of the chain

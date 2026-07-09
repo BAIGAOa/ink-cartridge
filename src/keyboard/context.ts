@@ -17,620 +17,102 @@ import type {
   GlobalPendingSequence,
   ScreenKeyboardLayer,
   PipelineProcessor,
-} from "./types.js";
-import type { BuiltinProcessorId } from "./pipeline/chain.js";
+} from "@cartridge/keyboard-engine";
+import type { BuiltinProcessorId } from "@cartridge/keyboard-engine";
 
-/**
- * Type for the owner stack used to track overlay context.
- * Can be a component type (for screens) or a string (for overlay IDs).
- */
 export type LayerOwner = unknown | string;
 
-/**
- * Value provided by {@link KeyboardProvider} via React context.
- */
 export interface KeyboardContextValue {
-  /**
-   * Bind one or more keys to a handler on the current screen layer.
-   *
-   * When a `focusId` is provided, the binding is stored on a named focus
-   * target instead of the screen-level bucket. Only the currently active
-   * focus target receives events.
-   *
-   * Overloads:
-   * 1. `(keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions)` —
-   *    explicit keys and handler. A single string is normalized to `[string]`.
-   * 2. `(keys: string | string[], actionId: string, options?: BoundKeyboardOptions)` —
-   *    explicit keys referencing a registered shortcut action by id.
-   * 3. `(actionId: string, options?: BoundKeyboardOptions)` —
-   *    uses a registered shortcut action's predefined keys and callback.
-   *
-   * @param keys     Key name(s) to bind (e.g. `"s"`, `["s", "ctrl+q", "return"]`).
-   * @param handler  Callback receiving the raw `input` and `key` from Ink,
-   *                 or a registered shortcut action id string.
-   * @param options  Optional binding behavior (`onlyThis`, `focusId`, `once`, `times`, `when`).
-   * @returns        An unbind function that removes this binding when called.
-   */
   boundKeyboard: {
     (keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions): () => void;
     (keys: string | string[], actionId: string, options?: BoundKeyboardOptions): () => void;
     (actionId: string, options?: BoundKeyboardOptions): () => void;
   };
 
-  /**
-   * Mark one or more keys as "transparent" on the current layer.
-   *
-   * When a transparent key reaches this layer (or the named focus target),
-   * the layer's own bindings are skipped and the key continues to propagate
-   * to layers below.
-   *
-   * @param keys     Key names to make transparent.
-   * @param options  If `focusId` is provided, marks transparent only
-   *                 within that focus target.
-   */
   penetration: (keys: string[], options?: PenetrationOptions) => () => void;
 
-  /**
-   * Prevent one or more keys from propagating to layers below.
-   *
-   * Stopped keys are consumed at this layer: local bindings are evaluated
-   * first, and if no binding matches, the key is blocked from reaching
-   * lower layers.
-   *
-   * @param keys     Key names to stop from propagating.
-   * @param options  If `focusId` is provided, stops only within that
-   *                 focus target.
-   * @returns        An unstop function that removes the keys from the
-   *                 stop list.
-   */
   stop: (keys: string[], options?: StopOptions) => () => void;
 
-  /**
-   * Allow specific keys to pass through the modal barrier.
-   *
-   * By default, the active modal consumes **every** key event —
-   * even unbound keys — blocking all lower pipeline stages (global keys,
-   * overlays, screen stack). Adding a key to the allow-list makes the
-   * modal processor release that key, letting it fall through to the
-   * next pipeline stage as if the modal were not present.
-   *
-   * Only meaningful when called inside a modal component (where
-   * {@link ModalContext} is set). Throws if called outside a modal.
-   *
-   * @param keys     Key names to allow through the modal barrier.
-   * @param options  If `focusId` is provided, allows only within that
-   *                 focus target.
-   * @returns        An unbind function that removes the keys from the
-   *                 allow list when called.
-   *
-   * @example
-   * ```tsx
-   * // Allow Escape to close the modal by passing through to a
-   * // global-key handler, while everything else stays blocked.
-   * useEffect(() => {
-   *   return allowModal(['escape']);
-   * }, []);
-   * ```
-   */
   allowModal: (keys: string[], options?: AllowModalOptions) => () => void;
 
-  /**
-   * Register global key bindings.
-   *
-   * Global keys fire independently of the screen stack (subject to
-   * `category` whitelist and `affectOverlay` placement).
-   *
-   * By default (or with `{ mode: 'replace' }`), replaces all previously
-   * registered global keys. Pass `{ mode: 'add' }` to append without
-   * removing existing entries.
-   *
-   * @param entries  Array of global key definitions.
-   * @param options  Optional: `{ mode: 'replace' | 'add' }`. Default `'replace'`.
-   */
   globalKeys: (
     entries: GlobalKeyEntry[],
     options?: { mode?: "replace" | "add" },
   ) => void;
 
-  /**
-   * Return a snapshot of all currently registered global key entries.
-   *
-   * Each entry includes the resolved `operate` callback (actions resolved
-   * from action IDs), plus metadata: `key`, `cover`, `affectOverlay`,
-   * `category`, `times`, `pressCount`, `observer`, `executeWhenNoOverlay`,
-   * and `when`.
-   *
-   * @returns A shallow copy of the current global keys array.
-   */
   getGlobalKeys: () => ResolvedGlobalKeyEntry[];
 
-  /**
-   * Register global sequence key bindings.
-   *
-   * Global sequences fire independently of the screen stack with higher
-   * priority than {@link globalKeys}. They match multi-key sequences
-   * instead of single key presses.
-   *
-   * By default (or with `{ mode: 'replace' }`), replaces all previously
-   * registered global sequences. Pass `{ mode: 'add' }` to append without
-   * removing existing entries.
-   *
-   * **Priority chain**: global sequences are evaluated before global keys
-   * in both the `affectOverlay: true` and `affectOverlay: false` stages:
-   *   1. globalSequence(affectOverlay:true)
-   *   2. globalKeys(affectOverlay:true)
-   *   3. overlay layer
-   *   4. globalSequence(affectOverlay:false)
-   *   5. globalKeys(affectOverlay:false)
-   *   6. screen stack
-   *
-   * **Cover**: Only `boundSequence` can override a global sequence (not
-   * `boundKeyboard`). When `cover: false`, `boundSequence` with the same
-   * first key throws.
-   *
-   * **No `times` support**: Unlike `globalKeys`, global sequences do not
-   * support the `times` option.
-   *
-   * @param entries  Array of global sequence definitions.
-   * @param options  Optional: `{ mode: 'replace' | 'add' }`. Default `'replace'`.
-   * @throws If any `keys` array has length < 2.
-   */
   globalSequence: (
     entries: GlobalSequenceEntry[],
     options?: { mode?: "replace" | "add" },
   ) => void;
 
-  /**
-   * Return a snapshot of all currently registered global sequence entries.
-   *
-   * Each entry includes the resolved `operate` callback (actions resolved
-   * from action IDs), plus metadata: `keys`, `cover`, `affectOverlay`,
-   * `category`, `timeout`, `exclusive`, `when`, and `executeWhenNoOverlay`.
-   *
-   * @returns A shallow copy of the current global sequences array.
-   */
   getGlobalSequences: () => ResolvedGlobalSequenceEntry[];
 
-  /**
-   * Return the current global pending sequence state, or `null` if no
-   * global sequence is pending.
-   *
-   * A pending state exists when the first key of a registered global
-   * sequence has been pressed and the system is waiting for subsequent
-   * keys within the configured timeout.
-   *
-   * @returns The pending sequence snapshot, or `null`.
-   */
   getGlobalPendingSequence: () => GlobalPendingSequence | null;
 
-  /**
-   * Remove a focus target from the current screen layer.
-   *
-   * If the removed target was the currently active one, the next target
-   * (in registration order) is activated automatically. If no targets
-   * remain, `currentFocusId` becomes `null`.
-   *
-   * Components should call this in their `useEffect` cleanup alongside
-   * unbinding their focus-level key bindings.
-   *
-   * @param focusId  The focus target id to remove.
-   */
   focusUnregister: (focusId: string) => void;
 
-  /**
-   * Activate a specific focus target by its id.
-   *
-   * Throws a runtime error if the current screen has no keyboard layer
-   * or no focus target with the given id is registered.
-   *
-   * @param focusId  The focus target id to activate.
-   * @throws If the current screen has no keyboard layer or the focus
-   *         target does not exist.
-   */
   focusSet: (focusId: string) => void;
 
-  /**
-   * Activate the next focus target in registration order.
-   *
-   * Equivalent to pressing Tab. Wraps around to the first target if
-   * the last target is currently active.
-   */
   focusNext: () => void;
 
-  /**
-   * Activate the previous focus target in registration order.
-   *
-   * Equivalent to pressing Shift+Tab. Wraps around to the last target
-   * if the first target is currently active.
-   */
   focusPrev: () => void;
 
-  /**
-   * Return the currently active focus target id on the current screen.
-   *
-   * @returns The active focus id, or `null` if no focus targets exist.
-   */
   focusCurrent: () => string | null;
 
-  /**
-   * Subscribe to focus changes on the current screen layer.
-   *
-   * The listener is called whenever the active focus id changes (via
-   * Tab, `focusSet`, `focusNext`, `focusPrev`, or `focusUnregister`).
-   *
-   * @param listener  Callback invoked on focus change.
-   * @returns         An unsubscribe function.
-   */
   subscribeFocus: (listener: () => void) => () => void;
 
-  /**
-   * Register named shortcut actions that can be referenced by key bindings
-   * using a string identifier instead of an inline callback.
-   *
-   * Decouples operation definition from key binding.
-   *
-   * @param entries - Array of shortcut operation definitions.
-   *                  Each entry must have a unique `actionId`.
-   *
-   * @throws {Error} If an `actionId` is duplicated.
-   */
   defineShortcutAction: (entries: ShortcutOperationEntry[]) => void;
-  /**
-   * Dynamically register a single shortcut action.
-   *
-   * @param entry - The shortcut operation definition to add.
-   * @throws {Error} If an action with the same `actionId` already exists.
-   */
   addAction: (entry: ShortcutOperationEntry) => void;
-  /**
-   * Check whether a shortcut action with the given id exists.
-   *
-   * @param actionId - The action id to look up.
-   * @returns `true` if the action is registered, `false` otherwise.
-   */
   hasAction: (actionId: string) => boolean;
-  /**
-   * Remove a registered shortcut action.
-   *
-   * @param actionId - The action id to remove.
-   * @throws {Error} If no action with the given id exists.
-   */
   removeAction: (actionId: string) => void;
-  /**
-   * Modify the default keys of an existing shortcut action.
-   *
-   * @param actionId - The unique identifier of the action.
-   * @param keys     - New key names to replace the previous default keys.
-   * @throws If the action does not exist or was not registered with a `keys` field.
-   */
   modifyAction: (actionId: string, keys: string[]) => void;
-  /**
-   * Clear all registered shortcut operations.
-   * Primarily used for testing or full keyboard reset scenarios.
-   */
   clearShortcutOperations: () => void;
 
-  /**
-   * Register named sequence actions that can be referenced by sequence
-   * bindings using a string identifier instead of an inline callback.
-   *
-   * @param entries - Array of sequence operation definitions.
-   *                  Each entry must have a unique `sequenceActionId`.
-   * @throws {Error} If a `sequenceActionId` is duplicated.
-   */
   defineSequenceAction: (entries: SequenceOperationEntry[]) => void;
-
-  /**
-   * Dynamically register a single sequence action.
-   *
-   * @param entry - The sequence operation definition to add.
-   * @throws {Error} If an action with the same `sequenceActionId` already exists.
-   */
   addSequenceAction: (entry: SequenceOperationEntry) => void;
-
-  /**
-   * Check whether a sequence action with the given id exists.
-   *
-   * @param sequenceActionId - The action id to look up.
-   * @returns `true` if the action is registered, `false` otherwise.
-   */
   hasSequenceAction: (sequenceActionId: string) => boolean;
-
-  /**
-   * Remove a registered sequence action.
-   *
-   * @param sequenceActionId - The action id to remove.
-   * @throws {Error} If no action with the given id exists.
-   */
   removeSequenceAction: (sequenceActionId: string) => void;
-
-  /**
-   * Modify the default keys (and optionally timeout) of an existing sequence action.
-   *
-   * @param sequenceActionId - The unique identifier of the action.
-   * @param keys             - New key names to replace the previous default keys.
-   * @param timeout          - Optional new timeout value.
-   * @throws If the action does not exist or was not registered with a `keys` (or `timeout`) field.
-   */
   modifySequenceAction: (sequenceActionId: string, keys: string[], timeout?: number) => void;
-
-  /**
-   * Clear all registered sequence operations.
-   * Primarily used for testing or full keyboard reset scenarios.
-   */
   clearSequenceOperations: () => void;
 
-  /**
-   * Internal: Push an owner onto the owner stack.
-   * Used by useKeyboard() when rendering inside an overlay.
-   */
   _pushOwner: (owner: LayerOwner) => void;
 
-  /**
-   * Internal: Pop an owner from the owner stack.
-   * Used by useKeyboard() cleanup when leaving an overlay context.
-   */
   _popOwner: (owner: LayerOwner) => void;
 
-  /**
-   * Register a multi-key sequence binding on the current screen layer.
-   *
-   * When the first key of a sequence is pressed, the layer enters a pending
-   * state waiting for subsequent keys within `timeout` milliseconds (default
-   * 500). If the full sequence is entered in order before the timeout, the
-   * handler fires. Otherwise the pending state is cancelled.
-   *
-   * **Sequence priority**: Sequences are evaluated before ordinary
-   * `boundKeyboard` bindings. When a sequence's first key is pressed, it
-   * is consumed by the sequence system and will not trigger any normal
-   * binding for that key.
-   *
-   * **Exclusive vs non-exclusive (default)**: In non-exclusive mode, a
-   * key that does NOT match the next expected key in the sequence
-   * immediately cancels the pending sequence and falls through to normal
-   * bindings. In exclusive mode (`exclusive: true`), mismatched keys are
-   * silently consumed — the sequence keeps waiting within its timeout.
-   *
-   * **Layer isolation**: Each screen / overlay maintains its own pending
-   * sequence state. Navigating away, switching focus, or closing an
-   * overlay automatically clears any pending sequence on that layer.
-   *
-   * @param keys      Ordered key names that make up the sequence
-   *                  (e.g. `['g', 'g']`, `['c', 'w']`). Length must be ≥ 2.
-   * @param handler   Callback invoked when the full sequence is matched.
-   *                  Receives the Ink `input` and `key` of the final key
-   *                  press that completed the sequence.
-   * @param options   Optional configuration:
-   *                  - `timeout` (ms, default 500): how long to wait between
-   *                    key presses before cancelling the sequence.
-   *                  - `exclusive` (default false): if true, mismatched keys
-   *                    are consumed silently; if false, they cancel the
-   *                    sequence and fall through.
-   *                  - `onlyThis` / `focusId`: same behaviour as
-   *                    `boundKeyboard`.
-   * @returns         An unbind function that removes the sequence binding
-   *                   when called.
-   *
-   * @example
-   * ```tsx
-   * // Vim-like 'gg' to jump to the top
-   * useEffect(() => {
-   *   boundSequence(['g', 'g'], () => scrollToTop());
-   * }, []);
-   *
-   * // Exclusive mode: only 'ctrl+w' 'q' triggers, no other key interrupts
-   * useEffect(() => {
-   *   boundSequence(['ctrl+w', 'q'], closeTab, { exclusive: true });
-   * }, []);
-   *
-   * // Sequence restricted to a specific focus target
-   * useEffect(() => {
-   *   boundSequence(['d', 'd'], deleteLine, { focusId: 'editor' });
-   * }, []);
-   * ```
-   */
-  /**
-   * Register a multi-key sequence binding on the current screen layer.
-   *
-   * Overloads:
-   * 1. `(keys: string | string[], handler: KeyHandler, options?: SequenceOptions)` —
-   *    explicit keys and handler. A single string is normalized to `[string]`
-   *    (but the sequence still requires at least 2 keys).
-   * 2. `(actionId: string, options?: SequenceOptions)` —
-   *    uses a registered sequence action's predefined keys and callback.
-   */
   boundSequence: {
     (keys: string | string[], handler: KeyHandler, options?: SequenceOptions): () => void;
     (actionId: string, options?: SequenceOptions): () => void;
   };
 
-  /**
-   * Enable wildcard priority mode.
-   *
-   * When enabled, wildcard `*` bindings take absolute priority over ALL
-   * other key handling — sequences, exact key matches, everything. Only
-   * normal character input (as determined by `isNormalCharacter`) is
-   * affected — special keys (Tab, Return, Escape, arrow keys, modifiers,
-   * etc.) are never matched by wildcard and always fall through to normal
-   * processing.
-   *
-   * Uses reference counting: multiple callers can enable independently.
-   * Each returned disable function decrements the count; the mode is
-   * disabled when the count reaches zero.
-   *
-   * @returns A function that, when called, disables wildcard priority
-   *          for this caller. When all callers have disabled, original
-   *          priority is restored.
-   *
-   * @example
-   * ```tsx
-   * useEffect(() => {
-   *   const disable = enableWildcardPriority();
-   *   const unbind = boundKeyboard(['*'], handleInput, { focusId: 'input' });
-   *   return () => { unbind(); disable(); };
-   * }, []);
-   * ```
-   */
   enableWildcardPriority: () => (() => void);
 
-  /**
-   * Subscribe to unhandled key presses inside a modal.
-   *
-   * When the active modal receives a key that was not consumed by any
-   * binding (according to the specified {@link ModalMissOptions}), the
-   * callback is invoked with either `{ miss: true, key, input, eventNames }`
-   * or `{ miss: false }`.
-   *
-   * Only functions inside a modal component (where {@link ModalContext} is
-   * set). Returns an unsubscribe function. Calling outside a modal is a
-   * silent no-op.
-   *
-   * @param cb      - Callback invoked on every key press in the modal.
-   * @param options - Controls which mechanics count as "handled".
-   * @returns An unsubscribe function.
-   */
   useModalMissListener: (
     cb: ModalMissCallback,
     options?: ModalMissOptions,
   ) => () => void;
 
-  /**
-   * Read the keyboard layer for a given owner without creating one.
-   *
-   * Returns the {@link ScreenKeyboardLayer} associated with the component
-   * type (for screens) or string ID (for overlays / modals), or `undefined`
-   * if no layer has been created for that owner yet.
-   *
-   * Unlike the internal `getLayer`, this is a pure read — it never creates
-   * a new layer. This bypasses the owner stack, so callers can inspect any
-   * layer regardless of their current overlay / modal context.
-   *
-   * @param owner - A component type or overlay/modal string ID.
-   * @returns The layer data, or `undefined`.
-   */
   readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
 
-  /**
-   * Returns the currently active mode, or `null` if no mode is set.
-   *
-   * Reads from the provider's ref — always returns the latest value
-   * regardless of React batching. Safe to call inside keyboard handlers.
-   *
-   * @returns The active mode string, or `null`.
-   */
   getCurrentMode: () => string | null;
 
-  /**
-   * Register a new mode so it can be switched to via {@link setMode},
-   * {@link nextMode}, or {@link prevMode}.
-   *
-   * Duplicate names are silently ignored. Modes must be registered before
-   * they can be activated — {@link setMode} rejects unregistered modes.
-   *
-   * @param mode - Unique mode name (e.g. `"normal"`, `"insert"`).
-   * @returns `true` if the mode was added, `false` if it was already registered.
-   */
   addMode: (mode: string) => boolean;
 
-  /**
-   * Unregister a mode. The currently active mode is NOT cleared when it
-   * is removed — call {@link setMode}`(null)` first if you need to exit.
-   *
-   * @param mode - The mode name to remove.
-   * @returns `true` if the mode existed and was removed.
-   */
   removeMode: (mode: string) => boolean;
 
-  /**
-   * Switch to a specific mode immediately.
-   *
-   * Pass `null` to exit all modes (no-mode state). When passing a string,
-   * the mode must have been registered via {@link addMode} or the
-   * {@link KeyboardProviderProps.modes} prop — otherwise the call is
-   * rejected and returns `false`.
-   *
-   * Mode changes take effect synchronously for the next key event. They
-   * do NOT trigger a React re-render (modes are stored in a ref for
-   * zero-overhead keyboard-path access).
-   *
-   * @param mode - The target mode name, or `null` to clear.
-   * @returns `true` if the switch succeeded, `false` if the mode is not registered.
-   */
   setMode: (mode: string | null) => boolean;
 
-  /**
-   * Cycle to the next mode in registration order.
-   *
-   * Wraps around: the mode after the last registered mode is the first.
-   * A no-op when no modes are registered. Does not trigger a re-render.
-   *
-   * Typical use: binding `escape` / `ctrl+[` to cycle from insert → normal.
-   */
   nextMode: () => void;
 
-  /**
-   * Cycle to the previous mode in registration order.
-   *
-   * Wraps around: the mode before the first registered mode is the last.
-   * A no-op when no modes are registered. Does not trigger a re-render.
-   */
   prevMode: () => void;
 
-  /**
-   * Register a named condition for dynamic `when` evaluation.
-   *
-   * Conditions allow keyboard bindings to use `when: "conditionName"` instead
-   * of a closure function. The condition's boolean value is evaluated from the
-   * internal {@link Map} each time a key event is processed.
-   *
-   * Each condition id can only be registered once — subsequent calls with the
-   * same id return `false` without modifying the existing entry.
-   *
-   * @param id         - Unique name for this condition (used in `when: "id"`).
-   * @param defaultVal - Initial boolean value for the condition.
-   * @returns `true` if the condition was registered, `false` if the id already exists.
-   */
   addCondition: (id: string, defaultVal: boolean) => boolean;
 
-  /**
-   * Update the boolean value of a registered condition.
-   *
-   * Bindings referencing this condition via `when: "id"` will use the new value
-   * on the next key event.
-   *
-   * @param target - The condition id to update.
-   * @param value  - The new boolean value.
-   * @returns `true` if the condition was found and updated, `false` if not registered.
-   */
   setCondition: (target: string, value: boolean) => boolean;
 
-  /**
-   * Remove a registered condition from the internal map.
-   *
-   * Once removed, bindings with `when: "id"` will behave as if the condition
-   * does not exist (the binding is not skipped).
-   *
-   * @param target - The condition id to remove.
-   * @returns `true` if the condition existed and was removed.
-   */
   removeCondition: (target: string) => boolean;
 
-  /**
-   * Insert a custom processor into this instance's pipeline at a specified position.
-   *
-   * Unlike the old global `addProcessor`, this operates on the
-   * {@link KeyboardProvider} instance's own pipeline — it does not affect
-   * other providers in the same process.
-   *
-   * @param processor - The processor to insert (must have a unique `id`).
-   * @param options   - Positioning:
-   *   - `{ index: n }`            — insert at 0-based index
-   *   - `{ before: "id" }`        — insert before the named processor
-   *   - `{ after: "id" }`         — insert after the named processor
-   *   - omitted                   — append to the end
-   * @throws If `processor.id` duplicates an existing processor, or the
-   *         `before`/`after` target is not found.
-   */
   addProcessor: (
     processor: PipelineProcessor,
     options?:
@@ -639,25 +121,10 @@ export interface KeyboardContextValue {
       | { index?: number },
   ) => void;
 
-  /**
-   * Remove a processor from this instance's pipeline by its id.
-   *
-   * @param processorId - The `id` of the processor to remove.
-   * @returns `true` if the processor was found and removed, `false` if not found.
-   */
   removeProcessor: (processorId: string) => boolean;
 
-  /**
-   * Get a read-only snapshot of this instance's current processor pipeline.
-   *
-   * @returns The ordered list of processors currently in the pipeline.
-   */
   getProcessors: () => readonly PipelineProcessor[];
 
-  /**
-   * Restore this instance's processor pipeline to the default 7-stage chain,
-   * removing all custom processors.
-   */
   resetProcessors: () => void;
 }
 

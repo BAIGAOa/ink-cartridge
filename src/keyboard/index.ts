@@ -1,31 +1,60 @@
-export { KeyboardProvider } from "./provider.js";
-export type { KeyboardProviderProps } from "./provider.js";
+export { KeyboardProvider } from "./provider/KeyboardProvider.js";
 export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
-export { normalizeKeyNames, isNormalCharacter } from "./keyNormalizer.js";
-export { default as KeyboardEngine } from "./engine/KeyboardEngine.js";
-export type { EngineProps } from "./engine/KeyboardEngine.js";
-export type { BuiltinProcessorId } from "./pipeline/chain.js";
+
+export { isNormalCharacter } from "@cartridge/keyboard-engine";
+export { normalizeKeyNames } from "./keyNormalizer.js";
+
+export { KeyboardEngine } from "@cartridge/keyboard-engine";
+export {
+  checkWhen,
+  checkGlobalKey,
+  handleLayer,
+  tryMatchBindings,
+  handleTabNavigation,
+  keyMatchesRule,
+  _insertRelative,
+  cleanupGlobalKeyOverrides,
+  removeKeysFromActionMap,
+  pushKeyEntries,
+  setIfAbsent,
+  deleteIfPresent,
+  modifyEntryKeys,
+  clearShortcutOperations,
+  finalizeBoundKeyboard,
+  createModalProcessor,
+  createGlobalSequenceProcessor,
+  createGlobalKeyProcessor,
+  createOverlayProcessor,
+  createScreenStackProcessor,
+} from "@cartridge/keyboard-engine";
+
+export type { EngineProps } from "@cartridge/keyboard-engine";
+export type { BuiltinProcessorId } from "@cartridge/keyboard-engine";
+export type { KeyRuleContainer } from "@cartridge/keyboard-engine";
 export type {
-  KeyboardProcessorProps,
-  PipelineProcessor,
   KeyHandler,
   BoundKeyboardOptions,
+  BoundKeyEntry,
   PenetrationOptions,
   AllowModalOptions,
   StopOptions,
-  BoundKeyEntry,
   ScreenKeyboardLayer,
   LayerKind,
   FocusTarget,
   GlobalKeyEntry,
   GlobalSequenceEntry,
-  ShortcutOperationEntry,
-  SequenceOperationEntry,
   SequenceOptions,
   SequenceBinding,
   PendingSequence,
+  ShortcutOperationEntry,
+  SequenceOperationEntry,
   ModalMissEvent,
   ModalMissCallback,
   ModalMissOptions,
   ResolvedGlobalKeyEntry,
-} from "./types.js";
+  KeyboardProcessorProps,
+  PipelineProcessor,
+  MutableRef,
+} from "@cartridge/keyboard-engine";
+
+export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";
