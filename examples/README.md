@@ -4,6 +4,14 @@ Single-API demos for ink-cartridge components. Each directory contains one demo 
 
 ## Running a demo
 
+Before running any demo, build the workspace package:
+
+```bash
+npm run build -w @cartridge-engine/keyboard-engine
+```
+
+Then run the demo:
+
 ```bash
 npx tsx examples/<component>/<Demo>.demo.tsx
 ```
