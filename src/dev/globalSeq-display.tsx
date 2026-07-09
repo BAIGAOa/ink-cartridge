@@ -9,7 +9,7 @@ import { SelectInput } from "../components/select/SelectInput.js";
 import type { Item } from "../components/select/types.js";
 import type {
   ResolvedGlobalSequenceEntry,
-} from "@cartridge/keyboard-engine";
+} from "@cartridge-engine/keyboard-engine";
 
 // Modal panel displaying all registered global sequence key bindings.
 // Opened from DevScreen via Ctrl+S.

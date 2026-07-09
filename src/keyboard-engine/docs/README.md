@@ -1,6 +1,6 @@
 # Framework Adapters
 
-This directory contains guides for integrating `@cartridge/keyboard-engine` with various host frameworks.
+This directory contains guides for integrating `@cartridge-engine/keyboard-engine` with various host frameworks.
 
 ## Guides
 

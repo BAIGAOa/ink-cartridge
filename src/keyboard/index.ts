@@ -1,10 +1,10 @@
 export { KeyboardProvider } from "./provider/KeyboardProvider.js";
 export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
 
-export { isNormalCharacter } from "@cartridge/keyboard-engine";
+export { isNormalCharacter } from "@cartridge-engine/keyboard-engine";
 export { normalizeKeyNames } from "./keyNormalizer.js";
 
-export { KeyboardEngine } from "@cartridge/keyboard-engine";
+export { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 export {
   checkWhen,
   checkGlobalKey,
@@ -26,11 +26,11 @@ export {
   createGlobalKeyProcessor,
   createOverlayProcessor,
   createScreenStackProcessor,
-} from "@cartridge/keyboard-engine";
+} from "@cartridge-engine/keyboard-engine";
 
-export type { EngineProps } from "@cartridge/keyboard-engine";
-export type { BuiltinProcessorId } from "@cartridge/keyboard-engine";
-export type { KeyRuleContainer } from "@cartridge/keyboard-engine";
+export type { EngineProps } from "@cartridge-engine/keyboard-engine";
+export type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
+export type { KeyRuleContainer } from "@cartridge-engine/keyboard-engine";
 export type {
   KeyHandler,
   BoundKeyboardOptions,
@@ -55,6 +55,6 @@ export type {
   KeyboardProcessorProps,
   PipelineProcessor,
   MutableRef,
-} from "@cartridge/keyboard-engine";
+} from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";

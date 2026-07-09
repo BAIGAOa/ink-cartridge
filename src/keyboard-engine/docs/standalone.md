@@ -1,17 +1,17 @@
 # Standalone (Node.js)
 
-Use `@cartridge/keyboard-engine` directly with raw Node.js `readline` or TTY streams — no UI framework required.
+Use `@cartridge-engine/keyboard-engine` directly with raw Node.js `readline` or TTY streams — no UI framework required.
 
 ## Setup
 
 ```bash
-npm install @cartridge/keyboard-engine
+npm install @cartridge-engine/keyboard-engine
 ```
 
 ## Basic TTY Keyboard Handler
 
 ```ts
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import * as readline from 'node:readline';
 
 const engine = new KeyboardEngine({
@@ -63,7 +63,7 @@ console.log('Terminal keyboard engine ready. Press Ctrl+C to exit.');
 ## Mode-Based Editor (vim-like)
 
 ```ts
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import * as readline from 'node:readline';
 
 const engine = new KeyboardEngine({
@@ -115,7 +115,7 @@ process.stdin.on('keypress', (_input, key) => {
 ## Custom Processor
 
 ```ts
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 const engine = new KeyboardEngine({
   normalizeKeyNames: (input, key) => {
@@ -142,5 +142,5 @@ console.log(engine.getProcessors().map(p => p.id));
 
 ## See Also
 
-- [@cartridge/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge/keyboard-engine)
+- [@cartridge-engine/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
 - [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — React / Ink integration for terminal UIs

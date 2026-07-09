@@ -1,8 +1,8 @@
 import React, { ReactNode, useEffect, useMemo, useRef } from 'react';
 import { useInput } from 'ink';
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
-import type { KeyboardProcessorProps } from '@cartridge/keyboard-engine';
-import { clearShortcutOperations } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
+import type { KeyboardProcessorProps } from '@cartridge-engine/keyboard-engine';
+import { clearShortcutOperations } from '@cartridge-engine/keyboard-engine';
 import { KeyboardContext } from '../context.js';
 import { useScreenSystem } from '../../screen/hook.js';
 import { normalizeKeyNames } from '../keyNormalizer.js';

@@ -1,5 +1,5 @@
 {
-    "name": "@cartridge/keyboard-engine",
+    "name": "@cartridge-engine/keyboard-engine",
     "version": "1.0.0",
     "description": "Framework-agnostic keyboard event engine for terminal UIs",
     "type": "module",
