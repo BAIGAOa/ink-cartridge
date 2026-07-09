@@ -98,4 +98,4 @@ function NotificationOverlay() {
 ## See Also
 
 - [ink-cartridge on GitHub](https://github.com/BAIGAOa/ink-cartridge)
-- [@cartridge/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge/keyboard-engine)
+- [@cartridge-engine/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)

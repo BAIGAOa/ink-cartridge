@@ -1,11 +1,11 @@
 # Svelte
 
-Wrap `@cartridge/keyboard-engine` in a Svelte store for reactive keyboard state.
+Wrap `@cartridge-engine/keyboard-engine` in a Svelte store for reactive keyboard state.
 
 ## Setup
 
 ```bash
-npm install @cartridge/keyboard-engine
+npm install @cartridge-engine/keyboard-engine
 ```
 
 ## Store Implementation
@@ -13,8 +13,8 @@ npm install @cartridge/keyboard-engine
 ```ts
 // lib/keyboardStore.ts
 import { writable } from 'svelte/store';
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
-import type { EngineOverlayEntry, EngineModalEntry } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
+import type { EngineOverlayEntry, EngineModalEntry } from '@cartridge-engine/keyboard-engine';
 
 function createKeyboardEngine() {
   const engine = new KeyboardEngine({
@@ -134,5 +134,5 @@ export const keyboard = createKeyboardEngine();
 
 ## See Also
 
-- [@cartridge/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge/keyboard-engine)
+- [@cartridge-engine/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
 - [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — React / Ink integration reference

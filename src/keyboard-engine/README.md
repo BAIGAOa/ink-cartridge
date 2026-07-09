@@ -1,4 +1,4 @@
-# @cartridge/keyboard-engine
+# @cartridge-engine/keyboard-engine
 
 Framework-agnostic keyboard event engine for terminal UIs.
 
@@ -6,14 +6,14 @@ Powered by [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — a React
 
 ## Overview
 
-`@cartridge/keyboard-engine` is a framework-agnostic keyboard event engine designed for terminal user interfaces (TUIs). It provides complete keyboard binding, focus management, multi-key sequences, modal layers, global shortcuts, and an extensible pipeline processor architecture.
+`@cartridge-engine/keyboard-engine` is a framework-agnostic keyboard event engine designed for terminal user interfaces (TUIs). It provides complete keyboard binding, focus management, multi-key sequences, modal layers, global shortcuts, and an extensible pipeline processor architecture.
 
 The engine has **zero framework dependencies** — just provide a `normalizeKeyNames` adapter and it works with any host framework (React, Vue, Svelte, raw Node.js, etc.).
 
 ## Installation
 
 ```bash
-npm install @cartridge/keyboard-engine
+npm install @cartridge-engine/keyboard-engine
 ```
 
 When used as a workspace dependency in the [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) monorepo:
@@ -21,7 +21,7 @@ When used as a workspace dependency in the [ink-cartridge](https://github.com/BA
 ```json
 {
   "dependencies": {
-    "@cartridge/keyboard-engine": "*"
+    "@cartridge-engine/keyboard-engine": "*"
   }
 }
 ```
@@ -39,7 +39,7 @@ When used as a workspace dependency in the [ink-cartridge](https://github.com/BA
 The engine centers on a single `KeyboardEngine` instance. It owns all mutable keyboard state — bindings, layers, focus targets, global keys, modes, conditions, and the processor pipeline — and interacts with the host framework through two key methods: `sync()` and `processKey()`.
 
 ```ts
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 const engine = new KeyboardEngine({
   modes: ['normal', 'insert'],
@@ -198,7 +198,7 @@ Adapt the engine to Vue's composition API with a reactive wrapper.
 ```ts
 // useKeyboardEngine.ts
 import { ref, onMounted, onUnmounted } from 'vue';
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 export function useKeyboardEngine(options: {
   modes?: string[];
@@ -265,7 +265,7 @@ Wrap the engine in a Svelte store for reactive keyboard state.
 ```ts
 // keyboardStore.ts
 import { writable } from 'svelte/store';
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 function createKeyboardEngine() {
   const engine = new KeyboardEngine({
@@ -325,7 +325,7 @@ export const keyboard = createKeyboardEngine();
 Use the engine directly with raw Node.js `readline` or TTY streams.
 
 ```ts
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import * as readline from 'node:readline';
 
 const engine = new KeyboardEngine({

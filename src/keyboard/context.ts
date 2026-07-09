@@ -17,8 +17,8 @@ import type {
   GlobalPendingSequence,
   ScreenKeyboardLayer,
   PipelineProcessor,
-} from "@cartridge/keyboard-engine";
-import type { BuiltinProcessorId } from "@cartridge/keyboard-engine";
+} from "@cartridge-engine/keyboard-engine";
+import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 
 export type LayerOwner = unknown | string;
 

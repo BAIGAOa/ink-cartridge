@@ -1,11 +1,11 @@
 # Vue
 
-Adapt `@cartridge/keyboard-engine` to Vue's composition API with a reactive wrapper.
+Adapt `@cartridge-engine/keyboard-engine` to Vue's composition API with a reactive wrapper.
 
 ## Setup
 
 ```bash
-npm install @cartridge/keyboard-engine
+npm install @cartridge-engine/keyboard-engine
 ```
 
 ## Adapter Implementation
@@ -13,8 +13,8 @@ npm install @cartridge/keyboard-engine
 ```ts
 // composables/useKeyboardEngine.ts
 import { ref, onMounted, onUnmounted } from 'vue';
-import { KeyboardEngine } from '@cartridge/keyboard-engine';
-import type { EngineProps } from '@cartridge/keyboard-engine';
+import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
+import type { EngineProps } from '@cartridge-engine/keyboard-engine';
 
 export function useKeyboardEngine(options?: {
   modes?: string[];
@@ -149,5 +149,5 @@ function closeModal() {
 
 ## See Also
 
-- [@cartridge/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge/keyboard-engine)
+- [@cartridge-engine/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
 - [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — React / Ink integration reference

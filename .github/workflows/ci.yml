@@ -74,12 +74,12 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
-      - run: npm run build -w @cartridge/keyboard-engine
+      - run: npm run build -w @cartridge-engine/keyboard-engine
 
       - name: Check if version exists on npm
         id: check
         run: |
-          PKG_NAME="@cartridge/keyboard-engine"
+          PKG_NAME="@cartridge-engine/keyboard-engine"
           PKG_VERSION=$(node -p "require('./src/keyboard-engine/package.json').version")
           if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -91,6 +91,6 @@ jobs:
 
       - name: Publish to npm
         if: steps.check.outputs.exists != 'true'
-        run: npm publish -w @cartridge/keyboard-engine --access public
+        run: npm publish -w @cartridge-engine/keyboard-engine --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

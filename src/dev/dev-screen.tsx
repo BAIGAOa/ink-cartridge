@@ -9,7 +9,7 @@ import { closeDevTool } from "./entrance.js";
 import GlobalKeyDisplayBox from "./globalKey-display.js";
 import LayerKeyDisplayBox from "./layerKey-display.js";
 import GlobalSequenceDisplayBox from "./globalSeq-display.js";
-import type { ScreenKeyboardLayer } from "@cartridge/keyboard-engine";
+import type { ScreenKeyboardLayer } from "@cartridge-engine/keyboard-engine";
 
 
 const PANEL_HEIGHT = 30;
