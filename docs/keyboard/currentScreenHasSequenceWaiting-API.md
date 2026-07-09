@@ -10,8 +10,24 @@ Unlike `thereGlobalQueueWaiting`, this only checks the local layer — global se
 // Access via useKeyboard() hook
 const { currentScreenHasSequenceWaiting } = useKeyboard();
 
-function currentScreenHasSequenceWaiting(): boolean
+function currentScreenHasSequenceWaiting(sync?: () => void): boolean
 ```
+
+### sync
+
+Optional framework-agnostic callback. When provided, the engine calls it after
+every `processKey` that may have changed the pending state, letting the host
+framework re-render and read the fresh value.
+
+```tsx
+const [, setTick] = useState(0);
+const sync = useCallback(() => setTick(t => t + 1), []);
+
+// Re-renders after each key press, so the returned boolean stays current
+const waiting = currentScreenHasSequenceWaiting(sync);
+```
+
+When omitted, the method behaves as before — a one-shot read of the current value.
 
 ## Errors
 

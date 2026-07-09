@@ -27,7 +27,8 @@ export function createScreenStackProcessor(): PipelineProcessor {
           isTop, ctx.notifyFocusChange, ctx.activeCount,
           false, ctx.wildcardFirst,
           ctx.currentMode,
-          ctx.conditions
+          ctx.conditions,
+          ctx.notifyPendingSyncs
         )) break;
       }
       return false;

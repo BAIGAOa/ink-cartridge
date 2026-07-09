@@ -51,9 +51,9 @@ export interface KeyboardContextValue {
 
   getGlobalPendingSequence: () => GlobalPendingSequence | null;
 
-  thereGlobalQueueWaiting: () => boolean;
+  thereGlobalQueueWaiting: (sync?: () => void) => boolean;
 
-  currentScreenHasSequenceWaiting: () => boolean;
+  currentScreenHasSequenceWaiting: (sync?: () => void) => boolean;
 
   focusUnregister: (focusId: string) => void;
 

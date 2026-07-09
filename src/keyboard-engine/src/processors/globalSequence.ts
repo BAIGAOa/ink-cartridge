@@ -105,6 +105,7 @@ function tryStartGlobalSequence(
     if (ctx.pendingSeqRef.current === pending) {
       ctx.pendingSeqRef.current = null;
     }
+    ctx.notifyPendingSyncs();
   }, timeout);
   pending.timer = timer;
   ctx.pendingSeqRef.current = pending;
@@ -167,6 +168,7 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
         if (ctx.pendingSeqRef.current === pending) {
           ctx.pendingSeqRef.current = null;
         }
+        ctx.notifyPendingSyncs();
       }, pending.timeout);
     }
     return true;
@@ -221,6 +223,7 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
         if (ctx.pendingSeqRef.current === newPending) {
           ctx.pendingSeqRef.current = null;
         }
+        ctx.notifyPendingSyncs();
       }, timeout);
       ctx.pendingSeqRef.current = newPending;
     }
