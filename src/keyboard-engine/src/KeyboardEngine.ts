@@ -132,6 +132,12 @@ export default class KeyboardEngine<TComponent = unknown> {
      */
     focusSubscribersRef: Set<() => void> = new Set<() => void>();
     /**
+     * Registered sync callbacks from {@link currentScreenHasSequenceWaiting}
+     * and {@link thereGlobalQueueWaiting}. Called after each
+     * {@link processKey} so the host framework can re-render.
+     */
+    pendingSyncs: Set<() => void> = new Set<() => void>();
+    /**
      * Reference count for wildcard-priority mode.
      * When > 0, `"*"` bindings fire before exact-key bindings.
      * Multiple callers can enable independently; the mode disables at 0.
@@ -1387,7 +1393,10 @@ export default class KeyboardEngine<TComponent = unknown> {
      * (i.e. the first key was pressed and the engine is waiting for
      * subsequent keys or a timeout).
      */
-    thereGlobalQueueWaiting(): boolean {
+    thereGlobalQueueWaiting(sync?: () => void): boolean {
+        if (sync) {
+            this.pendingSyncs.add(sync);
+        }
         return this.globalPendingSeqRef !== null;
     }
 
@@ -1399,7 +1408,11 @@ export default class KeyboardEngine<TComponent = unknown> {
      *
      * @throws If there is no current owner (no active screen or overlay).
      */
-    currentScreenHasSequenceWaiting(): boolean {
+    currentScreenHasSequenceWaiting(sync?: () => void): boolean {
+        if (sync) {
+            this.pendingSyncs.add(sync);
+        }
+
         const owner = this.getCurrentOwner();
 
         if (!owner) {
@@ -1443,6 +1456,7 @@ export default class KeyboardEngine<TComponent = unknown> {
             layersRef: this._layersWrapper,
             pendingSeqRef: this._pendingSeqWrapper,
             notifyFocusChange: () => this.notifyFocusChange(),
+            notifyPendingSyncs: () => this.notifyPendingSyncs(),
             anyOverlayConsumed: false,
             currentMode: this.currentModeRef,
             conditions: this.conditions,
@@ -1464,9 +1478,20 @@ export default class KeyboardEngine<TComponent = unknown> {
     processKey(input: string, key: unknown): boolean {
         const ctx = this.buildPipelineContext(input, key);
         for (const processor of this._processors) {
-            if (processor.process(ctx)) return true;
+            if (processor.process(ctx)) {
+                this.notifyPendingSyncs();
+                return true;
+            }
         }
+        this.notifyPendingSyncs();
         return false;
+    }
+
+    private notifyPendingSyncs(): void {
+        for (const sync of this.pendingSyncs) {
+            sync();
+        }
+        this.pendingSyncs.clear();
     }
 
 }

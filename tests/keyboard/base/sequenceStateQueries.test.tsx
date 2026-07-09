@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 import {
@@ -248,4 +248,159 @@ describe('currentScreenHasSequenceWaiting', () => {
 
     expect(lastFrame()).toContain('no active screen');
   });
+});
+
+describe('sync parameter', () => {
+  it('calls sync after first key starts a local pending sequence', async () => {
+    const tracker = vi.fn();
+
+    function TestScreen() {
+      const kb = useKeyboard();
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        kb.boundSequence(['g', 'g'], () => {});
+      }, []);
+      void kb.currentScreenHasSequenceWaiting(() => {
+        setTick(t => t + 1);
+        tracker();
+      });
+      return <Text>Test</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { stdin } = renderKeyboardApp(TestScreen);
+
+    tracker.mockClear();
+    await pressKey(stdin, 'g');
+    expect(tracker).toHaveBeenCalled();
+  });
+
+  it('calls sync after second key completes a local pending sequence', async () => {
+    const tracker = vi.fn();
+
+    function TestScreen() {
+      const kb = useKeyboard();
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        kb.boundSequence(['g', 'g'], () => {});
+      }, []);
+      void kb.currentScreenHasSequenceWaiting(() => {
+        setTick(t => t + 1);
+        tracker();
+      });
+      return <Text>Test</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { stdin } = renderKeyboardApp(TestScreen);
+
+    await pressKey(stdin, 'g');
+    tracker.mockClear();
+    await pressKey(stdin, 'g');
+    expect(tracker).toHaveBeenCalled();
+  });
+
+  it('calls sync after first key starts a global pending sequence', async () => {
+    const tracker = vi.fn();
+
+    function TestScreen() {
+      const kb = useKeyboard();
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        kb.globalSequence([{ keys: ['a', 'b'], operate: () => {} }]);
+      }, []);
+      void kb.thereGlobalQueueWaiting(() => {
+        setTick(t => t + 1);
+        tracker();
+      });
+      return <Text>Test</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { stdin } = renderKeyboardApp(TestScreen);
+
+    tracker.mockClear();
+    await pressKey(stdin, 'a');
+    expect(tracker).toHaveBeenCalled();
+  });
+
+  it('calls sync after second key completes a global pending sequence', async () => {
+    const tracker = vi.fn();
+
+    function TestScreen() {
+      const kb = useKeyboard();
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        kb.globalSequence([{ keys: ['a', 'b'], operate: () => {} }]);
+      }, []);
+      void kb.thereGlobalQueueWaiting(() => {
+        setTick(t => t + 1);
+        tracker();
+      });
+      return <Text>Test</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { stdin } = renderKeyboardApp(TestScreen);
+
+    await pressKey(stdin, 'a');
+    tracker.mockClear();
+    await pressKey(stdin, 'b');
+    expect(tracker).toHaveBeenCalled();
+  });
+
+  it('does not throw when sync is not provided (backward compatibility)', () => {
+    function TestScreen() {
+      const kb = useKeyboard();
+      const hasLocal = kb.currentScreenHasSequenceWaiting();
+      const hasGlobal = kb.thereGlobalQueueWaiting();
+      return <Text>{String(hasLocal)}-{String(hasGlobal)}</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { lastFrame } = renderKeyboardApp(TestScreen);
+    expect(lastFrame()).toContain('false-false');
+  });
+
+  it('deduplicates the same sync reference registered by both methods', async () => {
+    const tracker = vi.fn();
+
+    function TestScreen() {
+      const kb = useKeyboard();
+      const [, setTick] = useState(0);
+      const sync = () => {
+        setTick(t => t + 1);
+        tracker();
+      };
+      useEffect(() => {
+        kb.boundSequence(['g', 'g'], () => {});
+        kb.globalSequence([{ keys: ['a', 'b'], operate: () => {} }]);
+      }, []);
+      void kb.currentScreenHasSequenceWaiting(sync);
+      void kb.thereGlobalQueueWaiting(sync);
+      return <Text>Test</Text>;
+    }
+    TestScreen.displayName = 'TestScreen';
+
+    registerComponent(TestScreen, {});
+    const { stdin } = renderKeyboardApp(TestScreen);
+
+    tracker.mockClear();
+    await pressKey(stdin, 'g');
+    // called exactly once even though same ref was registered by both methods
+    expect(tracker).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Intentionally not tested:
+   *
+   * Timeout expiry — ink-testing-library's synchronous render / flush
+   * model cannot reliably simulate async timer expiry (same limitation
+   * noted in boundSequence tests).
+   */
 });

@@ -797,6 +797,7 @@ export interface PipelineContext {
 
   // --- Callbacks ---
   readonly notifyFocusChange: () => void;
+  readonly notifyPendingSyncs: () => void;
 
   // --- Mutable pipeline coordination state ---
   anyOverlayConsumed: boolean;

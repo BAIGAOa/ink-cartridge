@@ -136,7 +136,8 @@ export function handleLayer(
   isOverlay: boolean,
   wildcardFirst: boolean,
   currentMode: string | null,
-  conditions: Map<string, boolean>
+  conditions: Map<string, boolean>,
+  notifyPendingSyncs?: () => void,
 ): boolean {
   // Tab/Shift+Tab has the highest priority to avoid conflicts with business-bound actions.
   // However, when there is no Focus Target in the Current Screen, handleTabNavigation will
@@ -231,6 +232,7 @@ export function handleLayer(
             // Still waiting for more keys — restart the timeout.
             pending.timer = setTimeout(() => {
               if (layer.pendingSequence === pending) layer.pendingSequence = null;
+              notifyPendingSyncs?.();
             }, pending.timeout);
           }
           return true;
@@ -272,6 +274,7 @@ export function handleLayer(
               } else {
                 newSeq.timer = setTimeout(() => {
                   if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+                  notifyPendingSyncs?.();
                 }, timeout);
               }
               layer.pendingSequence = newSeq;
@@ -345,6 +348,7 @@ export function handleLayer(
         };
           const timer = setTimeout(() => {
             if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+            notifyPendingSyncs?.();
           }, timeout);
           newSeq.timer = timer;
           layer.pendingSequence = newSeq;

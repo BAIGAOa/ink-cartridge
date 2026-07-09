@@ -158,8 +158,8 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | `getProcessors()` | Get the processor list |
 | `resetProcessors()` | Reset to the default pipeline |
 | `getGlobalPendingSequence()` | Get the full pending global sequence state, or null |
-| `thereGlobalQueueWaiting()` | Check whether a global sequence is pending (boolean) |
-| `currentScreenHasSequenceWaiting()` | Check whether the current layer has a pending sequence (boolean) |
+| `thereGlobalQueueWaiting(sync?)` | Check whether a global sequence is pending (boolean). Optional `sync` callback notifies the host framework to re-render after each key event. |
+| `currentScreenHasSequenceWaiting(sync?)` | Check whether the current layer has a pending sequence (boolean). Optional `sync` callback notifies the host framework to re-render after each key event. |
 
 ### Sequence State Queries
 
@@ -171,8 +171,8 @@ While a multi-key sequence is in progress, the engine can report its pending sta
 | Method | Scope | Returns |
 |--------|-------|---------|
 | `getGlobalPendingSequence()` | Engine | `GlobalPendingSequence \| null` — full state including remaining keys, timeout, and handler |
-| `thereGlobalQueueWaiting()` | Engine | `boolean` — lightweight yes/no, equivalent to `getGlobalPendingSequence() !== null` |
-| `currentScreenHasSequenceWaiting()` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or overlay |
+| `thereGlobalQueueWaiting(sync?)` | Engine | `boolean` — lightweight yes/no, equivalent to `getGlobalPendingSequence() !== null`. Optional `sync` callback triggers after each key event so the host framework can re-render. |
+| `currentScreenHasSequenceWaiting(sync?)` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or overlay. Optional `sync` callback triggers after each key event so the host framework can re-render. |
 
 #### Best Practice
 

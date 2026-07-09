@@ -154,7 +154,8 @@ export function createModalProcessor(): PipelineProcessor {
           true,  // isOverlay — modal is treated as a floating layer for onlyThis semantics
           ctx.wildcardFirst,
           ctx.currentMode,
-          ctx.conditions
+          ctx.conditions,
+          ctx.notifyPendingSyncs
         );
       }
 
