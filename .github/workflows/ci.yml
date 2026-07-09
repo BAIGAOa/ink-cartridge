@@ -30,7 +30,7 @@ jobs:
       - run: npx vitest run --coverage
 
   release-ink-cartridge:
-    needs: test
+    needs: [test, release-keyboard-engine]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     env:
