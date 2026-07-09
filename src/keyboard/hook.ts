@@ -3,7 +3,7 @@ import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { OverlayContext } from "../screen/OverlayContext.js";
 import { ModalContext } from "../screen/ModalContext.js";
 import { useScreenSystem } from "../screen/hook.js";
-import type { ModalMissCallback, ModalMissOptions } from "@cartridge/keyboard-engine";
+import type { ModalMissCallback, ModalMissOptions } from "@cartridge-engine/keyboard-engine";
 
 /**
  * Access the keyboard API from within a React component.
