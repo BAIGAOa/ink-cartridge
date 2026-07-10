@@ -114,11 +114,19 @@ describe('createGlobalSequenceProcessor', () => {
         notifyPendingSyncs: vi.fn(),
       });
       screenProc.process(ctx); // start
-      ctx.eventNames = ['b'];
-      const result = screenProc.process(ctx); // advance
+      // Create a new context for the second key press instead of mutating
+      const ctx2 = createContext({
+        eventNames: ['b'],
+        topComponent: 'screen',
+        globalSequences: ctx.globalSequences,
+        layersRef: ctx.layersRef,
+        pendingSeqRef: ctx.pendingSeqRef,
+        notifyPendingSyncs: vi.fn(),
+      });
+      const result = screenProc.process(ctx2); // advance
       expect(result).toBe(true);
-      expect(ctx.pendingSeqRef.current!.nextIndex).toBe(2);
-      expect(ctx.pendingSeqRef.current).not.toBeNull();
+      expect(ctx2.pendingSeqRef.current!.nextIndex).toBe(2);
+      expect(ctx2.pendingSeqRef.current).not.toBeNull();
     });
 
     test('Given pending with exclusive=true, mismatch is silently consumed', () => {
@@ -131,10 +139,17 @@ describe('createGlobalSequenceProcessor', () => {
         notifyPendingSyncs: vi.fn(),
       });
       screenProc.process(ctx); // start
-      ctx.eventNames = ['x']; // mismatch
-      const result = screenProc.process(ctx);
+      const ctx2 = createContext({
+        eventNames: ['x'], // mismatch
+        topComponent: 'screen',
+        globalSequences: ctx.globalSequences,
+        layersRef: ctx.layersRef,
+        pendingSeqRef: ctx.pendingSeqRef,
+        notifyPendingSyncs: vi.fn(),
+      });
+      const result = screenProc.process(ctx2);
       expect(result).toBe(true); // consumed silently
-      expect(ctx.pendingSeqRef.current).not.toBeNull(); // still pending
+      expect(ctx2.pendingSeqRef.current).not.toBeNull(); // still pending
     });
 
     test('Given pending with when changed to false, Then cancels pending', () => {
@@ -149,10 +164,17 @@ describe('createGlobalSequenceProcessor', () => {
       screenProc.process(ctx); // start
       // Modify the pending sequence's when to return false
       ctx.pendingSeqRef.current!.when = () => false;
-      ctx.eventNames = ['b'];
-      const result = screenProc.process(ctx);
+      const ctx2 = createContext({
+        eventNames: ['b'],
+        topComponent: 'screen',
+        globalSequences: ctx.globalSequences,
+        layersRef: ctx.layersRef,
+        pendingSeqRef: ctx.pendingSeqRef,
+        notifyPendingSyncs: vi.fn(),
+      });
+      const result = screenProc.process(ctx2);
       expect(result).toBe(false);
-      expect(ctx.pendingSeqRef.current).toBeNull();
+      expect(ctx2.pendingSeqRef.current).toBeNull();
     });
   });
 });
