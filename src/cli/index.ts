@@ -60,7 +60,7 @@ const pkg = {
   },
   dependencies: {
     'ink-cartridge': 'latest',
-    ink: '^7.0.1',
+    ink: '^7.1.0',
     react: '^19.2.4',
   },
   devDependencies: {
