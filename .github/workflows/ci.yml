@@ -27,6 +27,7 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npx tsc --project tests/tsconfig.json --noEmit
+      - run: npx tsc --project src/keyboard-engine/tests/tsconfig.json --noEmit
       - run: npx vitest run --coverage
 
   release-ink-cartridge:

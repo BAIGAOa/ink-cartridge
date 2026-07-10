@@ -14,6 +14,10 @@ tests/
     <integration>  # directly under global-keys/
 ```
 
+## Language
+
+All test names, describe blocks, comments, and inline strings MUST be in English. No Chinese (or any other non-English language) in test files.
+
 ## Test style
 
 - All unit tests MUST follow **Given / When / Then** structure:
