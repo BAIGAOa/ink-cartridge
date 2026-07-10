@@ -89,6 +89,7 @@ export default tseslint.config(
       'examples/**/*.{ts,tsx}',
       'ink-blots/**/*.{ts,tsx}',
       'src/dev/**/*.{ts,tsx}',
+      'src/keyboard-engine/tests/**/*.ts',
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
