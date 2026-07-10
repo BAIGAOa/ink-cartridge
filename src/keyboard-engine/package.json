@@ -34,7 +34,9 @@
     },
     "scripts": {
         "build": "tsc",
-        "clean": "rm -rf dist"
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "bugs": {
         "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
