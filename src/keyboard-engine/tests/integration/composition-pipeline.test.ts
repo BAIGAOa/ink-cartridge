@@ -245,4 +245,276 @@ describe('composition pipeline integration', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('composition with when conditions', () => {
+    test('Given head key when returns false, Then processKey does not consume', () => {
+      const engine = createEngine();
+      setup(engine);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: () => false,
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('x', {});
+      expect(consumed).toBe(false);
+      expect(exec).not.toHaveBeenCalled();
+    });
+
+    test('Given head key when returns true, Then chain starts', () => {
+      const engine = createEngine();
+      setup(engine);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: () => true,
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('x', {});
+      expect(consumed).toBe(true);
+      expect(exec).toHaveBeenCalled();
+    });
+
+    test('Given named condition is false, Then head key is skipped', () => {
+      const engine = createEngine();
+      setup(engine);
+      engine.addCondition('editing', false);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: 'editing',
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('x', {});
+      expect(consumed).toBe(false);
+      expect(exec).not.toHaveBeenCalled();
+    });
+
+    test('Given named condition is true, Then head key starts chain', () => {
+      const engine = createEngine();
+      setup(engine);
+      engine.addCondition('editing', true);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: 'editing',
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('x', {});
+      expect(consumed).toBe(true);
+      expect(exec).toHaveBeenCalled();
+    });
+
+    test('Given condition flipped to false mid-sequence, Then chain is cleared and key falls through', () => {
+      const engine = createEngine();
+      setup(engine);
+      engine.addCondition('canMultiply', true);
+
+      const exec3 = vi.fn((ctx: CompositionContext) => ({
+        value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'],
+      }));
+      const execW = vi.fn((ctx: CompositionContext) => ({
+        value: ctx.value, lastFlag: 'action', steps: [...ctx.steps, 'w'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: '3', flag: 'times', needs: [], execute: exec3,
+      });
+      engine.composition.registryCompositionKey({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: 'canMultiply',
+        execute: execW,
+      });
+
+      engine.processKey('3', {});
+      expect(exec3).toHaveBeenCalledTimes(1);
+
+      // Flip condition off
+      engine.setCondition('canMultiply', false);
+
+      const consumed = engine.processKey('w', {});
+      expect(consumed).toBe(false);
+      expect(execW).not.toHaveBeenCalled();
+      expect(engine.composition.hasPending()).toBe(false);
+    });
+
+    test('Given dynamic when function reads mutable state mid-sequence, Then chain responds to state change', () => {
+      const engine = createEngine();
+      setup(engine);
+      let multiplierEnabled = true;
+
+      const exec3 = vi.fn((ctx: CompositionContext) => ({
+        value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'],
+      }));
+      const execW = vi.fn((ctx: CompositionContext) => ({
+        value: ctx.value, lastFlag: 'action', steps: [...ctx.steps, 'w'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: '3', flag: 'times', needs: [], execute: exec3,
+      });
+      engine.composition.registryCompositionKey({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: () => multiplierEnabled,
+        execute: execW,
+      });
+
+      engine.processKey('3', {});
+      expect(exec3).toHaveBeenCalledTimes(1);
+
+      // Disable mid-sequence
+      multiplierEnabled = false;
+
+      const consumed = engine.processKey('w', {});
+      expect(consumed).toBe(false);
+      expect(execW).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('composition with mode', () => {
+    test('Given head key with matching mode, Then chain starts', () => {
+      const engine = createEngine(['normal', 'insert'], 'normal');
+      setup(engine);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        mode: 'normal',
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('x', {});
+      expect(consumed).toBe(true);
+      expect(exec).toHaveBeenCalled();
+    });
+
+    test('Given head key with non-matching mode, Then key is skipped', () => {
+      const engine = createEngine(['normal', 'insert'], 'normal');
+      setup(engine);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'i', flag: 'action', needs: [], optional: true,
+        mode: 'insert',
+        execute: exec,
+      });
+
+      const consumed = engine.processKey('i', {});
+      expect(consumed).toBe(false);
+      expect(exec).not.toHaveBeenCalled();
+    });
+
+    test('Given head key without mode, Then fires in any mode', () => {
+      const engine = createEngine(['normal', 'insert'], 'normal');
+      setup(engine);
+
+      const exec = vi.fn((ctx: CompositionContext) => ({
+        value: 1, lastFlag: 'action', steps: [...ctx.steps, 'x'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        execute: exec,
+      });
+
+      // Normal mode
+      engine.processKey('x', {});
+      expect(exec).toHaveBeenCalledTimes(1);
+
+      // Switch to insert mode
+      engine.setMode('insert');
+      engine.processKey('x', {});
+      expect(exec).toHaveBeenCalledTimes(2);
+    });
+
+    test('Given chain key with non-matching mode, Then chain is cleared and key falls through', () => {
+      const engine = createEngine(['normal', 'insert'], 'normal');
+      setup(engine);
+
+      const exec3 = vi.fn((ctx: CompositionContext) => ({
+        value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'],
+      }));
+      const execW = vi.fn((ctx: CompositionContext) => ({
+        value: ctx.value, lastFlag: 'action', steps: [...ctx.steps, 'w'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: '3', flag: 'times', needs: [], execute: exec3,
+      });
+      engine.composition.registryCompositionKey({
+        key: 'w', flag: 'action', needs: ['times'],
+        mode: 'insert',
+        execute: execW,
+      });
+
+      engine.processKey('3', {});
+      expect(exec3).toHaveBeenCalledTimes(1);
+
+      // Switch to insert → now w should work
+      engine.setMode('insert');
+
+      const consumed = engine.processKey('w', {});
+      expect(consumed).toBe(true);
+      expect(execW).toHaveBeenCalledTimes(1);
+    });
+
+    test('Given mode switch mid-sequence disables chain key, Then chain is cleared', () => {
+      const engine = createEngine(['normal', 'insert'], 'normal');
+      setup(engine);
+
+      const exec3 = vi.fn((ctx: CompositionContext) => ({
+        value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'],
+      }));
+      const execW = vi.fn((ctx: CompositionContext) => ({
+        value: ctx.value, lastFlag: 'action', steps: [...ctx.steps, 'w'],
+      }));
+
+      engine.composition.registryCompositionKey({
+        key: '3', flag: 'times', needs: [], execute: exec3,
+      });
+      engine.composition.registryCompositionKey({
+        key: 'w', flag: 'action', needs: ['times'],
+        mode: 'normal',
+        execute: execW,
+      });
+
+      // Start chain in normal mode
+      engine.processKey('3', {});
+      expect(exec3).toHaveBeenCalledTimes(1);
+
+      // Switch away — w should be filtered out
+      engine.setMode('insert');
+
+      const consumed = engine.processKey('w', {});
+      expect(consumed).toBe(false);
+      expect(execW).not.toHaveBeenCalled();
+      expect(engine.composition.hasPending()).toBe(false);
+    });
+  });
 });

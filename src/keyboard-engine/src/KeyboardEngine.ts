@@ -55,6 +55,11 @@ export interface EngineProps {
    * ```
    */
   normalizeKeyNames: (input: string, key: unknown) => string[];
+
+  /**
+   * Default composition engine timeout
+   */
+  defaultTimeout?: number
 }
 
 /**
@@ -103,7 +108,7 @@ export default class KeyboardEngine<TComponent = unknown> {
     this.pipeline = new PipelineManager(this.state, props.processors);
     this.bindings = new BindingService(this.state, this.layers);
     this.registry = new OperationRegistry(this.state, this.layers);
-    this.state.compositionEngine = new CompositionEngine(this.state);
+    this.state.compositionEngine = new CompositionEngine(this.state, props.defaultTimeout);
   }
 
   /** The composition engine for composing multi-key compound actions. */
@@ -113,7 +118,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 
   /**
    * Register a composition key entry.
-   * See {@link CompositionEngine.registryCompositionKey}.
+   * See {@link CompositionEngine#registryCompositionKey}.
    */
   registryCompositionKey(entry: CompositioKey<TComponent>) {
     return this.state.compositionEngine.registryCompositionKey(entry);
@@ -121,7 +126,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 
   /**
    * Remove all composition entries registered under `key`.
-   * See {@link CompositionEngine.removeCompositionKey}.
+   * See {@link CompositionEngine#removeCompositionKey}.
    */
   removeCompositionKey(key: string) {
     return this.state.compositionEngine.removeCompositionKey(key);
@@ -149,7 +154,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 
   /**
    * Update a composition entry identified by `key` + `flag`.
-   * See {@link CompositionEngine.updateCompositionKey}.
+   * See {@link CompositionEngine#updateCompositionKey}.
    */
   updateCompositionKey(
     key: string,

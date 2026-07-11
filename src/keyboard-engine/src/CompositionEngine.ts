@@ -1,3 +1,4 @@
+import { checkWhen } from "./checkWhen.js";
 import EngineState from "./engine/EngineState.js";
 import type { PipelineContext } from "./types.js";
 
@@ -134,6 +135,21 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
   executeWhenNoOverlay?: boolean;
 
   execute?: (ctx: CompositionContext<TValue>) => CompositionContext<TValue> | null;
+
+  /**
+   * This key is enabled only when this callback method returns true.
+   */
+  when?: (() => boolean) | string
+
+  /**
+   * Restrict this composition key to a specific mode.
+   *
+   * When set, the entry is skipped unless
+   * {@link PipelineContext.currentMode} matches. Checked after
+   * affectOverlay, before `when`, `category`, and other filters.
+   * When omitted, the key works in all modes (including no-mode).
+   */
+  mode?: string;
 }
 
 export default class CompositionEngine<TComponet = unknown> {
@@ -248,6 +264,7 @@ export default class CompositionEngine<TComponet = unknown> {
   ): CompositioKey<TComponet>[] {
     return entries.filter((entry) => {
       if ((entry.affectOverlay ?? false) !== affectOverlay) return false;
+      if (entry.mode && entry.mode !== ctx.currentMode) return false;
       if (!ctx.topComponent) return false;
 
       if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay) return false;
@@ -275,6 +292,8 @@ export default class CompositionEngine<TComponet = unknown> {
     const result = resolveCompositionKey(filtered, null);
 
     if (!result) return false;
+
+    if (!checkWhen(result.when, ctx.conditions)) return false;
 
     const initialCtx: CompositionContext = { value: undefined, lastFlag: null, steps: [] };
     const nextCtx = result.execute?.(initialCtx);
@@ -316,6 +335,11 @@ export default class CompositionEngine<TComponet = unknown> {
     const result = resolveCompositionKey(filtered, this.context.lastFlag);
 
     if (result) {
+      if (!checkWhen(result.when, ctx.conditions)) {
+        this.clearPending()
+        return false
+      }
+
       const nextCtx = result.execute?.(this.context);
       if (!nextCtx) {
         this.clearPending();
