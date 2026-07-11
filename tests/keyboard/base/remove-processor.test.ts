@@ -13,7 +13,7 @@ function createEngine() {
 }
 
 describe('KeyboardEngine.removeProcessor', () => {
-  const DEFAULT_COUNT = 7;
+  const DEFAULT_COUNT = 9;
 
   test('returns false when processor ID does not exist', () => {
     const engine = createEngine();
