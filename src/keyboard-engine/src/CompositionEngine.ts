@@ -63,7 +63,6 @@ export interface CompositionPneding {
   affectOverlay: boolean;
 }
 
-
 export interface CompositionContext<T = unknown> {
   /**
    * The value currently passed through the context
@@ -134,12 +133,14 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
    */
   executeWhenNoOverlay?: boolean;
 
-  execute?: (ctx: CompositionContext<TValue>) => CompositionContext<TValue> | null;
+  execute?: (
+    ctx: CompositionContext<TValue>,
+  ) => CompositionContext<TValue> | null;
 
   /**
    * This key is enabled only when this callback method returns true.
    */
-  when?: (() => boolean) | string
+  when?: (() => boolean) | string;
 
   /**
    * Restrict this composition key to a specific mode.
@@ -154,15 +155,23 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 
 export default class CompositionEngine<TComponet = unknown> {
   private currentKey: string[] = [];
-  private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> = new Map();
+  private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> =
+    new Map();
 
-  private pendingEntry: CompositionPneding | null = null
-  private defaultTimeout: number
+  private pendingEntry: CompositionPneding | null = null;
+  private defaultTimeout: number;
 
-  private context: CompositionContext = { value: undefined, lastFlag: null, steps: [] };
+  private context: CompositionContext = {
+    value: undefined,
+    lastFlag: null,
+    steps: [],
+  };
 
-  constructor(private state: EngineState, defaultTimeout?: number) {
-    this.defaultTimeout = defaultTimeout ?? 400
+  constructor(
+    private state: EngineState<TComponet>,
+    defaultTimeout?: number,
+  ) {
+    this.defaultTimeout = defaultTimeout ?? 400;
   }
 
   synchronizingKey(eventName: string[]) {
@@ -170,15 +179,15 @@ export default class CompositionEngine<TComponet = unknown> {
   }
 
   registryCompositionKey(entry: CompositioKey<TComponet>) {
-    const key = entry.key
-    const result = this.keyMappingTable.get(key)
+    const key = entry.key;
+    const result = this.keyMappingTable.get(key);
 
     if (!result) {
-      this.keyMappingTable.set(key, new Set([entry]))
-      return
+      this.keyMappingTable.set(key, new Set([entry]));
+      return;
     }
 
-    result.add(entry)
+    result.add(entry);
   }
 
   /**
@@ -217,7 +226,7 @@ export default class CompositionEngine<TComponet = unknown> {
   updateCompositionKey(
     key: string,
     flag: string,
-    updates: Partial<Omit<CompositioKey<TComponet>, 'key' | 'flag'>>,
+    updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flag">>,
   ): boolean {
     const set = this.keyMappingTable.get(key);
     if (!set) return false;
@@ -225,7 +234,12 @@ export default class CompositionEngine<TComponet = unknown> {
     for (const entry of set) {
       if (entry.flag === flag) {
         set.delete(entry);
-        const merged: CompositioKey<TComponet> = { ...entry, ...updates, key, flag };
+        const merged: CompositioKey<TComponet> = {
+          ...entry,
+          ...updates,
+          key,
+          flag,
+        };
         set.add(merged);
         return true;
       }
@@ -267,27 +281,26 @@ export default class CompositionEngine<TComponet = unknown> {
       if (entry.mode && entry.mode !== ctx.currentMode) return false;
       if (!ctx.topComponent) return false;
 
-      if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay) return false;
+      if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay)
+        return false;
 
       const cat = entry.category;
-      if (cat !== undefined && cat !== '*') {
+      if (cat !== undefined && cat !== "*") {
         if (Array.isArray(cat) && cat.length === 0) return false;
-        if (Array.isArray(cat) && !cat.includes(ctx.topComponent as TComponet)) return false;
+        if (Array.isArray(cat) && !cat.includes(ctx.topComponent as TComponet))
+          return false;
       }
 
       return true;
     });
   }
 
-  private startPending(
-    ctx: PipelineContext,
-    affectOverlay: boolean,
-  ): boolean {
+  private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
     if (this.pendingEntry) return false;
 
-    const allEntries = this.currentKey.flatMap((name) =>
-      [...(this.keyMappingTable.get(name) ?? [])],
-    );
+    const allEntries = this.currentKey.flatMap((name) => [
+      ...(this.keyMappingTable.get(name) ?? []),
+    ]);
     const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
     const result = resolveCompositionKey(filtered, null);
 
@@ -295,7 +308,11 @@ export default class CompositionEngine<TComponet = unknown> {
 
     if (!checkWhen(result.when, ctx.conditions)) return false;
 
-    const initialCtx: CompositionContext = { value: undefined, lastFlag: null, steps: [] };
+    const initialCtx: CompositionContext = {
+      value: undefined,
+      lastFlag: null,
+      steps: [],
+    };
     const nextCtx = result.execute?.(initialCtx);
     // `execute` returns null → chain does not start
     if (!nextCtx) return false;
@@ -328,16 +345,16 @@ export default class CompositionEngine<TComponet = unknown> {
 
     clearTimeout(this.pendingEntry.timer);
 
-    const allEntries = this.currentKey.flatMap((name) =>
-      [...(this.keyMappingTable.get(name) ?? [])],
-    );
+    const allEntries = this.currentKey.flatMap((name) => [
+      ...(this.keyMappingTable.get(name) ?? []),
+    ]);
     const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
     const result = resolveCompositionKey(filtered, this.context.lastFlag);
 
     if (result) {
       if (!checkWhen(result.when, ctx.conditions)) {
-        this.clearPending()
-        return false
+        this.clearPending();
+        return false;
       }
 
       const nextCtx = result.execute?.(this.context);
@@ -373,12 +390,9 @@ export default class CompositionEngine<TComponet = unknown> {
     return false;
   }
 
-
   start(ctx: PipelineContext, affectOverlay: boolean): boolean {
     this.synchronizingKey(ctx.eventNames);
     if (this.processPending(ctx, affectOverlay)) return true;
     return this.startPending(ctx, affectOverlay);
   }
-
-
 }
