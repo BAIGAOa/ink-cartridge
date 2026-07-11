@@ -17,6 +17,8 @@ import type {
   GlobalPendingSequence,
   ScreenKeyboardLayer,
   PipelineProcessor,
+  CompositioKey,
+  CompositionContext,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 
@@ -130,6 +132,18 @@ export interface KeyboardContextValue {
   getProcessors: () => readonly PipelineProcessor[];
 
   resetProcessors: () => void;
+
+  registryCompositionKey: (entry: CompositioKey) => void;
+  removeCompositionKey: (key: string) => boolean;
+  clearAllCompositionKeys: () => void;
+  hasPendingComposition: () => boolean;
+  getCompositionContext: () => CompositionContext;
+  abortComposition: () => void;
+  updateCompositionKey: (
+    key: string,
+    flag: string,
+    updates: Partial<Omit<CompositioKey, "key" | "flag">>,
+  ) => boolean;
 }
 
 /**

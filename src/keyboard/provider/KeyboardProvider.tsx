@@ -96,6 +96,13 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       removeProcessor: engine.removeProcessor.bind(engine),
       getProcessors: engine.getProcessors.bind(engine),
       resetProcessors: engine.resetProcessors.bind(engine),
+      registryCompositionKey: engine.registryCompositionKey.bind(engine),
+      removeCompositionKey: engine.removeCompositionKey.bind(engine),
+      clearAllCompositionKeys: engine.clearAllCompositionKeys.bind(engine),
+      hasPendingComposition: engine.hasPendingComposition.bind(engine),
+      getCompositionContext: engine.getCompositionContext.bind(engine),
+      abortComposition: engine.abortComposition.bind(engine),
+      updateCompositionKey: engine.updateCompositionKey.bind(engine),
     }),
     [engine],
   );

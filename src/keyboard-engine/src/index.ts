@@ -27,7 +27,11 @@ export {
 } from "./providers/helpers.js";
 export type { KeyRuleContainer } from "./providers/helpers.js";
 
+export { default as CompositionEngine } from "./CompositionEngine.js";
+export type { CompositioKey, CompositionContext } from "./CompositionEngine.js";
+
 export { createModalProcessor } from "./processors/modal.js";
+export { createCompositionProcessor } from "./processors/globalComposition.js";
 export { createGlobalSequenceProcessor } from "./processors/globalSequence.js";
 export { createGlobalKeyProcessor } from "./processors/globalKey.js";
 export { createOverlayProcessor } from "./processors/overlay.js";

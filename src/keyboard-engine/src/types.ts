@@ -1,7 +1,8 @@
 import { BuiltinProcessorId } from "./pipeline/chain.js";
+import type CompositionEngine from "./CompositionEngine.js";
 
 export interface MutableRef<T> {
-    current: T;
+  current: T;
 }
 
 /**
@@ -790,9 +791,7 @@ export interface PipelineContext {
   readonly activeModalId: string | null;
 
   // --- Mutable refs (shared with engine instance) ---
-  readonly layersRef: MutableRef<
-    Map<unknown | string, ScreenKeyboardLayer>
-  >;
+  readonly layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>>;
   readonly pendingSeqRef: MutableRef<GlobalPendingSequence | null>;
 
   // --- Callbacks ---
@@ -803,7 +802,12 @@ export interface PipelineContext {
   anyOverlayConsumed: boolean;
 
   readonly currentMode: string | null;
-  readonly conditions: Map<string, boolean>
+  readonly conditions: Map<string, boolean>;
+
+  readonly compositionEngineHandler: boolean;
+
+  /** The shared composition engine instance. */
+  readonly compositionEngine: CompositionEngine;
 }
 
 /**
@@ -831,7 +835,7 @@ export interface KeyboardProcessorProps {
   /** Target built-in processor ID. Use with {@link position}. */
   target?: BuiltinProcessorId;
   /** Insert before or after {@link target}. */
-  position?: 'before' | 'after';
+  position?: "before" | "after";
   /** Insert at this 0-based index. Overrides target/position. */
   index?: number;
 }

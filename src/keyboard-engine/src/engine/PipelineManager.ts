@@ -1,4 +1,5 @@
 import { createModalProcessor } from "../processors/modal.js";
+import { createCompositionProcessor } from "../processors/globalComposition.js";
 import { createGlobalSequenceProcessor } from "../processors/globalSequence.js";
 import { createGlobalKeyProcessor } from "../processors/globalKey.js";
 import { createOverlayProcessor } from "../processors/overlay.js";
@@ -15,9 +16,11 @@ export default class PipelineManager {
     _buildDefaultProcessors(custom?: KeyboardProcessorProps[]): PipelineProcessor[] {
         const defaults: PipelineProcessor[] = [
             createModalProcessor(),
+            createCompositionProcessor({ affectOverlay: true }),
             createGlobalSequenceProcessor({ affectOverlay: true }),
             createGlobalKeyProcessor({ affectOverlay: true }),
             createOverlayProcessor(),
+            createCompositionProcessor({ affectOverlay: false }),
             createGlobalSequenceProcessor({ affectOverlay: false }),
             createGlobalKeyProcessor({ affectOverlay: false }),
             createScreenStackProcessor(),

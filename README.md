@@ -62,6 +62,7 @@ npx ink-cartridge init my-tui
 - [boundSequence](docs/keyboard/boundSequence-API.md)
 - [penetration](docs/keyboard/penetration-API.md)
 - [stop](docs/keyboard/stop-API.md)
+- [compositionEngine](docs/keyboard/compositionEngine-API.md)
 - [globalKeys](docs/keyboard/globalKeys-API.md)
 - [globalSequence](docs/keyboard/globalSequence-API.md)
 - [focus system](docs/keyboard/focus-system-API.md)

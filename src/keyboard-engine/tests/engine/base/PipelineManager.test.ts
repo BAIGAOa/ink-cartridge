@@ -8,16 +8,18 @@ function makeProcessor(id: string): PipelineProcessor {
 
 describe('PipelineManager', () => {
   describe('default pipeline', () => {
-    test('Given a new engine, Then getProcessors returns 7 built-in processors', () => {
+    test('Given a new engine, Then getProcessors returns 9 built-in processors', () => {
       const engine = createEngine();
       const processors = engine.getProcessors();
-      expect(processors).toHaveLength(7);
+      expect(processors).toHaveLength(9);
       const ids = processors.map(p => p.id);
       expect(ids).toEqual([
         'modal',
+        'composition-overlay',
         'global-sequence-overlay',
         'global-key-overlay',
         'overlay',
+        'composition-screen',
         'global-sequence-screen',
         'global-key-screen',
         'screen-stack',
@@ -76,7 +78,7 @@ describe('PipelineManager', () => {
     test('Given existing processor id, Then removes it and returns true', () => {
       const engine = createEngine();
       expect(engine.removeProcessor('modal')).toBe(true);
-      expect(engine.getProcessors()).toHaveLength(6);
+      expect(engine.getProcessors()).toHaveLength(8);
     });
 
     test('Given non-existent processor id, Then returns false', () => {
@@ -86,11 +88,11 @@ describe('PipelineManager', () => {
   });
 
   describe('resetProcessors', () => {
-    test('Given custom processors added, reset restores the default 7', () => {
+    test('Given custom processors added, reset restores the default 9', () => {
       const engine = createEngine();
       engine.addProcessor(makeProcessor('custom'));
       engine.resetProcessors();
-      expect(engine.getProcessors()).toHaveLength(7);
+      expect(engine.getProcessors()).toHaveLength(9);
     });
   });
 
@@ -100,7 +102,7 @@ describe('PipelineManager', () => {
       const snapshot = engine.getProcessors();
       // Modifying the snapshot should not affect the engine
       const originalLength = snapshot.length;
-      expect(originalLength).toBe(7);
+      expect(originalLength).toBe(9);
     });
   });
 });

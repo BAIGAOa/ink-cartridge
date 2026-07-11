@@ -95,6 +95,44 @@ function NotificationOverlay() {
 }
 ```
 
+## Composition Engine
+
+For compound key actions (e.g. `3 w` = action × 3 times), use the composition engine:
+
+```tsx
+function Editor() {
+  const { registryCompositionKey, hasPendingComposition, getCompositionContext } = useKeyboard();
+
+  useEffect(() => {
+    registryCompositionKey({
+      key: '3',
+      flag: 'times',
+      needs: [],
+      execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+    });
+    registryCompositionKey({
+      key: 'w',
+      flag: 'action',
+      needs: ['times'],
+      optional: true,
+      execute: (ctx) => {
+        const times = (ctx.value as number) ?? 1;
+        // ... perform action `times` times
+        return { value: times, lastFlag: 'action', steps: [...ctx.steps, 'w'] };
+      },
+    });
+  }, []);
+
+  return (
+    <Text>
+      {hasPendingComposition()
+        ? `Composing: ${getCompositionContext().steps.join(' → ')}`
+        : 'Press 3 then w'}
+    </Text>
+  );
+}
+```
+
 ## See Also
 
 - [ink-cartridge on GitHub](https://github.com/BAIGAOa/ink-cartridge)

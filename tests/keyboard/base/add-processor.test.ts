@@ -13,7 +13,7 @@ function createEngine() {
 }
 
 describe('KeyboardEngine.addProcessor', () => {
-  const DEFAULT_COUNT = 7;
+  const DEFAULT_COUNT = 9;
 
   test('throws when adding a processor with a duplicate ID', () => {
     const engine = createEngine();
@@ -56,8 +56,8 @@ describe('KeyboardEngine.addProcessor', () => {
     const all = engine.getProcessors();
     expect(all.length).toBe(DEFAULT_COUNT + 1);
     expect(all[2].id).toBe('inserted');
-    expect(all[3].id).toBe('global-key-overlay');
-    expect(all[4].id).toBe('overlay');
+    expect(all[3].id).toBe('global-sequence-overlay');
+    expect(all[4].id).toBe('global-key-overlay');
   });
 
   test('inserts before a named processor', () => {
@@ -66,8 +66,8 @@ describe('KeyboardEngine.addProcessor', () => {
 
     const all = engine.getProcessors();
     expect(all.length).toBe(DEFAULT_COUNT + 1);
-    expect(all[3].id).toBe('before-overlay');
-    expect(all[4].id).toBe('overlay');
+    expect(all[4].id).toBe('before-overlay');
+    expect(all[5].id).toBe('overlay');
   });
 
   test('inserts after a named processor', () => {
