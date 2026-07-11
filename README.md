@@ -50,6 +50,13 @@ npm install ink-cartridge
 npx ink-cartridge init my-tui
 ```
 
+## Install the keyboard engine
+
+```bash
+npm install @cartridge-engine/keyboard-engine
+```
+
+
 ## Documentation
 
 <details>
