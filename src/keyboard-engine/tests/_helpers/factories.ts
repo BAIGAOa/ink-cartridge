@@ -244,6 +244,8 @@ export function createContext(
     anyOverlayConsumed: false,
     currentMode: null,
     conditions: new Map(),
+    compositionEngineHandler: false,
+    compositionEngine: undefined as unknown as PipelineContext['compositionEngine'],
     ...overrides,
   } as PipelineContext;
 }

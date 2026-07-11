@@ -1,4 +1,5 @@
 import { BuiltinProcessorId } from "./pipeline/chain.js";
+import type CompositionEngine from "./CompositionEngine.js";
 
 export interface MutableRef<T> {
   current: T;
@@ -804,6 +805,9 @@ export interface PipelineContext {
   readonly conditions: Map<string, boolean>;
 
   readonly compositionEngineHandler: boolean;
+
+  /** The shared composition engine instance. */
+  readonly compositionEngine: CompositionEngine;
 }
 
 /**

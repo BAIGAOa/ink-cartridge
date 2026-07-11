@@ -245,6 +245,22 @@ if (pending) {
 }
 ```
 
+## Composition Engine Methods
+
+All delegation methods for the built-in composition engine. These are available directly on the engine instance (not via `engine.composition.xxx()`).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `registryCompositionKey(entry)` | `void` | Register a composition key entry |
+| `removeCompositionKey(key)` | `boolean` | Remove all entries under `key` |
+| `clearAllCompositionKeys()` | `void` | Remove every registered composition key |
+| `hasPendingComposition()` | `boolean` | Whether a composition chain is active |
+| `getCompositionContext()` | `CompositionContext` | Shallow copy of current context |
+| `abortComposition()` | `void` | Cancel the current chain immediately |
+| `updateCompositionKey(key, flag, updates)` | `boolean` | Update an entry identified by key + flag |
+
+See [compositionEngine](./compositionEngine-API.md) for the full API, entry fields, and usage examples.
+
 ## Instance vs Global Processors
 
 The engine supports processor injection at the instance level:

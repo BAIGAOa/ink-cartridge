@@ -137,8 +137,47 @@ engine.addProcessor(
 );
 
 console.log(engine.getProcessors().map(p => p.id));
-// ['modal', 'key-logger', 'global-sequence-overlay', ...]
+// ['modal', 'key-logger', 'composition-overlay', 'global-sequence-overlay', ...]
 ```
+
+## Composition Engine
+
+The composition engine enables building compound key actions using flag/needs chains.
+
+```ts
+// Register composition keys on the engine
+engine.registryCompositionKey({
+  key: '3',
+  flag: 'times',
+  needs: [],
+  execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+});
+
+engine.registryCompositionKey({
+  key: 'w',
+  flag: 'action',
+  needs: ['times'],
+  optional: true,
+  execute: (ctx) => {
+    const times = (ctx.value as number) ?? 1;
+    console.log(`Performing action ${times} times`);
+    return { value: times, lastFlag: 'action', steps: [...ctx.steps, 'w'] };
+  },
+});
+
+// Press 3 then w → performs action 3 times
+// Press w alone → performs action 1 time (optional head key)
+
+// Query pending state
+if (engine.hasPendingComposition()) {
+  console.log('Composition chain:', engine.getCompositionContext().steps);
+  engine.abortComposition(); // cancel if needed
+}
+```
+
+All composition methods are available directly on the engine instance:
+`registryCompositionKey`, `removeCompositionKey`, `clearAllCompositionKeys`,
+`hasPendingComposition`, `getCompositionContext`, `abortComposition`, `updateCompositionKey`.
 
 ## See Also
 

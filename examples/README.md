@@ -22,6 +22,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 
 | Demo | Description | Command |
 |------|-------------|---------|
+| composition | registryCompositionKey, flag/needs chains, pending state, abort | `npx tsx examples/core/composition.demo.tsx` |
 | counter | boundKeyboard with once, times, when, observer | `npx tsx examples/core/counter.demo.tsx` |
 | conditions | addCondition, setCondition, removeCondition + when: string | `npx tsx examples/core/conditions.demo.tsx` |
 | navigation | skip, back, gotoScreen with multi-level tree | `npx tsx examples/core/navigation.demo.tsx` |

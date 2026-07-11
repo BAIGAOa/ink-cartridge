@@ -22,6 +22,7 @@ export {
   clearShortcutOperations,
   finalizeBoundKeyboard,
   createModalProcessor,
+  createCompositionProcessor,
   createGlobalSequenceProcessor,
   createGlobalKeyProcessor,
   createOverlayProcessor,
@@ -55,6 +56,8 @@ export type {
   KeyboardProcessorProps,
   PipelineProcessor,
   MutableRef,
+  CompositioKey,
+  CompositionContext,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";

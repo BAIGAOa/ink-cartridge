@@ -9,6 +9,7 @@ import {
   ResolvedGlobalSequenceEntry,
   ScreenKeyboardLayer,
 } from "../types.js";
+import type CompositionEngine from "../CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -151,6 +152,9 @@ export default class EngineState<TComponent = unknown> {
    * Indicates which processor is waiting to process the sequence at this point
    */
   compositionEngineHandle: boolean = false;
+
+  /** The composition engine instance, assigned by KeyboardEngine after construction. */
+  compositionEngine!: CompositionEngine<TComponent>;
 
   constructor(props: EngineProps) {
     this.modesRef = new Set(props.modes ?? []);

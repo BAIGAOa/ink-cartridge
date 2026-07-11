@@ -1,6 +1,6 @@
 {
     "name": "ink-cartridge",
-    "version": "4.0.5",
+    "version": "4.1.0",
     "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
@@ -77,7 +77,9 @@
         "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
     },
     "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme",
-    "workspaces": ["src/keyboard-engine"],
+    "workspaces": [
+        "src/keyboard-engine"
+    ],
     "dependencies": {
         "@cartridge-engine/keyboard-engine": "*",
         "zod": "^4.4.3"

@@ -25,6 +25,7 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
+import CompositionEngine, { CompositioKey } from "./CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -102,6 +103,60 @@ export default class KeyboardEngine<TComponent = unknown> {
     this.pipeline = new PipelineManager(this.state, props.processors);
     this.bindings = new BindingService(this.state, this.layers);
     this.registry = new OperationRegistry(this.state, this.layers);
+    this.state.compositionEngine = new CompositionEngine(this.state);
+  }
+
+  /** The composition engine for composing multi-key compound actions. */
+  get composition(): CompositionEngine<TComponent> {
+    return this.state.compositionEngine;
+  }
+
+  /**
+   * Register a composition key entry.
+   * See {@link CompositionEngine.registryCompositionKey}.
+   */
+  registryCompositionKey(entry: CompositioKey<TComponent>) {
+    return this.state.compositionEngine.registryCompositionKey(entry);
+  }
+
+  /**
+   * Remove all composition entries registered under `key`.
+   * See {@link CompositionEngine.removeCompositionKey}.
+   */
+  removeCompositionKey(key: string) {
+    return this.state.compositionEngine.removeCompositionKey(key);
+  }
+
+  /** Clear all registered composition keys. */
+  clearAllCompositionKeys() {
+    this.state.compositionEngine.clearAllCompositionKeys();
+  }
+
+  /** Whether a composition chain is currently pending. */
+  hasPendingComposition(): boolean {
+    return this.state.compositionEngine.hasPending();
+  }
+
+  /** Return a copy of the current composition context. */
+  getCompositionContext() {
+    return this.state.compositionEngine.getContext();
+  }
+
+  /** Cancel the current composition chain immediately. */
+  abortComposition() {
+    this.state.compositionEngine.abort();
+  }
+
+  /**
+   * Update a composition entry identified by `key` + `flag`.
+   * See {@link CompositionEngine.updateCompositionKey}.
+   */
+  updateCompositionKey(
+    key: string,
+    flag: string,
+    updates: Partial<Omit<CompositioKey<TComponent>, 'key' | 'flag'>>,
+  ) {
+    return this.state.compositionEngine.updateCompositionKey(key, flag, updates);
   }
 
   /**
@@ -591,6 +646,7 @@ export default class KeyboardEngine<TComponent = unknown> {
       conditions: this.state.conditions,
       key,
       compositionEngineHandler,
+      compositionEngine: this.state.compositionEngine,
     };
   }
 
