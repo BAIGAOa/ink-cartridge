@@ -19,8 +19,8 @@ function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
   };
 }
 
-function ctx(eventNames: string[], topComponent: unknown = 'screen') {
-  return createContext({ eventNames, topComponent });
+function ctx(eventNames: string[], topComponent: unknown = 'screen', conditions?: Map<string, boolean>) {
+  return createContext({ eventNames, topComponent, conditions });
 }
 
 describe('CompositionEngine', () => {
@@ -331,6 +331,184 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
       engine.abort();
       expect(engine.hasPending()).toBe(false);
+    });
+  });
+
+  describe('when — function condition', () => {
+    test('Given when returns false for a head key, Then start() returns false', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: () => false,
+      }));
+      expect(engine.start(ctx(['x']), false)).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given when returns true for a head key, Then start() returns true', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: () => true,
+      }));
+      expect(engine.start(ctx(['x']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given chain started and next key when returns false, Then chain is cleared and key falls through', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: () => false,
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(state.compositionEngineHandle).toBe(true);
+
+      const consumed = engine.start(ctx(['w']), false);
+      expect(consumed).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given chain started and next key when returns true, Then chain continues', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: () => true,
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['w']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given when function reads external state that changes mid-sequence, Then chain respects current state', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      let enabled = true;
+
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: () => enabled,
+      }));
+
+      // Start chain while condition is true
+      engine.start(ctx(['3']), false);
+      expect(state.compositionEngineHandle).toBe(true);
+
+      // Disable condition mid-sequence
+      enabled = false;
+
+      const consumed = engine.start(ctx(['w']), false);
+      expect(consumed).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+  });
+
+  describe('when — named condition', () => {
+    test('Given when references a registered condition with value true, Then head key starts', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: 'editing',
+      }));
+      expect(engine.start(ctx(['x'], 'screen', new Map([['editing', true]])), false)).toBe(true);
+    });
+
+    test('Given when references a registered condition with value false, Then head key is skipped', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        when: 'editing',
+      }));
+      expect(engine.start(ctx(['x'], 'screen', new Map([['editing', false]])), false)).toBe(false);
+    });
+
+    test('Given chain started and next key when condition flips to false, Then chain is cleared', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const conditions = new Map([['editing', true]]);
+
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        when: 'editing',
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(state.compositionEngineHandle).toBe(true);
+
+      // Flip condition to false
+      conditions.set('editing', false);
+
+      const consumed = engine.start(ctx(['w'], 'screen', conditions), false);
+      expect(consumed).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+  });
+
+  describe('mode filtering', () => {
+    test('Given entry with matching mode, Then head key starts', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        mode: 'insert',
+      }));
+      const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
+      expect(engine.start(c, false)).toBe(true);
+    });
+
+    test('Given entry with non-matching mode, Then head key is skipped', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'action', needs: [], optional: true,
+        mode: 'normal',
+      }));
+      const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
+      expect(engine.start(c, false)).toBe(false);
+    });
+
+    test('Given entry without mode, Then works in any mode', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: 'x', flag: 'action', needs: [], optional: true }));
+      // currentMode is 'insert' but entry has no mode → should still match
+      const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
+      expect(engine.start(c, false)).toBe(true);
+    });
+
+    test('Given entry without mode, Then works when currentMode is null', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: 'x', flag: 'action', needs: [], optional: true }));
+      expect(engine.start(ctx(['x']), false)).toBe(true);
+    });
+
+    test('Given chain key with non-matching mode, Then filtered out and chain falls through', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        mode: 'normal',
+      }));
+
+      engine.start(ctx(['3']), false);
+      const c = createContext({ eventNames: ['w'], topComponent: 'screen', currentMode: 'insert' });
+      const consumed = engine.start(c, false);
+      expect(consumed).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
     });
   });
 
