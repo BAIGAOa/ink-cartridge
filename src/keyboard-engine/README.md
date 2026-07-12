@@ -328,6 +328,10 @@ if (pending) {
 }
 ```
 
+## API Documentation
+
+See [`docs/API/`](./docs/API/) for the full API reference — each public method has its own document with signature, parameters, internal effects, usage examples, and cross-API interactions.
+
 ## Framework Adapters
 
 See the [docs/](./docs/) directory for detailed integration guides:
@@ -571,6 +575,7 @@ process.stdin.on('keypress', (_input, key) => {
           │ ⑨ ScreenStack │ ← Top → bottom, stops on consume
           └──────────────┘
 ```
+
 
 ## See Also
 
