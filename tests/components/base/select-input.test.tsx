@@ -1,4 +1,4 @@
-import { stripAnsi, flush, press, makeMockStorage } from './_helpers.js';
+import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React, { useEffect, useState } from 'react';
@@ -11,7 +11,6 @@ import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
 import { SelectInput } from '../../../src/components/select/SelectInput.js';
 import type { Item } from '../../../src/components/select/types.js';
-import type { StorageAPI } from '../../../src/storage/index.js';
 
 const KEYS = {
   enter: '\r',
@@ -893,82 +892,5 @@ describe('focus target stability', () => {
     await press(stdin, KEYS.enter);
     await flush();
     expect(onSelect).toHaveBeenCalledTimes(1);
-  });
-});
-
-// 13. persistence
-
-describe('persistence', () => {
-
-  it('reads absolute index from storage on mount and restores cursor position', async () => {
-    const { store, api } = makeMockStorage();
-    store['select:ps'] = 2;
-
-    function Host() {
-      return React.createElement(SelectInput, {
-        focusId: 'ps',
-        items: threeItems,
-        onSelect: vi.fn(),
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.num as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('select:ps', 0);
-  });
-
-  it('writes absolute index to storage after cursor move', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(SelectInput, {
-        focusId: 'ps',
-        items: threeItems,
-        onSelect: vi.fn(),
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-
-    await press(stdin, KEYS.down);
-    await flush();
-
-    expect((api.write.num as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('select:ps', 1);
-  });
-
-  it('uses custom key when storageKey is passed', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(SelectInput, {
-        focusId: 'ps',
-        items: threeItems,
-        onSelect: vi.fn(),
-        storage: api,
-        storageKey: 'custom-select',
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.num as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('custom-select', 0);
   });
 });

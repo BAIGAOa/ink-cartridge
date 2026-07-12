@@ -9,8 +9,6 @@ export function Tabs({
   activeTab: controlledActive,
   onChange,
   defaultActiveTab,
-  storage,
-  storageKey,
 }: TabsProps) {
   const isFocused = useFocusState(focusId);
   const { boundKeyboard, focusUnregister } = useKeyboard();
@@ -19,17 +17,6 @@ export function Tabs({
   const [internalActive, setInternalActive] = useState(
     defaultActiveTab ?? tabs[0]?.id,
   );
-
-  const persistKey = storageKey ?? `tabs:${focusId}`;
-
-  useEffect(() => {
-    if (!storage) return;
-    let cancelled = false;
-    storage.read.str(persistKey, defaultActiveTab ?? tabs[0]?.id ?? '').then((v) => {
-      if (!cancelled) setInternalActive(v);
-    });
-    return () => { cancelled = true; };
-  }, [storage, persistKey, defaultActiveTab, tabs]);
 
   const activeId = isControlled ? controlledActive : internalActive;
   const activeIndex = tabs.findIndex((t) => t.id === activeId);
@@ -41,9 +28,8 @@ export function Tabs({
       onChange?.(id);
     } else {
       setInternalActive(id);
-      storage?.write.str(persistKey, id);
     }
-  }, [activeIndex, tabs, isControlled, onChange, storage, persistKey]);
+  }, [activeIndex, tabs, isControlled, onChange]);
 
   const next = useCallback(() => {
     const nextIdx = (activeIndex + 1) % tabs.length;
@@ -52,9 +38,8 @@ export function Tabs({
       onChange?.(id);
     } else {
       setInternalActive(id);
-      storage?.write.str(persistKey, id);
     }
-  }, [activeIndex, tabs, isControlled, onChange, storage, persistKey]);
+  }, [activeIndex, tabs, isControlled, onChange]);
 
   useEffect(() => {
     const unLeft = boundKeyboard(['left'], () => prev(), { focusId });

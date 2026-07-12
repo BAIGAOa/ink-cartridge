@@ -1,6 +1,6 @@
 {
     "name": "ink-cartridge",
-    "version": "4.1.1",
+    "version": "4.1.2",
     "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
@@ -81,7 +81,6 @@
         "src/keyboard-engine"
     ],
     "dependencies": {
-        "@cartridge-engine/keyboard-engine": "*",
-        "zod": "^4.4.3"
+        "@cartridge-engine/keyboard-engine": "*"
     }
 }

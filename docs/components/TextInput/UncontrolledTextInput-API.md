@@ -1,14 +1,12 @@
 # UncontrolledTextInput
 
-Self-managing TextInput with optional storage persistence.
+Self-managing TextInput.
 
 ## Props
 
 ```ts
 {
   initialValue?: string;       // default ''
-  storage?: StorageAPI;
-  storageKey?: string;         // default "text:<focusId>"
 } & Omit<TextInputProps, 'value' | 'onChange'>
 ```
 

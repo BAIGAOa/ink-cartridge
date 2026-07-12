@@ -15,8 +15,6 @@ Multi-select list with checkboxes and batch operations.
 | `onUnselect` | `(item: Item<T>) => void` | no | — | Called when an item is toggled OFF. |
 | `focusId` | `string` | yes | — | Focus target. |
 | `limit` | `number` | no | `10` | Max visible items. |
-| `storage` | `StorageAPI` | no | — | Persist selected values. |
-| `storageKey` | `string` | no | `"multi:<focusId>"` | Storage key. |
 | `checkboxComponent` | `ComponentType` | no | `◉`/`○` | Custom checkbox. |
 
 ## Keyboard (scoped to `focusId`)

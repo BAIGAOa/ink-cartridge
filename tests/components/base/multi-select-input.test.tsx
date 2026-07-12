@@ -1,4 +1,4 @@
-import { stripAnsi, flush, press, makeMockStorage } from './_helpers.js';
+import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React, { useEffect, useState } from 'react';
@@ -11,7 +11,6 @@ import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
 import { MultiSelectInput } from '../../../src/components/multi-select/MultiSelectInput.js';
 import type { Item } from '../../../src/components/select/types.js';
-import type { StorageAPI } from '../../../src/storage/index.js';
 
 const KEYS = {
   enter: '\r',
@@ -973,58 +972,5 @@ describe('unfocused rendering (isFocused=false)', () => {
 
     const output = lastFrameClean();
     expect(output).toContain('\u25C9');
-  });
-});
-
-// 12. persistence
-
-describe('persistence', () => {
-
-  it('reads and restores selected array from storage on mount', async () => {
-    const { store, api } = makeMockStorage();
-    store['multi:ms'] = ['light'];
-
-    function Host() {
-      return React.createElement(MultiSelectInput, {
-        focusId: 'ms',
-        items: threeItems,
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.arr as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('multi:ms', []);
-  });
-
-  it('writes array to storage after selection change', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(MultiSelectInput, {
-        focusId: 'ms',
-        items: threeItems,
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-
-    // Toggle first item
-    stdin.write(' ');
-    await flush();
-
-    expect((api.write.arr as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('multi:ms', ['dark']);
   });
 });

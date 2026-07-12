@@ -13,8 +13,6 @@ Collapsible section with toggle and optional preview.
 | `expanded` | `boolean` | no | — | Controlled. |
 | `onToggle` | `() => void` | no | — | Controlled callback. |
 | `defaultExpanded` | `boolean` | no | `false` | Uncontrolled initial state. |
-| `storage` | `StorageAPI` | no | — | Persist state. |
-| `storageKey` | `string` | no | `"fold:<focusId>"` | Storage key. |
 
 ## Keyboard (scoped to `focusId`)
 

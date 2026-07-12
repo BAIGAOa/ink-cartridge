@@ -1,5 +1,5 @@
 // @ts-nocheck — pre-existing TS issues from old test code
-import { stripAnsi, flush, press, makeMockStorage } from './_helpers.js';
+import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React from 'react';
@@ -10,7 +10,6 @@ import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { Tabs, TextInput, SelectInput, Field, Form } from '../../../src/index.js';
-import type { StorageAPI } from '../../../src/storage/index.js';
 
 const KEYS = {
   left: '\x1b[D',
@@ -181,86 +180,6 @@ describe('Tabs + input component integration', () => {
   });
 });
 
-describe('Tabs persistence', () => {
-  it('reads and restores activeTab from storage on mount', async () => {
-    const { store, api } = makeMockStorage();
-    store['tabs:main'] = 'b';
-
-    function Host() {
-      return React.createElement(Tabs, {
-        focusId: 'main',
-        storage: api,
-        tabs: [
-          { id: 'a', label: 'A', content: React.createElement(Text, null, 'Page A') },
-          { id: 'b', label: 'B', content: React.createElement(Text, null, 'Page B') },
-        ],
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { lastFrame } = render(
-      React.createElement(ScenarioManagementProvider, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect(stripAnsi(lastFrame())).toContain('Page B');
-  });
-
-  it('writes to storage after tab switch', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(Tabs, {
-        focusId: 'main',
-        storage: api,
-        tabs: [
-          { id: 'a', label: 'A', content: React.createElement(Text, null, 'Page A') },
-          { id: 'b', label: 'B', content: React.createElement(Text, null, 'Page B') },
-        ],
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin } = render(
-      React.createElement(ScenarioManagementProvider, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-
-    stdin.write(KEYS.right);
-    await flush();
-
-    expect((api.write.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('tabs:main', 'b');
-  });
-
-  it('uses custom key when storageKey is passed', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(Tabs, {
-        focusId: 'main',
-        storage: api,
-        storageKey: 'custom-tab',
-        tabs: [
-          { id: 'a', label: 'A', content: React.createElement(Text, null, 'Page A') },
-          { id: 'b', label: 'B', content: React.createElement(Text, null, 'Page B') },
-        ],
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('custom-tab', 'a');
-  });
-});
-
 describe('Tabs prev navigation', () => {
   it('left arrow wraps to last tab when at first tab', async () => {
     function Host() {
@@ -332,39 +251,5 @@ describe('Tabs prev navigation', () => {
     stdin.write(KEYS.left);
     await flush();
     expect(stripAnsi(lastFrame())).toContain('First page');
-  });
-
-  it('uncontrolled prev wraps around and persists', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return (
-        <Tabs
-          focusId="main"
-          storage={api}
-          tabs={[
-            { id: 'a', label: 'A', content: <Text>Page A</Text> },
-            { id: 'b', label: 'B', content: <Text>Page B</Text> },
-          ]}
-        />
-      );
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin, lastFrame } = render(
-      <ScenarioManagementProvider defaultScreen={Host}>
-        <KeyboardProvider>
-          <CurrentScreen />
-        </KeyboardProvider>
-      </ScenarioManagementProvider>,
-    );
-    await flush();
-    expect(stripAnsi(lastFrame())).toContain('Page A');
-
-    // Left from first tab wraps to last
-    stdin.write(KEYS.left);
-    await flush();
-    expect(stripAnsi(lastFrame())).toContain('Page B');
-    expect((api.write.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('tabs:main', 'b');
   });
 });

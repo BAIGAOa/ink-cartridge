@@ -5,7 +5,6 @@ Horizontal item selector. Same API as SelectInput but with left/right navigation
 ## Props
 
 Same as [SelectInput](../SelectInput/SelectInput-API.md) except:
-- Default `storageKey` is `"select-row:<focusId>"`
 - Default `indicatorComponent` is `●` (rendered below)
 
 ## Keyboard (scoped to `focusId`)

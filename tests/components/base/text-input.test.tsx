@@ -1,4 +1,4 @@
-import { stripAnsi, flush, press, makeMockStorage } from './_helpers.js';
+import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React, { useState, useEffect } from 'react';
@@ -678,80 +678,6 @@ describe('placeholder edge cases', () => {
     });
 
     expect(lastFrameClean()).toContain('>');
-  });
-});
-
-// UncontrolledTextInput persistence
-
-describe('UncontrolledTextInput persistence', () => {
-
-  it('reads and restores text value from storage on mount', async () => {
-    const { store, api } = makeMockStorage();
-    store['text:pu'] = 'hello';
-
-    function Host() {
-      return React.createElement(UncontrolledTextInput, {
-        focusId: 'pu',
-        initialValue: '',
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('text:pu', '');
-  });
-
-  it('writes text to storage after input', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(UncontrolledTextInput, {
-        focusId: 'pu',
-        initialValue: '',
-        storage: api,
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin } = render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-
-    stdin.write('x');
-    await flush();
-
-    expect((api.write.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('text:pu', 'x');
-  });
-
-  it('uses custom key when storageKey is passed', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return React.createElement(UncontrolledTextInput, {
-        focusId: 'pu',
-        initialValue: '',
-        storage: api,
-        storageKey: 'my-text',
-      });
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      React.createElement(ScenarioManagementProvider as any, { defaultScreen: Host },
-        React.createElement(KeyboardProvider, null, React.createElement(CurrentScreen)),
-      ),
-    );
-    await flush();
-    expect((api.read.str as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('my-text', '');
   });
 });
 

@@ -151,18 +151,6 @@ export { ThemeProvider } from "./theme/index.js";
 export { useTheme } from "./theme/index.js";
 export type { ThemeProviderProps, ThemeContextValue, ThemeDefinition } from "./theme/index.js";
 
-// Persistence System
-export { createStorage } from "./storage/index.js";
-export type { StorageOptions, StorageAPI } from "./storage/index.js";
-
-// Binary Persistence System
-export { createBinaryStorage, TypeTag, TAG_NAMES } from "./binary-storage/index.js";
-export type { BinaryStorageOptions, BinaryStorageAPI } from "./binary-storage/index.js";
-
-// Binary Streaming Reader
-export { createStreamingReader, StreamCorruptError } from "./binary-storage/StreamingReader.js";
-export type { StreamingReaderOptions, StreamingReaderAPI } from "./binary-storage/StreamingReader.js";
-
 // Event System
 export { EventBus, EventProvider, createEventBus } from "./event/index.js";
 export { useEventBus, useEmitter, useSubscribe } from "./event/index.js";
