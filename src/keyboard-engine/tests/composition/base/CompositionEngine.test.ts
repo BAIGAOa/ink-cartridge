@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import CompositionEngine, { CompositioKey, CompositionContext } from '../../../src/CompositionEngine.js';
+import CompositionEngine, { CompositioKey, CompositionContext, ValueSchema } from '../../../src/CompositionEngine.js';
 import EngineState from '../../../src/engine/EngineState.js';
 import { createContext } from '../../_helpers/factories.js';
 
@@ -275,6 +275,22 @@ describe('CompositionEngine', () => {
       engine.registryCompositionKey(mk({ key: 'f', flag: 'action', needs: [], optional: true, category: '*' }));
 
       expect(engine.start(ctx(['f'], 'anything'), false)).toBe(true);
+    });
+
+    test('Given empty category array, Then entry is skipped', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: 'g', flag: 'action', needs: [], optional: true, category: [] }));
+
+      expect(engine.start(ctx(['g'], 'editor'), false)).toBe(false);
+    });
+
+    test('Given null topComponent in context, Then entry is skipped', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: 'h', flag: 'action', needs: [], optional: true }));
+
+      expect(engine.start(createContext({ eventNames: ['h'], topComponent: null }), false)).toBe(false);
     });
   });
 
@@ -577,6 +593,248 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({ key: 'a', flag: 'times' }));
       expect(engine.updateCompositionKey('a', 'other', { needs: [] })).toBe(false);
+    });
+  });
+
+  describe('valueSchema', () => {
+    const numSchema: ValueSchema = {
+      times: (v): v is number => typeof v === 'number',
+      action: (v): v is number => typeof v === 'number',
+    };
+
+    function mkWithSchema(schema?: ValueSchema) {
+      const state = mkState();
+      const engine = new CompositionEngine(state, undefined, schema);
+      return { state, engine };
+    }
+
+    test('Given no schema, Then head key output validation passes through', () => {
+      const { state, engine } = mkWithSchema();
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      expect(engine.start(ctx(['3']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given head key output matches schema guard, Then chain starts', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      expect(engine.start(ctx(['3']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given head key output fails schema guard, Then chain does not start', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 'bad', lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      expect(engine.start(ctx(['3']), false)).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given flag not in schema, Then output validation passes through', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: 'x', flag: 'unknown', needs: [], optional: true,
+        execute: (c) => ({ value: 'anything', lastFlag: 'unknown', steps: [...c.steps, 'x'] }),
+      }));
+      expect(engine.start(ctx(['x']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given chain key input matches schema guard, Then chain continues', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['s']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(true);
+    });
+
+    test('Given chain key input fails schema guard, Then chain is cleared and key falls through', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 'not a number', lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      // Input validation fails because lastFlag='times' value='not a number'
+      expect(engine.start(ctx(['s']), false)).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given chain key output fails schema guard, Then chain is cleared and key falls through', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 'bad output', lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['s']), false)).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given chain key output fails guard and KeyReleaseWhenChainInterrupted is true, Then key is swallowed', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        KeyReleaseWhenChainInterrupted: true,
+        execute: (c) => ({ value: 'bad', lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['s']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given setValueSchema replaces schema, Then new guards take effect', () => {
+      const { state, engine } = mkWithSchema();
+      engine.setValueSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 'bad', lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      expect(engine.start(ctx(['3']), false)).toBe(false);
+    });
+
+    test('Given chain key input fails guard and KeyReleaseWhenChainInterrupted is true, Then key is swallowed', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        KeyReleaseWhenChainInterrupted: true,
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      // Swap schema so input guard for 'times' no longer matches the stored value
+      engine.setValueSchema({
+        times: (v): v is string => typeof v === 'string',
+        action: (v): v is number => typeof v === 'number',
+      });
+      // Input validation on 's' fails because value=3 doesn't pass new 'times' guard
+      // KeyReleaseWhenChainInterrupted swallows it
+      expect(engine.start(ctx(['s']), false)).toBe(true);
+      expect(state.compositionEngineHandle).toBe(false);
+    });
+
+    test('Given head key input with lastFlag null, Then input validation is skipped', () => {
+      const { state, engine } = mkWithSchema(numSchema);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      // Head key has lastFlag=null internally → validateInput skips
+      expect(engine.start(ctx(['3']), false)).toBe(true);
+    });
+
+    test('Given exclusive pending and mismatched key, Then timer resets and eventually clears the chain', () => {
+      vi.useFakeTimers();
+      const { state, engine } = mkWithSchema();
+      const clearSpy = vi.spyOn(engine as any, 'clearPending');
+
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'], optional: true,
+        exclusive: true, timeout: 300,
+      }));
+
+      engine.start(ctx(['w']), false);
+      // Mismatched key triggers resetPendingTimer via exclusive branch
+      engine.start(ctx(['x']), false);
+      expect(engine.hasPending()).toBe(true);
+
+      clearSpy.mockClear();
+      vi.advanceTimersByTime(300);
+      expect(clearSpy).toHaveBeenCalled();
+      expect(engine.hasPending()).toBe(false);
+
+      vi.useRealTimers();
+      clearSpy.mockRestore();
+    });
+
+    test('Given chain continuation, Then timeout eventually clears the pending chain', () => {
+      vi.useFakeTimers();
+      const { state, engine } = mkWithSchema();
+      const clearSpy = vi.spyOn(engine as any, 'clearPending');
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true, timeout: 250,
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'], timeout: 250,
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.hasPending()).toBe(true);
+
+      // Advance past the head key's timeout but not all the way
+      vi.advanceTimersByTime(200);
+      expect(engine.hasPending()).toBe(true);
+
+      clearSpy.mockClear();
+      engine.start(ctx(['w']), false);
+      // Chain continuation sets a new timer from processPending
+      vi.advanceTimersByTime(250);
+      expect(clearSpy).toHaveBeenCalled();
+      expect(engine.hasPending()).toBe(false);
+
+      vi.useRealTimers();
+      clearSpy.mockRestore();
+    });
+
+    test('Given pending chain from overlay phase, Then screen phase processPending does not consume', () => {
+      const { state, engine } = mkWithSchema();
+      const ovCtx = createContext({
+        eventNames: ['a'],
+        topComponent: 'screen',
+        activeOverlays: [{ id: 'ov1' }],
+        activeCount: 1,
+      });
+
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 'action', needs: [], optional: true,
+        affectOverlay: true,
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'b', flag: 'next', needs: ['action'],
+        affectOverlay: true,
+      }));
+
+      // Start chain in overlay phase
+      engine.start(ovCtx, true);
+      expect(engine.hasPending()).toBe(true);
+
+      // Try to continue in screen phase — phase mismatch, pending stays alive
+      engine.synchronizingKey(['b']);
+      expect(engine.start(ctx(['b']), false)).toBe(false);
+      expect(engine.hasPending()).toBe(true);
     });
   });
 });

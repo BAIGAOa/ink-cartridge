@@ -3,6 +3,31 @@ import EngineState from "./engine/EngineState.js";
 import type { PipelineContext } from "./types.js";
 
 /**
+ * Runtime type guard for a value flowing through a composition chain.
+ *
+ * Returns `true` when the value matches the expected shape for a given flag.
+ *
+ * @example
+ * ```ts
+ * const schema: ValueSchema = {
+ *   times: (v): v is number => typeof v === 'number',
+ *   action: (v): v is number => typeof v === 'number',
+ * };
+ * ```
+ */
+export type ValueGuard = (value: unknown) => boolean;
+
+/**
+ * Maps flag names to {@link ValueGuard} functions.
+ *
+ * When provided to {@link CompositionEngine}, each execute callback's
+ * input and output values are validated against the guards declared for
+ * the corresponding flags. Validation failures clear the pending chain
+ * and emit a `console.warn` in development.
+ */
+export type ValueSchema = Record<string, ValueGuard>;
+
+/**
  * Select the best-matching {@link CompositioKey} by looking up every name
  * in `eventNames` against the given mapping table.
  *
@@ -166,6 +191,8 @@ export default class CompositionEngine<TComponet = unknown> {
   private pendingEntry: CompositionPneding | null = null;
   private defaultTimeout: number;
 
+  private valueSchema: ValueSchema | undefined;
+
   private context: CompositionContext = {
     value: undefined,
     lastFlag: null,
@@ -175,8 +202,15 @@ export default class CompositionEngine<TComponet = unknown> {
   constructor(
     private state: EngineState<TComponet>,
     defaultTimeout?: number,
+    valueSchema?: ValueSchema,
   ) {
     this.defaultTimeout = defaultTimeout ?? 400;
+    this.valueSchema = valueSchema;
+  }
+
+  /** Set or replace the runtime value schema for composition chain validation. */
+  setValueSchema(schema: ValueSchema): void {
+    this.valueSchema = schema;
   }
 
   synchronizingKey(eventName: string[]) {
@@ -253,6 +287,41 @@ export default class CompositionEngine<TComponet = unknown> {
     return false;
   }
 
+  private validateInput(
+    lastFlag: string | null,
+    entryKey: string,
+  ): boolean {
+    if (!this.valueSchema || !lastFlag) return true;
+    const guard = this.valueSchema[lastFlag];
+    if (!guard) return true;
+    if (!guard(this.context.value)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `[keyboard-engine] Composition key "${entryKey}": input value from flag ` +
+          `"${lastFlag}" failed type guard — clearing pending chain.`,
+        );
+      }
+      return false;
+    }
+    return true;
+  }
+
+  private validateOutput(flag: string, value: unknown, entryKey: string): boolean {
+    if (!this.valueSchema) return true;
+    const guard = this.valueSchema[flag];
+    if (!guard) return true;
+    if (!guard(value)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          `[keyboard-engine] Composition key "${entryKey}" (flag: "${flag}") ` +
+          `produced a value that failed its type guard.`,
+        );
+      }
+      return false;
+    }
+    return true;
+  }
+
   private clearPending() {
     if (this.pendingEntry) {
       clearTimeout(this.pendingEntry.timer);
@@ -322,6 +391,10 @@ export default class CompositionEngine<TComponet = unknown> {
     // `execute` returns null → chain does not start
     if (!nextCtx) return false;
 
+    if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
+      return false;
+    }
+
     this.context = nextCtx;
     this.state.compositionEngineHandle = true;
 
@@ -362,8 +435,22 @@ export default class CompositionEngine<TComponet = unknown> {
         return false;
       }
 
+      if (!this.validateInput(this.context.lastFlag, result.key)) {
+        this.clearPending();
+        return result.KeyReleaseWhenChainInterrupted === undefined
+          ? false
+          : result.KeyReleaseWhenChainInterrupted;
+      }
+
       const nextCtx = result.execute?.(this.context);
       if (!nextCtx) {
+        this.clearPending();
+        return result.KeyReleaseWhenChainInterrupted === undefined
+          ? false
+          : result.KeyReleaseWhenChainInterrupted;
+      }
+
+      if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
         this.clearPending();
         return result.KeyReleaseWhenChainInterrupted === undefined
           ? false

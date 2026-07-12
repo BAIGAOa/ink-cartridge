@@ -7,6 +7,7 @@ export default defineConfig({
     testTimeout: 15_000,
     coverage: {
       exclude: [
+        '**/dist/**',
         'tests/**/_helpers.*',
         'tests/**/_helpers/**',
         'src/**/index.ts',

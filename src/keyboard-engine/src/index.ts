@@ -28,7 +28,7 @@ export {
 export type { KeyRuleContainer } from "./providers/helpers.js";
 
 export { default as CompositionEngine } from "./CompositionEngine.js";
-export type { CompositioKey, CompositionContext } from "./CompositionEngine.js";
+export type { CompositioKey, CompositionContext, ValueGuard, ValueSchema } from "./CompositionEngine.js";
 
 export { createModalProcessor } from "./processors/modal.js";
 export { createCompositionProcessor } from "./processors/globalComposition.js";

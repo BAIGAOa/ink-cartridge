@@ -24,6 +24,47 @@ Pipeline position: modal → composition-overlay → global-seq-overlay → ...
 
 Composition processors sit at positions 1 and 5 in the 9-stage pipeline, above global sequence keys.
 
+## Value Schema (Runtime Type Validation)
+
+By default the composition context's `value` property is `unknown` — every `execute` callback must cast it to the expected type. You can opt into runtime validation by providing a `ValueSchema`:
+
+```ts
+type ValueGuard = (value: unknown) => boolean;
+type ValueSchema = Record<string, ValueGuard>;
+```
+
+A `ValueGuard` returns `true` when the value matches the expected shape for a given flag. The engine validates:
+
+- **Input** — before calling a chain key's `execute`, checks that `ctx.value` passes the guard for `ctx.lastFlag`.
+- **Output** — after `execute` returns, checks that `result.value` passes the guard for the current key's `flag`.
+
+When a guard fails, the engine clears the pending chain, emits a `console.warn` (development only), and the key falls through to later processors.
+
+### Providing a schema
+
+Pass `valueSchema` when constructing `KeyboardEngine`:
+
+```ts
+const engine = new KeyboardEngine({
+  normalizeKeyNames,
+  valueSchema: {
+    times: (v): v is number => typeof v === 'number',
+    action: (v): v is number => typeof v === 'number',
+  },
+});
+```
+
+Or set it later via the composition engine:
+
+```ts
+engine.composition.setValueSchema({
+  times: (v): v is number => typeof v === 'number',
+  action: (v): v is number => typeof v === 'number',
+});
+```
+
+Guards are optional per-flag — flags without a registered guard pass through silently. The schema can be `undefined` (the default), in which case no validation occurs (backward compatible).
+
 ## CompositioKey Entry
 
 Each registered key is a `CompositioKey` object:
@@ -143,7 +184,7 @@ Update a registered entry identified by `key` + `flag`. Returns `true` if found 
 
 ## Best Practice
 
-### Compound number entry (3 → s → w = 30 newlines)
+### Compound number entry with runtime validation
 
 ```tsx
 import { useKeyboard } from 'ink-cartridge';
@@ -152,7 +193,6 @@ function useCompositionActions() {
   const { registryCompositionKey } = useKeyboard();
 
   useEffect(() => {
-    // "3" declares itself as a "times" type, writes value=3 into context
     registryCompositionKey({
       key: '3',
       flag: 'times',
@@ -164,27 +204,23 @@ function useCompositionActions() {
       }),
     });
 
-    // "s" expects "times", multiplies value × 10
     registryCompositionKey({
       key: 's',
       flag: 'action',
       needs: ['times'],
-      execute: (ctx) => ({
-        value: (ctx.value as number) * 10,
-        lastFlag: 'action',
-        steps: [...ctx.steps, 's'],
-      }),
+      execute: (ctx) => {
+        const v = ctx.value as number;
+        return { value: v * 10, lastFlag: 'action', steps: [...ctx.steps, 's'] };
+      },
     });
 
-    // "w" expects "times" or "action", fires the action
     registryCompositionKey({
       key: 'w',
       flag: 'action',
       needs: ['times', 'action'],
       optional: true,
       execute: (ctx) => {
-        const times = ctx.value as number ?? 1;
-        // ... perform action `times` times
+        const times = (ctx.value as number) ?? 1;
         return { value: times, lastFlag: 'action', steps: [...ctx.steps, 'w'] };
       },
     });
@@ -192,7 +228,7 @@ function useCompositionActions() {
 }
 ```
 
-Pressing `3 w` performs the action 3 times. Pressing `w` alone uses the default of 1. Pressing `3 s w` multiplies 3 → 30 and fires 30 times.
+When a `valueSchema` is configured on the engine (see [Value Schema](#value-schema-runtime-type-validation)), the `as number` casts become runtime-verified — a mismatched value type clears the chain immediately instead of silently producing `NaN`.
 
 ### Exclusive chain (block other keys until match)
 

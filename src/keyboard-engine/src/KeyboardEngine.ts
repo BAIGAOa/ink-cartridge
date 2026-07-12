@@ -25,7 +25,7 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
-import CompositionEngine, { CompositioKey } from "./CompositionEngine.js";
+import CompositionEngine, { CompositioKey, ValueSchema } from "./CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -60,6 +60,27 @@ export interface EngineProps {
    * Default composition engine timeout
    */
   defaultTimeout?: number
+
+  /**
+   * Optional runtime type schema for composition chain value validation.
+   *
+   * Maps flag names to type guard functions. When provided, the
+   * CompositionEngine validates every execute callback's input and
+   * output values at runtime. Validation failures clear the pending
+   * chain and emit a `console.warn` in development.
+   *
+   * @example
+   * ```ts
+   * const engine = new KeyboardEngine({
+   *   normalizeKeyNames,
+   *   valueSchema: {
+   *     times: (v): v is number => typeof v === 'number',
+   *     action: (v): v is number => typeof v === 'number',
+   *   },
+   * });
+   * ```
+   */
+  valueSchema?: ValueSchema
 }
 
 /**
@@ -108,7 +129,7 @@ export default class KeyboardEngine<TComponent = unknown> {
     this.pipeline = new PipelineManager(this.state, props.processors);
     this.bindings = new BindingService(this.state, this.layers);
     this.registry = new OperationRegistry(this.state, this.layers);
-    this.state.compositionEngine = new CompositionEngine(this.state, props.defaultTimeout);
+    this.state.compositionEngine = new CompositionEngine(this.state, props.defaultTimeout, props.valueSchema);
   }
 
   /** The composition engine for composing multi-key compound actions. */
@@ -150,6 +171,14 @@ export default class KeyboardEngine<TComponent = unknown> {
   /** Cancel the current composition chain immediately. */
   abortComposition() {
     this.state.compositionEngine.abort();
+  }
+
+  /**
+   * Set or replace the runtime value schema for composition chain validation.
+   * See {@link CompositionEngine#setValueSchema}.
+   */
+  setValueSchema(schema: ValueSchema) {
+    this.state.compositionEngine.setValueSchema(schema);
   }
 
   /**

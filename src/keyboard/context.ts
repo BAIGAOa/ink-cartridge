@@ -19,6 +19,7 @@ import type {
   PipelineProcessor,
   CompositioKey,
   CompositionContext,
+  ValueSchema,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 
@@ -144,6 +145,8 @@ export interface KeyboardContextValue {
     flag: string,
     updates: Partial<Omit<CompositioKey, "key" | "flag">>,
   ) => boolean;
+
+  setValueSchema: (schema: ValueSchema) => void;
 }
 
 /**
