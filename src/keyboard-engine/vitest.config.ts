@@ -8,6 +8,7 @@ export default defineProject({
     globals: true,
     coverage: {
       exclude: [
+        'dist/**',
         'tests/**/_helpers.*',
         'tests/**/_helpers/**',
         'src/index.ts',

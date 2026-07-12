@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect, useMemo, useRef } from 'react';
 import { useInput } from 'ink';
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
-import type { KeyboardProcessorProps } from '@cartridge-engine/keyboard-engine';
+import type { KeyboardProcessorProps, ValueSchema } from '@cartridge-engine/keyboard-engine';
 import { clearShortcutOperations } from '@cartridge-engine/keyboard-engine';
 import { KeyboardContext } from '../context.js';
 import { useScreenSystem } from '../../screen/hook.js';
@@ -12,9 +12,21 @@ export interface KeyboardProviderProps {
   processors?: KeyboardProcessorProps[]
   modes?: string[];
   defaultMode?: string | null;
+  /**
+   * Optional runtime type schema for composition chain value validation.
+   *
+   * @example
+   * ```tsx
+   * <KeyboardProvider valueSchema={{
+   *   times: (v): v is number => typeof v === 'number',
+   *   action: (v): v is number => typeof v === 'number',
+   * }}>
+   * ```
+   */
+  valueSchema?: ValueSchema;
 }
 
-export function KeyboardProvider({ children, processors, modes, defaultMode }: KeyboardProviderProps) {
+export function KeyboardProvider({ children, processors, modes, defaultMode, valueSchema }: KeyboardProviderProps) {
   const {
     currentPath,
     activeOverlayIds,
@@ -30,6 +42,7 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       defaultMode: defaultMode ?? undefined,
       processors,
       normalizeKeyNames,
+      valueSchema,
     });
   }
   const engine = engineRef.current;
@@ -103,6 +116,7 @@ export function KeyboardProvider({ children, processors, modes, defaultMode }: K
       getCompositionContext: engine.getCompositionContext.bind(engine),
       abortComposition: engine.abortComposition.bind(engine),
       updateCompositionKey: engine.updateCompositionKey.bind(engine),
+      setValueSchema: engine.setValueSchema.bind(engine),
     }),
     [engine],
   );

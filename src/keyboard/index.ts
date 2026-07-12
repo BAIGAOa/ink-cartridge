@@ -58,6 +58,8 @@ export type {
   MutableRef,
   CompositioKey,
   CompositionContext,
+  ValueGuard,
+  ValueSchema,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";
