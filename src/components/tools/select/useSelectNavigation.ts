@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useKeyboard, useFocusState } from '../../../keyboard/hook.js';
-import type { StorageAPI } from '../../../storage/index.js';
 import { clamp } from './utils.js';
 
 export interface UseSelectNavigationOptions<TItem> {
@@ -8,10 +7,6 @@ export interface UseSelectNavigationOptions<TItem> {
   items: TItem[];
   /** Maximum visible items before scrolling. */
   limit: number;
-  /** Optional storage for persisting cursor position. */
-  storage?: StorageAPI;
-  /** Key used for storage persistence. */
-  persistKey: string;
   /** Focus target id (required — see SelectInput for rationale). */
   focusId: string;
   /** Callback invoked when user selects an item (Enter or number key). */
@@ -48,8 +43,6 @@ export interface UseSelectNavigationResult<TItem> {
 export function useSelectNavigation<TItem>({
   items,
   limit: limitProp,
-  storage,
-  persistKey,
   focusId,
   onSelect,
 }: UseSelectNavigationOptions<TItem>): UseSelectNavigationResult<TItem> {
@@ -61,31 +54,6 @@ export function useSelectNavigation<TItem>({
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
-
-  // Restore cursor position from storage on mount.
-  useEffect(() => {
-    if (!storage || items.length === 0) return;
-    let cancelled = false;
-    storage.read.num(persistKey, 0).then((absIdx) => {
-      if (cancelled) return;
-      const clamped = clamp(absIdx, 0, Math.max(0, items.length - 1));
-      if (hasLimit) {
-        const newScroll = Math.max(0, Math.min(clamped, items.length - limit));
-        setScrollOffset(newScroll);
-        setSelectedIndex(clamped - newScroll);
-      } else {
-        setSelectedIndex(clamped);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [storage, persistKey, items.length, hasLimit, limit]);
-
-  // Persist cursor position to storage on every change.
-  useEffect(() => {
-    if (!storage || items.length === 0) return;
-    const absIdx = scrollOffset + selectedIndex;
-    storage.write.num(persistKey, absIdx);
-  }, [storage, persistKey, selectedIndex, scrollOffset, items.length]);
 
   // Refs keep latest values accessible in keyboard callbacks without re-binding.
   const selectedIndexRef = useRef(selectedIndex);

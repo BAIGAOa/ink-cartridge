@@ -39,15 +39,11 @@ export function SelectRow<T, I extends Item<T> = Item<T>>({
   indicatorComponent,
   focusId,
   limit: limitProp = 10,
-  storage,
-  storageKey,
 }: SelectRowProps<T, I>) {
-  const persistKey = storageKey ?? `select-row:${focusId}`;
-
   // focusId is required — same rationale as SelectInput.
   // @2026-06-28 v3.8.0
   const { isFocused, selectedIndex, visibleItems, moveHighlight, selectedIndexRef, visibleItemsRef, onSelectRef } =
-    useSelectNavigation<I>({ items, limit: limitProp, storage, persistKey, focusId, onSelect });
+    useSelectNavigation<I>({ items, limit: limitProp, focusId, onSelect });
 
   const { boundKeyboard } = useKeyboard();
 

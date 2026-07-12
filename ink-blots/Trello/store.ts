@@ -1,14 +1,11 @@
 /**
- * Storage layer for the Trello kanban app.
+ * In-memory state store for the Trello kanban app.
  *
- * Uses ink-cartridge's createStorage for atomic, type-safe JSON persistence.
- * Data lives in ~/.trello-kanban/ to avoid polluting the project directory.
+ * Note: Originally used ink-cartridge's createStorage for JSON persistence.
+ * Replaced with an in-memory store after storage was removed from the library.
+ * To add persistence back, use node:fs directly or a third-party storage library.
  */
-import { createStorage } from '../../src/index.js';
-import type { StorageAPI } from '../../src/index.js';
 import type { AppState } from './types.js';
-import * as os from 'node:os';
-import * as path from 'node:path';
 
 const DEFAULT_COLUMNS = [
   { id: 'col-todo', label: 'Todo', emoji: '📋' },
@@ -22,38 +19,22 @@ const DEFAULT_BOARD: AppState['boards'][number] = {
   columnIds: ['col-todo', 'col-doing', 'col-done'],
 };
 
-let storageInstance: StorageAPI | null = null;
+const initialState: AppState = {
+  boards: [DEFAULT_BOARD],
+  columns: DEFAULT_COLUMNS,
+  cards: [],
+  lastBoardId: 'board-default',
+  settings: { confirmBeforeDelete: true, showKeyHints: true },
+};
 
-function getStorage(): StorageAPI {
-  if (!storageInstance) {
-    storageInstance = createStorage({
-      dir: path.join(os.homedir(), '.trello-kanban'),
-      file: 'data.json',
-    });
-  }
-  return storageInstance;
-}
+let currentState: AppState = { ...initialState };
 
-/** Load full application state, initialising defaults on first run. */
+/** Load full application state. */
 export async function loadState(): Promise<AppState> {
-  const storage = getStorage();
-  const has = await storage.has('state');
-  if (!has) {
-    const initial: AppState = {
-      boards: [DEFAULT_BOARD],
-      columns: DEFAULT_COLUMNS,
-      cards: [],
-      lastBoardId: 'board-default',
-      settings: { confirmBeforeDelete: true, showKeyHints: true },
-    };
-    await storage.write.obj('state', initial);
-    return initial;
-  }
-  return storage.read.obj<AppState>('state', DEFAULT_BOARD as unknown as AppState);
+  return { ...currentState };
 }
 
 /** Persist full application state. */
 export async function saveState(state: AppState): Promise<void> {
-  const storage = getStorage();
-  await storage.write.obj('state', state);
+  currentState = { ...state };
 }

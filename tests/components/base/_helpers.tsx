@@ -1,11 +1,9 @@
 import React from 'react';
 import { render } from 'ink-testing-library';
-import { vi } from 'vitest';
 import { registerComponent, clearRegistry } from '../../../src/screen/registry.js';
 import { ScenarioManagementProvider } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
-import type { StorageAPI } from '../../../src/storage/index.js';
 
 export function stripAnsi(str: string): string {
   return str.replace(/\x1b\[[0-9;]*m/g, '');
@@ -34,35 +32,6 @@ export const KEYS = {
   delete: '\x1b[3~',
   space: ' ',
 } as const;
-
-export function makeMockStorage(initial: Record<string, unknown> = {}) {
-  const store: Record<string, unknown> = { ...initial };
-  return {
-    store,
-    api: {
-      write: {
-        num: vi.fn(async () => {}),
-        str: vi.fn(async (_k: string, v: string) => { store[_k] = v; }),
-        b: vi.fn(async (_k: string, v: boolean) => { store[_k] = v; }),
-        obj: vi.fn(async () => {}),
-        arr: vi.fn(async () => {}),
-        any: vi.fn(async () => {}),
-      },
-      read: {
-        num: vi.fn(async () => 0),
-        str: vi.fn(async (k: string, def: string) => (store[k] as string) ?? def),
-        b: vi.fn(async (k: string, def: boolean) => (store[k] as boolean) ?? def),
-        obj: vi.fn(async () => ({})),
-        arr: vi.fn(async () => []),
-        any: vi.fn(async () => undefined),
-      },
-      has: vi.fn(async () => false),
-      delete: vi.fn(async () => {}),
-      clear: vi.fn(async () => {}),
-      getAll: vi.fn(async () => ({})),
-    } as unknown as StorageAPI,
-  };
-}
 
 export function renderComponent<P extends Record<string, any>>(
   Component: React.ComponentType<P>,
