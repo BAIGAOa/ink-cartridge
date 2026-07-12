@@ -32,11 +32,11 @@
 
 Ink gives you `useInput` and `render`. Everything else — screen navigation, layered keyboard events, focus management, cross-component communication — you build yourself. ink-cartridge provides all of that, designed for **multi-page, interaction-dense terminal apps** where a single global `useInput` with `if-else` chains breaks down.
 
-Three pillars:
+TWO pillars:
 
 - **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
 - **Layered keyboard engine** — Each screen owns its key bindings. A 7-stage pipeline resolves conflicts between modals, overlays, global keys, and the screen stack. Focus system partitions keys within the same layer.
-- **Event bus** — Decoupled cross-component communication. Global keys emit events; any component subscribes. Zero prop drilling.
+
 
 ## Installation
 
