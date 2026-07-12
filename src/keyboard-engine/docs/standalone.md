@@ -177,7 +177,42 @@ if (engine.hasPendingComposition()) {
 
 All composition methods are available directly on the engine instance:
 `registryCompositionKey`, `removeCompositionKey`, `clearAllCompositionKeys`,
-`hasPendingComposition`, `getCompositionContext`, `abortComposition`, `updateCompositionKey`.
+`hasPendingComposition`, `getCompositionContext`, `abortComposition`,
+`updateCompositionKey`, `undoComposition`, `setValueSchema`.
+
+### Undo
+
+After a composition chain completes (timeout fires), the engine buffers its history.
+Call `undoComposition()` to reverse the last completed sequence by running each key's
+`undoAction` in reverse order:
+
+```ts
+engine.registryCompositionKey({
+  key: '3',
+  flag: 'times',
+  needs: [],
+  execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+  undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
+});
+
+// ... chain completes ...
+
+const ctx = engine.undoComposition();   // undo most recent sequence
+// ctx.value === undefined (restored)
+
+engine.undoComposition(2);  // undo last 2 sequences at once
+```
+
+### Runtime Validation
+
+Pass a `ValueSchema` to validate `execute` and `undo` values at runtime:
+
+```ts
+engine.setValueSchema({
+  times: (v): v is number => typeof v === 'number',
+  action: (v): v is number => typeof v === 'number',
+});
+```
 
 ## See Also
 

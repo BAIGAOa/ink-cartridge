@@ -147,6 +147,8 @@ export interface KeyboardContextValue {
   ) => boolean;
 
   setValueSchema: (schema: ValueSchema) => void;
+
+  undoComposition: (steps?: number) => CompositionContext | null;
 }
 
 /**

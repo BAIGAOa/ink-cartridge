@@ -43,450 +43,576 @@ export type ValueSchema = Record<string, ValueGuard>;
  * @returns The resolved entry, or `null` if no entry matches any name in `eventNames`.
  */
 export function resolveCompositionKey<TComponet = unknown>(
-  candidates: CompositioKey<TComponet>[],
-  lastFlag: string | null,
+	candidates: CompositioKey<TComponet>[],
+	lastFlag: string | null,
 ): CompositioKey<TComponet> | null {
-  if (candidates.length === 0) return null;
+	if (candidates.length === 0) return null;
 
-  // Round 1 — filter by needs / lastFlag compatibility
-  const needsMatch = candidates.filter((entry) => {
-    if (lastFlag === null) {
-      return entry.optional === true || entry.needs.length === 0;
-    }
-    return entry.needs.includes(lastFlag);
-  });
+	// Round 1 — filter by needs / lastFlag compatibility
+	const needsMatch = candidates.filter((entry) => {
+		if (lastFlag === null) {
+			return entry.optional === true || entry.needs.length === 0;
+		}
+		return entry.needs.includes(lastFlag);
+	});
 
-  if (needsMatch.length === 0) return null;
+	if (needsMatch.length === 0) return null;
 
-  const pool = needsMatch;
-  if (pool.length === 1) return pool[0];
+	const pool = needsMatch;
+	if (pool.length === 1) return pool[0];
 
-  // Round 2 — prefer entries with more modifier segments (e.g. "ctrl+s" > "s")
-  const modifierCount = (k: string): number => (k.match(/\+/g) || []).length;
+	// Round 2 — prefer entries with more modifier segments (e.g. "ctrl+s" > "s")
+	const modifierCount = (k: string): number => (k.match(/\+/g) || []).length;
 
-  pool.sort((a, b) => modifierCount(b.key) - modifierCount(a.key));
+	pool.sort((a, b) => modifierCount(b.key) - modifierCount(a.key));
 
-  const topModifiers = modifierCount(pool[0].key);
-  const sameSpecificity = pool.filter(
-    (c) => modifierCount(c.key) === topModifiers,
-  );
+	const topModifiers = modifierCount(pool[0].key);
+	const sameSpecificity = pool.filter(
+		(c) => modifierCount(c.key) === topModifiers,
+	);
 
-  // Round 3 — prefer stricter contracts (longer needs list)
-  if (sameSpecificity.length > 1) {
-    sameSpecificity.sort((a, b) => b.needs.length - a.needs.length);
-  }
+	// Round 3 — prefer stricter contracts (longer needs list)
+	if (sameSpecificity.length > 1) {
+		sameSpecificity.sort((a, b) => b.needs.length - a.needs.length);
+	}
 
-  return sameSpecificity[0];
+	return sameSpecificity[0];
 }
 
 export interface CompositionPneding {
-  timeout: number;
-  timer: ReturnType<typeof setTimeout>;
-  /** When true, mismatched keys in mid-sequence are silently consumed. */
-  exclusive: boolean;
-  /** Which pipeline phase this pending chain belongs to. */
-  affectOverlay: boolean;
+	timeout: number;
+	timer: ReturnType<typeof setTimeout>;
+	/** When true, mismatched keys in mid-sequence are silently consumed. */
+	exclusive: boolean;
+	/** Which pipeline phase this pending chain belongs to. */
+	affectOverlay: boolean;
 }
 
 export interface CompositionContext<T = unknown> {
-  /**
-   * The value currently passed through the context
-   */
-  value: T;
+	/**
+	 * The value currently passed through the context
+	 */
+	value: T;
 
-  /**
-   * The flag of the previous key. If it is, it represents the head key.
-   */
-  lastFlag: string | null;
+	/**
+	 * The flag of the previous key. If it is, it represents the head key.
+	 */
+	lastFlag: string | null;
 
-  /**
-   * Keys that have been executed in the current sequence
-   */
-  steps: string[];
+	/**
+	 * Keys that have been executed in the current sequence
+	 */
+	steps: string[];
 }
 
 export interface CompositioKey<TComponet = unknown, TValue = unknown> {
-  /**
-   * Trigger key names, such as a, B, C, or even the number 3
-   */
-  key: string;
+	/**
+	 * Trigger key names, such as a, B, C, or even the number 3
+	 */
+	key: string;
 
-  /**
-   * Declare what this key is.
-   * This will help the following key to recognize the preceding key, which is used to determine what
-   * If the flag is not already registered, it will be automatically registered.
-   */
-  flag: string;
+	/**
+	 * Declare what this key is.
+	 * This will help the following key to recognize the preceding key, which is used to determine what
+	 * If the flag is not already registered, it will be automatically registered.
+	 */
+	flag: string;
 
-  /**
-   * What type of key is expected to precede
-   * If the preceding type does not match, the key is discarded
-   */
-  needs: string[];
+	/**
+	 * What type of key is expected to precede
+	 * If the preceding type does not match, the key is discarded
+	 */
+	needs: string[];
 
-  /**
-   * Declare whether the dependent preceding flag is optional, and if so, the key is automatically executed if it is a head key
-   * It should be noted that if it is not the head key, the front type will also be checked.
-   */
-  optional?: boolean;
+	/**
+	 * Declare whether the dependent preceding flag is optional, and if so, the key is automatically executed if it is a head key
+	 * It should be noted that if it is not the head key, the front type will also be checked.
+	 */
+	optional?: boolean;
 
-  /**
-   * This key is restricted to only certain screens, and if it is a wildcard, it means that it will work on all screens.
-   */
-  category?: TComponet[] | "*";
+	/**
+	 * This key is restricted to only certain screens, and if it is a wildcard, it means that it will work on all screens.
+	 */
+	category?: TComponet[] | "*";
 
-  /**
-   * Does it affect the floating layer
-   */
-  affectOverlay?: boolean;
+	/**
+	 * Does it affect the floating layer
+	 */
+	affectOverlay?: boolean;
 
-  /**
-   * What is the timeout for pressing a key
-   */
-  timeout?: number;
+	/**
+	 * What is the timeout for pressing a key
+	 */
+	timeout?: number;
 
-  /**
-   * When `true` and a needs mismatch occurs mid-sequence, the key is
-   * silently consumed (the timeout keeps running). When `false` or
-   * omitted, a mismatched key clears the pending chain and falls through.
-   */
-  exclusive?: boolean;
+	/**
+	 * When `true` and a needs mismatch occurs mid-sequence, the key is
+	 * silently consumed (the timeout keeps running). When `false` or
+	 * omitted, a mismatched key clears the pending chain and falls through.
+	 */
+	exclusive?: boolean;
 
-  /**
-   * When `true`, keys with `affectOverlay: true` still fire even when
-   * no overlay is active. Defaults to `false`.
-   */
-  executeWhenNoOverlay?: boolean;
+	/**
+	 * When `true`, keys with `affectOverlay: true` still fire even when
+	 * no overlay is active. Defaults to `false`.
+	 */
+	executeWhenNoOverlay?: boolean;
 
-  execute?: (
-    ctx: CompositionContext<TValue>,
-  ) => CompositionContext<TValue> | null;
+	execute?: (
+		ctx: CompositionContext<TValue>,
+	) => CompositionContext<TValue> | null;
 
-  /**
-   * This key is enabled only when this callback method returns true.
-   */
-  when?: (() => boolean) | string;
+	/**
+	 * This key is enabled only when this callback method returns true.
+	 */
+	when?: (() => boolean) | string;
 
-  /**
-   * Restrict this composition key to a specific mode.
-   *
-   * When set, the entry is skipped unless
-   * {@link PipelineContext.currentMode} matches. Checked after
-   * affectOverlay, before `when`, `category`, and other filters.
-   * When omitted, the key works in all modes (including no-mode).
-   */
-  mode?: string;
+	/**
+	 * Restrict this composition key to a specific mode.
+	 *
+	 * When set, the entry is skipped unless
+	 * {@link PipelineContext.currentMode} matches. Checked after
+	 * affectOverlay, before `when`, `category`, and other filters.
+	 * When omitted, the key works in all modes (including no-mode).
+	 */
+	mode?: string;
 
-  /**
-   * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
-   */
-  KeyReleaseWhenChainInterrupted?: boolean;
+	/**
+	 * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
+	 */
+	KeyReleaseWhenChainInterrupted?: boolean;
+
+	/**
+	 * The back button's function is usually the opposite of the execute key.
+	 * Returning null will stop the undo action.
+	 */
+	undoAction?: undo;
 }
 
+export type undo<TValue = unknown> = (
+	ctx: CompositionContext<TValue>,
+) => CompositionContext<TValue> | null;
+
+export type bufferEntry = {
+	key: string;
+	undoAction: undo;
+	ctx: CompositionContext;
+};
+
 export default class CompositionEngine<TComponet = unknown> {
-  private currentKey: string[] = [];
-  private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> =
-    new Map();
+	private currentKey: string[] = [];
+	private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> =
+		new Map();
 
-  private pendingEntry: CompositionPneding | null = null;
-  private defaultTimeout: number;
+	private pendingEntry: CompositionPneding | null = null;
+	private defaultTimeout: number;
 
-  private valueSchema: ValueSchema | undefined;
+	// This array represents the history of pressed keys.
+	// Once the sequence begins, it records the keys in the order they are pressed by the user.
+	private historyKeys: bufferEntry[] = [];
+	// Each inner array represents one completed sequence's key history.
+	// Multiple sequences accumulate here so undo can rewind across
+	// several completed chains.
+	private buffers: bufferEntry[][] = [];
 
-  private context: CompositionContext = {
-    value: undefined,
-    lastFlag: null,
-    steps: [],
-  };
+	private valueSchema: ValueSchema | undefined;
 
-  constructor(
-    private state: EngineState<TComponet>,
-    defaultTimeout?: number,
-    valueSchema?: ValueSchema,
-  ) {
-    this.defaultTimeout = defaultTimeout ?? 400;
-    this.valueSchema = valueSchema;
-  }
+	private context: CompositionContext = {
+		value: undefined,
+		lastFlag: null,
+		steps: [],
+	};
 
-  /** Set or replace the runtime value schema for composition chain validation. */
-  setValueSchema(schema: ValueSchema): void {
-    this.valueSchema = schema;
-  }
+	constructor(
+		private state: EngineState<TComponet>,
+		defaultTimeout?: number,
+		valueSchema?: ValueSchema,
+	) {
+		this.defaultTimeout = defaultTimeout ?? 400;
+		this.valueSchema = valueSchema;
+	}
 
-  synchronizingKey(eventName: string[]) {
-    this.currentKey = eventName;
-  }
+	/** Set or replace the runtime value schema for composition chain validation. */
+	setValueSchema(schema: ValueSchema): void {
+		this.valueSchema = schema;
+	}
 
-  registryCompositionKey(entry: CompositioKey<TComponet>) {
-    const key = entry.key;
-    const result = this.keyMappingTable.get(key);
+	synchronizingKey(eventName: string[]) {
+		this.currentKey = eventName;
+	}
 
-    if (!result) {
-      this.keyMappingTable.set(key, new Set([entry]));
-      return;
-    }
+	registryCompositionKey(entry: CompositioKey<TComponet>) {
+		const key = entry.key;
+		const result = this.keyMappingTable.get(key);
 
-    result.add(entry);
-  }
+		if (!result) {
+			this.keyMappingTable.set(key, new Set([entry]));
+			return;
+		}
 
-  /**
-   * Remove all entries registered under `key`.
-   * @returns `true` if an entry was removed, `false` if none existed.
-   */
-  removeCompositionKey(key: string): boolean {
-    return this.keyMappingTable.delete(key);
-  }
+		result.add(entry);
+	}
 
-  /** Remove every registered composition key. */
-  clearAllCompositionKeys(): void {
-    this.keyMappingTable.clear();
-  }
+	/**
+	 * Remove all entries registered under `key`.
+	 * @returns `true` if an entry was removed, `false` if none existed.
+	 */
+	removeCompositionKey(key: string): boolean {
+		return this.keyMappingTable.delete(key);
+	}
 
-  /** Whether the engine currently has an active pending chain. */
-  hasPending(): boolean {
-    return this.pendingEntry !== null;
-  }
+	/** Remove every registered composition key. */
+	clearAllCompositionKeys(): void {
+		this.keyMappingTable.clear();
+	}
 
-  /** Return a shallow copy of the current composition context. */
-  getContext(): CompositionContext {
-    return { ...this.context, steps: [...this.context.steps] };
-  }
+	/** Whether the engine currently has an active pending chain. */
+	hasPending(): boolean {
+		return this.pendingEntry !== null;
+	}
 
-  /** Cancel the current pending chain immediately (no timeout). */
-  abort(): void {
-    this.clearPending();
-  }
+	/** Return a shallow copy of the current composition context. */
+	getContext(): CompositionContext {
+		return { ...this.context, steps: [...this.context.steps] };
+	}
 
-  /**
-   * Update a registered entry identified by `key` + `flag`.
-   * The old entry is removed and the merged entry is re-registered.
-   * @returns `true` if the entry was found and updated, `false` otherwise.
-   */
-  updateCompositionKey(
-    key: string,
-    flag: string,
-    updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flag">>,
-  ): boolean {
-    const set = this.keyMappingTable.get(key);
-    if (!set) return false;
+	/** Cancel the current pending chain immediately (no timeout). */
+	abort(): void {
+		this.clearPending();
+	}
 
-    for (const entry of set) {
-      if (entry.flag === flag) {
-        set.delete(entry);
-        const merged: CompositioKey<TComponet> = {
-          ...entry,
-          ...updates,
-          key,
-          flag,
-        };
-        set.add(merged);
-        return true;
-      }
-    }
+	/**
+	 * Undo one or more completed composition sequences.
+	 *
+	 * Each completed chain is stored as a separate entry in the undo buffer.
+	 * Passing `steps` undoes that many sequences at once by executing every
+	 * key's {@link CompositioKey#undoAction} in reverse order — inner keys
+	 * first, then outer sequences from most recent to oldest.
+	 *
+	 * @param steps - Number of past sequences to undo. Defaults to 1.
+	 * @returns The final context after all undo actions, or `null` if
+	 *   nothing was undone.
+	 * @throws If `steps` exceeds the number of buffered sequences.
+	 */
+	undo(steps: number = 1): CompositionContext | null {
+		if (this.buffers.length === 0) return null;
 
-    return false;
-  }
+		if (steps > this.buffers.length) {
+			throw new Error(
+				`[keyboard-engine] Cannot undo ${steps} sequence(s): only ` +
+				`${this.buffers.length} buffered.`,
+			);
+		}
 
-  private validateInput(
-    lastFlag: string | null,
-    entryKey: string,
-  ): boolean {
-    if (!this.valueSchema || !lastFlag) return true;
-    const guard = this.valueSchema[lastFlag];
-    if (!guard) return true;
-    if (!guard(this.context.value)) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(
-          `[keyboard-engine] Composition key "${entryKey}": input value from flag ` +
-          `"${lastFlag}" failed type guard — clearing pending chain.`,
-        );
-      }
-      return false;
-    }
-    return true;
-  }
+		// Take the last `steps` sequences
+		const undone = this.buffers.splice(this.buffers.length - steps, steps);
 
-  private validateOutput(flag: string, value: unknown, entryKey: string): boolean {
-    if (!this.valueSchema) return true;
-    const guard = this.valueSchema[flag];
-    if (!guard) return true;
-    if (!guard(value)) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(
-          `[keyboard-engine] Composition key "${entryKey}" (flag: "${flag}") ` +
-          `produced a value that failed its type guard.`,
-        );
-      }
-      return false;
-    }
-    return true;
-  }
+		// Flatten all sequences' keys and reverse
+		const allEntries = undone.flat();
+		const reversed = allEntries.reverse();
+		if (reversed.length === 0) return null;
 
-  private clearPending() {
-    if (this.pendingEntry) {
-      clearTimeout(this.pendingEntry.timer);
-      this.pendingEntry = null;
-    }
-    this.context = { value: undefined, lastFlag: null, steps: [] };
-    this.state.compositionEngineHandle = false;
-  }
+		let currentCtx: CompositionContext = reversed[0].ctx;
 
-  private resetPendingTimer(timeout: number): void {
-    if (!this.pendingEntry) return;
-    clearTimeout(this.pendingEntry.timer);
-    const timer = setTimeout(() => {
-      this.clearPending();
-    }, timeout);
-    this.pendingEntry.timer = timer;
-    this.pendingEntry.timeout = timeout;
-  }
+		for (const buffer of reversed) {
+			if (this.valueSchema && currentCtx.lastFlag) {
+				const guard = this.valueSchema[currentCtx.lastFlag];
+				if (guard && !guard(currentCtx.value)) {
+					if (process.env.NODE_ENV !== 'production') {
+						console.warn(
+							`[keyboard-engine] Undo key "${buffer.key}": input value ` +
+							`from flag "${currentCtx.lastFlag}" failed type guard — stopping undo.`,
+						);
+					}
+					break;
+				}
+			}
 
-  /**
-   * Filter candidates by affectOverlay and category, mirroring the
-   * pattern used in global-sequence / global-key processors.
-   */
-  private filterEntries(
-    entries: CompositioKey<TComponet>[],
-    ctx: PipelineContext,
-    affectOverlay: boolean,
-  ): CompositioKey<TComponet>[] {
-    return entries.filter((entry) => {
-      if ((entry.affectOverlay ?? false) !== affectOverlay) return false;
-      if (entry.mode && entry.mode !== ctx.currentMode) return false;
-      if (!ctx.topComponent) return false;
+			const newCtx = buffer.undoAction(currentCtx);
+			if (!newCtx) {
+				break;
+			}
 
-      if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay)
-        return false;
+			if (this.valueSchema && newCtx.lastFlag) {
+				const guard = this.valueSchema[newCtx.lastFlag];
+				if (guard && !guard(newCtx.value)) {
+					if (process.env.NODE_ENV !== 'production') {
+						console.warn(
+							`[keyboard-engine] Undo key "${buffer.key}": output value ` +
+							`for flag "${newCtx.lastFlag}" failed type guard — stopping undo.`,
+						);
+					}
+					break;
+				}
+			}
 
-      const cat = entry.category;
-      if (cat !== undefined && cat !== "*") {
-        if (Array.isArray(cat) && cat.length === 0) return false;
-        if (Array.isArray(cat) && !cat.includes(ctx.topComponent as TComponet))
-          return false;
-      }
+			currentCtx = newCtx;
+		}
 
-      return true;
-    });
-  }
+		this.context = currentCtx;
+		this.state.compositionEngineHandle = false;
+		return currentCtx;
+	}
 
-  private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
-    if (this.pendingEntry) return false;
+	/**
+	 * Update a registered entry identified by `key` + `flag`.
+	 * The old entry is removed and the merged entry is re-registered.
+	 * @returns `true` if the entry was found and updated, `false` otherwise.
+	 */
+	updateCompositionKey(
+		key: string,
+		flag: string,
+		updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flag">>,
+	): boolean {
+		const set = this.keyMappingTable.get(key);
+		if (!set) return false;
 
-    const allEntries = this.currentKey.flatMap((name) => [
-      ...(this.keyMappingTable.get(name) ?? []),
-    ]);
-    const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
-    const result = resolveCompositionKey(filtered, null);
+		for (const entry of set) {
+			if (entry.flag === flag) {
+				set.delete(entry);
+				const merged: CompositioKey<TComponet> = {
+					...entry,
+					...updates,
+					key,
+					flag,
+				};
+				set.add(merged);
+				return true;
+			}
+		}
 
-    if (!result) return false;
+		return false;
+	}
 
-    if (!checkWhen(result.when, ctx.conditions)) return false;
+	private validateInput(lastFlag: string | null, entryKey: string): boolean {
+		if (!this.valueSchema || !lastFlag) return true;
+		const guard = this.valueSchema[lastFlag];
+		if (!guard) return true;
+		if (!guard(this.context.value)) {
+			if (process.env.NODE_ENV !== "production") {
+				console.warn(
+					`[keyboard-engine] Composition key "${entryKey}": input value from flag ` +
+						`"${lastFlag}" failed type guard — clearing pending chain.`,
+				);
+			}
+			return false;
+		}
+		return true;
+	}
 
-    const initialCtx: CompositionContext = {
-      value: undefined,
-      lastFlag: null,
-      steps: [],
-    };
-    const nextCtx = result.execute?.(initialCtx);
-    // `execute` returns null → chain does not start
-    if (!nextCtx) return false;
+	private validateOutput(
+		flag: string,
+		value: unknown,
+		entryKey: string,
+	): boolean {
+		if (!this.valueSchema) return true;
+		const guard = this.valueSchema[flag];
+		if (!guard) return true;
+		if (!guard(value)) {
+			if (process.env.NODE_ENV !== "production") {
+				console.warn(
+					`[keyboard-engine] Composition key "${entryKey}" (flag: "${flag}") ` +
+						`produced a value that failed its type guard.`,
+				);
+			}
+			return false;
+		}
+		return true;
+	}
 
-    if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
-      return false;
-    }
+	private clearPending() {
+		if (this.pendingEntry) {
+			clearTimeout(this.pendingEntry.timer);
+			this.pendingEntry = null;
+		}
 
-    this.context = nextCtx;
-    this.state.compositionEngineHandle = true;
+		this.context = { value: undefined, lastFlag: null, steps: [] };
+		this.state.compositionEngineHandle = false;
+	}
 
-    const pending: CompositionPneding = {
-      timeout: result.timeout ?? this.defaultTimeout,
-      timer: undefined as unknown as ReturnType<typeof setTimeout>,
-      exclusive: result.exclusive ?? false,
-      affectOverlay,
-    };
+	private resetPendingTimer(timeout: number): void {
+		if (!this.pendingEntry) return;
+		clearTimeout(this.pendingEntry.timer);
+		const timer = setTimeout(() => {
+			this.clearPending();
+		}, timeout);
+		this.pendingEntry.timer = timer;
+		this.pendingEntry.timeout = timeout;
+	}
 
-    const timer = setTimeout(() => {
-      this.clearPending();
-    }, pending.timeout);
+	/**
+	 * Filter candidates by affectOverlay and category, mirroring the
+	 * pattern used in global-sequence / global-key processors.
+	 */
+	private filterEntries(
+		entries: CompositioKey<TComponet>[],
+		ctx: PipelineContext,
+		affectOverlay: boolean,
+	): CompositioKey<TComponet>[] {
+		return entries.filter((entry) => {
+			if ((entry.affectOverlay ?? false) !== affectOverlay) return false;
+			if (entry.mode && entry.mode !== ctx.currentMode) return false;
+			if (!ctx.topComponent) return false;
 
-    pending.timer = timer;
-    this.pendingEntry = pending;
-    return true;
-  }
+			if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay)
+				return false;
 
-  private processPending(
-    ctx: PipelineContext,
-    affectOverlay: boolean,
-  ): boolean {
-    if (!this.pendingEntry) return false;
-    if (this.pendingEntry.affectOverlay !== affectOverlay) return false;
+			const cat = entry.category;
+			if (cat !== undefined && cat !== "*") {
+				if (Array.isArray(cat) && cat.length === 0) return false;
+				if (Array.isArray(cat) && !cat.includes(ctx.topComponent as TComponet))
+					return false;
+			}
 
-    clearTimeout(this.pendingEntry.timer);
+			return true;
+		});
+	}
 
-    const allEntries = this.currentKey.flatMap((name) => [
-      ...(this.keyMappingTable.get(name) ?? []),
-    ]);
-    const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
-    const result = resolveCompositionKey(filtered, this.context.lastFlag);
+	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
+		if (this.pendingEntry) return false;
 
-    if (result) {
-      if (!checkWhen(result.when, ctx.conditions)) {
-        this.clearPending();
-        return false;
-      }
+		this.historyKeys = [];
 
-      if (!this.validateInput(this.context.lastFlag, result.key)) {
-        this.clearPending();
-        return result.KeyReleaseWhenChainInterrupted === undefined
-          ? false
-          : result.KeyReleaseWhenChainInterrupted;
-      }
+		const allEntries = this.currentKey.flatMap((name) => [
+			...(this.keyMappingTable.get(name) ?? []),
+		]);
+		const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
+		const result = resolveCompositionKey(filtered, null);
 
-      const nextCtx = result.execute?.(this.context);
-      if (!nextCtx) {
-        this.clearPending();
-        return result.KeyReleaseWhenChainInterrupted === undefined
-          ? false
-          : result.KeyReleaseWhenChainInterrupted;
-      }
+		if (!result) return false;
 
-      if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
-        this.clearPending();
-        return result.KeyReleaseWhenChainInterrupted === undefined
-          ? false
-          : result.KeyReleaseWhenChainInterrupted;
-      }
+		if (!checkWhen(result.when, ctx.conditions)) return false;
 
-      this.context = nextCtx;
+		const initialCtx: CompositionContext = {
+			value: undefined,
+			lastFlag: null,
+			steps: [],
+		};
+		const nextCtx = result.execute?.(initialCtx);
+		// `execute` returns null → chain does not start
+		if (!nextCtx) return false;
 
-      const timeout = result.timeout ?? this.defaultTimeout;
-      this.pendingEntry.timeout = timeout;
-      this.pendingEntry.exclusive = result.exclusive ?? false;
-      this.pendingEntry.affectOverlay = affectOverlay;
+		if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
+			return false;
+		}
 
-      const timer = setTimeout(() => {
-        this.clearPending();
-      }, timeout);
-      this.pendingEntry.timer = timer;
+		this.context = nextCtx;
+		this.state.compositionEngineHandle = true;
 
-      return true;
-    }
+		const pending: CompositionPneding = {
+			timeout: result.timeout ?? this.defaultTimeout,
+			timer: undefined as unknown as ReturnType<typeof setTimeout>,
+			exclusive: result.exclusive ?? false,
+			affectOverlay,
+		};
 
-    // No match — check exclusive on the pending chain
-    if (this.pendingEntry.exclusive) {
-      // Silently consume, keep waiting
-      this.resetPendingTimer(this.pendingEntry.timeout);
-      return true;
-    }
+		const timer = setTimeout(() => {
+			this.clearPending();
 
-    // Not exclusive — clear and let key fall through
-    this.clearPending();
-    return false;
-  }
+			this.recordHistory();
+		}, pending.timeout);
 
-  start(ctx: PipelineContext, affectOverlay: boolean): boolean {
-    this.synchronizingKey(ctx.eventNames);
-    if (this.processPending(ctx, affectOverlay)) return true;
-    return this.startPending(ctx, affectOverlay);
-  }
+		pending.timer = timer;
+		this.pendingEntry = pending;
+		this.historyKeys.push({
+			key: result.key,
+			undoAction: result.undoAction ?? ((ctx) => ctx),
+			ctx: this.context,
+		});
+		return true;
+	}
+
+	private processPending(
+		ctx: PipelineContext,
+		affectOverlay: boolean,
+	): boolean {
+		if (!this.pendingEntry) return false;
+		if (this.pendingEntry.affectOverlay !== affectOverlay) return false;
+
+		clearTimeout(this.pendingEntry.timer);
+
+		const allEntries = this.currentKey.flatMap((name) => [
+			...(this.keyMappingTable.get(name) ?? []),
+		]);
+		const filtered = this.filterEntries(allEntries, ctx, affectOverlay);
+		const result = resolveCompositionKey(filtered, this.context.lastFlag);
+
+		if (result) {
+			if (!checkWhen(result.when, ctx.conditions)) {
+				this.clearPending();
+				return false;
+			}
+
+			if (!this.validateInput(this.context.lastFlag, result.key)) {
+				this.clearPending();
+				return result.KeyReleaseWhenChainInterrupted === undefined
+					? false
+					: result.KeyReleaseWhenChainInterrupted;
+			}
+
+			const nextCtx = result.execute?.(this.context);
+			if (!nextCtx) {
+				this.clearPending();
+				return result.KeyReleaseWhenChainInterrupted === undefined
+					? false
+					: result.KeyReleaseWhenChainInterrupted;
+			}
+
+			if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
+				this.clearPending();
+				return result.KeyReleaseWhenChainInterrupted === undefined
+					? false
+					: result.KeyReleaseWhenChainInterrupted;
+			}
+
+			this.context = nextCtx;
+
+			const timeout = result.timeout ?? this.defaultTimeout;
+			this.pendingEntry.timeout = timeout;
+			this.pendingEntry.exclusive = result.exclusive ?? false;
+			this.pendingEntry.affectOverlay = affectOverlay;
+
+			const timer = setTimeout(() => {
+				this.clearPending();
+
+				// Why is a buffer needed?
+				// Without a buffer, we can only manipulate historyKeys.
+				// This is because `historyKeys` is cleared at the start of each sequence to avoid confusion.
+				// However, clearing it in that way would result in the loss of historical information from the previous sequence, making it impossible to perform undo operations during the new sequence.
+				// The buffer is responsible for recording these historical keys before each cleanup.
+				this.recordHistory();
+			}, timeout);
+			this.historyKeys.push({
+				key: result.key,
+				undoAction: result.undoAction ?? ((ctx) => ctx),
+				ctx: this.context,
+			});
+			this.pendingEntry.timer = timer;
+
+			return true;
+		}
+
+		// No match — check exclusive on the pending chain
+		if (this.pendingEntry.exclusive) {
+			// Silently consume, keep waiting
+			this.resetPendingTimer(this.pendingEntry.timeout);
+			return true;
+		}
+
+		// Not exclusive — clear and let key fall through
+		this.clearPending();
+		return false;
+	}
+
+	start(ctx: PipelineContext, affectOverlay: boolean): boolean {
+		this.synchronizingKey(ctx.eventNames);
+		if (this.processPending(ctx, affectOverlay)) return true;
+		return this.startPending(ctx, affectOverlay);
+	}
+
+	private recordHistory() {
+		if (this.historyKeys.length > 0) {
+			this.buffers.push([...this.historyKeys]);
+		}
+	}
 }

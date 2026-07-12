@@ -81,6 +81,8 @@ Each registered key is a `CompositioKey` object:
 | `affectOverlay` | `boolean` | `false` | `true` = fires in the overlay phase (position 1). `false` = screen phase (position 5). |
 | `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no overlay is open. |
 | `timeout` | `number` | `400` | Milliseconds before a partial sequence resets. |
+| `undoAction` | `(ctx) => ctx \| null` | `(ctx) => ctx` | Reverse action for this key. Called during `undo()` in reverse order. Receives the context as it was AFTER this key executed. Return `null` to stop the undo chain. Defaults to identity pass-through. |
+| `KeyReleaseWhenChainInterrupted` | `boolean` | — | When `execute` returns `null` or guard validation fails, swallow the key instead of letting it fall through. |
 
 ## Resolution Priority
 
@@ -100,6 +102,8 @@ class CompositionEngine<TComponent = unknown> {
   hasPending(): boolean
   getContext(): CompositionContext
   abort(): void
+  undo(steps?: number): CompositionContext | null
+  setValueSchema(schema: ValueSchema): void
   updateCompositionKey(key: string, flag: string, updates: Partial<...>): boolean
 }
 ```
@@ -169,6 +173,35 @@ abort(): void
 ```
 
 Cancel the current pending chain immediately (no timeout). Reverts `compositionEngineHandle` on the engine state.
+
+### undo
+
+```ts
+undo(steps?: number): CompositionContext | null
+```
+
+Undo one or more completed composition sequences. Each completed chain (timeout-fired) is stored in the undo buffer as a separate entry.
+
+- **`steps`** — number of past sequences to undo, defaults to `1`.
+- **Returns** the final context after all undo actions, or `null` if no sequences are buffered.
+- **Throws** if `steps` exceeds the buffer depth.
+
+Undo iterates sequences in reverse chronological order (most recent first), and within each sequence iterates keys in reverse order (last key first). Each key's `undoAction` receives the context that the key produced, and its return value is passed to the previous key's `undoAction`.
+
+If any `undoAction` returns `null`, the undo chain stops early — subsequent keys are not undone. The intermediate context is preserved and returned.
+
+When a `valueSchema` is configured, undo validates input and output the same way `execute` does:
+
+- **Input** — `currentCtx.value` must pass the guard for `currentCtx.lastFlag`.
+- **Output** — the value returned by `undoAction` must pass the guard for the new context's `lastFlag`.
+
+### setValueSchema
+
+```ts
+setValueSchema(schema: ValueSchema): void
+```
+
+Set or replace the runtime type guard schema used to validate `execute` and `undo` values. See [Value Schema](#value-schema-runtime-type-validation).
 
 ### updateCompositionKey
 
@@ -257,6 +290,48 @@ if (hasPendingComposition()) {
 
 // Cancel the chain programmatically
 abortComposition();
+```
+
+### Undo a completed sequence
+
+Each key declares its own `undoAction` — the reverse of `execute`:
+
+```tsx
+registryCompositionKey({
+  key: '3',
+  flag: 'times',
+  needs: [],
+  execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+  undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
+});
+
+registryCompositionKey({
+  key: 's',
+  flag: 'action',
+  needs: ['times'],
+  execute: (ctx) => ({
+    value: (ctx.value as number) * 10,
+    lastFlag: 'action',
+    steps: [...ctx.steps, 's'],
+  }),
+  undoAction: (ctx) => ({
+    value: (ctx.value as number) / 10,
+    lastFlag: 'times',
+    steps: ctx.steps.slice(0, -1),
+  }),
+});
+```
+
+After a chain completes (timeout fires), undo is available:
+
+```tsx
+// Undo the last completed sequence
+const { undoComposition } = useKeyboard();
+const ctx = undoComposition();    // undo most recent chain
+// ctx.value === restored state
+
+// Undo multiple sequences at once
+const ctx = undoComposition(3);   // undo last 3 chains
 ```
 
 ## See Also
