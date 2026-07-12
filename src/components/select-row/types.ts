@@ -1,5 +1,4 @@
 import React from 'react';
-import type { StorageAPI } from '../../storage/index.js';
 import type { Item } from '../select/types.js';
 
 // Re-export Item from select/types to keep a single canonical definition.
@@ -22,8 +21,4 @@ export interface SelectRowProps<T, I extends Item<T> = Item<T>> {
   focusId: string;
   /** When the number of items exceeds this, the list will scroll. */
   limit?: number;
-  /** Optional persistence instance for cursor position. */
-  storage?: StorageAPI;
-  /** Storage key for persistence. Defaults to `"select-row:<focusId>"`. */
-  storageKey?: string;
 }

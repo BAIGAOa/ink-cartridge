@@ -1,4 +1,4 @@
-import { stripAnsi, flush, makeMockStorage } from './_helpers.js';
+import { stripAnsi, flush } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
 import React from 'react';
@@ -8,14 +8,11 @@ import { ScenarioManagementProvider } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { Fold } from '../../../src/components/fold/Fold.js';
-import type { StorageAPI } from '../../../src/storage/index.js';
 
 function renderFold(props?: {
   expanded?: boolean;
   onToggle?: () => void;
   preview?: React.ReactNode;
-  storage?: StorageAPI;
-  storageKey?: string;
 }) {
   function Host() {
     return (
@@ -25,8 +22,6 @@ function renderFold(props?: {
         expanded={props?.expanded}
         onToggle={props?.onToggle}
         preview={props?.preview}
-        storage={props?.storage}
-        storageKey={props?.storageKey}
       >
         <Text>Hidden content</Text>
       </Fold>
@@ -102,106 +97,5 @@ describe('Fold', () => {
     );
     const output = stripAnsi(lastFrame());
     expect(output).toContain('Content inside');
-  });
-});
-
-describe('Fold persistence', () => {
-  it('writes to storage after expand/collapse when storage is passed', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return (
-        <Fold focusId="pf" label="Test" storage={api}>
-          <Text>Inside</Text>
-        </Fold>
-      );
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { stdin } = render(
-      <ScenarioManagementProvider defaultScreen={Host}>
-        <KeyboardProvider>
-          <CurrentScreen />
-        </KeyboardProvider>
-      </ScenarioManagementProvider>,
-    );
-    await flush();
-
-    stdin.write(' ');
-    await flush();
-
-    expect((api.write.b as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('fold:pf', true);
-  });
-
-  it('uses custom key when storageKey is passed', async () => {
-    const { api } = makeMockStorage();
-
-    function Host() {
-      return (
-        <Fold focusId="pf" label="Test" storage={api} storageKey="custom-fold-key">
-          <Text>Inside</Text>
-        </Fold>
-      );
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      <ScenarioManagementProvider defaultScreen={Host}>
-        <KeyboardProvider>
-          <CurrentScreen />
-        </KeyboardProvider>
-      </ScenarioManagementProvider>,
-    );
-    await flush();
-
-    expect((api.read.b as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('custom-fold-key', false);
-  });
-
-  it('does not affect existing behavior when storage is not passed', async () => {
-    function Host() {
-      return (
-        <Fold focusId="pf" label="Test">
-          <Text>Inside</Text>
-        </Fold>
-      );
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    const { lastFrame } = render(
-      <ScenarioManagementProvider defaultScreen={Host}>
-        <KeyboardProvider>
-          <CurrentScreen />
-        </KeyboardProvider>
-      </ScenarioManagementProvider>,
-    );
-    await flush();
-    expect(stripAnsi(lastFrame())).toContain('Test');
-    expect(stripAnsi(lastFrame())).not.toContain('Inside');
-  });
-
-  it('reads expanded state from storage on mount', async () => {
-    const { store, api } = makeMockStorage();
-    store['fold:pf'] = true;
-
-    function Host() {
-      return (
-        <Fold focusId="pf" label="Test" storage={api}>
-          <Text>Inside</Text>
-        </Fold>
-      );
-    }
-    clearRegistry();
-    registerComponent(Host, {});
-    render(
-      <ScenarioManagementProvider defaultScreen={Host}>
-        <KeyboardProvider>
-          <CurrentScreen />
-        </KeyboardProvider>
-      </ScenarioManagementProvider>,
-    );
-    await flush();
-
-    // Verify storage was queried with the correct key
-    expect((api.read.b as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('fold:pf', false);
   });
 });

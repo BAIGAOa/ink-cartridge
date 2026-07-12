@@ -160,21 +160,6 @@ npm install @cartridge-engine/keyboard-engine
 </details>
 
 <details>
-<summary><b>storage/</b></summary>
-
-- [README](docs/storage/README.md)
-- [createStorage](docs/storage/createStorage-API.md)
-</details>
-
-<details>
-<summary><b>binary-storage/</b></summary>
-
-- [README](docs/binary-storage/README.md)
-- [createBinaryStorage](docs/binary-storage/createBinaryStorage-API.md)
-- [createStreamingReader](docs/binary-storage/createStreamingReader-API.md)
-</details>
-
-<details>
 <summary><b>dev-tool/</b></summary>
 
 - [README](docs/dev-tool/README.md)

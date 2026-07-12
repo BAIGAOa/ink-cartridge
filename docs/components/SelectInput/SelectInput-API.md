@@ -1,6 +1,6 @@
 # SelectInput
 
-Vertical list selector with keyboard navigation, scrolling, and persistence.
+Vertical list selector with keyboard navigation and scrolling.
 
 ## Props
 
@@ -12,8 +12,6 @@ Vertical list selector with keyboard navigation, scrolling, and persistence.
 | `itemComponent` | `ComponentType` | no | default label | Custom item renderer. |
 | `indicatorComponent` | `ComponentType` | no | `❯` | Left-of-item indicator. |
 | `limit` | `number` | no | `10` | Max visible items before scrolling. |
-| `storage` | `StorageAPI` | no | — | Persist cursor position. |
-| `storageKey` | `string` | no | `"select:<focusId>"` | Storage key. |
 
 ## Keyboard (scoped to `focusId`)
 

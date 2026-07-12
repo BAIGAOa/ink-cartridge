@@ -11,8 +11,6 @@ Tab bar with left/right navigation and content rendering.
 | `activeTab` | `string` | no | — | Controlled: active tab id. |
 | `onChange` | `(id: string) => void` | no | — | Controlled: called on tab change. |
 | `defaultActiveTab` | `string` | no | First tab | Uncontrolled initial tab. |
-| `storage` | `StorageAPI` | no | — | Persist active tab. |
-| `storageKey` | `string` | no | `"tabs:<focusId>"` | Storage key. |
 
 ## Keyboard (scoped to `focusId`)
 

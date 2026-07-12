@@ -36,16 +36,12 @@ export function SelectInput<T, I extends Item<T> = Item<T>>({
   indicatorComponent,
   focusId,
   limit: limitProp = 10,
-  storage,
-  storageKey,
 }: SelectInputProps<T, I>) {
-  const persistKey = storageKey ?? `select:${focusId}`;
-
   // focusId is required because screen-level bindings lose to any active focus
   // target in handleLayer — the indicator would light up but keys would not arrive.
   // @2026-06-28 v3.8.0
   const { isFocused, selectedIndex, visibleItems, moveHighlight, selectedIndexRef, visibleItemsRef, onSelectRef } =
-    useSelectNavigation<I>({ items, limit: limitProp, storage, persistKey, focusId, onSelect });
+    useSelectNavigation<I>({ items, limit: limitProp, focusId, onSelect });
 
   const { boundKeyboard } = useKeyboard();
 
