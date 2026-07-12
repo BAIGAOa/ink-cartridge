@@ -140,7 +140,7 @@ describe('CompositionEngine', () => {
       expect(state.compositionEngineHandle).toBe(false);
     });
 
-    test('Given chain key execute returns null, Then chain ends', () => {
+    test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted not set, Then key falls through and chain ends', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
@@ -150,8 +150,51 @@ describe('CompositionEngine', () => {
       }));
 
       engine.start(ctx(['3']), false);
-      expect(engine.start(ctx(['w']), false)).toBe(true); // consumed, chain ended
+      expect(engine.start(ctx(['w']), false)).toBe(false); // falls through, chain ended
       expect(state.compositionEngineHandle).toBe(false); // cleared
+    });
+
+    test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted is true, Then key is swallowed and chain ends', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        execute: () => null,
+        KeyReleaseWhenChainInterrupted: true,
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['w']), false)).toBe(true); // consumed silently, chain ended
+      expect(state.compositionEngineHandle).toBe(false); // cleared
+    });
+
+    test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted is false, Then key falls through and chain ends', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({
+        key: 'w', flag: 'action', needs: ['times'],
+        execute: () => null,
+        KeyReleaseWhenChainInterrupted: false,
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.start(ctx(['w']), false)).toBe(false); // falls through, chain ended
+      expect(state.compositionEngineHandle).toBe(false); // cleared
+    });
+
+    test('Given head key execute returns null and KeyReleaseWhenChainInterrupted is true, Then chain does not start', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [],
+        execute: () => null,
+        KeyReleaseWhenChainInterrupted: true,
+      }));
+
+      expect(engine.start(ctx(['3']), false)).toBe(false);
+      expect(state.compositionEngineHandle).toBe(false);
     });
   });
 

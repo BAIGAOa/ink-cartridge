@@ -66,8 +66,12 @@ function CompositionScreen() {
       flag: 'action',
       needs: ['times'],
       execute: (ctx) => {
-        const v = (ctx.value as number) * 10;
-        return { value: v, lastFlag: 'action', steps: [...ctx.steps, 's'] };
+      	if (typeof ctx.value === 'number') {
+        	const v = ctx.value * 10;
+        	return { value: v, lastFlag: 'action', steps: [...ctx.steps, 's'] };
+        }
+
+        return null
       },
     });
 
