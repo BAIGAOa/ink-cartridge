@@ -70,6 +70,7 @@ npm install @cartridge-engine/keyboard-engine
 - [penetration](docs/keyboard/penetration-API.md)
 - [stop](docs/keyboard/stop-API.md)
 - [compositionEngine](docs/keyboard/compositionEngine-API.md)
+- [setValueSchema](docs/keyboard/setValueSchema-API.md)
 - [globalKeys](docs/keyboard/globalKeys-API.md)
 - [globalSequence](docs/keyboard/globalSequence-API.md)
 - [focus system](docs/keyboard/focus-system-API.md)
