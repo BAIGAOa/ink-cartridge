@@ -151,6 +151,11 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
    * When omitted, the key works in all modes (including no-mode).
    */
   mode?: string;
+
+  /**
+   * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
+   */
+  KeyReleaseWhenChainInterrupted?: boolean;
 }
 
 export default class CompositionEngine<TComponet = unknown> {
@@ -360,7 +365,9 @@ export default class CompositionEngine<TComponet = unknown> {
       const nextCtx = result.execute?.(this.context);
       if (!nextCtx) {
         this.clearPending();
-        return true;
+        return result.KeyReleaseWhenChainInterrupted === undefined
+          ? false
+          : result.KeyReleaseWhenChainInterrupted;
       }
 
       this.context = nextCtx;
