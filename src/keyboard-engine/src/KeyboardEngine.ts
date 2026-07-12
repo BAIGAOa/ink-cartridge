@@ -182,6 +182,17 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
+   * Undo one or more completed composition sequences.
+   * See {@link CompositionEngine#undo}.
+   * @param steps - Number of past sequences to undo. Defaults to 1.
+   * @returns The final context after undo, or `null` if nothing was undone.
+   * @throws If `steps` exceeds the number of buffered sequences.
+   */
+  undoComposition(steps?: number) {
+    return this.state.compositionEngine.undo(steps);
+  }
+
+  /**
    * Update a composition entry identified by `key` + `flag`.
    * See {@link CompositionEngine#updateCompositionKey}.
    */

@@ -23,6 +23,17 @@ function ctx(eventNames: string[], topComponent: unknown = 'screen', conditions?
   return createContext({ eventNames, topComponent, conditions });
 }
 
+const numSchema: ValueSchema = {
+  times: (v): v is number => typeof v === 'number',
+  action: (v): v is number => typeof v === 'number',
+};
+
+function mkWithSchema(schema?: ValueSchema) {
+  const state = mkState();
+  const engine = new CompositionEngine(state, undefined, schema);
+  return { state, engine };
+}
+
 describe('CompositionEngine', () => {
   describe('registryCompositionKey', () => {
     test('Given two entries with same key, Then both are registered', () => {
@@ -597,16 +608,6 @@ describe('CompositionEngine', () => {
   });
 
   describe('valueSchema', () => {
-    const numSchema: ValueSchema = {
-      times: (v): v is number => typeof v === 'number',
-      action: (v): v is number => typeof v === 'number',
-    };
-
-    function mkWithSchema(schema?: ValueSchema) {
-      const state = mkState();
-      const engine = new CompositionEngine(state, undefined, schema);
-      return { state, engine };
-    }
 
     test('Given no schema, Then head key output validation passes through', () => {
       const { state, engine } = mkWithSchema();
@@ -837,4 +838,331 @@ describe('CompositionEngine', () => {
       expect(engine.hasPending()).toBe(true);
     });
   });
+
+  describe('undo', () => {
+    test('Given no completed chain, Then undo() returns null', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      expect(engine.undo()).toBeNull();
+    });
+
+    test('Given single-key chain completed via timeout, Then undo() returns the reverted context', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      let undone = false;
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => {
+          undone = true;
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+
+      engine.start(ctx(['3']), false);
+      vi.advanceTimersByTime(500);
+      expect(engine.hasPending()).toBe(false);
+
+      const result = engine.undo();
+      expect(result).not.toBeNull();
+      expect(undone).toBe(true);
+      expect(engine.getContext().value).toBeUndefined();
+      expect(engine.getContext().lastFlag).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    test('Given second undo call after first, Then returns null (buffers cleared)', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(engine.undo()).not.toBeNull();
+      expect(engine.undo()).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    test('Given multi-key chain, Then undoActions are called in reverse order with propagated ctx', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => {
+          undoLog.push(`undo-3(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: (c) => {
+          undoLog.push(`undo-s(v=${c.value})`);
+          return { value: 3, lastFlag: 'times', steps: ['3'] };
+        },
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(engine.undo()).not.toBeNull();
+      expect(undoLog).toEqual(['undo-s(v=30)', 'undo-3(v=3)']);
+
+      vi.useRealTimers();
+    });
+
+    test('Given two sequences buffered, Then undo(2) reverses both in correct order', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      // Sequence 1: "a" → value=1
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 'seq1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'seq1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => {
+          undoLog.push(`undo-a(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      // Sequence 2: "b" → value=2
+      engine.registryCompositionKey(mk({
+        key: 'b', flag: 'seq2', needs: [], optional: true,
+        execute: (c) => ({ value: 2, lastFlag: 'seq2', steps: [...c.steps, 'b'] }),
+        undoAction: (c) => {
+          undoLog.push(`undo-b(v=${c.value})`);
+          return { value: 1, lastFlag: 'seq1', steps: [] };
+        },
+      }));
+      engine.start(ctx(['b']), false);
+      vi.advanceTimersByTime(500);
+
+      // undo(2) — most recent first: b then a
+      const result = engine.undo(2);
+      expect(result).not.toBeNull();
+      expect(undoLog).toEqual(['undo-b(v=2)', 'undo-a(v=1)']);
+
+      // Both sequences consumed
+      expect(engine.undo()).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    test('Given steps exceeds buffer count, Then undo() throws', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 'seq1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'seq1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(() => engine.undo(2)).toThrow(
+        '[keyboard-engine] Cannot undo 2 sequence(s): only 1 buffered.',
+      );
+
+      vi.useRealTimers();
+    });
+
+    test('Given undoAction returns null, Then undo chain stops early', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => {
+          undoLog.push('undo-3');
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: () => null,
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      engine.undo();
+      expect(undoLog).toEqual([]);
+
+      vi.useRealTimers();
+    });
+
+    test('Given no undoAction on a key, Then identity pass-through keeps chain going', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: (c) => {
+          undoLog.push(`undo-s(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      engine.undo();
+      expect(undoLog).toEqual(['undo-s(v=30)']);
+
+      vi.useRealTimers();
+    });
+
+    test('Given abort() before timeout, Then undo() returns null (history not buffered)', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.abort();
+      expect(engine.undo()).toBeNull();
+    });
+
+    test('Given valueSchema validates undo input and output, Then undo succeeds', () => {
+      vi.useFakeTimers();
+      const { state, engine } = mkWithSchema(numSchema);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: (c) => ({ value: 3, lastFlag: 'times', steps: ['3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(engine.undo()).not.toBeNull();
+      expect(engine.getContext().value).toBeUndefined();
+      expect(engine.getContext().lastFlag).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    test('Given undo input fails schema guard, Then undo stops with context mid-chain', () => {
+      vi.useFakeTimers();
+      const { state, engine } = mkWithSchema(numSchema);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: (c) => ({ value: 3, lastFlag: 'times', steps: ['3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      engine.setValueSchema({
+        times: (v): v is number => typeof v === 'number',
+        action: (v): v is string => typeof v === 'string',
+      });
+
+      engine.undo();
+      expect(engine.getContext().lastFlag).toBe('action');
+      expect(engine.getContext().value).toBe(30);
+
+      vi.useRealTimers();
+    });
+
+    test('Given undo output fails schema guard, Then undo stops mid-chain', () => {
+      vi.useFakeTimers();
+      const { state, engine } = mkWithSchema(numSchema);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', flag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+        undoAction: (c) => ({ value: 'bad', lastFlag: 'times', steps: ['3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      engine.undo();
+      expect(engine.getContext().lastFlag).toBe('action');
+
+      vi.useRealTimers();
+    });
+
+    test('Given undo without valueSchema, Then no validation runs', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: '3', flag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 'anything', lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(engine.undo()).not.toBeNull();
+      expect(engine.getContext().value).toBeUndefined();
+
+      vi.useRealTimers();
+    });
+  });
 });
+

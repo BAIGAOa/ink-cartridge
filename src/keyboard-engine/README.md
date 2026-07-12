@@ -148,6 +148,8 @@ The engine resolves flag chains in three phases:
 | `hasPending()` | Whether an active pending chain exists |
 | `getContext()` | Get a shallow copy of the current composition context |
 | `abort()` | Cancel the current pending chain immediately |
+| `undo(steps?)` | Undo completed sequences by running each key's undoAction in reverse |
+| `setValueSchema(schema)` | Set or replace the runtime type guard schema |
 | `start(ctx, affectOverlay)` | Entry point called by pipeline processors |
 
 ## API Reference
@@ -292,6 +294,8 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | `hasPendingComposition()` | Whether a composition chain is currently pending |
 | `getCompositionContext()` | Get a copy of the current composition context |
 | `abortComposition()` | Cancel the current composition chain immediately |
+| `undoComposition(steps?)` | Undo completed composition sequences |
+| `setValueSchema(schema)` | Set or replace the runtime type guard schema |
 
 Access the underlying `CompositionEngine` instance directly via the `composition` getter for advanced use.
 

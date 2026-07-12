@@ -101,7 +101,7 @@ For compound key actions (e.g. `3 w` = action × 3 times), use the composition e
 
 ```tsx
 function Editor() {
-  const { registryCompositionKey, hasPendingComposition, getCompositionContext } = useKeyboard();
+  const { registryCompositionKey, hasPendingComposition, getCompositionContext, undoComposition } = useKeyboard();
 
   useEffect(() => {
     registryCompositionKey({
@@ -109,6 +109,7 @@ function Editor() {
       flag: 'times',
       needs: [],
       execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+      undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
     });
     registryCompositionKey({
       key: 'w',
@@ -120,6 +121,7 @@ function Editor() {
         // ... perform action `times` times
         return { value: times, lastFlag: 'action', steps: [...ctx.steps, 'w'] };
       },
+      undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
     });
   }, []);
 
@@ -127,10 +129,33 @@ function Editor() {
     <Text>
       {hasPendingComposition()
         ? `Composing: ${getCompositionContext().steps.join(' → ')}`
-        : 'Press 3 then w'}
+        : 'Press 3 then w, then Ctrl+Z to undo'}
     </Text>
   );
 }
+```
+
+### Undo & Runtime Validation
+
+Bind a key (e.g. `Ctrl+Z`) to `undoComposition()` and pass a `valueSchema` for runtime safety:
+
+```tsx
+<KeyboardProvider
+  valueSchema={{
+    times: (v): v is number => typeof v === 'number',
+    action: (v): v is number => typeof v === 'number',
+  }}
+>
+```
+
+```tsx
+useEffect(() => {
+  const unbind = boundKeyboard(['ctrl+z'], () => {
+    const ctx = undoComposition();
+    if (ctx) console.log('Undone to:', ctx);
+  });
+  return unbind;
+}, [undoComposition]);
 ```
 
 ## See Also
