@@ -285,73 +285,128 @@ export default class CompositionEngine<TComponet = unknown> {
 	 * Undo one or more completed composition sequences.
 	 *
 	 * Each completed chain is stored as a separate entry in the undo buffer.
-	 * Passing `steps` undoes that many sequences at once by executing every
-	 * key's {@link CompositioKey#undoAction} in reverse order — inner keys
-	 * first, then outer sequences from most recent to oldest.
+	 * Passing `steps` undoes that many sequences, executing every key's
+	 * {@link CompositioKey#undoAction} in reverse order.
 	 *
 	 * @param steps - Number of past sequences to undo. Defaults to 1.
+	 * @param options.isolated - When `true`, each sequence's undo starts from
+	 *   its own saved context — ctx does NOT propagate across sequences.
+	 *   Defaults to `false` (flat propagation).
 	 * @returns The final context after all undo actions, or `null` if
 	 *   nothing was undone.
 	 * @throws If `steps` exceeds the number of buffered sequences.
+	 *
+	 * @example Flat mode (default)
+	 * ```ts
+	 * // Seq1: g g → Seq2: d g
+	 * // Undo order: g₂ → d → g₁ → g₀  (ctx flows from right to left)
+	 * engine.undo(2);
+	 * ```
+	 *
+	 * @example Isolated mode
+	 * ```ts
+	 * // Seq1: g g → Seq2: d g
+	 * // Undo order: seq2: g → d, then seq1: g → g (ctx restarts per sequence)
+	 * engine.undo(2, { isolated: true });
+	 * ```
 	 */
-	undo(steps: number = 1): CompositionContext | null {
+	undo(
+		steps: number = 1,
+		options?: { isolated?: boolean },
+	): CompositionContext | null {
 		if (this.buffers.length === 0) return null;
 
 		if (steps > this.buffers.length) {
 			throw new Error(
 				`[keyboard-engine] Cannot undo ${steps} sequence(s): only ` +
-				`${this.buffers.length} buffered.`,
+					`${this.buffers.length} buffered.`,
 			);
 		}
 
-		// Take the last `steps` sequences
-		const undone = this.buffers.splice(this.buffers.length - steps, steps);
+		const start = this.buffers.length - steps;
+		const undone = this.buffers.slice(start);
+		const isolated = options?.isolated === true;
+		let currentCtx: CompositionContext | null = null;
 
-		// Flatten all sequences' keys and reverse
-		const allEntries = undone.flat();
-		const reversed = allEntries.reverse();
-		if (reversed.length === 0) return null;
+		if (isolated) {
+			for (let i = undone.length - 1; i >= 0; i--) {
+				const seq = [...undone[i]].reverse();
+				let seqCtx: CompositionContext = seq[0].ctx;
+				let stopped = false;
 
-		let currentCtx: CompositionContext = reversed[0].ctx;
-
-		for (const buffer of reversed) {
-			if (this.valueSchema && currentCtx.lastFlag) {
-				const guard = this.valueSchema[currentCtx.lastFlag];
-				if (guard && !guard(currentCtx.value)) {
-					if (process.env.NODE_ENV !== 'production') {
-						console.warn(
-							`[keyboard-engine] Undo key "${buffer.key}": input value ` +
-							`from flag "${currentCtx.lastFlag}" failed type guard — stopping undo.`,
-						);
+				for (const buffer of seq) {
+					const nextCtx = this.processUndoEntry(buffer, seqCtx);
+					if (nextCtx === null) {
+						stopped = true;
+						break;
 					}
-					break;
+					seqCtx = nextCtx;
 				}
-			}
 
-			const newCtx = buffer.undoAction(currentCtx);
-			if (!newCtx) {
-				break;
+				if (stopped) break;
+				currentCtx = seqCtx;
 			}
+		} else {
+			const allEntries = undone.flat().reverse();
+			if (allEntries.length === 0) return null;
 
-			if (this.valueSchema && newCtx.lastFlag) {
-				const guard = this.valueSchema[newCtx.lastFlag];
-				if (guard && !guard(newCtx.value)) {
-					if (process.env.NODE_ENV !== 'production') {
-						console.warn(
-							`[keyboard-engine] Undo key "${buffer.key}": output value ` +
-							`for flag "${newCtx.lastFlag}" failed type guard — stopping undo.`,
-						);
-					}
-					break;
-				}
+			currentCtx = allEntries[0].ctx;
+
+			for (const buffer of allEntries) {
+				const nextCtx = this.processUndoEntry(buffer, currentCtx);
+				if (nextCtx === null) break;
+				currentCtx = nextCtx;
 			}
-
-			currentCtx = newCtx;
 		}
 
+		if (currentCtx === null) return null;
+
 		this.context = currentCtx;
+		this.buffers.splice(start, steps);
 		this.state.compositionEngineHandle = false;
 		return currentCtx;
+	}
+
+	/**
+	 * Validate and execute a single undo entry.
+	 * Returns the new context after the undo action, or `null` to stop the undo chain.
+	 */
+	private processUndoEntry(
+		buffer: bufferEntry,
+		currentCtx: CompositionContext,
+	): CompositionContext | null {
+		if (this.valueSchema && currentCtx.lastFlag) {
+			const guard = this.valueSchema[currentCtx.lastFlag];
+			if (guard && !guard(currentCtx.value)) {
+				if (process.env.NODE_ENV !== "production") {
+					console.warn(
+						`[keyboard-engine] Undo key "${buffer.key}": input value ` +
+							`from flag "${currentCtx.lastFlag}" failed type guard — stopping undo.`,
+					);
+				}
+				return null;
+			}
+		}
+
+		const newCtx = buffer.undoAction(currentCtx);
+		if (!newCtx) {
+			return null;
+		}
+
+		if (this.valueSchema && newCtx.lastFlag) {
+			const guard = this.valueSchema[newCtx.lastFlag];
+			if (guard && !guard(newCtx.value)) {
+				if (process.env.NODE_ENV !== "production") {
+					console.warn(
+						`[keyboard-engine] Undo key "${buffer.key}": output value ` +
+							`for flag "${newCtx.lastFlag}" failed type guard — stopping undo.`,
+					);
+				}
+				return null;
+			}
+		}
+
+		return newCtx;
 	}
 
 	/**
