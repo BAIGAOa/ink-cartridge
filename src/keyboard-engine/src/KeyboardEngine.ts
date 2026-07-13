@@ -25,7 +25,7 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
-import CompositionEngine, { CompositioKey, ValueSchema } from "./CompositionEngine.js";
+import CompositionEngine, { CompositioKey, ValueSchema, Flags } from "./CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -209,10 +209,10 @@ export default class KeyboardEngine<TComponent = unknown> {
    */
   updateCompositionKey(
     key: string,
-    flag: string,
-    updates: Partial<Omit<CompositioKey<TComponent>, 'key' | 'flag'>>,
+    flags: Flags,
+    updates: Partial<Omit<CompositioKey<TComponent>, 'key' | 'flags'>>,
   ) {
-    return this.state.compositionEngine.updateCompositionKey(key, flag, updates);
+    return this.state.compositionEngine.updateCompositionKey(key, flags, updates);
   }
 
   /**

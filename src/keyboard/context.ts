@@ -20,6 +20,7 @@ import type {
   CompositioKey,
   CompositionContext,
   ValueSchema,
+  Flags,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 
@@ -142,8 +143,8 @@ export interface KeyboardContextValue {
   abortComposition: () => void;
   updateCompositionKey: (
     key: string,
-    flag: string,
-    updates: Partial<Omit<CompositioKey, "key" | "flag">>,
+    flags: Flags,
+    updates: Partial<Omit<CompositioKey, "key" | "flags">>,
   ) => boolean;
 
   setValueSchema: (schema: ValueSchema) => void;

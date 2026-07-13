@@ -13,7 +13,8 @@ Each registered key is a node in the chain:
 ```ts
 interface CompositioKey<TComponet = unknown, TValue = unknown> {
   key: string;              // Trigger key name
-  flag: string;             // What this key "is" — used by the next key's `needs`
+  alternativeFlag: string;    // Default flag. Also becomes head-key flag via auto-propagation.
+  flags: { need: string; become: string }[]; // Dependent flag table — chooseFlag picks based on precedent
   needs: string[];          // Which flags must precede this key
   optional?: boolean;       // Can start a chain without a preceding flag
   execute?: (ctx: CompositionContext<TValue>) => CompositionContext<TValue> | null;

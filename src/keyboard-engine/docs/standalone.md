@@ -148,14 +148,16 @@ The composition engine enables building compound key actions using flag/needs ch
 // Register composition keys on the engine
 engine.registryCompositionKey({
   key: '3',
-  flag: 'times',
+  flags: [],
+  alternativeFlag: 'times',
   needs: [],
   execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
 });
 
 engine.registryCompositionKey({
   key: 'w',
-  flag: 'action',
+  flags: [],
+  alternativeFlag: 'action',
   needs: ['times'],
   optional: true,
   execute: (ctx) => {
@@ -190,7 +192,8 @@ Call `undoComposition()` to reverse the last completed sequence by running each 
 ```ts
 engine.registryCompositionKey({
   key: '3',
-  flag: 'times',
+  flags: [],
+  alternativeFlag: 'times',
   needs: [],
   execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
   undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
