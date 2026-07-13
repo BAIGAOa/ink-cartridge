@@ -118,6 +118,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
       updateCompositionKey: engine.updateCompositionKey.bind(engine),
       setValueSchema: engine.setValueSchema.bind(engine),
       undoComposition: engine.undoComposition.bind(engine),
+      bufferedCompositionCount: engine.bufferedCompositionCount.bind(engine),
+      clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
     }),
     [engine],
   );

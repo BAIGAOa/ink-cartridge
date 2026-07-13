@@ -1149,7 +1149,7 @@ describe('CompositionEngine', () => {
       vi.useRealTimers();
     });
 
-    test('Given abort() before timeout, Then undo() returns null (history not buffered)', () => {
+    test('Given abort() before timeout, Then the aborted chain can still be undone', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
 
@@ -1161,7 +1161,9 @@ describe('CompositionEngine', () => {
 
       engine.start(ctx(['3']), false);
       engine.abort();
-      expect(engine.undo()).toBeNull();
+      // abort() now records history before clearing
+      expect(engine.undo()).not.toBeNull();
+      expect(engine.getContext().value).toBeUndefined();
     });
 
     test('Given valueSchema validates undo input and output, Then undo succeeds', () => {
@@ -1262,6 +1264,55 @@ describe('CompositionEngine', () => {
 
       expect(engine.undo()).not.toBeNull();
       expect(engine.getContext().value).toBeUndefined();
+
+      vi.useRealTimers();
+    });
+
+    test('Given bufferedCount, Then returns correct number of undoable sequences', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      expect(engine.bufferedCount()).toBe(0);
+
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 's1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 's1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+      expect(engine.bufferedCount()).toBe(1);
+
+      engine.registryCompositionKey(mk({
+        key: 'b', flag: 's2', needs: [], optional: true,
+        execute: (c) => ({ value: 2, lastFlag: 's2', steps: [...c.steps, 'b'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.start(ctx(['b']), false);
+      vi.advanceTimersByTime(500);
+      expect(engine.bufferedCount()).toBe(2);
+
+      vi.useRealTimers();
+    });
+
+    test('Given clearBuffers, Then all undo history is removed', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 's1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 's1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+      expect(engine.bufferedCount()).toBe(1);
+
+      engine.clearBuffers();
+      expect(engine.bufferedCount()).toBe(0);
+      expect(engine.undo()).toBeNull();
 
       vi.useRealTimers();
     });

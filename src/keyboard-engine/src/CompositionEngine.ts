@@ -278,6 +278,7 @@ export default class CompositionEngine<TComponet = unknown> {
 
 	/** Cancel the current pending chain immediately (no timeout). */
 	abort(): void {
+		this.recordHistory();
 		this.clearPending();
 	}
 
@@ -365,6 +366,16 @@ export default class CompositionEngine<TComponet = unknown> {
 		this.buffers.splice(start, steps);
 		this.state.compositionEngineHandle = false;
 		return currentCtx;
+	}
+
+	/** Number of completed sequences available for undo. */
+	bufferedCount(): number {
+		return this.buffers.length;
+	}
+
+	/** Clear all buffered undo history. */
+	clearBuffers(): void {
+		this.buffers = [];
 	}
 
 	/**

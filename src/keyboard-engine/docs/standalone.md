@@ -178,7 +178,8 @@ if (engine.hasPendingComposition()) {
 All composition methods are available directly on the engine instance:
 `registryCompositionKey`, `removeCompositionKey`, `clearAllCompositionKeys`,
 `hasPendingComposition`, `getCompositionContext`, `abortComposition`,
-`updateCompositionKey`, `undoComposition`, `setValueSchema`.
+`updateCompositionKey`, `undoComposition`, `bufferedCompositionCount`,
+`clearCompositionBuffers`, `setValueSchema`.
 
 ### Undo
 

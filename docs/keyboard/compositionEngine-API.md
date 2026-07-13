@@ -102,7 +102,9 @@ class CompositionEngine<TComponent = unknown> {
   hasPending(): boolean
   getContext(): CompositionContext
   abort(): void
-  undo(steps?: number): CompositionContext | null
+  undo(steps?: number, options?: { isolated?: boolean }): CompositionContext | null
+  bufferedCount(): number
+  clearBuffers(): void
   setValueSchema(schema: ValueSchema): void
   updateCompositionKey(key: string, flag: string, updates: Partial<...>): boolean
 }
@@ -172,7 +174,7 @@ Return a shallow copy of the current composition context. Safe to inspect for de
 abort(): void
 ```
 
-Cancel the current pending chain immediately (no timeout). Reverts `compositionEngineHandle` on the engine state.
+Cancel the current pending chain immediately (no timeout). Also records the chain's history before clearing — aborted sequences can still be undone.
 
 ### undo
 
@@ -202,6 +204,22 @@ setValueSchema(schema: ValueSchema): void
 ```
 
 Set or replace the runtime type guard schema used to validate `execute` and `undo` values. See [Value Schema](#value-schema-runtime-type-validation).
+
+### bufferedCount
+
+```ts
+bufferedCount(): number
+```
+
+Number of completed sequences in the undo buffer. Use this to show an undo indicator (e.g. "4 actions to undo").
+
+### clearBuffers
+
+```ts
+clearBuffers(): void
+```
+
+Remove all buffered undo history. Call this when the document state changes in a way that makes past undos irrelevant (e.g. file reload).
 
 ### updateCompositionKey
 

@@ -147,8 +147,10 @@ The engine resolves flag chains in three phases:
 | `updateCompositionKey(key, flag, updates)` | Update a registered entry identified by key + flag |
 | `hasPending()` | Whether an active pending chain exists |
 | `getContext()` | Get a shallow copy of the current composition context |
-| `abort()` | Cancel the current pending chain immediately |
-| `undo(steps?)` | Undo completed sequences by running each key's undoAction in reverse |
+| `abort()` | Cancel the current pending chain immediately (now records history before clearing) |
+| `undo(steps?, options?)` | Undo completed sequences by running each key's undoAction in reverse |
+| `bufferedCount()` | Number of sequences available for undo |
+| `clearBuffers()` | Clear all undo history |
 | `setValueSchema(schema)` | Set or replace the runtime type guard schema |
 | `start(ctx, affectOverlay)` | Entry point called by pipeline processors |
 
@@ -293,8 +295,10 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | `updateCompositionKey(key, flag, updates)` | Update a registered composition entry |
 | `hasPendingComposition()` | Whether a composition chain is currently pending |
 | `getCompositionContext()` | Get a copy of the current composition context |
-| `abortComposition()` | Cancel the current composition chain immediately |
-| `undoComposition(steps?)` | Undo completed composition sequences |
+| `abortComposition()` | Cancel the current composition chain immediately (now records history) |
+| `undoComposition(steps?, options?)` | Undo completed composition sequences |
+| `bufferedCompositionCount()` | Number of sequences available for undo |
+| `clearCompositionBuffers()` | Clear all undo history |
 | `setValueSchema(schema)` | Set or replace the runtime type guard schema |
 
 Access the underlying `CompositionEngine` instance directly via the `composition` getter for advanced use.

@@ -193,6 +193,16 @@ export default class KeyboardEngine<TComponent = unknown> {
     return this.state.compositionEngine.undo(steps, options);
   }
 
+  /** Number of completed sequences available for undo. */
+  bufferedCompositionCount(): number {
+    return this.state.compositionEngine.bufferedCount();
+  }
+
+  /** Clear all buffered undo history. */
+  clearCompositionBuffers(): void {
+    this.state.compositionEngine.clearBuffers();
+  }
+
   /**
    * Update a composition entry identified by `key` + `flag`.
    * See {@link CompositionEngine#updateCompositionKey}.
