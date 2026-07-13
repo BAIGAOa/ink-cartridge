@@ -1,6 +1,6 @@
 {
     "name": "@cartridge-engine/keyboard-engine",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "description": "Framework-agnostic keyboard event engine for terminal UIs",
     "type": "module",
     "main": "./dist/index.js",
