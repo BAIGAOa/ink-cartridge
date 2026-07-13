@@ -101,7 +101,7 @@ For compound key actions (e.g. `3 w` = action × 3 times), use the composition e
 
 ```tsx
 function Editor() {
-  const { registryCompositionKey, hasPendingComposition, getCompositionContext, undoComposition } = useKeyboard();
+  const { registryCompositionKey, hasPendingComposition, getCompositionContext, undoComposition, bufferedCompositionCount } = useKeyboard();
 
   useEffect(() => {
     registryCompositionKey({

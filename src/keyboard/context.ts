@@ -149,6 +149,8 @@ export interface KeyboardContextValue {
   setValueSchema: (schema: ValueSchema) => void;
 
   undoComposition: (steps?: number, options?: { isolated?: boolean }) => CompositionContext | null;
+  bufferedCompositionCount: () => number;
+  clearCompositionBuffers: () => void;
 }
 
 /**
