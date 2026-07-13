@@ -185,11 +185,12 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Undo one or more completed composition sequences.
    * See {@link CompositionEngine#undo}.
    * @param steps - Number of past sequences to undo. Defaults to 1.
+   * @param options.isolated - When true, each sequence's ctx is isolated.
    * @returns The final context after undo, or `null` if nothing was undone.
    * @throws If `steps` exceeds the number of buffered sequences.
    */
-  undoComposition(steps?: number) {
-    return this.state.compositionEngine.undo(steps);
+  undoComposition(steps?: number, options?: { isolated?: boolean }) {
+    return this.state.compositionEngine.undo(steps, options);
   }
 
   /**

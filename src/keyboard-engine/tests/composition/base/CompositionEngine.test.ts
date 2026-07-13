@@ -988,6 +988,108 @@ describe('CompositionEngine', () => {
       vi.useRealTimers();
     });
 
+    test('Given isolated mode, Then each sequence restarts ctx from its own saved state', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const ctxLog: string[] = [];
+
+      // Sequence 1: g g — second g sets value=5
+      engine.registryCompositionKey(mk({
+        key: 'g', flag: 'gg', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'gg', steps: [...c.steps, 'g'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-g1(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'g', flag: 'end', needs: ['gg'],
+        execute: (c) => ({ value: 5, lastFlag: 'end', steps: [...c.steps, 'g'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-g2(v=${c.value})`);
+          return { value: 1, lastFlag: 'gg', steps: ['g'] };
+        },
+      }));
+      engine.start(ctx(['g']), false);
+      engine.start(ctx(['g']), false);
+      vi.advanceTimersByTime(500);
+
+      // Sequence 2: d g — second g sets value=9
+      engine.registryCompositionKey(mk({
+        key: 'd', flag: 'dd', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'dd', steps: [...c.steps, 'd'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-d(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'g', flag: 'final', needs: ['dd'],
+        execute: (c) => ({ value: 9, lastFlag: 'final', steps: [...c.steps, 'g'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-g3(v=${c.value})`);
+          return { value: 3, lastFlag: 'dd', steps: ['d'] };
+        },
+      }));
+      engine.start(ctx(['d']), false);
+      engine.start(ctx(['g']), false);
+      vi.advanceTimersByTime(500);
+
+      // Isolated undo: seq2 first (g3→d), seq1 second (g2→g1)
+      // Each sequence restarts ctx from its own saved state
+      engine.undo(2, { isolated: true });
+
+      // Seq2: g3 starts from value=9 → d starts from value=3 (NOT from g3's output)
+      // Seq1: g2 starts from value=5 → g1 starts from value=1
+      // In isolated mode, d gets ctx.value=3 (its own saved ctx), NOT whatever g3 returned
+      expect(ctxLog).toEqual([
+        'undo-g3(v=9)',
+        'undo-d(v=3)',
+        'undo-g2(v=5)',
+        'undo-g1(v=1)',
+      ]);
+
+      vi.useRealTimers();
+    });
+
+    test('Given default flat mode, Then ctx propagates across sequences (backward compatible)', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const ctxLog: string[] = [];
+
+      // Sequence 1: "a" → value=1
+      engine.registryCompositionKey(mk({
+        key: 'a', flag: 'a1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'a1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-a(v=${c.value})`);
+          return { value: undefined, lastFlag: null, steps: [] };
+        },
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      // Sequence 2: "b" → value=2
+      engine.registryCompositionKey(mk({
+        key: 'b', flag: 'b1', needs: [], optional: true,
+        execute: (c) => ({ value: 2, lastFlag: 'b1', steps: [...c.steps, 'b'] }),
+        undoAction: (c) => {
+          ctxLog.push(`undo-b(v=${c.value})`);
+          return { value: 1, lastFlag: 'a1', steps: [] };
+        },
+      }));
+      engine.start(ctx(['b']), false);
+      vi.advanceTimersByTime(500);
+
+      // Flat mode (default): b's undo output (value=1) feeds into a's undo
+      engine.undo(2);
+      expect(ctxLog).toEqual(['undo-b(v=2)', 'undo-a(v=1)']);
+
+      vi.useRealTimers();
+    });
+
     test('Given undoAction returns null, Then undo chain stops early', () => {
       vi.useFakeTimers();
       const state = mkState();
