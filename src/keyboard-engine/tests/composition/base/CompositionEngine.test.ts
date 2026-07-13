@@ -12,9 +12,10 @@ function mkState() {
 function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
   return {
     key: 'x',
-    flag: 'action',
+    flags: [],
+    alternativeFlag: 'action',
     needs: [],
-    execute: (ctx) => ({ ...ctx, lastFlag: (overrides.flag ?? 'action'), steps: [...ctx.steps, overrides.key ?? 'x'] }),
+    execute: (ctx) => ({ ...ctx, lastFlag: (overrides.alternativeFlag ?? 'action'), steps: [...ctx.steps, overrides.key ?? 'x'] }),
     ...overrides,
   };
 }
@@ -39,8 +40,8 @@ describe('CompositionEngine', () => {
     test('Given two entries with same key, Then both are registered', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'times' }));
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'action' }));
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'times' }));
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action' }));
 
       // Both entries should resolve — the engine picks the right one via needs
       engine.synchronizingKey(['a']);
@@ -53,7 +54,7 @@ describe('CompositionEngine', () => {
     test('Given optional key with no needs, Then start() consumes event and sets pending', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', optional: true, needs: [] }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', optional: true, needs: [] }));
       expect(engine.start(ctx(['3']), false)).toBe(true);
       expect(state.compositionEngineHandle).toBe(true);
     });
@@ -61,7 +62,7 @@ describe('CompositionEngine', () => {
     test('Given non-optional key with needs and no lastFlag, Then start() returns false', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'w', flag: 'action', optional: false, needs: ['times'] }));
+      engine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', optional: false, needs: ['times'] }));
       expect(engine.start(ctx(['w']), false)).toBe(false);
     });
 
@@ -76,8 +77,8 @@ describe('CompositionEngine', () => {
     test('Given pending chain, pressing matching needs key continues chain', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', optional: true, needs: [] }));
-      engine.registryCompositionKey(mk({ key: 'w', flag: 'action', optional: false, needs: ['times'] }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', optional: true, needs: [] }));
+      engine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', optional: false, needs: ['times'] }));
 
       expect(engine.start(ctx(['3']), false)).toBe(true);
       expect(engine.start(ctx(['w']), false)).toBe(true);
@@ -95,8 +96,8 @@ describe('CompositionEngine', () => {
         value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'],
       }));
 
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], execute: timesExec }));
-      engine.registryCompositionKey(mk({ key: 's', flag: 'action', needs: ['times'], execute: actionExec }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], execute: timesExec }));
+      engine.registryCompositionKey(mk({ key: 's', alternativeFlag: 'action', needs: ['times'], execute: actionExec }));
 
       expect(engine.start(ctx(['3']), false)).toBe(true);
       expect(timesExec).toHaveBeenCalledTimes(1);
@@ -113,7 +114,7 @@ describe('CompositionEngine', () => {
     test('Given exclusive pending and mismatched key, Then key is consumed silently', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'w', flag: 'action', optional: true, exclusive: true, needs: ['times'] }));
+      engine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', optional: true, exclusive: true, needs: ['times'] }));
 
       engine.start(ctx(['w']), false);
       expect(state.compositionEngineHandle).toBe(true);
@@ -128,7 +129,7 @@ describe('CompositionEngine', () => {
     test('Given non-exclusive pending and mismatched key, Then pending is cleared and key falls through', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'w', flag: 'action', optional: true, exclusive: false, needs: ['times'] }));
+      engine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', optional: true, exclusive: false, needs: ['times'] }));
 
       engine.start(ctx(['w']), false);
       expect(state.compositionEngineHandle).toBe(true);
@@ -144,7 +145,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [],
+        key: '3', alternativeFlag: 'times', needs: [],
         execute: () => null,
       }));
       expect(engine.start(ctx(['3']), false)).toBe(false);
@@ -154,9 +155,9 @@ describe('CompositionEngine', () => {
     test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted not set, Then key falls through and chain ends', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         execute: () => null,
       }));
 
@@ -168,9 +169,9 @@ describe('CompositionEngine', () => {
     test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted is true, Then key is swallowed and chain ends', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         execute: () => null,
         KeyReleaseWhenChainInterrupted: true,
       }));
@@ -183,9 +184,9 @@ describe('CompositionEngine', () => {
     test('Given chain key execute returns null and KeyReleaseWhenChainInterrupted is false, Then key falls through and chain ends', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         execute: () => null,
         KeyReleaseWhenChainInterrupted: false,
       }));
@@ -199,7 +200,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [],
+        key: '3', alternativeFlag: 'times', needs: [],
         execute: () => null,
         KeyReleaseWhenChainInterrupted: true,
       }));
@@ -213,7 +214,7 @@ describe('CompositionEngine', () => {
     test('Given entry with affectOverlay:true and active overlay, Then overlay-phase matches but screen-phase does not', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'action', affectOverlay: true, needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action', affectOverlay: true, needs: [], optional: true }));
 
       const ovCtx = createContext({
         eventNames: ['a'],
@@ -230,7 +231,7 @@ describe('CompositionEngine', () => {
     test('Given no overlays active and affectOverlay entry without executeWhenNoOverlay, Then overlay phase skips', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'b', flag: 'action', affectOverlay: true, needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'b', alternativeFlag: 'action', affectOverlay: true, needs: [], optional: true }));
 
       // ctx defaults to activeCount=0, no overlays
       expect(engine.start(ctx(['b']), true)).toBe(false);
@@ -239,7 +240,7 @@ describe('CompositionEngine', () => {
     test('Given overlays active, Then affectOverlay:true entry matches in overlay phase', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'c', flag: 'action', affectOverlay: true, needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'c', alternativeFlag: 'action', affectOverlay: true, needs: [], optional: true }));
 
       const overlayCtx = createContext({
         eventNames: ['c'],
@@ -254,7 +255,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'e', flag: 'action', needs: [], optional: true,
+        key: 'e', alternativeFlag: 'action', needs: [], optional: true,
         affectOverlay: true, executeWhenNoOverlay: true,
       }));
 
@@ -267,7 +268,7 @@ describe('CompositionEngine', () => {
     test('Given category matches topComponent, Then matches', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'd', flag: 'action', needs: [], optional: true, category: ['editor'] }));
+      engine.registryCompositionKey(mk({ key: 'd', alternativeFlag: 'action', needs: [], optional: true, category: ['editor'] }));
 
       expect(engine.start(ctx(['d'], 'editor'), false)).toBe(true);
     });
@@ -275,7 +276,7 @@ describe('CompositionEngine', () => {
     test('Given category does not include topComponent, Then skips', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'd', flag: 'action', needs: [], optional: true, category: ['editor'] }));
+      engine.registryCompositionKey(mk({ key: 'd', alternativeFlag: 'action', needs: [], optional: true, category: ['editor'] }));
 
       expect(engine.start(ctx(['d'], 'viewer'), false)).toBe(false);
     });
@@ -283,7 +284,7 @@ describe('CompositionEngine', () => {
     test('Given category="*", Then matches any topComponent', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'f', flag: 'action', needs: [], optional: true, category: '*' }));
+      engine.registryCompositionKey(mk({ key: 'f', alternativeFlag: 'action', needs: [], optional: true, category: '*' }));
 
       expect(engine.start(ctx(['f'], 'anything'), false)).toBe(true);
     });
@@ -291,7 +292,7 @@ describe('CompositionEngine', () => {
     test('Given empty category array, Then entry is skipped', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'g', flag: 'action', needs: [], optional: true, category: [] }));
+      engine.registryCompositionKey(mk({ key: 'g', alternativeFlag: 'action', needs: [], optional: true, category: [] }));
 
       expect(engine.start(ctx(['g'], 'editor'), false)).toBe(false);
     });
@@ -299,7 +300,7 @@ describe('CompositionEngine', () => {
     test('Given null topComponent in context, Then entry is skipped', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'h', flag: 'action', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'h', alternativeFlag: 'action', needs: [], optional: true }));
 
       expect(engine.start(createContext({ eventNames: ['h'], topComponent: null }), false)).toBe(false);
     });
@@ -309,7 +310,7 @@ describe('CompositionEngine', () => {
     test('Given a registered key, Then removes it and returns true', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'action' }));
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action' }));
       expect(engine.removeCompositionKey('a')).toBe(true);
       expect(engine.start(ctx(['a']), false)).toBe(false);
     });
@@ -325,8 +326,8 @@ describe('CompositionEngine', () => {
     test('Given multiple registered keys, Then all are removed', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'action' }));
-      engine.registryCompositionKey(mk({ key: 'b', flag: 'times' }));
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action' }));
+      engine.registryCompositionKey(mk({ key: 'b', alternativeFlag: 'times' }));
       engine.clearAllCompositionKeys();
       expect(engine.start(ctx(['a']), false)).toBe(false);
       expect(engine.start(ctx(['b']), false)).toBe(false);
@@ -343,7 +344,7 @@ describe('CompositionEngine', () => {
     test('Given chain started, Then returns true', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.start(ctx(['3']), false);
       expect(engine.hasPending()).toBe(true);
     });
@@ -363,7 +364,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
       }));
       engine.start(ctx(['3']), false);
       const c = engine.getContext();
@@ -375,7 +376,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
       }));
       engine.start(ctx(['3']), false);
       const c = engine.getContext();
@@ -388,7 +389,7 @@ describe('CompositionEngine', () => {
     test('Given active pending chain, Then abort cancels it', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'w', flag: 'action', needs: ['times'], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', needs: ['times'], optional: true }));
       engine.start(ctx(['w']), false);
       expect(engine.hasPending()).toBe(true);
       engine.abort();
@@ -409,7 +410,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: () => false,
       }));
       expect(engine.start(ctx(['x']), false)).toBe(false);
@@ -420,7 +421,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: () => true,
       }));
       expect(engine.start(ctx(['x']), false)).toBe(true);
@@ -430,9 +431,9 @@ describe('CompositionEngine', () => {
     test('Given chain started and next key when returns false, Then chain is cleared and key falls through', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: () => false,
       }));
 
@@ -447,9 +448,9 @@ describe('CompositionEngine', () => {
     test('Given chain started and next key when returns true, Then chain continues', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: () => true,
       }));
 
@@ -463,9 +464,9 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
       let enabled = true;
 
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: () => enabled,
       }));
 
@@ -487,7 +488,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: 'editing',
       }));
       expect(engine.start(ctx(['x'], 'screen', new Map([['editing', true]])), false)).toBe(true);
@@ -497,7 +498,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: 'editing',
       }));
       expect(engine.start(ctx(['x'], 'screen', new Map([['editing', false]])), false)).toBe(false);
@@ -508,9 +509,9 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
       const conditions = new Map([['editing', true]]);
 
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: 'editing',
       }));
 
@@ -531,7 +532,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         mode: 'insert',
       }));
       const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
@@ -542,7 +543,7 @@ describe('CompositionEngine', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         mode: 'normal',
       }));
       const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
@@ -552,7 +553,7 @@ describe('CompositionEngine', () => {
     test('Given entry without mode, Then works in any mode', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'x', flag: 'action', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'x', alternativeFlag: 'action', needs: [], optional: true }));
       // currentMode is 'insert' but entry has no mode → should still match
       const c = createContext({ eventNames: ['x'], topComponent: 'screen', currentMode: 'insert' });
       expect(engine.start(c, false)).toBe(true);
@@ -561,16 +562,16 @@ describe('CompositionEngine', () => {
     test('Given entry without mode, Then works when currentMode is null', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'x', flag: 'action', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: 'x', alternativeFlag: 'action', needs: [], optional: true }));
       expect(engine.start(ctx(['x']), false)).toBe(true);
     });
 
     test('Given chain key with non-matching mode, Then filtered out and chain falls through', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         mode: 'normal',
       }));
 
@@ -583,11 +584,11 @@ describe('CompositionEngine', () => {
   });
 
   describe('updateCompositionKey', () => {
-    test('Given existing key+flag, Then updates the entry and returns true', () => {
+    test('Given existing key+flags, Then updates the entry and returns true', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'times', needs: [], optional: true }));
-      expect(engine.updateCompositionKey('a', 'times', { needs: ['action'], optional: false })).toBe(true);
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'times', needs: [], optional: true }));
+      expect(engine.updateCompositionKey('a', [], { needs: ['action'], optional: false })).toBe(true);
       // Now needs=['action'], optional=false → head key won't match
       engine.synchronizingKey(['a']);
       expect(engine.start(ctx(['a']), false)).toBe(false);
@@ -596,14 +597,129 @@ describe('CompositionEngine', () => {
     test('Given non-existent key, Then returns false', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      expect(engine.updateCompositionKey('z', 'action', { needs: [] })).toBe(false);
+      expect(engine.updateCompositionKey('z', [], { needs: [] })).toBe(false);
     });
 
-    test('Given existing key but wrong flag, Then returns false', () => {
+    test('Given existing key but mismatched flags, Then returns false', () => {
       const state = mkState();
       const engine = new CompositionEngine(state);
-      engine.registryCompositionKey(mk({ key: 'a', flag: 'times' }));
-      expect(engine.updateCompositionKey('a', 'other', { needs: [] })).toBe(false);
+      engine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'times' }));
+      expect(engine.updateCompositionKey('a', [{ need: 'other', become: 'other' }], { needs: [] })).toBe(false);
+    });
+  });
+
+  describe('flags system', () => {
+    test('Given empty flags with alternativeFlag, Then head key auto-propagation uses alternativeFlag', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: '3', flags: [], alternativeFlag: 'times', needs: [], optional: true,
+        // execute does NOT set lastFlag — engine should auto-fill
+        execute: (c) => ({ value: 3, lastFlag: null, steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      const after = engine.getContext();
+      expect(after.lastFlag).toBe('times');
+    });
+
+    test('Given user sets lastFlag explicitly, Then engine respects it (no auto-propagation)', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: '3', flags: [], alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'custom', steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(engine.getContext().lastFlag).toBe('custom');
+    });
+
+    test('Given flags array, Then chooseFlag picks the right become from matching need', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: '3', flags: [], alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      // "s" declares two potential flags depending on what preceded it
+      engine.registryCompositionKey(mk({
+        key: 's',
+        flags: [
+          { need: 'times', become: 'scalar' },
+          { need: 'word', become: 'delete' },
+        ],
+        alternativeFlag: 'unknown',
+        needs: ['times', 'word'],
+        execute: (c) => ({
+          value: (c.value as number) * 10,
+          lastFlag: null,  // let engine choose
+          steps: [...c.steps, 's'],
+        }),
+      }));
+      // Bind "w" that expects 'scalar' as the precedent
+      engine.registryCompositionKey(mk({
+        key: 'w', flags: [], alternativeFlag: 'action', needs: ['scalar'], optional: true,
+        execute: (c) => ({ value: c.value, lastFlag: null, steps: [...c.steps, 'w'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      // "s" executes, ctx.lastFlag is 'times', chooseFlag matches {need:'times', become:'scalar'}
+      engine.start(ctx(['s']), false);
+      // "w" can only fire if lastFlag is 'scalar'
+      expect(engine.start(ctx(['w']), false)).toBe(true);
+    });
+
+    test('Given flags with no matching need, Then falls back to alternativeFlag', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: '3', flags: [], alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's',
+        flags: [{ need: 'word', become: 'delete' }],  // 'times' won't match
+        alternativeFlag: 'unknown',
+        needs: ['times'],  // still needs 'times' to execute
+        execute: (c) => ({
+          value: (c.value as number) * 10,
+          lastFlag: null,
+          steps: [...c.steps, 's'],
+        }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      // no matching need in flags → alternativeFlag 'unknown' used
+      expect(engine.getContext().lastFlag).toBe('unknown');
+    });
+
+    test('Given chain with auto-propagation, Then subsequent keys resolve by the auto-chosen flag', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      engine.registryCompositionKey(mk({
+        key: 'g', flags: [], alternativeFlag: 'gg', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: null, steps: [...c.steps, 'g'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'g',
+        flags: [{ need: 'gg', become: 'end' }],
+        alternativeFlag: 'end',
+        needs: ['gg'],
+        execute: (c) => ({ value: 5, lastFlag: null, steps: [...c.steps, 'g'] }),
+      }));
+      // Third key expects 'end' as precedent
+      engine.registryCompositionKey(mk({
+        key: 'enter', flags: [], alternativeFlag: 'done', needs: ['end'], optional: true,
+        execute: (c) => ({ value: 10, lastFlag: null, steps: [...c.steps, 'enter'] }),
+      }));
+
+      engine.start(ctx(['g']), false);    // → lastFlag auto-fills to 'gg'
+      engine.start(ctx(['g']), false);    // → chooseFlag: need='gg' → become='end'
+      expect(engine.getContext().lastFlag).toBe('end');
+      // 'enter' can execute because lastFlag='end' matches needs=['end']
+      expect(engine.start(ctx(['enter']), false)).toBe(true);
     });
   });
 
@@ -611,7 +727,7 @@ describe('CompositionEngine', () => {
 
     test('Given no schema, Then head key output validation passes through', () => {
       const { state, engine } = mkWithSchema();
-      engine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], optional: true }));
+      engine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], optional: true }));
       expect(engine.start(ctx(['3']), false)).toBe(true);
       expect(state.compositionEngineHandle).toBe(true);
     });
@@ -619,7 +735,7 @@ describe('CompositionEngine', () => {
     test('Given head key output matches schema guard, Then chain starts', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       expect(engine.start(ctx(['3']), false)).toBe(true);
@@ -629,7 +745,7 @@ describe('CompositionEngine', () => {
     test('Given head key output fails schema guard, Then chain does not start', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 'bad', lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       expect(engine.start(ctx(['3']), false)).toBe(false);
@@ -639,7 +755,7 @@ describe('CompositionEngine', () => {
     test('Given flag not in schema, Then output validation passes through', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: 'x', flag: 'unknown', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'unknown', needs: [], optional: true,
         execute: (c) => ({ value: 'anything', lastFlag: 'unknown', steps: [...c.steps, 'x'] }),
       }));
       expect(engine.start(ctx(['x']), false)).toBe(true);
@@ -649,11 +765,11 @@ describe('CompositionEngine', () => {
     test('Given chain key input matches schema guard, Then chain continues', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
       }));
 
@@ -665,11 +781,11 @@ describe('CompositionEngine', () => {
     test('Given chain key input fails schema guard, Then chain is cleared and key falls through', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 'not a number', lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
       }));
 
@@ -682,11 +798,11 @@ describe('CompositionEngine', () => {
     test('Given chain key output fails schema guard, Then chain is cleared and key falls through', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 'bad output', lastFlag: 'action', steps: [...c.steps, 's'] }),
       }));
 
@@ -698,11 +814,11 @@ describe('CompositionEngine', () => {
     test('Given chain key output fails guard and KeyReleaseWhenChainInterrupted is true, Then key is swallowed', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         KeyReleaseWhenChainInterrupted: true,
         execute: (c) => ({ value: 'bad', lastFlag: 'action', steps: [...c.steps, 's'] }),
       }));
@@ -716,7 +832,7 @@ describe('CompositionEngine', () => {
       const { state, engine } = mkWithSchema();
       engine.setValueSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 'bad', lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       expect(engine.start(ctx(['3']), false)).toBe(false);
@@ -725,11 +841,11 @@ describe('CompositionEngine', () => {
     test('Given chain key input fails guard and KeyReleaseWhenChainInterrupted is true, Then key is swallowed', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         KeyReleaseWhenChainInterrupted: true,
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
       }));
@@ -749,7 +865,7 @@ describe('CompositionEngine', () => {
     test('Given head key input with lastFlag null, Then input validation is skipped', () => {
       const { state, engine } = mkWithSchema(numSchema);
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       // Head key has lastFlag=null internally → validateInput skips
@@ -762,7 +878,7 @@ describe('CompositionEngine', () => {
       const clearSpy = vi.spyOn(engine as any, 'clearPending');
 
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'], optional: true,
+        key: 'w', alternativeFlag: 'action', needs: ['times'], optional: true,
         exclusive: true, timeout: 300,
       }));
 
@@ -786,10 +902,10 @@ describe('CompositionEngine', () => {
       const clearSpy = vi.spyOn(engine as any, 'clearPending');
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true, timeout: 250,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true, timeout: 250,
       }));
       engine.registryCompositionKey(mk({
-        key: 'w', flag: 'action', needs: ['times'], timeout: 250,
+        key: 'w', alternativeFlag: 'action', needs: ['times'], timeout: 250,
       }));
 
       engine.start(ctx(['3']), false);
@@ -820,11 +936,11 @@ describe('CompositionEngine', () => {
       });
 
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 'action', needs: [], optional: true,
+        key: 'a', alternativeFlag: 'action', needs: [], optional: true,
         affectOverlay: true,
       }));
       engine.registryCompositionKey(mk({
-        key: 'b', flag: 'next', needs: ['action'],
+        key: 'b', alternativeFlag: 'next', needs: ['action'],
         affectOverlay: true,
       }));
 
@@ -853,7 +969,7 @@ describe('CompositionEngine', () => {
       let undone = false;
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => {
           undone = true;
@@ -880,7 +996,7 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -901,7 +1017,7 @@ describe('CompositionEngine', () => {
       const undoLog: string[] = [];
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => {
           undoLog.push(`undo-3(v=${c.value})`);
@@ -909,7 +1025,7 @@ describe('CompositionEngine', () => {
         },
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: (c.value as number) * 10, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: (c) => {
           undoLog.push(`undo-s(v=${c.value})`);
@@ -935,7 +1051,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 1: "a" → value=1
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 'seq1', needs: [], optional: true,
+        key: 'a', alternativeFlag: 'seq1', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 'seq1', steps: [...c.steps, 'a'] }),
         undoAction: (c) => {
           undoLog.push(`undo-a(v=${c.value})`);
@@ -947,7 +1063,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 2: "b" → value=2
       engine.registryCompositionKey(mk({
-        key: 'b', flag: 'seq2', needs: [], optional: true,
+        key: 'b', alternativeFlag: 'seq2', needs: [], optional: true,
         execute: (c) => ({ value: 2, lastFlag: 'seq2', steps: [...c.steps, 'b'] }),
         undoAction: (c) => {
           undoLog.push(`undo-b(v=${c.value})`);
@@ -974,7 +1090,7 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
 
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 'seq1', needs: [], optional: true,
+        key: 'a', alternativeFlag: 'seq1', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 'seq1', steps: [...c.steps, 'a'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -996,7 +1112,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 1: g g — second g sets value=5
       engine.registryCompositionKey(mk({
-        key: 'g', flag: 'gg', needs: [], optional: true,
+        key: 'g', alternativeFlag: 'gg', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 'gg', steps: [...c.steps, 'g'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-g1(v=${c.value})`);
@@ -1004,7 +1120,7 @@ describe('CompositionEngine', () => {
         },
       }));
       engine.registryCompositionKey(mk({
-        key: 'g', flag: 'end', needs: ['gg'],
+        key: 'g', alternativeFlag: 'end', needs: ['gg'],
         execute: (c) => ({ value: 5, lastFlag: 'end', steps: [...c.steps, 'g'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-g2(v=${c.value})`);
@@ -1017,7 +1133,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 2: d g — second g sets value=9
       engine.registryCompositionKey(mk({
-        key: 'd', flag: 'dd', needs: [], optional: true,
+        key: 'd', alternativeFlag: 'dd', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'dd', steps: [...c.steps, 'd'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-d(v=${c.value})`);
@@ -1025,7 +1141,7 @@ describe('CompositionEngine', () => {
         },
       }));
       engine.registryCompositionKey(mk({
-        key: 'g', flag: 'final', needs: ['dd'],
+        key: 'g', alternativeFlag: 'final', needs: ['dd'],
         execute: (c) => ({ value: 9, lastFlag: 'final', steps: [...c.steps, 'g'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-g3(v=${c.value})`);
@@ -1061,7 +1177,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 1: "a" → value=1
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 'a1', needs: [], optional: true,
+        key: 'a', alternativeFlag: 'a1', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 'a1', steps: [...c.steps, 'a'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-a(v=${c.value})`);
@@ -1073,7 +1189,7 @@ describe('CompositionEngine', () => {
 
       // Sequence 2: "b" → value=2
       engine.registryCompositionKey(mk({
-        key: 'b', flag: 'b1', needs: [], optional: true,
+        key: 'b', alternativeFlag: 'b1', needs: [], optional: true,
         execute: (c) => ({ value: 2, lastFlag: 'b1', steps: [...c.steps, 'b'] }),
         undoAction: (c) => {
           ctxLog.push(`undo-b(v=${c.value})`);
@@ -1097,7 +1213,7 @@ describe('CompositionEngine', () => {
       const undoLog: string[] = [];
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => {
           undoLog.push('undo-3');
@@ -1105,7 +1221,7 @@ describe('CompositionEngine', () => {
         },
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: () => null,
       }));
@@ -1127,11 +1243,11 @@ describe('CompositionEngine', () => {
       const undoLog: string[] = [];
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: (c) => {
           undoLog.push(`undo-s(v=${c.value})`);
@@ -1154,7 +1270,7 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -1171,12 +1287,12 @@ describe('CompositionEngine', () => {
       const { state, engine } = mkWithSchema(numSchema);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: (c) => ({ value: 3, lastFlag: 'times', steps: ['3'] }),
       }));
@@ -1197,12 +1313,12 @@ describe('CompositionEngine', () => {
       const { state, engine } = mkWithSchema(numSchema);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: (c) => ({ value: 3, lastFlag: 'times', steps: ['3'] }),
       }));
@@ -1228,12 +1344,12 @@ describe('CompositionEngine', () => {
       const { state, engine } = mkWithSchema(numSchema);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
       engine.registryCompositionKey(mk({
-        key: 's', flag: 'action', needs: ['times'],
+        key: 's', alternativeFlag: 'action', needs: ['times'],
         execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
         undoAction: (c) => ({ value: 'bad', lastFlag: 'times', steps: ['3'] }),
       }));
@@ -1254,7 +1370,7 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
 
       engine.registryCompositionKey(mk({
-        key: '3', flag: 'times', needs: [], optional: true,
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
         execute: (c) => ({ value: 'anything', lastFlag: 'times', steps: [...c.steps, '3'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -1276,7 +1392,7 @@ describe('CompositionEngine', () => {
       expect(engine.bufferedCount()).toBe(0);
 
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 's1', needs: [], optional: true,
+        key: 'a', alternativeFlag: 's1', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 's1', steps: [...c.steps, 'a'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -1285,7 +1401,7 @@ describe('CompositionEngine', () => {
       expect(engine.bufferedCount()).toBe(1);
 
       engine.registryCompositionKey(mk({
-        key: 'b', flag: 's2', needs: [], optional: true,
+        key: 'b', alternativeFlag: 's2', needs: [], optional: true,
         execute: (c) => ({ value: 2, lastFlag: 's2', steps: [...c.steps, 'b'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));
@@ -1302,7 +1418,7 @@ describe('CompositionEngine', () => {
       const engine = new CompositionEngine(state);
 
       engine.registryCompositionKey(mk({
-        key: 'a', flag: 's1', needs: [], optional: true,
+        key: 'a', alternativeFlag: 's1', needs: [], optional: true,
         execute: (c) => ({ value: 1, lastFlag: 's1', steps: [...c.steps, 'a'] }),
         undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
       }));

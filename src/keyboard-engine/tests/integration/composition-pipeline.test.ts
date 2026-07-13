@@ -22,7 +22,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: '3',
-        flag: 'times',
+        alternativeFlag: 'times',
         needs: [],
         execute: (ctx) => ({
           value: 3,
@@ -33,7 +33,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 's',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: ['times'],
         execute: (ctx) => {
           const v = (ctx.value as number) * 10;
@@ -43,7 +43,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'w',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: ['action'],
         optional: true,
         execute: (ctx) => {
@@ -68,7 +68,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'w',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: ['times'],
         optional: true,
         execute: (ctx) => {
@@ -95,7 +95,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'x',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: [],
         execute: compExec,
       });
@@ -118,7 +118,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'y',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: [],
         execute: compExec,
       });
@@ -154,7 +154,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'a',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: [],
         affectOverlay: true,
         execute: exec,
@@ -174,7 +174,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'b',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: [],
         affectOverlay: true,
         execute: exec,
@@ -198,7 +198,7 @@ describe('composition pipeline integration', () => {
 
       engine.composition.registryCompositionKey({
         key: 'z',
-        flag: 'action',
+        alternativeFlag: 'action',
         needs: [],
         execute: compExec,
       });
@@ -224,10 +224,10 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: '3', flag: 'times', needs: [], execute: exec3,
+        key: '3', alternativeFlag: 'times', needs: [], execute: exec3,
       });
       engine.composition.registryCompositionKey({
-        key: 'w', flag: 'action', needs: ['times'], optional: true, execute: execW,
+        key: 'w', alternativeFlag: 'action', needs: ['times'], optional: true, execute: execW,
       });
 
       // Start chain
@@ -256,7 +256,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: () => false,
         execute: exec,
       });
@@ -275,7 +275,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: () => true,
         execute: exec,
       });
@@ -295,7 +295,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: 'editing',
         execute: exec,
       });
@@ -315,7 +315,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         when: 'editing',
         execute: exec,
       });
@@ -338,10 +338,10 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: '3', flag: 'times', needs: [], execute: exec3,
+        key: '3', alternativeFlag: 'times', needs: [], execute: exec3,
       });
       engine.composition.registryCompositionKey({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: 'canMultiply',
         execute: execW,
       });
@@ -371,10 +371,10 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: '3', flag: 'times', needs: [], execute: exec3,
+        key: '3', alternativeFlag: 'times', needs: [], execute: exec3,
       });
       engine.composition.registryCompositionKey({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         when: () => multiplierEnabled,
         execute: execW,
       });
@@ -401,7 +401,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         mode: 'normal',
         execute: exec,
       });
@@ -420,7 +420,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'i', flag: 'action', needs: [], optional: true,
+        key: 'i', alternativeFlag: 'action', needs: [], optional: true,
         mode: 'insert',
         execute: exec,
       });
@@ -439,7 +439,7 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: 'x', flag: 'action', needs: [], optional: true,
+        key: 'x', alternativeFlag: 'action', needs: [], optional: true,
         execute: exec,
       });
 
@@ -465,10 +465,10 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: '3', flag: 'times', needs: [], execute: exec3,
+        key: '3', alternativeFlag: 'times', needs: [], execute: exec3,
       });
       engine.composition.registryCompositionKey({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         mode: 'insert',
         execute: execW,
       });
@@ -496,10 +496,10 @@ describe('composition pipeline integration', () => {
       }));
 
       engine.composition.registryCompositionKey({
-        key: '3', flag: 'times', needs: [], execute: exec3,
+        key: '3', alternativeFlag: 'times', needs: [], execute: exec3,
       });
       engine.composition.registryCompositionKey({
-        key: 'w', flag: 'action', needs: ['times'],
+        key: 'w', alternativeFlag: 'action', needs: ['times'],
         mode: 'normal',
         execute: execW,
       });

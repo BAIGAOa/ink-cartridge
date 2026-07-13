@@ -60,6 +60,7 @@ export type {
   CompositionContext,
   ValueGuard,
   ValueSchema,
+  Flags,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";

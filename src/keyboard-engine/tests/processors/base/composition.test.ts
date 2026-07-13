@@ -15,10 +15,11 @@ function mkState() {
 function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
   return {
     key: 'x',
-    flag: 'action',
+    flags: [],
+    alternativeFlag: 'action',
     needs: [],
     optional: true,
-    execute: (c) => ({ ...c, lastFlag: overrides.flag ?? 'action', steps: [...c.steps, overrides.key ?? 'x'] }),
+    execute: (c) => ({ ...c, lastFlag: overrides.alternativeFlag ?? 'action', steps: [...c.steps, overrides.key ?? 'x'] }),
     ...overrides,
   };
 }
@@ -26,7 +27,7 @@ function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
 describe('createCompositionProcessor', () => {
   test('Given matching key, Then screen processor consumes event', () => {
     const state = mkState();
-    state.compositionEngine.registryCompositionKey(mk({ key: 'a', flag: 'action', needs: [] }));
+    state.compositionEngine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action', needs: [] }));
 
     const screenProc = createCompositionProcessor({ affectOverlay: false });
     const ctx = createContext({
@@ -41,7 +42,7 @@ describe('createCompositionProcessor', () => {
 
   test('Given affectOverlay mismatch, Then processor returns false', () => {
     const state = mkState();
-    state.compositionEngine.registryCompositionKey(mk({ key: 'a', flag: 'action', affectOverlay: true, needs: [] }));
+    state.compositionEngine.registryCompositionKey(mk({ key: 'a', alternativeFlag: 'action', affectOverlay: true, needs: [] }));
 
     const screenProc = createCompositionProcessor({ affectOverlay: false });
     const ctx = createContext({
@@ -56,8 +57,8 @@ describe('createCompositionProcessor', () => {
   test('Given compositionEngineHandler is true and pending exists, Then processPending is triggered', () => {
     const state = mkState();
     const exec = vi.fn((c: any) => ({ ...c, lastFlag: 'times', steps: [...c.steps, '3'] }));
-    state.compositionEngine.registryCompositionKey(mk({ key: '3', flag: 'times', needs: [], execute: exec }));
-    state.compositionEngine.registryCompositionKey(mk({ key: 'w', flag: 'action', optional: false, needs: ['times'], execute: (c) => ({ ...c, lastFlag: 'action', steps: [...c.steps, 'w'] }) }));
+    state.compositionEngine.registryCompositionKey(mk({ key: '3', alternativeFlag: 'times', needs: [], execute: exec }));
+    state.compositionEngine.registryCompositionKey(mk({ key: 'w', alternativeFlag: 'action', optional: false, needs: ['times'], execute: (c) => ({ ...c, lastFlag: 'action', steps: [...c.steps, 'w'] }) }));
 
     const proc = createCompositionProcessor({ affectOverlay: false });
 

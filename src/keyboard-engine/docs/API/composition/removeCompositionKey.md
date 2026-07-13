@@ -34,7 +34,7 @@ To cancel the pending chain, call [`abortComposition`](./abortComposition.md).
 ## Usage
 
 ```ts
-engine.registryCompositionKey({ key: '3', flag: 'times', needs: [], optional: true });
+engine.registryCompositionKey({ key: '3', alternativeFlag: 'times', needs: [], optional: true });
 engine.removeCompositionKey('3');  // removes all '3' entries
 
 engine.clearAllCompositionKeys();  // wipe everything

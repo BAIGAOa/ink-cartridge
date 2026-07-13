@@ -51,7 +51,7 @@ function CompositionScreen() {
     // "3" — writes value=3 into context
     registryCompositionKey({
       key: '3',
-      flag: 'times',
+      alternativeFlag: 'times',
       needs: [],
       execute: (ctx) => ({
         value: 3,
@@ -63,7 +63,7 @@ function CompositionScreen() {
     // "s" — multiplies value × 10
     registryCompositionKey({
       key: 's',
-      flag: 'action',
+      alternativeFlag: 'action',
       needs: ['times'],
       execute: (ctx) => {
       	if (typeof ctx.value === 'number') {
@@ -78,7 +78,7 @@ function CompositionScreen() {
     // "w" — fires action `value` times (optional head key)
     registryCompositionKey({
       key: 'w',
-      flag: 'action',
+      alternativeFlag: 'action',
       needs: ['times', 'action'],
       optional: true,
       execute: (ctx) => {

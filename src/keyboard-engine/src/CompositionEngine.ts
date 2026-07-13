@@ -79,6 +79,11 @@ export function resolveCompositionKey<TComponet = unknown>(
 	return sameSpecificity[0];
 }
 
+export type Flags = {
+	need: string;
+	become: string;
+}[];
+
 export interface CompositionPneding {
 	timeout: number;
 	timer: ReturnType<typeof setTimeout>;
@@ -116,13 +121,17 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 * This will help the following key to recognize the preceding key, which is used to determine what
 	 * If the flag is not already registered, it will be automatically registered.
 	 */
-	flag: string;
+	flags: Flags;
 
 	/**
 	 * What type of key is expected to precede
 	 * If the preceding type does not match, the key is discarded
 	 */
 	needs: string[];
+
+
+
+	alternativeFlag: string
 
 	/**
 	 * Declare whether the dependent preceding flag is optional, and if so, the key is automatically executed if it is a head key
@@ -420,27 +429,38 @@ export default class CompositionEngine<TComponet = unknown> {
 		return newCtx;
 	}
 
+	private areFlagsEqual(a: Flags, b: Flags): boolean {
+		if (a.length !== b.length) return false;
+
+		for (let i = 0; i < a.length; i++) {
+			if (a[i].need !== b[i].need || a[i].become !== b[i].become) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	/**
-	 * Update a registered entry identified by `key` + `flag`.
+	 * Update a registered entry identified by `key` + `flags`.
 	 * The old entry is removed and the merged entry is re-registered.
 	 * @returns `true` if the entry was found and updated, `false` otherwise.
 	 */
 	updateCompositionKey(
 		key: string,
-		flag: string,
-		updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flag">>,
+		flags: Flags,
+		updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flags">>,
 	): boolean {
 		const set = this.keyMappingTable.get(key);
 		if (!set) return false;
 
 		for (const entry of set) {
-			if (entry.flag === flag) {
+			if (this.areFlagsEqual(flags, entry.flags)) {
 				set.delete(entry);
 				const merged: CompositioKey<TComponet> = {
 					...entry,
 					...updates,
 					key,
-					flag,
+					flags,
 				};
 				set.add(merged);
 				return true;
@@ -534,6 +554,20 @@ export default class CompositionEngine<TComponet = unknown> {
 		});
 	}
 
+  private chooseFlag(lastFlag: string | null, flags: Flags, alternative: string): string {
+    if (!lastFlag) {
+      return alternative;
+    }
+
+    for (const each of flags) {
+      if (each.need === lastFlag) {
+        return each.become;
+      }
+    }
+
+    return alternative;
+  }
+
 	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
 		if (this.pendingEntry) return false;
 
@@ -554,11 +588,20 @@ export default class CompositionEngine<TComponet = unknown> {
 			lastFlag: null,
 			steps: [],
 		};
+
 		const nextCtx = result.execute?.(initialCtx);
 		// `execute` returns null → chain does not start
 		if (!nextCtx) return false;
 
-		if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
+		if (!nextCtx.lastFlag) {
+			// Constraint: If the user returns `null` for the `lastFlag` associated with this key, 
+			// it indicates that they want the system to handle the flag automatically.
+			// We give users control.
+			nextCtx.lastFlag = result.alternativeFlag
+		}
+
+		// Instead of passing candidate keys directly into the result, they are obtained from the context provided by the user.
+		if (!this.validateOutput(nextCtx.lastFlag , nextCtx.value, result.key)) {
 			return false;
 		}
 
@@ -624,7 +667,15 @@ export default class CompositionEngine<TComponet = unknown> {
 					: result.KeyReleaseWhenChainInterrupted;
 			}
 
-			if (!this.validateOutput(result.flag, nextCtx.value, result.key)) {
+			// Constraint: If the user returns `null` for the `lastFlag` associated with this key, 
+			// it indicates that they want the system to handle the flag automatically.
+			// We give users control.
+			if (!nextCtx.lastFlag) {
+				const resultFlag  = this.chooseFlag(this.context.lastFlag, result.flags, result.alternativeFlag)
+				nextCtx.lastFlag = resultFlag
+			}
+
+			if (!this.validateOutput(nextCtx.lastFlag, nextCtx.value, result.key)) {
 				this.clearPending();
 				return result.KeyReleaseWhenChainInterrupted === undefined
 					? false

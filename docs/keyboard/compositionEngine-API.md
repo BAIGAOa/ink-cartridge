@@ -72,8 +72,9 @@ Each registered key is a `CompositioKey` object:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `key` | `string` | **required** | Trigger key name (e.g. `"3"`, `"ctrl+s"`). |
-| `flag` | `string` | **required** | What type this key declares itself as. Becomes `ctx.lastFlag` after execution. |
-| `needs` | `string[]` | **required** | Expected preceding flag(s). When `lastFlag` is null (head key), only `optional` or empty `needs` entries match. |
+| `flags` | `{ need: string, become: string }[]` | `[]` | Dependency-based flag table. When the preceding key's flag matches `need`, this key becomes `become`. If no match, falls back to `alternativeFlag`. |
+| `alternativeFlag` | `string` | **required** | Default flag when no `flags` entry matches. Also used as the head-key flag in auto-propagation mode. |
+| `needs` | `string[]` | **required** | Expected preceding flag(s). The engine checks these literally against `ctx.lastFlag`. |
 | `optional` | `boolean` | `false` | When `true`, this key can act as a head key (pressed alone, with no preceding key). |
 | `execute` | `(ctx) => ctx \| null` | — | Transform or action function. Receives the accumulated context, returns the new context. Return `null` to abort the chain. |
 | `exclusive` | `boolean` | `false` | When `true` mid-sequence and a key doesn't match `needs`, the key is silently consumed (timeout keeps running). When `false`, the key falls through to later processors. |
@@ -309,6 +310,45 @@ if (hasPendingComposition()) {
 // Cancel the chain programmatically
 abortComposition();
 ```
+
+### Undo a completed sequence
+
+```tsx
+registryCompositionKey({
+  key: '3',
+  flags: [],
+  alternativeFlag: 'times',
+  needs: [],
+  execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+  undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
+});
+```
+
+### Multi-flag key (dependent flags)
+
+A key can declare multiple potential flags depending on what preceded it:
+
+```tsx
+registryCompositionKey({
+  key: 's',
+  flags: [
+    { need: 'times', become: 'scalar' },    // preceded by number → become scalar
+    { need: 'word', become: 'delete' },       // preceded by word → become delete
+  ],
+  alternativeFlag: 'unknown',                 // fallback if no match
+  needs: ['times', 'word'],
+  execute: (ctx) => ({
+    value: (ctx.value as number) * 10,
+    lastFlag: null,  // null → engine auto-picks from flags table
+    steps: [...ctx.steps, 's'],
+  }),
+});
+```
+
+When `execute` returns `lastFlag: null`, the engine auto-propagates:
+- **Head key** → uses `alternativeFlag`
+- **Chain key** → calls `chooseFlag(currentLastFlag, flags)`, falls back to `alternativeFlag`
+- **User explicitly sets lastFlag** → engine respects it (no auto-propagation)
 
 ### Undo a completed sequence
 

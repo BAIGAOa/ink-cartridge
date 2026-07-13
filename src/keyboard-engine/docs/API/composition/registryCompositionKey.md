@@ -51,7 +51,7 @@ Adds the entry to the internal `keyMappingTable: Map<string, Set<CompositioKey>>
 ```ts
 engine.registryCompositionKey({
   key: '3',
-  flag: 'times',
+  alternativeFlag: 'times',
   needs: [],
   optional: true,
   execute: (ctx) => ({
@@ -63,7 +63,7 @@ engine.registryCompositionKey({
 
 engine.registryCompositionKey({
   key: '3',
-  flag: 'action',
+  alternativeFlag: 'action',
   needs: ['times'],
   execute: (ctx) => {
     const count = ctx.value as number;

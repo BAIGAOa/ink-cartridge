@@ -1,8 +1,8 @@
 # updateCompositionKey
 
-Update a registered composition key entry identified by its trigger key name and flag.
+Update a registered composition key entry identified by its trigger key name and flags array.
 
-The old entry is removed and a merged entry (old fields + new overrides, preserving `key` and `flag`) is re-registered. This allows modifying an entry's `execute`, `timeout`, `needs`, etc. without removing and re-registering.
+The old entry is removed and a merged entry (old fields + new overrides, preserving `key` and `flags`) is re-registered.
 
 ## Signature
 
@@ -10,12 +10,12 @@ The old entry is removed and a merged entry (old fields + new overrides, preserv
 // On KeyboardEngine:
 updateCompositionKey(
   key: string,
-  flag: string,
-  updates: Partial<Omit<CompositioKey<TComponet>, 'key' | 'flag'>>,
+  flags: Flags,
+  updates: Partial<Omit<CompositioKey<TComponet>, 'key' | 'flags'>>,
 ): boolean
 
 // On CompositionEngine (engine.composition):
-updateCompositionKey(key, flag, updates): boolean
+updateCompositionKey(key, flags, updates): boolean
 ```
 
 ## Parameters
@@ -23,47 +23,37 @@ updateCompositionKey(key, flag, updates): boolean
 | Param | Type | Description |
 |-------|------|-------------|
 | `key` | `string` | The trigger key name of the entry to update. |
-| `flag` | `string` | The flag of the entry to update. Together with `key`, this uniquely identifies the entry. |
-| `updates` | `Partial<Omit<CompositioKey, 'key' \| 'flag'>>` | Fields to merge into the existing entry. `key` and `flag` cannot be changed — they are the identity. |
+| `flags` | `Flags` (`{ need: string, become: string }[]`) | The flags array of the entry. Together with `key`, this uniquely identifies the entry via `areFlagsEqual`. |
+| `updates` | `Partial<Omit<CompositioKey, 'key' \| 'flags'>>` | Fields to merge. `key` and `flags` cannot be changed. |
 
 ## Returns
 
-`true` if the entry was found and updated, `false` if no entry matched the `key` + `flag` pair.
-
-## Effect
-
-1. Finds the entry in the Set for `key` where `entry.flag === flag`
-2. Removes the old entry from the Set
-3. Creates a merged entry: `{ ...oldEntry, ...updates, key, flag }`
-4. Adds the merged entry back to the Set
-
-The identity (`key` + `flag`) is preserved — you cannot rename an entry. Create a new entry and remove the old one to change identity.
+`true` if the entry was found and updated, `false` if no entry matched.
 
 ## Usage
 
 ```ts
 engine.registryCompositionKey({
   key: '3',
-  flag: 'times',
+  flags: [],
+  alternativeFlag: 'times',
   needs: [],
   optional: true,
   execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
 });
 
-// Change the timeout
-engine.updateCompositionKey('3', 'times', { timeout: 200 });
+// Identify by empty flags array
+engine.updateCompositionKey('3', [], { timeout: 200 });
 
-// Replace the execute function
-engine.updateCompositionKey('3', 'times', {
-  execute: (ctx) => ({ value: 5, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
+// Entry with explicit flags
+engine.registryCompositionKey({
+  key: 's',
+  flags: [{ need: 'times', become: 'scalar' }],
+  alternativeFlag: 'unknown',
+  needs: ['times'],
 });
 
-// Update multiple fields
-engine.updateCompositionKey('3', 'times', {
-  timeout: 600,
-  exclusive: true,
-  when: () => isReady,
-});
+engine.updateCompositionKey('s', [{ need: 'times', become: 'scalar' }], { timeout: 600 });
 ```
 
 ## API interactions
