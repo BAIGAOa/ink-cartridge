@@ -39,6 +39,16 @@ export interface EngineProps {
    * ```
    */
   normalizeKeyNames: (input: string, key: unknown) => string[];
+
+  /**
+   * Whether the engine automatically handles Tab / Shift+Tab for focus
+   * rotation. Defaults to `false`.
+   *
+   * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
+   * automatically. When `false` or `undefined`, developers must call
+   * `focusNext` / `focusPrev` manually.
+   */
+  autoTab?: boolean;
 }
 
 export default class EngineState<TComponent = unknown> {
@@ -153,6 +163,9 @@ export default class EngineState<TComponent = unknown> {
    */
   compositionEngineHandle: boolean = false;
 
+  /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
+  autoTab: boolean;
+
   /** The composition engine instance, assigned by KeyboardEngine after construction. */
   compositionEngine!: CompositionEngine<TComponent>;
 
@@ -160,6 +173,7 @@ export default class EngineState<TComponent = unknown> {
     this.modesRef = new Set(props.modes ?? []);
     this.currentModeRef = props.defaultMode ?? null;
     this._normalizeKeyNames = props.normalizeKeyNames;
+    this.autoTab = props.autoTab ?? false;
     this._layersWrapper = { current: this.layersRef };
     const self = this;
     this._pendingSeqWrapper = {

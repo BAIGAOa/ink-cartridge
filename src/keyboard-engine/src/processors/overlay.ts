@@ -24,7 +24,8 @@ export function createOverlayProcessor(): PipelineProcessor {
           true, ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
-          ctx.notifyPendingSyncs
+          ctx.notifyPendingSyncs,
+          ctx.autoTab
         )) {
           ctx.anyOverlayConsumed = true;
           // Do not break — continue to next overlay (broadcast semantics).

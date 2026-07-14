@@ -155,7 +155,8 @@ export function createModalProcessor(): PipelineProcessor {
           ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
-          ctx.notifyPendingSyncs
+          ctx.notifyPendingSyncs,
+          ctx.autoTab
         );
       }
 

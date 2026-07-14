@@ -25,12 +25,14 @@ import KeyboardEngine from '../../src/KeyboardEngine.js';
 export function createEngine(
   modes?: string[],
   defaultMode?: string,
+  autoTab?: boolean,
 ): KeyboardEngine {
   return new KeyboardEngine({
     modes,
     defaultMode,
     normalizeKeyNames: (input: string, _key: unknown) =>
       input ? [input] : [],
+    autoTab,
   });
 }
 
@@ -59,12 +61,14 @@ export function createEngineWithKeys(
   keyMap: Record<string, string[]>,
   modes?: string[],
   defaultMode?: string,
+  autoTab?: boolean,
 ): KeyboardEngine {
   return new KeyboardEngine({
     modes,
     defaultMode,
     normalizeKeyNames: (input: string, _key: unknown) =>
       keyMap[input] ?? (input ? [input] : []),
+    autoTab,
   });
 }
 
@@ -246,6 +250,7 @@ export function createContext(
     conditions: new Map(),
     compositionEngineHandler: false,
     compositionEngine: undefined as unknown as PipelineContext['compositionEngine'],
+    autoTab: false,
     ...overrides,
   } as PipelineContext;
 }

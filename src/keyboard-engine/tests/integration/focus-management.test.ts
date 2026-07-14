@@ -13,7 +13,7 @@ describe('focus management integration', () => {
   }
 
   test('Given two focus targets, Tab cycles between them', () => {
-    const engine = createEngine();
+    const engine = createEngine(undefined, undefined, true);
     setup(engine);
     const h1 = vi.fn();
     const h2 = vi.fn();

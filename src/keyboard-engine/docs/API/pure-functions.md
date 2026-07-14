@@ -128,9 +128,12 @@ function handleLayer(
   currentMode: string | null,
   conditions: Map<string, boolean>,
   notifyPendingSyncs?: () => void,
+  autoTab?: boolean,
 ): boolean
 ```
 
-Full keyboard event handling for a single layer. Evaluates in order: tab navigation, penetration keys, wildcard priority, sequence matching, focus-target bindings, layer-level bindings, and stopped keys. Returns `true` if the event was consumed.
+Full keyboard event handling for a single layer. Evaluates in order: tab navigation (only when `autoTab` is `true`), penetration keys, wildcard priority, sequence matching, focus-target bindings, layer-level bindings, and stopped keys. Returns `true` if the event was consumed.
+
+When `autoTab` is `false` or omitted, Tab / Shift+Tab pass through to normal bindings instead of triggering automatic focus rotation. Developers can then bind Tab to custom handlers via [`boundKeyboard`](./boundKeyboard.md).
 
 This is the core routing function. Framework adapters that want to reuse the built-in layer dispatch logic should call `handleLayer` rather than re-implementing the evaluation order.

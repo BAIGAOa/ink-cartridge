@@ -28,7 +28,8 @@ export function createScreenStackProcessor(): PipelineProcessor {
           false, ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
-          ctx.notifyPendingSyncs
+          ctx.notifyPendingSyncs,
+          ctx.autoTab
         )) break;
       }
       return false;

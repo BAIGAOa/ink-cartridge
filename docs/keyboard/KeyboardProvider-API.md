@@ -7,7 +7,7 @@ Internally creates a [KeyboardEngine](./KeyboardEngine-API.md) instance and wire
 ## Signature
 
 ```tsx
-function KeyboardProvider({ children, modes, defaultMode, processors, valueSchema }: KeyboardProviderProps): JSX.Element
+function KeyboardProvider({ children, modes, defaultMode, processors, valueSchema, autoTab }: KeyboardProviderProps): JSX.Element
 ```
 
 ## Parameters
@@ -19,6 +19,7 @@ function KeyboardProvider({ children, modes, defaultMode, processors, valueSchem
 | `defaultMode` | `string \| null` | (Optional) Active mode on mount. Must be in `modes` or `null`. |
 | `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
 | `valueSchema` | `ValueSchema` | (Optional) Composition value validation schema |
+| `autoTab` | `boolean` | (Optional) When `true`, the engine intercepts Tab/Shift+Tab to cycle focus automatically. Defaults to `false` — bind Tab manually when disabled. |
 
 ### `processors` prop
 
