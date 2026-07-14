@@ -86,13 +86,13 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line, col: prev.col + input.length };
 					});
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['ctrl+t'],
+				['tab'],
 				() => {
 					setCursor((prev) => {
 						const newLines = [...lines];
@@ -103,7 +103,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line, col: prev.col + 2 };
 					});
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
@@ -116,7 +116,8 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 					})
 				},
 				{
-					focusId
+					focusId,
+					mode: 'editor'
 				}
 			)
 		)
@@ -129,7 +130,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line, col: Math.min(prev.col + 1, lines[prev.line].length) }
 					})
 				},
-				{ focusId }
+				{ focusId, mode: 'editor' }
 			)
 		)
 
@@ -143,7 +144,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: newLine, col: Math.min(prev.col, lines[newLine].length) };
 					})
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
@@ -157,7 +158,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: newLine, col: Math.min(prev.col, lines[newLine].length) };
 					})
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
@@ -174,7 +175,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line + 1, col: 0 };
 					});
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
@@ -202,7 +203,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return prev;
 					});
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
@@ -228,7 +229,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return prev;
 					});
 				},
-				{ focusId },
+				{ focusId, mode: 'editor' },
 			),
 		);
 
