@@ -1384,6 +1384,106 @@ describe('CompositionEngine', () => {
       vi.useRealTimers();
     });
 
+    test('Given byKey mode, Then undo(2) undoes 2 individual keys across sequences', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      // Seq1: a → a  (2 keys)
+      engine.registryCompositionKey(mk({
+        key: 'a', alternativeFlag: 'a1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'a1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => { undoLog.push('undo-a1'); return { value: undefined, lastFlag: null, steps: [] }; },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'a', alternativeFlag: 'a2', needs: ['a1'],
+        execute: (c) => ({ value: 2, lastFlag: 'a2', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => { undoLog.push('undo-a2'); return { value: 1, lastFlag: 'a1', steps: ['a'] }; },
+      }));
+      engine.start(ctx(['a']), false);
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      // Seq2: b  (1 key)
+      engine.registryCompositionKey(mk({
+        key: 'b', alternativeFlag: 'b1', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'b1', steps: [...c.steps, 'b'] }),
+        undoAction: (c) => { undoLog.push('undo-b'); return { value: undefined, lastFlag: null, steps: [] }; },
+      }));
+      engine.start(ctx(['b']), false);
+      vi.advanceTimersByTime(500);
+
+      // undo(2, { byKey: true }) — 2 most recent keys: b then a2
+      engine.undo(2, { byKey: true });
+      expect(undoLog).toEqual(['undo-b', 'undo-a2']);
+      // a1 still in buffer (not consumed)
+      expect(engine.bufferedCount()).toBe(1);
+
+      vi.useRealTimers();
+    });
+
+    test('Given byKey exceeds total keys, Then throws with key count', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: 'a', alternativeFlag: 'a1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'a1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(() => engine.undo(5, { byKey: true })).toThrow(
+        '[keyboard-engine] Cannot undo 5 key(s): only 1 buffered.',
+      );
+
+      vi.useRealTimers();
+    });
+
+    test('Given byKey with isolated, Then ctx restarts per sequence, key-granular', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const undoLog: string[] = [];
+
+      // Seq1: a → a  (2 keys)
+      engine.registryCompositionKey(mk({
+        key: 'a', alternativeFlag: 'a1', needs: [], optional: true,
+        execute: (c) => ({ value: 1, lastFlag: 'a1', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => { undoLog.push(`undo-a1(v=${c.value})`); return { value: undefined, lastFlag: null, steps: [] }; },
+      }));
+      engine.registryCompositionKey(mk({
+        key: 'a', alternativeFlag: 'a2', needs: ['a1'],
+        execute: (c) => ({ value: 22, lastFlag: 'a2', steps: [...c.steps, 'a'] }),
+        undoAction: (c) => { undoLog.push(`undo-a2(v=${c.value})`); return { value: 1, lastFlag: 'a1', steps: ['a'] }; },
+      }));
+      engine.start(ctx(['a']), false);
+      engine.start(ctx(['a']), false);
+      vi.advanceTimersByTime(500);
+
+      // Seq2: b  (1 key)
+      engine.registryCompositionKey(mk({
+        key: 'b', alternativeFlag: 'b1', needs: [], optional: true,
+        execute: (c) => ({ value: 99, lastFlag: 'b1', steps: [...c.steps, 'b'] }),
+        undoAction: (c) => { undoLog.push(`undo-b(v=${c.value})`); return { value: undefined, lastFlag: null, steps: [] }; },
+      }));
+      engine.start(ctx(['b']), false);
+      vi.advanceTimersByTime(500);
+
+      // undo(3, { byKey: true, isolated: true }) — 3 keys: b (seq2 solo), a2 → a1 (seq1)
+      engine.undo(3, { byKey: true, isolated: true });
+
+      // In isolated mode, a2 restarts from its own ctx (value=22), NOT b's output
+      // a1 receives a2's output (within same sequence)
+      expect(undoLog).toEqual(['undo-b(v=99)', 'undo-a2(v=22)', 'undo-a1(v=1)']);
+      expect(engine.bufferedCount()).toBe(0);
+
+      vi.useRealTimers();
+    });
+
     test('Given bufferedCount, Then returns correct number of undoable sequences', () => {
       vi.useFakeTimers();
       const state = mkState();
@@ -1431,6 +1531,154 @@ describe('CompositionEngine', () => {
       expect(engine.undo()).toBeNull();
 
       vi.useRealTimers();
+    });
+  });
+
+  describe('subscription', () => {
+    test('Given subscriber, Then fires on chain started, continued, completed', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const events: string[] = [];
+
+      engine.subscribe(() => {
+        events.push(engine.getLastEvent()?.type ?? '');
+      });
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+      engine.registryCompositionKey(mk({
+        key: 's', alternativeFlag: 'action', needs: ['times'],
+        execute: (c) => ({ value: 30, lastFlag: 'action', steps: [...c.steps, 's'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.start(ctx(['s']), false);
+      vi.advanceTimersByTime(500);
+
+      expect(events).toEqual(['started', 'continued', 'completed']);
+
+      vi.useRealTimers();
+    });
+
+    test('Given subscriber, Then fires "broken" on needs mismatch', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      let lastType = '';
+
+      engine.subscribe(() => {
+        lastType = engine.getLastEvent()?.type ?? '';
+      });
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      // 'z' doesn't match 'times' → broken
+      engine.start(ctx(['z']), false);
+      expect(lastType).toBe('broken');
+
+      vi.useRealTimers();
+    });
+
+    test('Given subscriber, Then fires "aborted" on abort', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      let lastType = '';
+
+      engine.subscribe(() => {
+        lastType = engine.getLastEvent()?.type ?? '';
+      });
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      engine.abort();
+      expect(lastType).toBe('aborted');
+    });
+
+    test('Given subscriber, Then fires "undone" and "cleared"', () => {
+      vi.useFakeTimers();
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      const events: string[] = [];
+
+      engine.subscribe(() => {
+        events.push(engine.getLastEvent()?.type ?? '');
+      });
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+        undoAction: (c) => ({ value: undefined, lastFlag: null, steps: [] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      vi.advanceTimersByTime(500);
+
+      events.length = 0;
+      engine.undo();
+      expect(events).toEqual(['undone']);
+
+      events.length = 0;
+      engine.clearBuffers();
+      expect(events).toEqual(['cleared']);
+
+      vi.useRealTimers();
+    });
+
+    test('Given unsubscribe, Then no more events fire', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+      let count = 0;
+
+      const unsub = engine.subscribe(() => { count++; });
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      expect(count).toBe(1);
+
+      unsub();
+
+      engine.start(ctx(['3']), false);
+      expect(count).toBe(1); // no change
+
+      vi.useRealTimers();
+    });
+
+    test('Given no events, Then getLastEvent returns null', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      const evt = engine.getLastEvent();
+      expect(evt).toBeNull();
+    });
+
+    test('Given started event, Then lastEvent contains the matched key name', () => {
+      const state = mkState();
+      const engine = new CompositionEngine(state);
+
+      engine.registryCompositionKey(mk({
+        key: '3', alternativeFlag: 'times', needs: [], optional: true,
+        execute: (c) => ({ value: 3, lastFlag: 'times', steps: [...c.steps, '3'] }),
+      }));
+
+      engine.start(ctx(['3']), false);
+      const evt = engine.getLastEvent();
+      expect(evt).not.toBeNull();
+      expect(evt!.type).toBe('started');
+      expect((evt as { key: string }).key).toBe('3');
     });
   });
 });

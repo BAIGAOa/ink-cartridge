@@ -137,6 +137,33 @@ function Editor() {
 }
 ```
 
+### Dependent Flags (chooseFlag)
+
+Declare multiple potential flags and let the engine pick the right one:
+
+```tsx
+registryCompositionKey({
+  key: 'w',
+  flags: [
+    { need: 'times', become: 'scalar' },
+    { need: 'word',  become: 'delete' },
+  ],
+  alternativeFlag: 'action',
+  needs: ['times', 'word'],
+  optional: true,
+  execute: (ctx) => ({
+    value: ctx.value,
+    lastFlag: null,  // null → engine picks from flags table
+    steps: [...ctx.steps, 'w'],
+  }),
+});
+```
+
+Auto-propagation rules:
+- `lastFlag: null` → engine auto-fills it
+- Head key → uses `alternativeFlag`
+- Chain key → `chooseFlag(lastFlag, flags)` picks matching `become`, falls back to `alternativeFlag`
+
 ### Undo & Runtime Validation
 
 Bind a key (e.g. `Ctrl+Z`) to `undoComposition()` and pass a `valueSchema` for runtime safety:
@@ -151,13 +178,34 @@ Bind a key (e.g. `Ctrl+Z`) to `undoComposition()` and pass a `valueSchema` for r
 ```
 
 ```tsx
-useEffect(() => {
-  const unbind = boundKeyboard(['ctrl+z'], () => {
-    const ctx = undoComposition();
-    if (ctx) console.log('Undone to:', ctx);
-  });
-  return unbind;
-}, [undoComposition]);
+// Basic undo
+const ctx = undoComposition();
+// Undo by key count instead of sequences
+const ctx = undoComposition(3, { byKey: true });
+// Undo 2 keys with per-sequence ctx isolation
+const ctx = undoComposition(2, { byKey: true, isolated: true });
+```
+
+### Subscribe to composition events
+
+React component pattern using `subscribeComposition` to re-render on state changes:
+
+```tsx
+function StatusBar() {
+  const [event, setEvent] = useState<string>('');
+  const { subscribeComposition, getLastCompositionEvent } = useKeyboard();
+
+  useEffect(() => {
+    return subscribeComposition(() => {
+      const e = getLastCompositionEvent();
+      if (e?.type === 'started') setEvent(`Chain: ${(e as any).key}`);
+      if (e?.type === 'broken') setEvent(`Broke on "${(e as any).key}"`);
+      if (e?.type === 'completed') setEvent('Ready');
+    });
+  }, []);
+
+  return <Text>{event}</Text>;
+}
 ```
 
 ## See Also

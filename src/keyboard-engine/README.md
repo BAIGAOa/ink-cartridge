@@ -299,6 +299,8 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | `undoComposition(steps?, options?)` | Undo completed composition sequences |
 | `bufferedCompositionCount()` | Number of sequences available for undo |
 | `clearCompositionBuffers()` | Clear all undo history |
+| `subscribeComposition(fn)` | Subscribe to composition state changes (returns unsubscribe) |
+| `getLastCompositionEvent()` | Return the most recent CompositionEvent |
 | `setValueSchema(schema)` | Set or replace the runtime type guard schema |
 
 Access the underlying `CompositionEngine` instance directly via the `composition` getter for advanced use.

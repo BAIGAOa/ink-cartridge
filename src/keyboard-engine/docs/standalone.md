@@ -177,11 +177,39 @@ if (engine.hasPendingComposition()) {
 }
 ```
 
+### Dependent Flags (chooseFlag)
+
+A key can declare multiple potential flags via the `flags` table. The engine picks
+the right one based on the preceding key's `lastFlag`:
+
+```ts
+engine.registryCompositionKey({
+  key: 'w',
+  flags: [
+    { need: 'times', become: 'scalar' },
+    { need: 'word',  become: 'delete' },
+  ],
+  alternativeFlag: 'action',
+  needs: ['times', 'word'],
+  optional: true,
+  execute: (ctx) => ({
+    value: ctx.value,
+    lastFlag: null,  // null → engine picks from flags table
+    steps: [...ctx.steps, 'w'],
+  }),
+});
+```
+
+When `execute` returns `lastFlag: null`, the engine auto-propagates:
+- **Head key** → uses `alternativeFlag`
+- **Chain key** → runs `chooseFlag`, matching `need` → `become`; no match → falls back to `alternativeFlag`
+
 All composition methods are available directly on the engine instance:
 `registryCompositionKey`, `removeCompositionKey`, `clearAllCompositionKeys`,
 `hasPendingComposition`, `getCompositionContext`, `abortComposition`,
 `updateCompositionKey`, `undoComposition`, `bufferedCompositionCount`,
-`clearCompositionBuffers`, `setValueSchema`.
+`clearCompositionBuffers`, `setValueSchema`, `subscribeComposition`,
+`getLastCompositionEvent`.
 
 ### Undo
 
@@ -202,10 +230,26 @@ engine.registryCompositionKey({
 // ... chain completes ...
 
 const ctx = engine.undoComposition();   // undo most recent sequence
-// ctx.value === undefined (restored)
-
-engine.undoComposition(2);  // undo last 2 sequences at once
+engine.undoComposition(2);              // undo last 2 sequences
+engine.undoComposition(3, { byKey: true });  // undo last 3 keys
+engine.undoComposition(4, { isolated: true, byKey: true });  // undo 4 keys, per-sequence ctx
 ```
+
+### Composition Events (Pub/Sub)
+
+Subscribe to state changes to trigger UI re-renders or logging:
+
+```ts
+const unsub = engine.subscribeComposition(() => {
+  const e = engine.getLastCompositionEvent();
+  if (!e) return;
+  console.log(`[composition] ${e.type}`, e);
+});
+
+// Later: unsub();
+```
+
+Event types: `started`, `continued`, `completed`, `aborted`, `broken`, `consumed`, `undone`, `cleared`.
 
 ### Runtime Validation
 
