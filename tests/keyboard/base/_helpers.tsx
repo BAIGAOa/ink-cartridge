@@ -99,6 +99,7 @@ export function renderKeyboardApp(
   providerOptions?: {
     modes?: string[];
     defaultMode?: string | null;
+    autoTab?: boolean;
   },
 ): {
   lastFrame: () => string | undefined;
@@ -123,7 +124,7 @@ export function renderKeyboardApp(
 
   const { lastFrame, stdin, unmount } = render(
     <ScenarioManagementProvider defaultScreen={defaultScreen}>
-      <KeyboardProvider modes={providerOptions?.modes} defaultMode={providerOptions?.defaultMode}>
+      <KeyboardProvider modes={providerOptions?.modes} defaultMode={providerOptions?.defaultMode} autoTab={providerOptions?.autoTab}>
         <AppHost />
       </KeyboardProvider>
     </ScenarioManagementProvider>,
