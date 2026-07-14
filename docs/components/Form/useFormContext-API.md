@@ -15,6 +15,8 @@ function useFormContext(): FormContextValue
 | `values` | `Record<string, any>` | All field values. |
 | `errors` | `Record<string, string \| undefined>` | All field errors. |
 | `setFieldValue` | `(name: string, value: any) => void` | Update a field + clear its error. |
+| `registerField` | `(name: string, defaultValue?, rules?, focusId?) => void` | Register a field with validation (used internally by Field). |
+| `unregisterField` | `(name: string) => void` | Unregister a field on unmount. |
 | `submitForm` | `() => void` | Validate and submit. |
 
 Throws if called outside a `<Form>`.
@@ -27,6 +29,6 @@ Use for a custom submit button or to read cross-field values:
 function SubmitButton() {
   const { submitForm, errors } = useFormContext();
   const hasErrors = Object.values(errors).some(Boolean);
-  return <Text dimColor={hasErrors}>Press Ctrl+Enter to submit</Text>;
+  return <Text dimColor={hasErrors}>Press Ctrl+S to submit</Text>;
 }
 ```

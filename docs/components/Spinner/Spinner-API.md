@@ -6,10 +6,10 @@ Animated loading indicator with 5 built-in styles.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `type` | `'dots' \| 'line' \| 'simple' \| 'triangle' \| 'arc'` | `'dots'` | Animation style. |
+| `type` | `SpinnerType` | `'dots'` | Animation style. `SpinnerType` = `'dots' \| 'line' \| 'simple' \| 'triangle' \| 'arc'`. |
 | `label` | `string` | — | Text displayed after the spinner. |
 | `color` | `string` | — | Ink text color. |
-| `speed` | `number` | `80` | Animation interval in milliseconds. |
+| `speed` | `number` | `1` | Animation speed multiplier. |
 | `active` | `boolean` | `true` | When `false`, pauses at frame 0. |
 
 ## Best Practice

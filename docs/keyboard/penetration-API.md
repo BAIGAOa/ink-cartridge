@@ -18,7 +18,7 @@ function penetration(
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `focusId` | `string` | — | Only transparent when this focus target is active. |
-| `when` | `() => boolean` | — | Conditional. |
+| `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 
 ## Returns
 

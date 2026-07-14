@@ -59,6 +59,9 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline (per-instance) |
 | [removeProcessor](./removeProcessor-API.md) | Remove a previously added custom processor (per-instance) |
 | [KeyboardProvider `processors` prop](./KeyboardProvider-API.md#processors-prop) | Per-instance custom processors |
+| [normalizeKeyNames](./KeyboardEngine-API.md) | Built-in Ink key normalizer (see EngineProps table in KeyboardEngine) |
+| [isNormalCharacter](./isNormalCharacter-API.md) | Check if a key event represents a normal character (no modifiers) — standalone utility |
+| [Condition System](./condition-system-API.md) | Named runtime conditions: `addCondition` / `setCondition` / `removeCondition` |
 | [thereGlobalQueueWaiting](./thereGlobalQueueWaiting-API.md) | Check whether a global sequence is pending (optional `sync` for reactive re-render) |
 | [currentScreenHasSequenceWaiting](./currentScreenHasSequenceWaiting-API.md) | Check whether the current layer has a pending sequence (optional `sync` for reactive re-render) |
 

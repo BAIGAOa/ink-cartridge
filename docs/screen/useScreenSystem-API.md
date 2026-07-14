@@ -12,6 +12,9 @@ function useScreenSystem(): ScreenSystemContextValue
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `currentScreen` | `ReactNode` | Rendered element for the current screen. |
+| `currentOverlays` | `ReactNode[]` | Rendered elements for all overlays. |
+| `currentModals` | `ReactNode[]` | Rendered elements for all modals. |
 | `currentPath` | `ComponentType[]` | Screen stack from root to current. |
 | `skip` | `SkipFn` | Navigate to child. |
 | `back` | `BackFn` | Navigate to parent. |
@@ -21,11 +24,17 @@ function useScreenSystem(): ScreenSystemContextValue
 | `closeAllOverlays` | `CloseAllOverlaysFn` | Close all overlays. |
 | `activateOverlay` | `ActivateOverlayFn` | Activate an overlay. |
 | `deactivateOverlay` | `DeactivateOverlayFn` | Deactivate an overlay. |
+| `activeOverlayIds` | `string[]` | Currently active overlay IDs. |
+| `displayedOverlays` | `OverlayEntry[]` | All displayed overlays with metadata. |
+| `displayedModals` | `ModalEntry[]` | All open modals with metadata. |
+| `renderedModalEntries` | `ModalEntry[]` | Modal entries that correspond to rendered modal nodes. |
+| `activeModalId` | `string \| null` | Currently active modal ID. |
+| `activeModal` | `ModalEntry \| null` | Currently active modal entry. |
+| `modalQueue` | `ModalEntry[]` | All open modals sorted by zIndex. |
 | `openModal` | `OpenModalFn` | Open a modal. |
 | `closeModal` | `CloseModalFn` | Close a modal by ID. |
 | `closeAllModals` | `CloseAllModalsFn` | Close all modals. |
-| `activeOverlayIds` | `string[]` | Currently active overlay IDs. |
-| `activeModalId` | `string \| null` | Currently active modal ID. |
+| `fullScreen` | `boolean \| undefined` | Whether full screen mode is enabled. |
 
 All navigation functions are also available as **module-level imports** (e.g. `import { skip } from 'ink-cartridge'`) — they dispatch through the most recently mounted provider.
 

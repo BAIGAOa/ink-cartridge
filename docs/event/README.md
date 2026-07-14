@@ -29,6 +29,12 @@ The emitter doesn't know who's listening. The subscriber doesn't know who's emit
 | [useSubscribe](./useSubscribe-API.md) | Subscribe to an event with auto-cleanup |
 | [EventBus](./EventBus-API.md) | Low-level class API (on, off, emit, clear) |
 
+### Importable Types
+
+```ts
+import type { EventMap, EventKey, Listener, Unsubscribe, EventProviderProps } from 'ink-cartridge';
+```
+
 ## Advanced
 
 See [advanced.md](./advanced.md)

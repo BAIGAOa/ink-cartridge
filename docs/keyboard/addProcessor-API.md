@@ -2,7 +2,7 @@
 
 Insert a custom processor into the keyboard event pipeline at a specified position.
 
-The pipeline is a fixed 7-stage chain. `addProcessor` lets you inject custom logic at any point — for logging, auditing, special key interception, or altering the default priority order.
+The pipeline is a fixed 9-stage chain. `addProcessor` lets you inject custom logic at any point — for logging, auditing, special key interception, or altering the default priority order.
 
 Unlike the old global `addProcessor`, this is **per-instance**: each `KeyboardProvider` has its own pipeline. Processors added via one provider do not affect others in the same process.
 
@@ -29,17 +29,19 @@ function addProcessor(
 
 ## Built-in processor IDs
 
-The default pipeline has 7 processors in this order:
+The default pipeline has 9 processors in this order:
 
 | Index | ID | Stage |
 |-------|----|-------|
-| 0 | `modal` | Modal — consumes everything except allowed keys |
-| 1 | `global-sequence-overlay` | Global sequences (affectOverlay: true) |
-| 2 | `global-key-overlay` | Global keys (affectOverlay: true) |
-| 3 | `overlay` | Overlay broadcast |
-| 4 | `global-sequence-screen` | Global sequences (affectOverlay: false) |
-| 5 | `global-key-screen` | Global keys (affectOverlay: false) |
-| 6 | `screen-stack` | Screen stack (top-to-bottom) |
+| 0 | `composition-before` | Composition stage (before modal) |
+| 1 | `modal` | Modal — consumes everything except allowed keys |
+| 2 | `global-sequence-overlay` | Global sequences (affectOverlay: true) |
+| 3 | `global-key-overlay` | Global keys (affectOverlay: true) |
+| 4 | `overlay` | Overlay broadcast |
+| 5 | `composition-after` | Composition stage (after overlay) |
+| 6 | `global-sequence-screen` | Global sequences (affectOverlay: false) |
+| 7 | `global-key-screen` | Global keys (affectOverlay: false) |
+| 8 | `screen-stack` | Screen stack (top-to-bottom) |
 
 Use these IDs in `before`/`after` to position your custom processor relative to any built-in stage.
 

@@ -16,7 +16,7 @@ Form container with validation, submission, and programmatic submit via ref.
 
 | Key | Scope | Action |
 |-----|-------|--------|
-| `Ctrl+Enter` | Screen-level | Submit form |
+| `Ctrl+S` | Screen-level | Submit form |
 
 ## Best Practice
 

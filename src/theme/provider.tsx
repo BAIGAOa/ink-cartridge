@@ -2,14 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { ThemeContext } from './context.js';
-import type { ThemeDefinition, ThemeContextValue } from './types.js';
-
-export interface ThemeProviderProps {
-  children: React.ReactNode;
-  themes?: ThemeDefinition[];
-  path?: string;
-  defaultTheme?: string;
-}
+import type { ThemeDefinition, ThemeContextValue, ThemeProviderProps } from './types.js';
 
 /**
  * Extract unique non-id keys from a list of themes.

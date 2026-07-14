@@ -79,7 +79,9 @@ npm install @cartridge-engine/keyboard-engine
 - [allowModal](docs/keyboard/allowModal-API.md)
 - [useModalMissListener](docs/keyboard/useModalMissListener-API.md)
 - [enableWildcardPriority](docs/keyboard/enableWildcardPriority-API.md)
+- [isNormalCharacter](docs/keyboard/isNormalCharacter-API.md)
 - [Mode System](docs/keyboard/mode-system-API.md)
+- [Condition System](docs/keyboard/condition-system-API.md)
 - [addProcessor](docs/keyboard/addProcessor-API.md)
 - [removeProcessor](docs/keyboard/removeProcessor-API.md)
 - [thereGlobalQueueWaiting](docs/keyboard/thereGlobalQueueWaiting-API.md)
@@ -166,6 +168,12 @@ npm install @cartridge-engine/keyboard-engine
 - [README](docs/dev-tool/README.md)
 - [openDevTool](docs/dev-tool/openDevTool-API.md)
 - [closeDevTool](docs/dev-tool/closeDevTool-API.md)
+</details>
+
+<details>
+<summary><b>cli/</b></summary>
+
+- [README](docs/cli/README.md) — CLI commands: init, initTheme, makeLanguageType, makeThemeType
 </details>
 
 ## For AI

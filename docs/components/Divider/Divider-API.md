@@ -10,6 +10,8 @@ Horizontal line with optional centered label.
 | `char` | `string` | `'─'` | Line character. |
 | `width` | `number` | `50` | Total width in characters. |
 
+All text is rendered with `dimColor` for a subdued appearance.
+
 ## Best Practice
 
 ```tsx

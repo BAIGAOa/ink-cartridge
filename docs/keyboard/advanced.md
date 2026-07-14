@@ -44,7 +44,7 @@ Building a component that captures character input while respecting the focus sy
 ```tsx
 function CustomInput({ focusId, value, onChange }) {
   const focused = useFocusState(focusId);
-  const { boundKeyboard, enableWildcardPriority } = useKeyboard();
+  const { boundKeyboard, enableWildcardPriority, focusUnregister } = useKeyboard();
   const valueRef = useRef(value);
   valueRef.current = value;
 

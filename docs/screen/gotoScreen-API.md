@@ -24,6 +24,7 @@ Use for cross-cutting navigation like "jump to main menu" or "go to help":
 ```tsx
 function Game() {
   const { gotoScreen } = useScreenSystem();
+  const { boundKeyboard } = useKeyboard();
 
   useEffect(() => {
     return boundKeyboard(['escape'], () => gotoScreen(Menu, {}));

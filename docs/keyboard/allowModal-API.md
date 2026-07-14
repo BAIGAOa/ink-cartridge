@@ -16,6 +16,7 @@ function allowModal(
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `focusId` | `string` | — | Only allow pass-through when this focus target is active. |
+| `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 
 ## Returns
 

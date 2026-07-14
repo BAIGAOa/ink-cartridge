@@ -7,7 +7,7 @@ Internally creates a [KeyboardEngine](./KeyboardEngine-API.md) instance and wire
 ## Signature
 
 ```tsx
-function KeyboardProvider({ children, modes, defaultMode, processors }: KeyboardProviderProps): JSX.Element
+function KeyboardProvider({ children, modes, defaultMode, processors, valueSchema }: KeyboardProviderProps): JSX.Element
 ```
 
 ## Parameters
@@ -18,10 +18,11 @@ function KeyboardProvider({ children, modes, defaultMode, processors }: Keyboard
 | `modes` | `string[]` | (Optional) Initial mode names. See [Mode System](./mode-system-API.md). |
 | `defaultMode` | `string \| null` | (Optional) Active mode on mount. Must be in `modes` or `null`. |
 | `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
+| `valueSchema` | `ValueSchema` | (Optional) Composition value validation schema |
 
 ### `processors` prop
 
-Each entry in `processors` describes where to insert a custom processor relative to the built-in 7-stage chain:
+Each entry in `processors` describes where to insert a custom processor relative to the built-in 9-stage chain:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -54,7 +55,7 @@ A React element that provides keyboard context to all descendants.
 - Wires to Ink's `useInput` to receive raw key events, forwarding them to `engine.processKey()`.
 - Creates the engine once via `useRef` — it persists for the component lifetime.
 - On every render, calls `engine.sync()` to push screen-path and overlay/modal state into the engine.
-- Runs each key event through the 7-stage pipeline (modal → global sequences → global keys → overlay broadcast → screen stack).
+- Runs each key event through the 9-stage pipeline (composition → modal → global sequences → global keys → composition → overlay broadcast → global sequences → global keys → screen stack).
 - Cleans up layers for screens, overlays, and modals that leave the tree via post-render effects.
 
 ## Best Practice

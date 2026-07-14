@@ -22,6 +22,12 @@ All themes must have identical keys. `color()` returns Ink color strings; `style
 | [ThemeProvider](./ThemeProvider-API.md) | Load and provide themes |
 | [useTheme](./useTheme-API.md) | Access current theme values |
 
+### Importable Types
+
+```ts
+import type { ThemeProviderProps, ThemeDefinition, ThemeContextValue } from 'ink-cartridge';
+```
+
 ## Advanced
 
 See [advanced.md](./advanced.md)

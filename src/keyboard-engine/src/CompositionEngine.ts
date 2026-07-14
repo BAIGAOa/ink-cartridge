@@ -42,10 +42,10 @@ export type ValueSchema = Record<string, ValueGuard>;
  *
  * @returns The resolved entry, or `null` if no entry matches any name in `eventNames`.
  */
-export function resolveCompositionKey<TComponet = unknown>(
-	candidates: CompositioKey<TComponet>[],
+export function resolveCompositionKey<TComponent = unknown>(
+	candidates: CompositioKey<TComponent>[],
 	lastFlag: string | null,
-): CompositioKey<TComponet> | null {
+): CompositioKey<TComponent> | null {
 	if (candidates.length === 0) return null;
 
 	// Round 1 — filter by needs / lastFlag compatibility
@@ -139,6 +139,8 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	needs: string[];
 
+
+
 	alternativeFlag: string;
 
 	/**
@@ -204,6 +206,9 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 * Returning null will stop the undo action.
 	 */
 	undoAction?: undo;
+
+
+	isEndKey?: string[]
 }
 
 export type undo<TValue = unknown> = (
@@ -739,6 +744,17 @@ export default class CompositionEngine<TComponet = unknown> {
 		return alternative;
 	}
 
+	private isEndKey(neededKeysFlag: string[], lastFlag: string | null) {
+		if (!lastFlag) {
+			// There is only one scenario in which null is returned: the key is the head key.
+			// However, theoretically speaking, this situation shouldn't occur when this function is used within `processPending`.
+			// So we're keeping it as a fallback option.
+			return false
+		}
+
+		return neededKeysFlag.includes(lastFlag)
+	}
+
 	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
 		if (this.pendingEntry) return false;
 
@@ -776,6 +792,7 @@ export default class CompositionEngine<TComponet = unknown> {
 			return false;
 		}
 
+		// NOTE: Since this is the start of the sequence key, we do not check the endKey.
 		this.context = nextCtx;
 		this.state.compositionEngineHandle = true;
 
@@ -821,6 +838,7 @@ export default class CompositionEngine<TComponet = unknown> {
 
 		if (result) {
 			if (!checkWhen(result.when, ctx.conditions)) {
+				this.recordHistory();
 				this.clearPending();
 				return false;
 			}
@@ -834,10 +852,23 @@ export default class CompositionEngine<TComponet = unknown> {
 
 			const nextCtx = result.execute?.(this.context);
 			if (!nextCtx) {
+				this.recordHistory();
 				this.clearPending();
 				return result.KeyReleaseWhenChainInterrupted === undefined
 					? false
 					: result.KeyReleaseWhenChainInterrupted;
+			}
+
+			// In fact, if the user manually returns `null`, 
+			// it is possible to simulate the current key being the last key under specific circumstances.
+			// But I prefer to respect the user's choice.
+			// Therefore, the check for the trailing key is placed after the check for whether the context is null.
+			if (this.isEndKey(result.isEndKey ?? [], this.context.lastFlag)) {
+				this.recordHistory();
+				this.clearPending();
+				return result.KeyReleaseWhenChainInterrupted === undefined
+					? false
+					: result.KeyReleaseWhenChainInterrupted
 			}
 
 			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,

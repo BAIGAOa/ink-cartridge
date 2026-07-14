@@ -17,7 +17,7 @@ function stop(
 |--------|------|---------|-------------|
 | `focusId` | `string` | — | Scope to a focus target. |
 | `stopAction` | `string` | — | Resolve a shortcut action's bound keys to determine which keys to stop. |
-| `when` | `() => boolean` | — | Conditional. |
+| `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 
 ## Returns
 

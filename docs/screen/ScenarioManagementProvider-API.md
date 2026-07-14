@@ -9,6 +9,7 @@ function ScenarioManagementProvider({
   children,
   defaultScreen,
   defaultParams?,
+  fullScreen?,
 }: ScenarioManagementProviderProps): JSX.Element
 ```
 
@@ -19,6 +20,7 @@ function ScenarioManagementProvider({
 | `children` | `ReactNode` | **required** | App content. |
 | `defaultScreen` | `React.ComponentType` | **required** | Initial screen (must be registered). |
 | `defaultParams` | `Record<string, unknown>` | template | Params merged with the component's registered template. |
+| `fullScreen` | `boolean` | — | Enable full-screen mode. |
 
 ## Best Practice
 
