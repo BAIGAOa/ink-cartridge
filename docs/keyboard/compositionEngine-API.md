@@ -93,6 +93,68 @@ When multiple entries match the same key name, the engine resolves using three t
 2. **Modifier specificity** — `"ctrl+s"` beats `"s"` (more modifier segments in the key name).
 3. **Needs length** — longer `needs` lists win (stricter contract).
 
+## Flags System (Dependent Flags & Auto-Propagation)
+
+A key's "type" (`flags` + `alternativeFlag`) determines what the **next** key sees as `ctx.lastFlag`. The flags system lets a single key produce different flag values depending on what preceded it.
+
+### Why? A Vim-style example
+
+The `w` key in a text editor can mean different things depending on context:
+
+```
+w preceded by a number → multiply operation (flag: "scalar")
+w preceded by a word   → delete word      (flag: "delete")
+```
+
+With a single `flag`, `w` would always produce the same context type. With `flags`, it adapts:
+
+```tsx
+registryCompositionKey({
+  key: 'w',
+  flags: [
+    { need: 'times', become: 'scalar' },   // 3 → w: w becomes "scalar"
+    { need: 'word',  become: 'delete' },   // d → w: w becomes "delete"
+  ],
+  alternativeFlag: 'action',               // fallback (and head-key flag)
+  needs: ['times', 'word'],
+  optional: true,
+  execute: (ctx) => ({ value: ctx.value, lastFlag: null, steps: [...ctx.steps, 'w'] }),
+  //                         ↑ null → engine auto-picks from flags table
+});
+```
+
+### When to use `flags` vs `alternativeFlag`
+
+| Scenario | Use |
+|----------|-----|
+| Key always has the same type regardless of context | `flags: [], alternativeFlag: 'action'` |
+| Key's type depends on the preceding flag | `flags: [{ need: 'x', become: 'y' }, ...]` |
+| Key is always a head key (no predecessor) | `flags: [], alternativeFlag: 'head'` |
+
+### Auto-Propagation
+
+When `execute` returns `lastFlag: null`, the engine fills it automatically:
+
+- **Head key** (no pending chain) → uses `alternativeFlag`
+- **Chain key** (pending chain exists) → calls `chooseFlag(ctx.lastFlag, flags)`:
+  - Matches `need` in the flags table → uses the corresponding `become`
+  - No match → falls back to `alternativeFlag`
+- **User explicitly sets `lastFlag`** → engine respects it (no override)
+
+### Flags matching with `needs`
+
+`needs` still declares which preceding flags allow this key to fire. `flags` is independent — it's about what THIS key's type becomes. A key can list multiple values in `needs` (OR logic) while using `flags` to produce different output types:
+
+```tsx
+// "s" needs either 'times' or 'word' to fire,
+// but produces different flags depending on which one was found
+needs: ['times', 'word'],
+flags: [
+  { need: 'times', become: 'scalar' },
+  { need: 'word',  become: 'delete' },
+],
+```
+
 ## Signature
 
 ```ts
@@ -103,11 +165,13 @@ class CompositionEngine<TComponent = unknown> {
   hasPending(): boolean
   getContext(): CompositionContext
   abort(): void
-  undo(steps?: number, options?: { isolated?: boolean }): CompositionContext | null
+  undo(steps?: number, options?: { isolated?: boolean; byKey?: boolean }): CompositionContext | null
   bufferedCount(): number
   clearBuffers(): void
+  subscribe(fn: () => void): () => void
+  getLastEvent(): CompositionEvent | null
   setValueSchema(schema: ValueSchema): void
-  updateCompositionKey(key: string, flag: string, updates: Partial<...>): boolean
+  updateCompositionKey(key: string, flags: Flags, updates: Partial<...>): boolean
 }
 ```
 
@@ -180,23 +244,26 @@ Cancel the current pending chain immediately (no timeout). Also records the chai
 ### undo
 
 ```ts
-undo(steps?: number): CompositionContext | null
+undo(steps?: number, options?: { isolated?: boolean; byKey?: boolean }): CompositionContext | null
 ```
 
-Undo one or more completed composition sequences. Each completed chain (timeout-fired) is stored in the undo buffer as a separate entry.
+Undo one or more completed composition sequences or individual keys.
 
-- **`steps`** — number of past sequences to undo, defaults to `1`.
-- **Returns** the final context after all undo actions, or `null` if no sequences are buffered.
-- **Throws** if `steps` exceeds the buffer depth.
+- **`steps`** — number of sequences (or keys, when `byKey` is `true`) to undo. Defaults to `1`.
+- **`options.isolated`** — when `true`, each sequence restarts ctx from its own saved state — ctx does NOT propagate across sequences. Defaults to `false`.
+- **`options.byKey`** — when `true`, `steps` counts individual keys instead of whole sequences. Orthogonal to `isolated`. Defaults to `false`.
+- **Returns** the final context after all undo actions, or `null` if nothing is buffered.
+- **Throws** if `steps` exceeds the available count (sequences or keys).
 
-Undo iterates sequences in reverse chronological order (most recent first), and within each sequence iterates keys in reverse order (last key first). Each key's `undoAction` receives the context that the key produced, and its return value is passed to the previous key's `undoAction`.
+Undo iterates entries in reverse chronological order (most recent first). Each key's `undoAction` receives the context that the key produced, and its return value is passed to the previous key's `undoAction`.
 
-If any `undoAction` returns `null`, the undo chain stops early — subsequent keys are not undone. The intermediate context is preserved and returned.
+When `byKey` is `true`, entries are consumed at key-granularity. Partial sequences are preserved — only the undone entries are removed from the buffer.
 
-When a `valueSchema` is configured, undo validates input and output the same way `execute` does:
+When a `valueSchema` is configured, undo validates input and output the same way `execute` does.
 
-- **Input** — `currentCtx.value` must pass the guard for `currentCtx.lastFlag`.
-- **Output** — the value returned by `undoAction` must pass the guard for the new context's `lastFlag`.
+| Option | `undo(3)` | `undo(2, { byKey: true })` | `undo(4, { byKey: true, isolated: true })` |
+|--------|-----------|----------------------------|---------------------------------------------|
+| Meaning | Undo last 3 sequences | Undo last 2 keys (across any sequences) | Undo last 4 keys, ctx resets per sequence |
 
 ### setValueSchema
 
@@ -222,17 +289,66 @@ clearBuffers(): void
 
 Remove all buffered undo history. Call this when the document state changes in a way that makes past undos irrelevant (e.g. file reload).
 
+### subscribe
+
+```ts
+subscribe(fn: () => void): () => void
+```
+
+Subscribe to composition state changes. The callback fires whenever the chain starts, advances, breaks, completes, is aborted, or is undone. Use it to trigger a framework re-render.
+
+Returns an unsubscribe function.
+
+```tsx
+const unsub = engine.composition.subscribe(() => {
+  const e = engine.composition.getLastEvent();
+  console.log('Composition event:', e?.type);
+});
+// later: unsub();
+```
+
+### getLastEvent
+
+```ts
+getLastEvent(): CompositionEvent | null
+```
+
+Return the most recent `CompositionEvent`, or `null` if nothing has happened yet.
+
+```ts
+type CompositionEvent =
+  | { type: "started"; key: string }
+  | { type: "continued"; key: string }
+  | { type: "completed" }
+  | { type: "aborted" }
+  | { type: 'broken'; key: string }
+  | { type: 'consumed'; key: string }
+  | { type: 'undone'; steps: number }
+  | { type: 'cleared' };
+```
+
+| Event | Meaning |
+|-------|---------|
+| `started` | A head key matched and a new chain began |
+| `continued` | A subsequent key matched and advanced the chain |
+| `completed` | The chain timed out naturally (history recorded) |
+| `aborted` | `abort()` was called (history recorded) |
+| `broken` | A key didn't match `needs` and the chain was cleared |
+| `consumed` | A mismatched key was silently swallowed (`exclusive: true`) |
+| `undone` | `undo()` completed successfully |
+| `cleared` | `clearBuffers()` was called |
+
 ### updateCompositionKey
 
 ```ts
 updateCompositionKey(
   key: string,
-  flag: string,
-  updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flag">>
+  flags: Flags,
+  updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flags">>
 ): boolean
 ```
 
-Update a registered entry identified by `key` + `flag`. Returns `true` if found and updated.
+Update a registered entry identified by `key` + `flags`. Returns `true` if found and updated.
 
 ## Best Practice
 
@@ -247,7 +363,8 @@ function useCompositionActions() {
   useEffect(() => {
     registryCompositionKey({
       key: '3',
-      flag: 'times',
+      flags: [],
+      alternativeFlag: 'times',
       needs: [],
       execute: (ctx) => ({
         value: 3,
@@ -258,7 +375,8 @@ function useCompositionActions() {
 
     registryCompositionKey({
       key: 's',
-      flag: 'action',
+      flags: [],
+      alternativeFlag: 'action',
       needs: ['times'],
       execute: (ctx) => {
         const v = ctx.value as number;
@@ -268,7 +386,8 @@ function useCompositionActions() {
 
     registryCompositionKey({
       key: 'w',
-      flag: 'action',
+      flags: [],
+      alternativeFlag: 'action',
       needs: ['times', 'action'],
       optional: true,
       execute: (ctx) => {
@@ -287,7 +406,8 @@ When a `valueSchema` is configured on the engine (see [Value Schema](#value-sche
 ```tsx
 registryCompositionKey({
   key: 'w',
-  flag: 'action',
+  flags: [],
+  alternativeFlag: 'action',
   needs: ['times'],
   optional: true,
   exclusive: true,
@@ -357,7 +477,8 @@ Each key declares its own `undoAction` — the reverse of `execute`:
 ```tsx
 registryCompositionKey({
   key: '3',
-  flag: 'times',
+  flags: [],
+  alternativeFlag: 'times',
   needs: [],
   execute: (ctx) => ({ value: 3, lastFlag: 'times', steps: [...ctx.steps, '3'] }),
   undoAction: (ctx) => ({ value: undefined, lastFlag: null, steps: [] }),
@@ -365,7 +486,8 @@ registryCompositionKey({
 
 registryCompositionKey({
   key: 's',
-  flag: 'action',
+  flags: [],
+  alternativeFlag: 'action',
   needs: ['times'],
   execute: (ctx) => ({
     value: (ctx.value as number) * 10,
@@ -390,6 +512,30 @@ const ctx = undoComposition();    // undo most recent chain
 
 // Undo multiple sequences at once
 const ctx = undoComposition(3);   // undo last 3 chains
+```
+
+### Subscribe to composition events
+
+Monitor composition state in real time — useful for status bars, toast messages, or debugging:
+
+```tsx
+const { subscribeComposition, getLastCompositionEvent } = useKeyboard();
+
+useEffect(() => {
+  return subscribeComposition(() => {
+    const e = getLastCompositionEvent();
+    if (!e) return;
+
+    switch (e.type) {
+      case 'started':  showStatus(`Chain: ${e.key}`); break;
+      case 'continued': showStatus(`Chain: ... → ${e.key}`); break;
+      case 'completed': showStatus('Chain completed'); break;
+      case 'broken':    showStatus(`Key "${e.key}" broke the chain`); break;
+      case 'aborted':   showStatus('Chain aborted'); break;
+      case 'undone':    showStatus(`Undid ${e.steps} step(s)`); break;
+    }
+  });
+}, []);
 ```
 
 ## See Also

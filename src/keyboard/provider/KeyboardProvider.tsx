@@ -120,6 +120,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
       undoComposition: engine.undoComposition.bind(engine),
       bufferedCompositionCount: engine.bufferedCompositionCount.bind(engine),
       clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
+      subscribeComposition: engine.subscribeComposition.bind(engine),
+      getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
     }),
     [engine],
   );

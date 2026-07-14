@@ -84,6 +84,16 @@ export type Flags = {
 	become: string;
 }[];
 
+export type CompositionEvent =
+	| { type: "started"; key: string }
+	| { type: "continued"; key: string }
+	| { type: "completed" }
+	| { type: "aborted" }
+	| { type: "broken"; key: string }
+	| { type: "consumed"; key: string }
+	| { type: "undone"; steps: number }
+	| { type: "cleared" };
+
 export interface CompositionPneding {
 	timeout: number;
 	timer: ReturnType<typeof setTimeout>;
@@ -129,9 +139,7 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	needs: string[];
 
-
-
-	alternativeFlag: string
+	alternativeFlag: string;
 
 	/**
 	 * Declare whether the dependent preceding flag is optional, and if so, the key is automatically executed if it is a head key
@@ -226,6 +234,9 @@ export default class CompositionEngine<TComponet = unknown> {
 
 	private valueSchema: ValueSchema | undefined;
 
+	private subscribers: Set<() => void> = new Set();
+	private lastEvent: CompositionEvent | null = null;
+
 	private context: CompositionContext = {
 		value: undefined,
 		lastFlag: null,
@@ -244,6 +255,36 @@ export default class CompositionEngine<TComponet = unknown> {
 	/** Set or replace the runtime value schema for composition chain validation. */
 	setValueSchema(schema: ValueSchema): void {
 		this.valueSchema = schema;
+	}
+
+	/**
+	 * Subscribe to composition state changes. The callback fires whenever the
+	 * chain starts, advances, breaks, completes, or is undone. Use it to
+	 * trigger a framework re-render (e.g. React `useState` setter).
+	 *
+	 * @returns An unsubscribe function.
+	 */
+	subscribe(fn: () => void): () => void {
+		this.subscribers.add(fn);
+		return () => {
+			this.subscribers.delete(fn);
+		};
+	}
+
+	/**
+	 * Return the most recent {@link CompositionEvent}, or `null` if nothing
+	 * has happened yet. Useful for displaying diagnostic context (e.g.
+	 * "Chain started with key '3'" or "Broke on key 'x'").
+	 */
+	getLastEvent(): CompositionEvent | null {
+		return this.lastEvent;
+	}
+
+	private notify(event: CompositionEvent): void {
+		this.lastEvent = event;
+		for (const fn of this.subscribers) {
+			fn();
+		}
 	}
 
 	synchronizingKey(eventName: string[]) {
@@ -289,6 +330,7 @@ export default class CompositionEngine<TComponet = unknown> {
 	abort(): void {
 		this.recordHistory();
 		this.clearPending();
+		this.notify({ type: "aborted" });
 	}
 
 	/**
@@ -299,32 +341,45 @@ export default class CompositionEngine<TComponet = unknown> {
 	 * {@link CompositioKey#undoAction} in reverse order.
 	 *
 	 * @param steps - Number of past sequences to undo. Defaults to 1.
+	 *   When `options.byKey` is `true`, `steps` counts individual keys instead.
 	 * @param options.isolated - When `true`, each sequence's undo starts from
 	 *   its own saved context — ctx does NOT propagate across sequences.
 	 *   Defaults to `false` (flat propagation).
+	 * @param options.byKey - When `true`, `steps` counts individual keys
+	 *   instead of whole sequences. Orthogonal to `isolated`.
+	 *   Defaults to `false`.
 	 * @returns The final context after all undo actions, or `null` if
 	 *   nothing was undone.
-	 * @throws If `steps` exceeds the number of buffered sequences.
+	 * @throws If `steps` exceeds the number of buffered sequences (or keys,
+	 *   when `byKey` is `true`).
 	 *
 	 * @example Flat mode (default)
 	 * ```ts
-	 * // Seq1: g g → Seq2: d g
-	 * // Undo order: g₂ → d → g₁ → g₀  (ctx flows from right to left)
 	 * engine.undo(2);
 	 * ```
 	 *
 	 * @example Isolated mode
 	 * ```ts
-	 * // Seq1: g g → Seq2: d g
-	 * // Undo order: seq2: g → d, then seq1: g → g (ctx restarts per sequence)
 	 * engine.undo(2, { isolated: true });
+	 * ```
+	 *
+	 * @example By-key mode
+	 * ```ts
+	 * engine.undo(3, { byKey: true });  // undo 3 keys, not 3 sequences
 	 * ```
 	 */
 	undo(
 		steps: number = 1,
-		options?: { isolated?: boolean },
+		options?: { isolated?: boolean; byKey?: boolean },
 	): CompositionContext | null {
 		if (this.buffers.length === 0) return null;
+
+		const byKey = options?.byKey === true;
+		const isolated = options?.isolated === true;
+
+		if (byKey) {
+			return this.undoByKey(steps, isolated);
+		}
 
 		if (steps > this.buffers.length) {
 			throw new Error(
@@ -335,7 +390,6 @@ export default class CompositionEngine<TComponet = unknown> {
 
 		const start = this.buffers.length - steps;
 		const undone = this.buffers.slice(start);
-		const isolated = options?.isolated === true;
 		let currentCtx: CompositionContext | null = null;
 
 		if (isolated) {
@@ -374,6 +428,118 @@ export default class CompositionEngine<TComponet = unknown> {
 		this.context = currentCtx;
 		this.buffers.splice(start, steps);
 		this.state.compositionEngineHandle = false;
+		this.notify({ type: "undone", steps });
+		return currentCtx;
+	}
+
+	/**
+	 * Undo by individual key count. Walks buffers from the end,
+	 * collecting `steps` entries across sequence boundaries.
+	 */
+	private undoByKey(
+		steps: number,
+		isolated: boolean,
+	): CompositionContext | null {
+		// Count total keys available
+		let totalKeys = 0;
+		for (const seq of this.buffers) {
+			totalKeys += seq.length;
+		}
+		if (steps > totalKeys) {
+			throw new Error(
+				`[keyboard-engine] Cannot undo ${steps} key(s): only ` +
+					`${totalKeys} buffered.`,
+			);
+		}
+
+		// Collect the last `steps` entries, tracking which sequences they came from
+		const collected: {
+			entry: bufferEntry;
+			seqIndex: number;
+			entryIndex: number;
+		}[] = [];
+		let remaining = steps;
+
+		for (let si = this.buffers.length - 1; si >= 0 && remaining > 0; si--) {
+			const seq = this.buffers[si];
+			for (let ei = seq.length - 1; ei >= 0 && remaining > 0; ei--) {
+				collected.push({ entry: seq[ei], seqIndex: si, entryIndex: ei });
+				remaining--;
+			}
+		}
+
+		// collected is already in reverse chronological order (most recent first)
+		let currentCtx: CompositionContext | null = null;
+
+		if (isolated) {
+			// Group entries by sequence, process each sequence independently
+			let seqIndex = 0;
+			while (seqIndex < collected.length) {
+				const seqEntries: bufferEntry[] = [];
+				const groupSeqId = collected[seqIndex].seqIndex;
+
+				while (
+					seqIndex < collected.length &&
+					collected[seqIndex].seqIndex === groupSeqId
+				) {
+					seqEntries.push(collected[seqIndex].entry);
+					seqIndex++;
+				}
+
+				// Entries within a sequence are already in reverse order (most recent first)
+				let seqCtx: CompositionContext = seqEntries[0].ctx;
+				let stopped = false;
+
+				for (const buffer of seqEntries) {
+					const nextCtx = this.processUndoEntry(buffer, seqCtx);
+					if (nextCtx === null) {
+						stopped = true;
+						break;
+					}
+					seqCtx = nextCtx;
+				}
+
+				if (stopped) break;
+				currentCtx = seqCtx;
+			}
+		} else {
+			// Flat mode: process all collected entries in order (already reversed)
+			currentCtx = collected[0].entry.ctx;
+
+			for (const { entry } of collected) {
+				const nextCtx = this.processUndoEntry(entry, currentCtx);
+				if (nextCtx === null) break;
+				currentCtx = nextCtx;
+			}
+		}
+
+		if (currentCtx === null) return null;
+
+		// Remove consumed entries from their sequences
+		// Track per-sequence removal counts
+		const removals: Map<number, number> = new Map();
+		for (const c of collected) {
+			removals.set(c.seqIndex, (removals.get(c.seqIndex) ?? 0) + 1);
+		}
+
+		// Walk sequences from the end, applying removals
+		for (let si = this.buffers.length - 1; si >= 0; si--) {
+			const count = removals.get(si);
+			if (count === undefined) continue;
+
+			const seq = this.buffers[si];
+			if (count >= seq.length) {
+				// Entire sequence consumed
+				this.buffers.splice(si, 1);
+			} else {
+				// Partial sequence: remove the last N entries
+				seq.splice(seq.length - count, count);
+			}
+		}
+
+		this.context = currentCtx;
+		this.state.compositionEngineHandle = false;
+		this.notify({ type: "undone", steps });
 		return currentCtx;
 	}
 
@@ -385,6 +551,7 @@ export default class CompositionEngine<TComponet = unknown> {
 	/** Clear all buffered undo history. */
 	clearBuffers(): void {
 		this.buffers = [];
+		this.notify({ type: "cleared" });
 	}
 
 	/**
@@ -554,19 +721,23 @@ export default class CompositionEngine<TComponet = unknown> {
 		});
 	}
 
-  private chooseFlag(lastFlag: string | null, flags: Flags, alternative: string): string {
-    if (!lastFlag) {
-      return alternative;
-    }
+	private chooseFlag(
+		lastFlag: string | null,
+		flags: Flags,
+		alternative: string,
+	): string {
+		if (!lastFlag) {
+			return alternative;
+		}
 
-    for (const each of flags) {
-      if (each.need === lastFlag) {
-        return each.become;
-      }
-    }
+		for (const each of flags) {
+			if (each.need === lastFlag) {
+				return each.become;
+			}
+		}
 
-    return alternative;
-  }
+		return alternative;
+	}
 
 	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
 		if (this.pendingEntry) return false;
@@ -594,14 +765,14 @@ export default class CompositionEngine<TComponet = unknown> {
 		if (!nextCtx) return false;
 
 		if (!nextCtx.lastFlag) {
-			// Constraint: If the user returns `null` for the `lastFlag` associated with this key, 
+			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
 			// it indicates that they want the system to handle the flag automatically.
 			// We give users control.
-			nextCtx.lastFlag = result.alternativeFlag
+			nextCtx.lastFlag = result.alternativeFlag;
 		}
 
 		// Instead of passing candidate keys directly into the result, they are obtained from the context provided by the user.
-		if (!this.validateOutput(nextCtx.lastFlag , nextCtx.value, result.key)) {
+		if (!this.validateOutput(nextCtx.lastFlag, nextCtx.value, result.key)) {
 			return false;
 		}
 
@@ -619,6 +790,7 @@ export default class CompositionEngine<TComponet = unknown> {
 			this.clearPending();
 
 			this.recordHistory();
+			this.notify({ type: "completed" });
 		}, pending.timeout);
 
 		pending.timer = timer;
@@ -628,6 +800,7 @@ export default class CompositionEngine<TComponet = unknown> {
 			undoAction: result.undoAction ?? ((ctx) => ctx),
 			ctx: this.context,
 		});
+		this.notify({ type: "started", key: result.key });
 		return true;
 	}
 
@@ -667,12 +840,16 @@ export default class CompositionEngine<TComponet = unknown> {
 					: result.KeyReleaseWhenChainInterrupted;
 			}
 
-			// Constraint: If the user returns `null` for the `lastFlag` associated with this key, 
+			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
 			// it indicates that they want the system to handle the flag automatically.
 			// We give users control.
 			if (!nextCtx.lastFlag) {
-				const resultFlag  = this.chooseFlag(this.context.lastFlag, result.flags, result.alternativeFlag)
-				nextCtx.lastFlag = resultFlag
+				const resultFlag = this.chooseFlag(
+					this.context.lastFlag,
+					result.flags,
+					result.alternativeFlag,
+				);
+				nextCtx.lastFlag = resultFlag;
 			}
 
 			if (!this.validateOutput(nextCtx.lastFlag, nextCtx.value, result.key)) {
@@ -698,6 +875,7 @@ export default class CompositionEngine<TComponet = unknown> {
 				// However, clearing it in that way would result in the loss of historical information from the previous sequence, making it impossible to perform undo operations during the new sequence.
 				// The buffer is responsible for recording these historical keys before each cleanup.
 				this.recordHistory();
+				this.notify({ type: "completed" });
 			}, timeout);
 			this.historyKeys.push({
 				key: result.key,
@@ -706,6 +884,7 @@ export default class CompositionEngine<TComponet = unknown> {
 			});
 			this.pendingEntry.timer = timer;
 
+			this.notify({ type: "continued", key: result.key });
 			return true;
 		}
 
@@ -713,11 +892,13 @@ export default class CompositionEngine<TComponet = unknown> {
 		if (this.pendingEntry.exclusive) {
 			// Silently consume, keep waiting
 			this.resetPendingTimer(this.pendingEntry.timeout);
+			this.notify({ type: "consumed", key: this.currentKey[0] ?? "" });
 			return true;
 		}
 
 		// Not exclusive — clear and let key fall through
 		this.clearPending();
+		this.notify({ type: "broken", key: this.currentKey[0] ?? "" });
 		return false;
 	}
 

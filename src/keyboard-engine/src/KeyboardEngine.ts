@@ -25,7 +25,7 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
-import CompositionEngine, { CompositioKey, ValueSchema, Flags } from "./CompositionEngine.js";
+import CompositionEngine, { CompositioKey, ValueSchema, Flags, CompositionEvent } from "./CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -189,7 +189,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @returns The final context after undo, or `null` if nothing was undone.
    * @throws If `steps` exceeds the number of buffered sequences.
    */
-  undoComposition(steps?: number, options?: { isolated?: boolean }) {
+  undoComposition(steps?: number, options?: { isolated?: boolean; byKey?: boolean }) {
     return this.state.compositionEngine.undo(steps, options);
   }
 
@@ -201,6 +201,21 @@ export default class KeyboardEngine<TComponent = unknown> {
   /** Clear all buffered undo history. */
   clearCompositionBuffers(): void {
     this.state.compositionEngine.clearBuffers();
+  }
+
+  /**
+   * Subscribe to composition state changes. See {@link CompositionEngine#subscribe}.
+   * @returns An unsubscribe function.
+   */
+  subscribeComposition(fn: () => void): () => void {
+    return this.state.compositionEngine.subscribe(fn);
+  }
+
+  /**
+   * Return the most recent composition event. See {@link CompositionEngine#getLastEvent}.
+   */
+  getLastCompositionEvent(): CompositionEvent | null {
+    return this.state.compositionEngine.getLastEvent();
   }
 
   /**

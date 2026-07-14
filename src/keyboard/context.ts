@@ -21,6 +21,7 @@ import type {
   CompositionContext,
   ValueSchema,
   Flags,
+  CompositionEvent,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 
@@ -149,9 +150,11 @@ export interface KeyboardContextValue {
 
   setValueSchema: (schema: ValueSchema) => void;
 
-  undoComposition: (steps?: number, options?: { isolated?: boolean }) => CompositionContext | null;
+  undoComposition: (steps?: number, options?: { isolated?: boolean; byKey?: boolean }) => CompositionContext | null;
   bufferedCompositionCount: () => number;
   clearCompositionBuffers: () => void;
+  subscribeComposition: (fn: () => void) => () => void;
+  getLastCompositionEvent: () => CompositionEvent | null;
 }
 
 /**
