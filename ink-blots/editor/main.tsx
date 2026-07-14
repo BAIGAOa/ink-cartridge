@@ -5,7 +5,7 @@
  *   npx tsx ink-blots/editor/main.tsx
  */
 import React, { useState } from 'react';
-import { render, Box, Text, useWindowSize } from 'ink';
+import { render, Box, useWindowSize } from 'ink';
 import {
   registerComponent,
   ScenarioManagementProvider,
@@ -17,12 +17,7 @@ import Editor from './comp/Editor.js';
 
 function EditorScreen() {
   const [text, setText] = useState('');
-
-  const handleSubmit = (value: string) => {
-    // TODO: save to file
-  };
-
-  const {rows} = useWindowSize()
+  const { rows } = useWindowSize();
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -38,7 +33,7 @@ function EditorScreen() {
           focusId="editor-main"
           value={text}
           onChange={setText}
-          height={rows}
+          height={Math.max(1, rows - 5)}
         />
       </Box>
     </Box>
