@@ -10,8 +10,8 @@ Confirmation dialog with two focusable buttons. Escape cancels from anywhere (sc
 | `message` | `string` | yes | — | Body text. |
 | `onConfirm` | `() => void` | yes | — | Called on confirm. |
 | `onCancel` | `() => void` | yes | — | Called on cancel/Escape. |
-| `confirmLabel` | `string` | no | `'Confirm'` | Confirm button text. |
-| `cancelLabel` | `string` | no | `'Cancel'` | Cancel button text. |
+| `confirmLabel` | `string` | no | `'确认'` | Confirm button text. |
+| `cancelLabel` | `string` | no | `'取消'` | Cancel button text. |
 
 ## Keyboard
 

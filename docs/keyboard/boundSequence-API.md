@@ -8,7 +8,7 @@ Register a multi-key sequence on the current layer (minimum 2 keys). The handler
 // Explicit keys
 function boundSequence(
   keys: string | string[],
-  handler: () => void,
+  handler: KeyHandler | string,
   options?: SequenceOptions
 ): () => void
 
@@ -26,7 +26,7 @@ function boundSequence(
 | `timeout` | `number` | `500` | Milliseconds before a partial sequence resets. |
 | `exclusive` | `boolean` | `false` | `true` = mismatched key is silently consumed. `false` = mismatch cancels the sequence and the key falls through. |
 | `focusId` | `string` | — | Scope to a focus target. |
-| `when` | `() => boolean` | — | Conditional. |
+| `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. Sequence is skipped when the active mode doesn't match. See [Mode System](./mode-system-API.md). |
 
 ## Returns

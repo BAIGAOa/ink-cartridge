@@ -6,7 +6,7 @@ import type { I18nContextValue } from './types.js';
  * Access the i18n API from within a component tree wrapped by
  * {@link LanguageProvider}.
  *
- * Returns `{ t, setLanguage, getLanguages, mergeLanguage, currentLanguage }`.
+ * Returns `{ t, setLanguage, getLanguages, mergeLanguage, currentLanguage, setDefaultContext }`.
  *
  * Must be used inside `<LanguageProvider>`. Throws with a clear error
  * message if no provider is found in the component tree.

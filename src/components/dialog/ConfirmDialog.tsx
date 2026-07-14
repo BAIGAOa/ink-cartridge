@@ -6,15 +6,15 @@ import type { ConfirmDialogProps } from './types.js';
 /**
  * A modal confirmation dialog with two buttons.
  *
- * Designed to be displayed via {@link overlay}:
+ * Designed to be displayed via {@link openOverlay}:
  *
  * ```tsx
  * registerComponent(ConfirmDialog, {});
- * overlay(ConfirmDialog, {
+ * openOverlay('confirm', ConfirmDialog, {
  *   title: 'delete',
  *   message: 'continue?',
- *   onConfirm: () => { deleteItem(); closeOverlay(); },
- *   onCancel: () => closeOverlay(),
+ *   onConfirm: () => { deleteItem(); closeOverlay('confirm'); },
+ *   onCancel: () => closeOverlay('confirm'),
  * });
  * ```
  *

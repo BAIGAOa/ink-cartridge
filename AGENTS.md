@@ -28,7 +28,7 @@ A task is not complete until:
 
 ## Architecture
 
-**Screen System** (`src/screen/`) — Tree-based navigation via `registerComponent(Component, template, { parent })`. Navigation: `skip()` (down), `back()` (up, `levels` param), `gotoScreen()` (jump via LCA), `overlay()` / `closeOverlay()` (floating dialogs). All nav functions work as React hooks AND module-level imports (`_dispatchers` Set). `ScenarioManagementProvider` wraps the app; `CurrentScreen` renders the active screen.
+**Screen System** (`src/screen/`) — Tree-based navigation via `registerComponent(Component, template, { parent })`. Navigation: `skip()` (down), `back()` (up, `levels` param), `gotoScreen()` (jump via LCA), `openOverlay()` / `closeOverlay()` (floating dialogs). All nav functions work as React hooks AND module-level imports (`_dispatchers` Set). `ScenarioManagementProvider` wraps the app; `CurrentScreen` renders the active screen.
 
 **Keyboard System** (`src/keyboard/`) — Framework-agnostic keyboard engine (`KeyboardEngine` class) with React adapter (`KeyboardProvider`). Layered key bindings via 7-stage pipeline: Modal → GlobalSequence (ao:true) → GlobalKeys (ao:true) → Overlay broadcast → GlobalSequence (ao:false) → GlobalKeys (ao:false) → Screen stack (top→bottom). Mechanisms: `boundKeyboard()` (per-screen), `penetration()` (pass-through), `stop()` (propagation barrier), `globalKeys()`. Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling. Shortcut/sequence actions, modal modes, named conditions, custom processors (`addProcessor`/`removeProcessor` per-instance via `useKeyboard()`). `KeyboardEngine` is exported for non-React frameworks (Vue, Svelte, etc.).
 
@@ -45,7 +45,7 @@ A task is not complete until:
 
 - `penetration()` means **pass-through**, NOT "block". Makes keys transparent to lower layers. (Formerly `blockedKey`.)
 - `KeyboardProvider` MUST nest inside `ScenarioManagementProvider`. Reversed silently breaks keyboard.
-- `_dispatch` is set in `useEffect` — unavailable during `componentDidCatch`. Error boundaries calling `overlay()` will find `_dispatch` is null.
+- `_dispatch` is set in `useEffect` — unavailable during `componentDidCatch`. Error boundaries calling `openOverlay()` will find `_dispatch` is null.
 - `clearShortcutOperations` is a no-op at module level — keyboard state is per-instance via `KeyboardEngine`.
 - Overlay auto-closes on `skip`/`back`/`gotoScreen` (handled in reducer).
 - `useRef<<T>` in TSX is parsed as JSX — must be `useRef<T>` (single `<`).

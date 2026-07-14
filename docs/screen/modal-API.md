@@ -21,7 +21,7 @@ function openModal<C extends React.ComponentType<any>>(
 | `renderNow` | `boolean` | `false` | When `true`, renders even when not the active modal. |
 | `persistent` | `boolean` | `false` | When `true`, the modal survives screen navigation (skip/back/gotoScreen). Non-persistent modals are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
 
-Throws if `id` collides with an existing overlay or modal.
+If `id` collides with an existing overlay or modal, this is a no-op — the existing modal is left unchanged.
 
 ### closeModal
 
@@ -29,7 +29,7 @@ Throws if `id` collides with an existing overlay or modal.
 function closeModal(id: string): void
 ```
 
-Throws if no modal with that ID exists. The next-highest-zIndex modal becomes active.
+If no modal with that ID exists, this is a no-op — safe to call even when the modal may have already been closed. The next-highest-zIndex modal becomes active.
 
 ### closeAllModals
 
@@ -53,6 +53,7 @@ Closes all modals, including persistent ones.
 ```tsx
 function Menu() {
   const { openModal } = useScreenSystem();
+  const { boundSequence } = useKeyboard();
 
   useEffect(() => {
     return boundSequence(['d', 'c'], () => {

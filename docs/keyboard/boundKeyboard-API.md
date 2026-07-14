@@ -8,14 +8,14 @@ Bind a key (or keys) to a handler on the current layer. Returns an unbind functi
 // Explicit keys
 function boundKeyboard(
   keys: string | string[],
-  handler: (() => void) | string,
+  handler: KeyHandler | string,
   options?: BoundKeyboardOptions
 ): () => void
 
 // Via registered shortcut action
 function boundKeyboard(
   actionId: string,
-  options: BoundKeyboardOptions
+  options?: BoundKeyboardOptions
 ): () => void
 ```
 
@@ -28,7 +28,7 @@ function boundKeyboard(
 | `once` | `boolean` | `false` | Auto-unbind after first invocation. |
 | `times` | `number` | — | Fire on every Nth press (e.g. `2` = 2nd, 4th, 6th…). |
 | `observer` | `(count: number) => void` | — | Called on each press with the running count. Only meaningful with `times`. |
-| `when` | `() => boolean` | — | Conditional: only fire when this returns `true`. |
+| `when` | `(() => boolean) \| string` | — | Conditional: only fire when this returns `true`. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. Binding is skipped when the active mode doesn't match. See [Mode System](./mode-system-API.md). |
 
 ## Returns

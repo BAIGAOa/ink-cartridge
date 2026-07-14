@@ -41,7 +41,7 @@ Overlays and modals share a common ID namespace. An overlay is a floating panel 
 | [skip](./skip-API.md) | Navigate to a child screen |
 | [back](./back-API.md) | Navigate up to parent |
 | [gotoScreen](./gotoScreen-API.md) | Jump across branches via LCA |
-| [Overlay system](./overlay-API.md) | openOverlay / closeOverlay / activateOverlay / deactivateOverlay |
+| [Overlay system](./overlay-API.md) | openOverlay / closeOverlay / closeAllOverlays / activateOverlay / deactivateOverlay |
 | [Modal system](./modal-API.md) | openModal / closeModal / closeAllModals |
 | [ModalContext](./ModalContext-API.md) | Context for per-instance modal ID |
 

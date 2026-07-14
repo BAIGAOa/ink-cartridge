@@ -18,8 +18,10 @@ class KeyboardEngine<TComponent = unknown> {
 |-------|------|----------|-------------|
 | `normalizeKeyNames` | `(input: string, key: unknown) => string[]` | yes | Converts framework key events to normalized key-name strings |
 | `modes` | `string[]` | no | Initial mode names |
-| `defaultMode` | `string \| null` | no | Active mode on init |
+| `defaultMode` | `string` | no | Active mode on init |
 | `processors` | `KeyboardProcessorProps[]` | no | Per-instance custom processors |
+| `defaultTimeout` | `number` | no | Default sequence timeout in ms |
+| `valueSchema` | `ValueSchema` | no | Composition value validation schema |
 
 ## Core Loop
 
@@ -257,7 +259,13 @@ All delegation methods for the built-in composition engine. These are available 
 | `hasPendingComposition()` | `boolean` | Whether a composition chain is active |
 | `getCompositionContext()` | `CompositionContext` | Shallow copy of current context |
 | `abortComposition()` | `void` | Cancel the current chain immediately |
-| `updateCompositionKey(key, flag, updates)` | `boolean` | Update an entry identified by key + flag |
+| `updateCompositionKey(key, flags, updates)` | `boolean` | Update an entry identified by key + flags |
+| `setValueSchema(schema)` | `void` | Set the value validation schema |
+| `undoComposition(steps?, options?)` | `CompositionContext \| null` | Undo the last N composition steps |
+| `bufferedCompositionCount()` | `number` | Number of buffered composition events |
+| `clearCompositionBuffers()` | `void` | Clear all composition buffers |
+| `subscribeComposition(fn)` | `() => void` | Subscribe to composition events |
+| `getLastCompositionEvent()` | `CompositionEvent \| null` | Get the last composition event |
 
 See [compositionEngine](./compositionEngine-API.md) for the full API, entry fields, and usage examples.
 

@@ -9,8 +9,8 @@ Vertical list selector with keyboard navigation and scrolling.
 | `items` | `Item<T>[]` | yes | `[]` | `{ label: string, value: T }` |
 | `onSelect` | `(item: Item<T>) => void` | yes | — | Called on Enter. |
 | `focusId` | `string` | yes | — | Focus target. |
-| `itemComponent` | `ComponentType` | no | default label | Custom item renderer. |
-| `indicatorComponent` | `ComponentType` | no | `❯` | Left-of-item indicator. |
+| `itemComponent` | `ComponentType<I & { isSelected: boolean }>` | no | default label | Custom item renderer. Receives the item plus `isSelected`. |
+| `indicatorComponent` | `ComponentType<{ isSelected: boolean }>` | no | `❯` (blue) | Left-of-item indicator. Receives `isSelected`. |
 | `limit` | `number` | no | `10` | Max visible items before scrolling. |
 
 ## Keyboard (scoped to `focusId`)

@@ -6,6 +6,7 @@ Horizontal item selector. Same API as SelectInput but with left/right navigation
 
 Same as [SelectInput](../SelectInput/SelectInput-API.md) except:
 - Default `indicatorComponent` is `●` (rendered below)
+- `indicatorComponent` receives `React.ComponentType<{ isSelected: boolean }>`
 
 ## Keyboard (scoped to `focusId`)
 

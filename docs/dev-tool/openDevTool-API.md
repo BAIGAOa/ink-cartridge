@@ -15,10 +15,10 @@ function openDevTool(props: DevProps): void
 | `top` | `number` | Vertical position in rows. |
 | `left` | `number` | Horizontal position in columns. |
 | `zindex` | `number` | Modal zIndex (optional). |
-| `allowKeys` | `string[]` | Keys allowed to pass through the modal to layers below (optional). Uses `allowModal` internally. |
+| `allowKeys` | `string[]` | Keys allowed to pass through the modal to layers below (optional). |
 | `persistent` | `boolean` | Whether the dev tool survives screen navigation. Defaults to `true`. |
 
-Throws if the dev tool is already open.
+Safe to call when the dev tool is already open — duplicate modal IDs are treated as a no-op.
 
 ## Keyboard Controls (inside the panel)
 
@@ -32,12 +32,12 @@ Throws if the dev tool is already open.
 
 ## Best Practice
 
-Bind to a global key, pass the toggle key through with `allowKeys`, and guard with try/catch:
+Bind to a global key and pass the toggle key through with `allowKeys`:
 
 ```tsx
 useEffect(() => {
   return boundKeyboard(['ctrl+d'], () => {
-    try { openDevTool({ top: 0, left: 0, allowKeys: ['ctrl+d'] }); } catch {}
+    openDevTool({ top: 0, left: 0, allowKeys: ['ctrl+d'] });
   });
 }, []);
 ```

@@ -10,7 +10,7 @@ Named, reusable multi-key sequences. The sequence counterpart of shortcut action
 function defineSequenceAction(entries: SequenceOperationEntry[]): void
 ```
 
-Register multiple sequence actions. Each entry: `{ actionId: string, action: () => void, keys?: string[], timeout?: number }`.
+Register multiple sequence actions. Each entry: `{ sequenceActionId: string, action: () => void, keys?: string[], timeout?: number }`.
 
 ### addSequenceAction
 
@@ -18,7 +18,7 @@ Register multiple sequence actions. Each entry: `{ actionId: string, action: () 
 function addSequenceAction(entry: SequenceOperationEntry): void
 ```
 
-Register a single sequence action. Throws on duplicate `actionId`.
+Register a single sequence action. Throws on duplicate `sequenceActionId`.
 
 ### hasSequenceAction
 
@@ -58,7 +58,7 @@ Same pattern as shortcut actions — define centrally, reference by name:
 
 ```tsx
 defineSequenceAction([
-  { actionId: 'dev-panel', keys: ['d', 'v'], action: openSettings },
+  { sequenceActionId: 'dev-panel', keys: ['d', 'v'], action: openSettings },
 ]);
 
 // Later, anywhere:

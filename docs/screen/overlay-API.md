@@ -17,11 +17,11 @@ function openOverlay<C extends React.ComponentType<any>>(
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `activate` | `boolean` | `false` | Whether the overlay is immediately active (receives keyboard). |
+| `activate` | `boolean` | `true` | Whether the overlay is immediately active (receives keyboard). |
 | `zIndex` | `number` | `overlays.length` | Stacking order. |
 | `persistent` | `boolean` | `false` | When `true`, the overlay survives screen navigation (skip/back/gotoScreen). Non-persistent overlays are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
 
-Throws if `id` collides with an existing overlay or modal.
+If `id` collides with an existing overlay or modal, this is a no-op — the existing overlay is left unchanged.
 
 ### closeOverlay
 
@@ -29,7 +29,7 @@ Throws if `id` collides with an existing overlay or modal.
 function closeOverlay(id: string): void
 ```
 
-Throws if no overlay with that ID exists.
+If no overlay with that ID exists, this is a no-op — safe to call even when the overlay may have already been closed.
 
 ### closeAllOverlays
 
@@ -48,6 +48,8 @@ function deactivateOverlay(id: string): void
 
 Active overlays receive keyboard events (stage 3 of the pipeline). Inactive overlays are still rendered but don't receive input.
 
+Throws if no overlay with the given ID exists.
+
 ## Best Practice
 
 Toggle an overlay on/off with a single key:
@@ -55,6 +57,7 @@ Toggle an overlay on/off with a single key:
 ```tsx
 function Menu() {
   const { openOverlay, closeOverlay } = useScreenSystem();
+  const { boundKeyboard } = useKeyboard();
   const openRef = useRef(false);
 
   useEffect(() => {

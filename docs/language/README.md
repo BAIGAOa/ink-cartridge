@@ -22,6 +22,12 @@ Translation keys are dot-separated (nested JSON is flattened). The `t()` functio
 | [LanguageProvider](./LanguageProvider-API.md) | Load and provide translations |
 | [useI18n](./useI18n-API.md) | Access translation functions |
 
+### Importable Types
+
+```ts
+import type { LanguageProviderProps, I18nContextValue } from 'ink-cartridge';
+```
+
 ## Advanced
 
 See [advanced.md](./advanced.md)

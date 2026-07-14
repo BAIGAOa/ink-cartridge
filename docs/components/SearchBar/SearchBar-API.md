@@ -24,10 +24,10 @@ A search bar that filters items as you type and delegates result selection to a 
 | `focusId` | `string` | yes | — | Focus identifier for the TextInput. A second focus (`${focusId}-results`) is created for the selectBar. |
 | `items` | `I[]` | no | `[]` | Items to search. Filtered and sorted by label as the user types. |
 | `onSubmit` | `(item: I) => void` | no | — | Called when the user confirms a selection in the selectBar. |
-| `selectBar` | `React.ComponentType<SelectBarProps<I>>` | yes | — | Pluggable component that renders and manages the results list. |
+| `selectBar` | `React.ComponentType<{ items: I[]; onSelect: (item: I) => void; focusId: string; query: string }>` | yes | — | Pluggable component that renders and manages the results list. |
 | `width` | `number` | no | `columns - 4` | Width of the input area in characters. |
 
-### SelectBarProps\<I\>
+### selectBar component props
 
 The `selectBar` component receives these props:
 

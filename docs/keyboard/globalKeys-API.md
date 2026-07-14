@@ -24,7 +24,7 @@ No return value. To remove all global keys registered by this component, call `g
 | `cover` | `boolean` | `true` | `false` = screens cannot override this key with `boundKeyboard`. |
 | `times` | `number` | — | Fire on every Nth press. Counter is per-entry, never auto-resets. |
 | `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no overlay is open. |
-| `when` | `() => boolean` | — | Conditional. |
+| `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. See [Mode System](./mode-system-API.md). |
 
 ## Best Practice
@@ -58,3 +58,7 @@ function Editor() {
 ```
 
 This keeps key registration and business logic completely decoupled.
+
+## ResolvedGlobalKeyEntry
+
+When a global key binding is resolved (keys normalized, action looked up, options merged), the engine produces a `ResolvedGlobalKeyEntry` — the fully resolved form of `GlobalKeyEntry`. It is exported as a type from `ink-cartridge` for use in type annotations and processor logic.
