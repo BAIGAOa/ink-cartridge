@@ -40,11 +40,13 @@ function Cmd({ left, height, setChange }: CmdOptions) {
 			position="absolute"
 			left={left}
 			bottom={0}
+			paddingLeft={1}
+			paddingRight={1}
 		>
-			<Box flexGrow={1} backgroundColor="blueBright" flexDirection="row" paddingLeft={2}>
+			<Box flexGrow={1} backgroundColor="blue" flexDirection="row" paddingLeft={2}>
 				<Text bold>MODAL Cmd</Text>
 			</Box>
-			<Box flexDirection="row" backgroundColor="blackBright">
+			<Box flexDirection="row" backgroundColor="#1E1E1E">
 				<Text>:</Text>
 			</Box>
 		</Box>

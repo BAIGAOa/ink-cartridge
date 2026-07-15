@@ -36,7 +36,8 @@
         "build": "tsc",
         "clean": "rm -rf dist",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "start": "npx tsx src/main.tsx"
     },
     "peerDependencies": {
         "ink": ">=5",
@@ -44,7 +45,8 @@
     },
     "dependencies": {
         "chalk": "^5.4.1",
-        "ink-cartridge": "*"
+        "ink-cartridge": "*",
+        "string-width": "^8.2.2"
     },
     "bugs": {
         "url": "https://github.com/BAIGAOa/ink-cartridge/issues"

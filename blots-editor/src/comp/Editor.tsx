@@ -1,7 +1,8 @@
 import { Box, Text, useWindowSize } from "ink";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusState, useKeyboard } from "ink-cartridge";
 import chalk from "chalk";
+import stringWidth from "string-width";
 
 export interface EditorProp {
 	height: number;
@@ -11,6 +12,26 @@ export interface EditorProp {
 	isFocus?: boolean
 }
 
+/** Split a string into chunks where each chunk's visual width ≤ maxWidth. */
+function chunkByVisualWidth(s: string, maxWidth: number): string[] {
+	const chars = [...s];
+	const chunks: string[] = [];
+	let buf: string[] = [];
+	let bufWidth = 0;
+	for (const ch of chars) {
+		const w = stringWidth(ch);
+		if (bufWidth + w > maxWidth && buf.length > 0) {
+			chunks.push(buf.join(""));
+			buf = [];
+			bufWidth = 0;
+		}
+		buf.push(ch);
+		bufWidth += w;
+	}
+	if (buf.length > 0) chunks.push(buf.join(""));
+	return chunks;
+}
+
 function renderLineWithCursor(
 	line: string,
 	col: number,
@@ -18,21 +39,24 @@ function renderLineWithCursor(
 ): string {
 	if (!showCursor) return line;
 
+	const chars = [...line];
 	let result = "";
-	for (let i = 0; i < line.length; i++) {
-		result += i === col ? chalk.inverse(line[i]) : line[i];
+	for (let i = 0; i < chars.length; i++) {
+		result += i === col ? chalk.inverse(chars[i]) : chars[i];
 	}
 
-	if (col >= line.length) result += chalk.inverse(" ");
+	if (col >= chars.length) result += chalk.inverse(" ");
 	return result;
 }
 
 function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 	const lines = useMemo(() => value.split("\n"), [value]);
+	const linesRef = useRef(lines);
+	linesRef.current = lines;
 	const lineCount = lines.length;
 	const [cursor, setCursor] = useState<{ line: number; col: number }>(() => {
 		const lastLine = Math.max(0, lineCount - 1);
-		return { line: lastLine, col: (lines[lastLine] ?? "").length };
+		return { line: lastLine, col: [...(lines[lastLine] ?? "")].length };
 	});
 
 	const focusFromState = useFocusState(focusId);
@@ -45,6 +69,8 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 	const [startLine, setStartLine] = useState(() =>
 		Math.min(cursor.line, maxStart),
 	);
+
+	const { registryCompositionKey, setValueSchema } = useKeyboard()
 
 	// Re-clamp when lineCount shrinks (e.g. after deleting lines)
 	useEffect(() => {
@@ -76,6 +102,129 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 		const unbinds: (() => void)[] = [];
 		const unWil = enableWildcardPriority();
 
+		setValueSchema({
+			times: (v): v is number => typeof v === "number",
+			action: (v): v is number => typeof v === "number",
+		});
+
+		for(const each of ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) {
+			registryCompositionKey({
+				key: each,
+				flags: [{ need: "times", become: "times" }],
+				needs: ["times"],
+				alternativeFlag: "times",
+				optional: true,
+				mode: "normal",
+				execute: (ctx) => {
+					if (ctx.lastFlag === null) {
+						return {
+							lastFlag: null,
+							steps: [each],
+							value: Number(each),
+						};
+					}
+					const prev = ctx.value as number;
+					return {
+						lastFlag: null,
+						steps: [...ctx.steps, each],
+						value: prev * 10 + Number(each),
+					};
+				},
+			})
+		}
+
+		registryCompositionKey({
+			key: "left",
+			flags: [{ need: "times", become: "action" }],
+			alternativeFlag: "action",
+			needs: ["times"],
+			optional: true,
+			execute: (ctx) => {
+				const steps = (ctx.value as number) ?? 1;
+				setCursor((prev) => ({
+					line: prev.line,
+					col: Math.max(0, prev.col - steps),
+				}));
+				return {
+					value: steps,
+					lastFlag: null,
+					steps: [...ctx.steps, "left"],
+				};
+			},
+		});
+
+		registryCompositionKey({
+			key: "right",
+			flags: [{ need: "times", become: "action" }],
+			alternativeFlag: "action",
+			needs: ["times"],
+			optional: true,
+			execute: (ctx) => {
+				const steps = (ctx.value as number) ?? 1;
+				setCursor((prev) => ({
+					line: prev.line,
+					col: Math.min(
+						prev.col + steps,
+						[...linesRef.current[prev.line]].length,
+					),
+				}));
+				return {
+					value: steps,
+					lastFlag: null,
+					steps: [...ctx.steps, "right"],
+				};
+			},
+		});
+
+		registryCompositionKey({
+			key: "up",
+			flags: [{ need: "times", become: "action" }],
+			alternativeFlag: "action",
+			needs: ["times"],
+			optional: true,
+			execute: (ctx) => {
+				const steps = (ctx.value as number) ?? 1;
+				setCursor((prev) => ({
+					line: Math.max(0, prev.line - steps),
+					col: Math.min(
+						prev.col,
+						[...linesRef.current[Math.max(0, prev.line - steps)]].length,
+					),
+				}));
+				return {
+					value: steps,
+					lastFlag: null,
+					steps: [...ctx.steps, "up"],
+				};
+			},
+		});
+
+		registryCompositionKey({
+			key: "down",
+			flags: [{ need: "times", become: "action" }],
+			alternativeFlag: "action",
+			needs: ["times"],
+			optional: true,
+			execute: (ctx) => {
+				const steps = (ctx.value as number) ?? 1;
+				setCursor((prev) => {
+					const newLine = Math.min(
+						prev.line + steps,
+						linesRef.current.length - 1,
+					);
+					return {
+						line: newLine,
+						col: Math.min(prev.col, [...linesRef.current[newLine]].length),
+					};
+				});
+				return {
+					value: steps,
+					lastFlag: null,
+					steps: [...ctx.steps, "down"],
+				};
+			},
+		});
+
 		unbinds.push(
 			boundKeyboard(
 				["*"],
@@ -86,7 +235,7 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 						newLines[prev.line] =
 							curLine.slice(0, prev.col) + input + curLine.slice(prev.col);
 						onChange?.(newLines.join("\n"));
-						return { line: prev.line, col: prev.col + input.length };
+						return { line: prev.line, col: prev.col + [...input].length };
 					});
 				},
 				{ focusId, mode: "editor" },
@@ -107,69 +256,6 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 					});
 				},
 				{ focusId, mode: "editor" },
-			),
-		);
-
-		unbinds.push(
-			boundKeyboard(
-				["left"],
-				() => {
-					setCursor((prev) => {
-						return { line: prev.line, col: Math.max(0, prev.col - 1) };
-					});
-				},
-				{
-					focusId,
-				},
-			),
-		);
-
-		unbinds.push(
-			boundKeyboard(
-				["right"],
-				() => {
-					setCursor((prev) => {
-						return {
-							line: prev.line,
-							col: Math.min(prev.col + 1, lines[prev.line].length),
-						};
-					});
-				},
-				{ focusId },
-			),
-		);
-
-		unbinds.push(
-			boundKeyboard(
-				["up"],
-				() => {
-					setCursor((prev) => {
-						if (prev.line === 0) return prev;
-						const newLine = prev.line - 1;
-						return {
-							line: newLine,
-							col: Math.min(prev.col, lines[newLine].length),
-						};
-					});
-				},
-				{ focusId },
-			),
-		);
-
-		unbinds.push(
-			boundKeyboard(
-				["down"],
-				() => {
-					setCursor((prev) => {
-						if (prev.line >= lines.length - 1) return prev;
-						const newLine = prev.line + 1;
-						return {
-							line: newLine,
-							col: Math.min(prev.col, lines[newLine].length),
-						};
-					});
-				},
-				{ focusId },
 			),
 		);
 
@@ -205,7 +291,7 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 						} else if (prev.line > 0) {
 							const curLine = newLines[prev.line];
 							const prevLine = newLines[prev.line - 1];
-							const prevLen = prevLine.length;
+							const prevLen = [...prevLine].length;
 							newLines.splice(prev.line, 1);
 							newLines[prev.line - 1] = prevLine + curLine;
 							onChange?.(newLines.join("\n"));
@@ -225,9 +311,11 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 					setCursor((prev) => {
 						const newLines = [...lines];
 						const curLine = newLines[prev.line];
-						if (prev.col < curLine.length) {
-							newLines[prev.line] =
-								curLine.slice(0, prev.col) + curLine.slice(prev.col + 1);
+						const charLen = [...curLine].length;
+						if (prev.col < charLen) {
+							const chars = [...curLine];
+							chars.splice(prev.col, 1);
+							newLines[prev.line] = chars.join("");
 							onChange?.(newLines.join("\n"));
 							return prev;
 						} else if (prev.line < newLines.length - 1) {
@@ -262,7 +350,7 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 				const num = (actualLine + 1).toString().padStart(padLen, " ");
 				const isCurrentLine = actualLine === cursor.line;
 
-				if (line.length <= contentWidth) {
+				if (stringWidth(line) <= contentWidth) {
 					return (
 						<Text key={actualLine}>
 							<Text bold={isCurrentLine} dimColor={!isCurrentLine}>
@@ -275,11 +363,18 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 					);
 				}
 
-				// Manual wrap for long lines
-				const chunks: string[] = [];
-				for (let o = 0; o < line.length; o += contentWidth) {
-					chunks.push(line.slice(o, o + contentWidth));
+				// Manual wrap for long lines, chunked by visual width
+				const chunks = chunkByVisualWidth(line, contentWidth);
+
+				// Build character-index ranges for each chunk
+				const chunkRanges: { start: number; end: number }[] = [];
+				let charOff = 0;
+				for (const ch of chunks) {
+					const len = [...ch].length;
+					chunkRanges.push({ start: charOff, end: charOff + len });
+					charOff += len;
 				}
+				const totalChars = charOff;
 
 				return (
 					<Box key={actualLine} flexDirection="column">
@@ -287,20 +382,33 @@ function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 							<Text bold={isCurrentLine} dimColor={!isCurrentLine}>
 								{num}{" "}
 							</Text>
-							{isCurrentLine && cursor.col < contentWidth
-								? renderLineWithCursor(chunks[0], cursor.col, isFocused)
+							{isCurrentLine &&
+							(cursor.col < chunkRanges[0].end ||
+								(chunks.length === 1 && cursor.col >= totalChars))
+								? renderLineWithCursor(
+										chunks[0],
+										cursor.col,
+										isFocused,
+									)
 								: chunks[0]}
 						</Text>
 						{chunks.slice(1).map((chunk, ci) => {
-							const chunkOffset = (ci + 1) * contentWidth;
-							const colInChunk = cursor.col - chunkOffset;
+							const ci1 = ci + 1;
+							const { start, end } = chunkRanges[ci1];
+							const isLast = ci1 === chunks.length - 1;
 							const showCursor =
-								isCurrentLine && colInChunk >= 0 && colInChunk < contentWidth;
+								isCurrentLine &&
+								((cursor.col >= start && cursor.col < end) ||
+									(isLast && cursor.col >= totalChars));
 							return (
-								<Text key={`${actualLine}-${ci + 1}`}>
+								<Text key={`${actualLine}-${ci1}`}>
 									<Text dimColor>{emptyNum}</Text>
 									{showCursor
-										? renderLineWithCursor(chunk, colInChunk, isFocused)
+										? renderLineWithCursor(
+												chunk,
+												cursor.col - start,
+												isFocused,
+											)
 										: chunk}
 								</Text>
 							);
