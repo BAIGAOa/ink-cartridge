@@ -10,6 +10,7 @@ on:
     branches: [main]
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -33,7 +34,7 @@ jobs:
 
   release-ink-cartridge:
     needs: [test, release-keyboard-engine]
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -66,7 +67,7 @@ jobs:
 
   release-keyboard-engine:
     needs: test
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -99,7 +100,7 @@ jobs:
 
   release-blots-editor:
     needs: [test, release-ink-cartridge]
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
