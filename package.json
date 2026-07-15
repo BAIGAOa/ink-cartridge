@@ -24,7 +24,7 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w blots-editor",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && node -e \"require('fs').cpSync('dist','node_modules/ink-cartridge/dist',{recursive:true})\" && npm run build -w blots-editor",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",

@@ -111,6 +111,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
+      - run: npm run build -w @cartridge-engine/keyboard-engine
+      - run: npx tsc --locale zh-CN
+      - run: node -e "require('fs').cpSync('dist','node_modules/ink-cartridge/dist',{recursive:true})"
       - run: npm run build -w blots-editor
 
       - name: Check if version exists on npm
