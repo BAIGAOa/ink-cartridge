@@ -35,7 +35,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 	});
 
 	const isFocused = useFocusState(focusId);
-	const { rows: termHeight } = useWindowSize();
+	const { rows: termHeight, columns } = useWindowSize();
 	const viewHeight = Math.max(1, Math.min(height, termHeight));
 
 	const maxStart = Math.max(0, lineCount - viewHeight);
@@ -239,23 +239,63 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 		};
 	}, [boundKeyboard, enableWildcardPriority, focusId, lines, onChange]);
 
+	const padLen = String(lineCount).length;
+	const gutterWidth = padLen + 1;
+	const contentWidth = Math.max(10, columns - gutterWidth - 6);
+	const emptyNum = " ".repeat(gutterWidth);
+
 	return (
 		<Box flexDirection="column">
 			{visibleLines.map((line, i) => {
 				const actualLine = startLine + i;
-				const padLen = String(lineCount).length;
 				const num = (actualLine + 1).toString().padStart(padLen, " ");
 				const isCurrentLine = actualLine === cursor.line;
 
-				return (
-					<Text key={actualLine}>
-						<Text bold={isCurrentLine} dimColor={!isCurrentLine}>
-							{num}{" "}
+				if (line.length <= contentWidth) {
+					return (
+						<Text key={actualLine}>
+							<Text bold={isCurrentLine} dimColor={!isCurrentLine}>
+								{num}{" "}
+							</Text>
+							{isCurrentLine
+								? renderLineWithCursor(line, cursor.col, isFocused)
+								: line}
 						</Text>
-						{isCurrentLine
-							? renderLineWithCursor(line, cursor.col, isFocused)
-							: line}
-					</Text>
+					);
+				}
+
+				// Manual wrap for long lines
+				const chunks: string[] = [];
+				for (let o = 0; o < line.length; o += contentWidth) {
+					chunks.push(line.slice(o, o + contentWidth));
+				}
+
+				return (
+					<Box key={actualLine} flexDirection="column">
+						<Text>
+							<Text bold={isCurrentLine} dimColor={!isCurrentLine}>
+								{num}{" "}
+							</Text>
+							{isCurrentLine && cursor.col < contentWidth
+								? renderLineWithCursor(chunks[0], cursor.col, isFocused)
+								: chunks[0]}
+						</Text>
+						{chunks.slice(1).map((chunk, ci) => {
+							const chunkOffset = (ci + 1) * contentWidth;
+							const colInChunk = cursor.col - chunkOffset;
+							const showCursor =
+								isCurrentLine && colInChunk >= 0 && colInChunk < contentWidth;
+							return (
+								<Text key={`${actualLine}-${ci + 1}`}>
+									
+									<Text dimColor>{emptyNum}</Text>
+									{showCursor
+										? renderLineWithCursor(chunk, colInChunk, isFocused)
+										: chunk}
+								</Text>
+							);
+						})}
+					</Box>
 				);
 			})}
 		</Box>
