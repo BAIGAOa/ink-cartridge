@@ -56,20 +56,16 @@ function EditorScreen() {
 				</Text>
 			</Box>
 			<Box
-				marginTop={1}
-				borderStyle="round"
-				borderColor="white"
 				paddingX={1}
 				height='100%'
 				width='100%'
-				backgroundColor='black'
-				flexGrow={10}
+				backgroundColor='#1E1E1E'
 			>
 				<Editor
 					focusId="editor-main"
 					value={text}
 					onChange={setText}
-					height={Math.max(1, rows - 7)}
+					height={Math.max(1, rows - 5)}
 				/>
 			</Box>
 		</Box>
