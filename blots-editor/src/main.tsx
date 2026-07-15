@@ -2,7 +2,7 @@
  * Markdown Editor — multi-line text editor built on ink-cartridge.
  *
  * Run:
- *   npx tsx ink-blots/editor/main.tsx
+ *   npx tsx blots-editor/src/main.tsx
  */
 import React, { useEffect, useState } from 'react';
 import { render, Box, useWindowSize, Text } from 'ink';
@@ -12,8 +12,10 @@ import {
 	CurrentScreen,
 	KeyboardProvider,
 	useKeyboard,
-} from '../../src/index.js';
+	useScreenSystem,
+} from 'ink-cartridge';
 import Editor from './comp/Editor.js';
+import Cmd from './comp/Cmd.js';
 
 
 function EditorScreen() {
@@ -21,6 +23,8 @@ function EditorScreen() {
 	const [currentMode, setCurrentMode] = useState('normal');
 	const { rows } = useWindowSize();
 	const { setMode, boundKeyboard } = useKeyboard()
+	const { openOverlay } = useScreenSystem()
+	const [ ediIsFocus, setEdiFocus] = useState<false | undefined>(undefined)
 
 	useEffect(() => {
 		const u1 = boundKeyboard(['i'], () => {
@@ -37,9 +41,24 @@ function EditorScreen() {
 			mode: 'editor'
 		})
 
+		const u3 = boundKeyboard([':'], () => {
+			openOverlay('cmd', Cmd, {
+				height: 2,
+				left: 0,
+				setChange: () => {
+					setEdiFocus(undefined)
+				}
+			})
+
+			setEdiFocus(false)
+		}, {
+			mode: 'normal'
+		})
+
 		return () => {
 			u1()
 			u2()
+			u3()
 		}
 	}, [setMode, boundKeyboard])
 
@@ -66,6 +85,7 @@ function EditorScreen() {
 					value={text}
 					onChange={setText}
 					height={Math.max(1, rows - 5)}
+					isFocus={ediIsFocus}
 				/>
 			</Box>
 		</Box>

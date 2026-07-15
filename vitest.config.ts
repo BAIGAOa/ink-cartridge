@@ -31,6 +31,7 @@ export default defineConfig({
         },
       },
       './src/keyboard-engine',
+      './blots-editor',
     ],
   },
 });

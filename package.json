@@ -24,15 +24,15 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w blots-editor",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "npx vitest run --coverage",
-        "lint": "eslint src/ ink-blots/",
-        "lint:fix": "eslint --fix src/ ink-blots/",
-        "lint:quick": "eslint src/ ink-blots/ --quiet --cache",
+        "lint": "eslint src/ blots-editor/",
+        "lint:fix": "eslint --fix src/ blots-editor/",
+        "lint:quick": "eslint src/ blots-editor/ --quiet --cache",
         "demo:dev": "tsx examples/dev/dev.tsx"
     },
     "keywords": [
@@ -78,7 +78,8 @@
     },
     "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme",
     "workspaces": [
-        "src/keyboard-engine"
+        "src/keyboard-engine",
+        "blots-editor"
     ],
     "dependencies": {
         "@cartridge-engine/keyboard-engine": "*"

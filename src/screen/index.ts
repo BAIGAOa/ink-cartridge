@@ -18,6 +18,7 @@ export type { ScenarioManagementProviderProps } from './provider.js';
 export { useScreenSystem } from './hook.js';
 export { CurrentScreen } from './current-screen.js';
 export { ModalContext } from './ModalContext.js';
+export { OverlayContext } from './OverlayContext.js';
 export type {
   SkipOptions,
   SkipFn,

@@ -1,0 +1,53 @@
+{
+    "name": "blots-editor",
+    "version": "0.0.1",
+    "description": "Markdown editor TUI built on ink-cartridge — terminal text editing with vim-like modes",
+    "type": "module",
+    "main": "./dist/main.js",
+    "types": "./dist/main.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/main.d.ts",
+            "import": "./dist/main.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
+    },
+    "keywords": [
+        "markdown",
+        "editor",
+        "tui",
+        "terminal",
+        "ink",
+        "ink-cartridge"
+    ],
+    "author": "BAIGAO",
+    "license": "MIT",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "peerDependencies": {
+        "ink": ">=5",
+        "react": ">=18"
+    },
+    "dependencies": {
+        "chalk": "^5.4.1",
+        "ink-cartridge": "*"
+    },
+    "bugs": {
+        "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
+    },
+    "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme"
+}

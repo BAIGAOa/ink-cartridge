@@ -28,6 +28,7 @@ jobs:
       - run: npm run lint
       - run: npx tsc --project tests/tsconfig.json --noEmit
       - run: npx tsc --project src/keyboard-engine/tests/tsconfig.json --noEmit
+      - run: npx tsc --project blots-editor/tests/tsconfig.json --noEmit
       - run: npx vitest run --coverage
 
   release-ink-cartridge:
@@ -95,3 +96,36 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.exists != 'true'
         run: npm publish -w @cartridge-engine/keyboard-engine --access public
+
+  release-blots-editor:
+    needs: [test, release-ink-cartridge]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w blots-editor
+
+      - name: Check if version exists on npm
+        id: check
+        run: |
+          PKG_NAME="blots-editor"
+          PKG_VERSION=$(node -p "require('./blots-editor/package.json').version")
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "${PKG_NAME}@${PKG_VERSION} already published, skipping"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "${PKG_NAME}@${PKG_VERSION} not published, continuing"
+          fi
+
+      - name: Publish to npm
+        if: steps.check.outputs.exists != 'true'
+        run: npm publish -w blots-editor --access public

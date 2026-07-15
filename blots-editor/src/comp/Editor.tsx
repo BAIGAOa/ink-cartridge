@@ -1,6 +1,6 @@
 import { Box, Text, useWindowSize } from "ink";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useFocusState, useKeyboard } from "../../../src/index.js";
+import { useFocusState, useKeyboard } from "ink-cartridge";
 import chalk from "chalk";
 
 export interface EditorProp {
@@ -8,6 +8,7 @@ export interface EditorProp {
 	value: string;
 	focusId: string;
 	onChange: (value: string) => void;
+	isFocus?: boolean
 }
 
 function renderLineWithCursor(
@@ -26,7 +27,7 @@ function renderLineWithCursor(
 	return result;
 }
 
-function Editor({ value, focusId, onChange, height }: EditorProp) {
+function Editor({ value, focusId, onChange, height, isFocus }: EditorProp) {
 	const lines = useMemo(() => value.split("\n"), [value]);
 	const lineCount = lines.length;
 	const [cursor, setCursor] = useState<{ line: number; col: number }>(() => {
@@ -34,7 +35,8 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 		return { line: lastLine, col: (lines[lastLine] ?? "").length };
 	});
 
-	const isFocused = useFocusState(focusId);
+	const focusFromState = useFocusState(focusId);
+	const isFocused = isFocus ?? focusFromState;
 	const { rows: termHeight, columns } = useWindowSize();
 	const viewHeight = Math.max(1, Math.min(height, termHeight));
 
@@ -52,7 +54,8 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 	const clampStart = useCallback(
 		(line: number, prev: number) => {
 			if (line < prev) return line;
-			if (line >= prev + viewHeight) return Math.min(line - viewHeight + 1, maxStart);
+			if (line >= prev + viewHeight)
+				return Math.min(line - viewHeight + 1, maxStart);
 			return prev;
 		},
 		[viewHeight, maxStart],
@@ -86,13 +89,13 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line, col: prev.col + input.length };
 					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId, mode: "editor" },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['tab'],
+				["tab"],
 				() => {
 					setCursor((prev) => {
 						const newLines = [...lines];
@@ -103,68 +106,76 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line, col: prev.col + 2 };
 					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId, mode: "editor" },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['left'],
+				["left"],
 				() => {
 					setCursor((prev) => {
-						return { line: prev.line, col: Math.max(0, prev.col - 1) }
-					})
+						return { line: prev.line, col: Math.max(0, prev.col - 1) };
+					});
 				},
 				{
 					focusId,
-					mode: 'editor'
-				}
-			)
-		)
+				},
+			),
+		);
 
 		unbinds.push(
 			boundKeyboard(
-				['right'],
+				["right"],
 				() => {
 					setCursor((prev) => {
-						return { line: prev.line, col: Math.min(prev.col + 1, lines[prev.line].length) }
-					})
+						return {
+							line: prev.line,
+							col: Math.min(prev.col + 1, lines[prev.line].length),
+						};
+					});
 				},
-				{ focusId, mode: 'editor' }
-			)
-		)
+				{ focusId },
+			),
+		);
 
 		unbinds.push(
 			boundKeyboard(
-				['up'],
+				["up"],
 				() => {
 					setCursor((prev) => {
 						if (prev.line === 0) return prev;
 						const newLine = prev.line - 1;
-						return { line: newLine, col: Math.min(prev.col, lines[newLine].length) };
-					})
+						return {
+							line: newLine,
+							col: Math.min(prev.col, lines[newLine].length),
+						};
+					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['down'],
+				["down"],
 				() => {
 					setCursor((prev) => {
 						if (prev.line >= lines.length - 1) return prev;
 						const newLine = prev.line + 1;
-						return { line: newLine, col: Math.min(prev.col, lines[newLine].length) };
-					})
+						return {
+							line: newLine,
+							col: Math.min(prev.col, lines[newLine].length),
+						};
+					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['return'],
+				["return"],
 				() => {
 					setCursor((prev) => {
 						const newLines = [...lines];
@@ -175,13 +186,13 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return { line: prev.line + 1, col: 0 };
 					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId, mode: "editor" },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['backspace'],
+				["backspace"],
 				() => {
 					setCursor((prev) => {
 						const newLines = [...lines];
@@ -203,13 +214,13 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return prev;
 					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId, mode: "editor" },
 			),
 		);
 
 		unbinds.push(
 			boundKeyboard(
-				['delete'],
+				["delete"],
 				() => {
 					setCursor((prev) => {
 						const newLines = [...lines];
@@ -229,7 +240,7 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 						return prev;
 					});
 				},
-				{ focusId, mode: 'editor' },
+				{ focusId, mode: "editor" },
 			),
 		);
 
@@ -287,7 +298,6 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 								isCurrentLine && colInChunk >= 0 && colInChunk < contentWidth;
 							return (
 								<Text key={`${actualLine}-${ci + 1}`}>
-									
 									<Text dimColor>{emptyNum}</Text>
 									{showCursor
 										? renderLineWithCursor(chunk, colInChunk, isFocused)
@@ -302,4 +312,4 @@ function Editor({ value, focusId, onChange, height }: EditorProp) {
 	);
 }
 
-export default Editor
+export default Editor;
