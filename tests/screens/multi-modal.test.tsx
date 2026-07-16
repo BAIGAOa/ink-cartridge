@@ -85,7 +85,7 @@ function renderMultiModalApp(
 
   const { lastFrame, stdin, unmount } = render(
     <ScenarioManagementProvider defaultScreen={defaultScreen}>
-      <KeyboardProvider>
+      <KeyboardProvider autoTab={true}>
         <AppHost />
       </KeyboardProvider>
     </ScenarioManagementProvider>,

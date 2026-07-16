@@ -221,6 +221,24 @@ export type bufferEntry = {
 	ctx: CompositionContext;
 };
 
+function compositionFingerprint(entry: CompositioKey): string {
+	return JSON.stringify({
+		key: entry.key,
+		flags: entry.flags,
+		needs: entry.needs,
+		alternativeFlag: entry.alternativeFlag,
+		optional: entry.optional,
+		category: entry.category,
+		affectOverlay: entry.affectOverlay,
+		exclusive: entry.exclusive,
+		executeWhenNoOverlay: entry.executeWhenNoOverlay,
+		KeyReleaseWhenChainInterrupted: entry.KeyReleaseWhenChainInterrupted,
+		isEndKey: entry.isEndKey,
+		mode: entry.mode,
+		timeout: entry.timeout,
+	});
+}
+
 export default class CompositionEngine<TComponet = unknown> {
 	private currentKey: string[] = [];
 	private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> =
@@ -298,14 +316,23 @@ export default class CompositionEngine<TComponet = unknown> {
 
 	registryCompositionKey(entry: CompositioKey<TComponet>) {
 		const key = entry.key;
-		const result = this.keyMappingTable.get(key);
+		const set = this.keyMappingTable.get(key);
 
-		if (!result) {
+		if (!set) {
 			this.keyMappingTable.set(key, new Set([entry]));
 			return;
 		}
 
-		result.add(entry);
+		// Skip if a semantically equivalent entry already exists.
+		// Fingerprint excludes callbacks (execute / undoAction / when)
+		// because those are new references on every React render and
+		// don't define the entry's identity in the chain.
+		const fp = compositionFingerprint(entry);
+		for (const existing of set) {
+			if (compositionFingerprint(existing) === fp) return;
+		}
+
+		set.add(entry);
 	}
 
 	/**

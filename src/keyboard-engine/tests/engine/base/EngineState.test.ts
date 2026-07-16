@@ -36,6 +36,48 @@ describe('EngineState', () => {
     });
   });
 
+  describe('autoTab', () => {
+    test('Given no autoTab option, Then defaults to false', () => {
+      const engine = createEngine();
+      // autoTab=false means Tab is NOT auto-handled — it passes through to bindings
+      engine.sync({
+        path: ['screen'],
+        activeOverlayIds: [],
+        displayedOverlays: [],
+        activeModalId: null,
+        displayedModals: [],
+      });
+      const ctx = (engine as any).buildPipelineContext('', {});
+      expect(ctx.autoTab).toBe(false);
+    });
+
+    test('Given autoTab=true at construction, Then buildPipelineContext returns autoTab=true', () => {
+      const engine = createEngine(undefined, undefined, true);
+      engine.sync({
+        path: ['screen'],
+        activeOverlayIds: [],
+        displayedOverlays: [],
+        activeModalId: null,
+        displayedModals: [],
+      });
+      const ctx = (engine as any).buildPipelineContext('', {});
+      expect(ctx.autoTab).toBe(true);
+    });
+
+    test('Given autoTab=false at construction, Then buildPipelineContext returns autoTab=false', () => {
+      const engine = createEngine(undefined, undefined, false);
+      engine.sync({
+        path: ['screen'],
+        activeOverlayIds: [],
+        displayedOverlays: [],
+        activeModalId: null,
+        displayedModals: [],
+      });
+      const ctx = (engine as any).buildPipelineContext('', {});
+      expect(ctx.autoTab).toBe(false);
+    });
+  });
+
   describe('conditions', () => {
     test('Given addCondition with new id, Then returns true', () => {
       const engine = createEngine();

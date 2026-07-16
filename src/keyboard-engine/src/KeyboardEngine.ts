@@ -81,6 +81,16 @@ export interface EngineProps {
    * ```
    */
   valueSchema?: ValueSchema
+
+  /**
+   * Whether the engine automatically handles Tab / Shift+Tab for focus
+   * rotation. Defaults to `false`.
+   *
+   * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
+   * automatically. When `false` or `undefined`, developers must call
+   * `focusNext` / `focusPrev` manually.
+   */
+  autoTab?: boolean
 }
 
 /**
@@ -718,6 +728,7 @@ export default class KeyboardEngine<TComponent = unknown> {
       key,
       compositionEngineHandler,
       compositionEngine: this.state.compositionEngine,
+      autoTab: this.state.autoTab,
     };
   }
 

@@ -29,7 +29,9 @@ engine.focusSet('searchInput');
 
 ### focusNext / focusPrev
 
-Cycle to the next/previous focus target in registration order. Wrap around at the ends. These are wired to Tab and Shift+Tab by default in the screen stack processor.
+Cycle to the next/previous focus target in registration order. Wrap around at the ends.
+
+When `autoTab` is `true` in the engine constructor, Tab and Shift+Tab are automatically intercepted by the pipeline to call `focusNext()` / `focusPrev()`. When `autoTab` is `false` (the default), developers must bind Tab/Shift+Tab manually and call these methods themselves.
 
 ```ts
 engine.focusNext();  // Tab
@@ -89,7 +91,7 @@ engine.subscribeFocus(() => {
   updateCursor(current); // Redraw focus indicator
 });
 
-// Tab navigation is automatic — screen stack processor handles Tab/Shift+Tab
+// Tab navigation via autoTab — when enabled, the pipeline handles Tab/Shift+Tab automatically.
 ```
 
 ## Throws

@@ -808,6 +808,9 @@ export interface PipelineContext {
 
   /** The shared composition engine instance. */
   readonly compositionEngine: CompositionEngine;
+
+  /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
+  readonly autoTab: boolean;
 }
 
 /**

@@ -138,17 +138,13 @@ export function handleLayer(
   currentMode: string | null,
   conditions: Map<string, boolean>,
   notifyPendingSyncs?: () => void,
+  autoTab?: boolean,
 ): boolean {
-  // Tab/Shift+Tab has the highest priority to avoid conflicts with business-bound actions.
-  // However, when there is no Focus Target in the Current Screen, handleTabNavigation will
-  // return false, which allows users to retain flexibility. When tab/shift+tab do not need
-  // to be enforced, they can also be bound to business-specific keys.
-  //
-  // Detect shift from normalized event names rather than reading (key as any).shift.
-  // This keeps the engine framework-agnostic — normalizeKeyNames is responsible for
-  // adding "shift+" prefixed variants; we just check the output it produces.
+  // Auto Tab navigation: only when the developer explicitly opts in via
+  // autoTab: true. Otherwise Tab/Shift+Tab passes through to normal
+  // bindings so developers can bind them to custom handlers.
   const shift = eventNames.some(n => n.startsWith('shift+'));
-  if (isTop && handleTabNavigation(layer, eventNames, shift, notifyFocusChange)) return true;
+  if (autoTab && isTop && handleTabNavigation(layer, eventNames, shift, notifyFocusChange)) return true;
 
   const penetrated = layer.penetrationKeys;
   const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated, conditions));

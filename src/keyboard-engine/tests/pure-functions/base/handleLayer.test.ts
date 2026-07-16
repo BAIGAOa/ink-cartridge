@@ -13,13 +13,13 @@ const dummyKey = {};
 
 describe('handleLayer', () => {
   describe('Tab navigation (highest priority)', () => {
-    test('Given isTop=true, eventNames includes tab, and focusOrder has items, Then Tab navigates and consumes event', () => {
+    test('Given autoTab=true, isTop=true, and focusOrder has items, Then Tab navigates and consumes event', () => {
       const layer = fakeLayer({
         focusOrder: ['a', 'b'],
         currentFocusId: null,
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
       );
       expect(result).toBe(true);
       expect(layer.currentFocusId).toBe('a');
@@ -31,7 +31,7 @@ describe('handleLayer', () => {
         currentFocusId: null,
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, false, noop, 0, false, false, null, new Map(),
+        layer, ['tab'], '', dummyKey, false, noop, 0, false, false, null, new Map(), undefined, true,
       );
       expect(result).toBe(false);
     });
@@ -39,7 +39,87 @@ describe('handleLayer', () => {
     test('Given Tab navigation returns false (empty focusOrder), event continues', () => {
       const layer = fakeLayer({ focusOrder: [] });
       const result = handleLayer(
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('autoTab', () => {
+    test('Given autoTab=true, Tab is consumed by focus rotation', () => {
+      const layer = fakeLayer({
+        focusOrder: ['a', 'b'],
+        currentFocusId: null,
+      });
+      const result = handleLayer(
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+      );
+      expect(result).toBe(true);
+      expect(layer.currentFocusId).toBe('a');
+    });
+
+    test('Given autoTab=true, Shift+Tab is consumed by focus rotation', () => {
+      const layer = fakeLayer({
+        focusOrder: ['a', 'b'],
+        currentFocusId: 'b',
+      });
+      const result = handleLayer(
+        layer, ['tab', 'shift+tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+      );
+      expect(result).toBe(true);
+      expect(layer.currentFocusId).toBe('a');
+    });
+
+    test('Given autoTab=false, Tab falls through to normal bindings', () => {
+      const tabHandler = vi.fn();
+      const layer = fakeLayer({
+        focusOrder: ['a', 'b'],
+        currentFocusId: null,
+        bindings: [makeEntry(['tab'], tabHandler)],
+      });
+      const result = handleLayer(
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, false,
+      );
+      expect(result).toBe(true);
+      expect(tabHandler).toHaveBeenCalledOnce();
+      expect(layer.currentFocusId).toBeNull();
+    });
+
+    test('Given autoTab omitted (undefined), Tab falls through to normal bindings', () => {
+      const tabHandler = vi.fn();
+      const layer = fakeLayer({
+        focusOrder: ['a', 'b'],
+        currentFocusId: null,
+        bindings: [makeEntry(['tab'], tabHandler)],
+      });
+      const result = handleLayer(
         layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(result).toBe(true);
+      expect(tabHandler).toHaveBeenCalledOnce();
+      expect(layer.currentFocusId).toBeNull();
+    });
+
+    test('Given autoTab=true with no focus targets (empty focusOrder), Tab falls through', () => {
+      const tabHandler = vi.fn();
+      const layer = fakeLayer({
+        focusOrder: [],
+        bindings: [makeEntry(['tab'], tabHandler)],
+      });
+      const result = handleLayer(
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+      );
+      expect(result).toBe(true);
+      expect(tabHandler).toHaveBeenCalledOnce();
+    });
+
+    test('Given autoTab=false and no bindings, Tab falls through completely', () => {
+      const layer = fakeLayer({
+        focusOrder: ['a'],
+        currentFocusId: null,
+      });
+      const result = handleLayer(
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, false,
       );
       expect(result).toBe(false);
     });

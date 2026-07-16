@@ -16,6 +16,7 @@ export {
   closeAllModals,
   useScreenSystem,
   ModalContext,
+  OverlayContext,
 } from "./screen/index.js";
 
 export type {

@@ -414,7 +414,7 @@ describe('focusId', () => {
     const { stdin } = renderKeyboardApp(Menu, (kb) => {
       kb.boundKeyboard(['return'], cb1, { focusId: 'one' });
       kb.boundKeyboard(['return'], cb2, { focusId: 'two' });
-    });
+    }, { autoTab: true });
     await flush();
 
     // First target active

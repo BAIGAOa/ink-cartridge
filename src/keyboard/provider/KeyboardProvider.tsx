@@ -24,9 +24,18 @@ export interface KeyboardProviderProps {
    * ```
    */
   valueSchema?: ValueSchema;
+  /**
+   * Whether the engine automatically handles Tab / Shift+Tab for focus
+   * rotation. Defaults to `false`.
+   *
+   * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
+   * automatically. When `false` or omitted, developers must call
+   * `focusNext` / `focusPrev` manually.
+   */
+  autoTab?: boolean;
 }
 
-export function KeyboardProvider({ children, processors, modes, defaultMode, valueSchema }: KeyboardProviderProps) {
+export function KeyboardProvider({ children, processors, modes, defaultMode, valueSchema, autoTab }: KeyboardProviderProps) {
   const {
     currentPath,
     activeOverlayIds,
@@ -43,6 +52,7 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
       processors,
       normalizeKeyNames,
       valueSchema,
+      autoTab,
     });
   }
   const engine = engineRef.current;

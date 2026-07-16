@@ -1,6 +1,6 @@
 # Focus System
 
-Terminal UIs have no built-in notion of "which input is focused." The focus system provides Tab-based navigation and programmatic focus control across interactive components on the same screen layer.
+Terminal UIs have no built-in notion of "which input is focused." The focus system provides programmatic focus control across interactive components on the same screen layer. When `autoTab` is enabled on `KeyboardProvider`, the engine automatically intercepts Tab/Shift+Tab to cycle focus; otherwise developers bind Tab manually.
 
 ## API Overview
 

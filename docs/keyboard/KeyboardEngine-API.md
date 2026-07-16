@@ -22,6 +22,7 @@ class KeyboardEngine<TComponent = unknown> {
 | `processors` | `KeyboardProcessorProps[]` | no | Per-instance custom processors |
 | `defaultTimeout` | `number` | no | Default sequence timeout in ms |
 | `valueSchema` | `ValueSchema` | no | Composition value validation schema |
+| `autoTab` | `boolean` | no | When `true`, the engine intercepts Tab/Shift+Tab to cycle focus. Defaults to `false`. |
 
 ## Core Loop
 

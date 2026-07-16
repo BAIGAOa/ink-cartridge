@@ -1,6 +1,6 @@
 {
     "name": "ink-cartridge",
-    "version": "4.2.1",
+    "version": "4.2.2",
     "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
@@ -24,15 +24,15 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && node -e \"require('fs').cpSync('dist','node_modules/ink-cartridge/dist',{recursive:true})\"",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "npx vitest run --coverage",
-        "lint": "eslint src/ ink-blots/",
-        "lint:fix": "eslint --fix src/ ink-blots/",
-        "lint:quick": "eslint src/ ink-blots/ --quiet --cache",
+        "lint": "eslint src/",
+        "lint:fix": "eslint --fix src/",
+        "lint:quick": "eslint src/ --quiet --cache",
         "demo:dev": "tsx examples/dev/dev.tsx"
     },
     "keywords": [

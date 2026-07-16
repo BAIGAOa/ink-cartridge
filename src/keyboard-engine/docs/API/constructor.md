@@ -22,6 +22,7 @@ interface EngineProps {
   processors?: KeyboardProcessorProps[];
   defaultTimeout?: number;
   valueSchema?: ValueSchema;
+  autoTab?: boolean;
 }
 ```
 
@@ -33,6 +34,7 @@ interface EngineProps {
 | `processors` | `KeyboardProcessorProps[]` | no | Custom processors injected into the pipeline at construction time. |
 | `defaultTimeout` | `number` | no | Default composition chain timeout in ms. Defaults to 400. |
 | `valueSchema` | `ValueSchema` | no | Initial runtime type guards for composition chain values. See [`setValueSchema`](./composition/setValueSchema.md). |
+| `autoTab` | `boolean` | no | When `true`, the engine automatically intercepts Tab / Shift+Tab to cycle focus targets. Defaults to `false` — developers must call `focusNext()` / `focusPrev()` manually. |
 
 ## Returns
 
