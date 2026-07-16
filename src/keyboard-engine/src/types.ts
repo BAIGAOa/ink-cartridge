@@ -61,16 +61,13 @@ export interface BoundKeyboardOptions {
   onlyThis?: boolean;
 
   /**
-   * Associate this binding with a named focus target on the current screen.
-   *
-   * Focus targets receive events only when they are the active target on
-   * their screen layer. Multiple focus targets on the same screen are
-   * navigated via Tab / Shift+Tab or programmatic `focusSet` / `focusNext`.
-   *
-   * When omitted, the binding is stored at the screen level and always
-   * evaluated after the active focus target (if any).
+   * In which focus must the currently bound key be active for it to take effect
+   * If only one string is filled in, this key is bound to the default focus layer
+   * If an explicit group is declared, it is bound to that group.
    */
-  focusId?: string;
+  focusId?:
+    | string
+    | { group: string | typeof defaultTargetsSymbol; focusId: string };
 
   /**
    * When `true`, the binding is automatically removed after its first
@@ -320,6 +317,9 @@ export interface SequenceBinding {
  */
 export type LayerKind = "screen" | "overlay" | "modal";
 
+// It is used to identify the internal default focus layer.
+// Prevent user conflict
+export const defaultTargetsSymbol: unique symbol = Symbol("default");
 /**
  * Per-layer keyboard state: bindings, transparent keys, stop keys,
  * and focus targets.
@@ -347,12 +347,31 @@ export interface ScreenKeyboardLayer {
   /** Keys from globalKeys that this layer has overridden. */
   globalKeyOverrides: Set<string>;
 
-  /** Named focus targets on this layer. */
-  focusTargets: Map<string, FocusTarget>;
-  /** Registration order of focus target ids. */
-  focusOrder: string[];
+  /**
+   * Focal layer of the current layer
+   * The key is the group and the value is a Map that represents the group.
+   * Focuses in different groups can be activated within a layer, and each group can have only one focus
+   */
+  focusTargets: Map<string, { map: Map<string, FocusTarget>; order: string[] }>;
+
+  /**
+   * Default focus layer, if the focus is not registered in the specified group
+   * The focus will be registered into this
+   * Similarly, there can only be one active focus for this group
+   */
+  defaultTargets: Map<string, FocusTarget>;
+
+  /**
+   * All focus of the default focus layer is used for automatic focus switching by default
+   */
+  defaultFocusOrder: string[];
+  /** Which groups currently have focus active within them, including the default layer */
+  activeFocusGroup: string[];
   /** The currently active focus target id, or null. */
-  currentFocusId: string | null;
+  currentFocusIds: {
+    id: string;
+    fromGroup: string | typeof defaultTargetsSymbol;
+  }[];
   /** Maps action IDs to the normalized keys that trigger them (screen-level, excludes focus targets). */
   actionKeysMap: Map<string, string[]>;
 
@@ -420,7 +439,9 @@ export interface ModalMissOptions {
  */
 export interface StopOptions {
   /** If provided, stops only within the named focus target. */
-  focusId?: string;
+  focusId?:
+    | string
+    | { group: string | typeof defaultTargetsSymbol; focusId: string };
   /**
    * When `true`, treats each entry in `keys` as a shortcut **action ID**
    * and resolves it to the actual key names currently bound to that action
@@ -448,7 +469,9 @@ export interface StopOptions {
  */
 export interface PenetrationOptions {
   /** If provided, penetrates only within the named focus target. */
-  focusId?: string;
+  focusId?:
+    | string
+    | { group: string | typeof defaultTargetsSymbol; focusId: string };
   /**
    * Optional condition callback. When provided, the key is only transparent
    * when this returns `true`. When `false`, the penetration rule
@@ -463,7 +486,9 @@ export interface PenetrationOptions {
  */
 export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
-  focusId?: string;
+  focusId?:
+    | string
+    | { group: string | typeof defaultTargetsSymbol; focusId: string };
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
   when?: (() => boolean) | string;
 }
