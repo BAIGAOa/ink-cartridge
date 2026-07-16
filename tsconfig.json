@@ -27,5 +27,5 @@
     "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/keyboard-engine", "blots-editor"]
+  "exclude": ["node_modules", "dist", "src/keyboard-engine", ]
 }

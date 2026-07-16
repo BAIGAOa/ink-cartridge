@@ -6,7 +6,6 @@ on:
     paths:
       - 'package.json'
       - 'src/keyboard-engine/package.json'
-      - 'blots-editor/package.json'
   workflow_dispatch:
 
 jobs:

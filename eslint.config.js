@@ -88,7 +88,7 @@ export default tseslint.config(
       'src/__tests__/**/*.{ts,tsx}',
       'examples/**/*.{ts,tsx}',
       'ink-blots/**/*.{ts,tsx}',
-      'blots-editor/**/*.{ts,tsx}',
+
       'src/dev/**/*.{ts,tsx}',
       'src/keyboard-engine/tests/**/*.ts',
     ],
