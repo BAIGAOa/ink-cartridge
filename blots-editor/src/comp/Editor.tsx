@@ -14,22 +14,33 @@ export interface EditorProp {
 
 /** Split a string into chunks where each chunk's visual width ≤ maxWidth. */
 function chunkByVisualWidth(s: string, maxWidth: number): string[] {
-	const chars = [...s];
-	const chunks: string[] = [];
-	let buf: string[] = [];
-	let bufWidth = 0;
-	for (const ch of chars) {
-		const w = stringWidth(ch);
-		if (bufWidth + w > maxWidth && buf.length > 0) {
-			chunks.push(buf.join(""));
-			buf = [];
-			bufWidth = 0;
-		}
-		buf.push(ch);
-		bufWidth += w;
-	}
-	if (buf.length > 0) chunks.push(buf.join(""));
-	return chunks;
+  const chars = [...s];
+  const result: string[] = [];
+
+  let currentLineChars: string[] = [];
+  let currentLineWidth = 0;
+
+  for (const ch of chars) {
+    const charWidth = stringWidth(ch);
+
+    if (currentLineChars.length > 0 && currentLineWidth + charWidth > maxWidth) {
+      result.push(currentLineChars.join(''));
+      currentLineChars = [];
+      currentLineWidth = 0;
+    }
+
+    currentLineChars.push(ch);
+    currentLineWidth += charWidth;
+  }
+
+  // In fact, there may be a little bit of character left.
+  // If these characters are indeed left, it means that they will not actually exceed the current terminal width.
+  // So push straight in to prevent loss
+  if (currentLineChars.length > 0) {
+    result.push(currentLineChars.join(''));
+  }
+
+  return result;
 }
 
 function renderLineWithCursor(

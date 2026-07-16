@@ -46,6 +46,7 @@
     "dependencies": {
         "chalk": "^5.4.1",
         "ink-cartridge": "*",
+        "marked": "^9.1.5",
         "string-width": "^8.2.2"
     },
     "bugs": {
