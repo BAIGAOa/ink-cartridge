@@ -545,10 +545,10 @@ describe('focus isolation', () => {
       ),
     );
 
-    expect(kbRef.current!.focusCurrent()).toBe('input-a');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('input-a');
 
     kbRef.current!.focusNext();
-    expect(kbRef.current!.focusCurrent()).toBe('input-b');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('input-b');
 
     // after switching to input-b, keys go to input-b
     await press(stdin, 'x');

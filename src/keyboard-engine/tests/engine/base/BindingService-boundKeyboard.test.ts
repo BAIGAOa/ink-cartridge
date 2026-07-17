@@ -100,7 +100,7 @@ describe('BindingService — boundKeyboard', () => {
       setup(engine);
       const handler = vi.fn();
       engine.boundKeyboard('x', handler, { focusId: 'input1' });
-      expect(engine.focusCurrent()).toBe('input1');
+      expect(engine.focusCurrent().result?.id).toBe('input1');
       engine.processKey('x', {});
       expect(handler).toHaveBeenCalled();
     });

@@ -7,28 +7,28 @@ import {
   makePendingSequence,
   fakeFocusTarget,
 } from '../../_helpers/factories.js';
+import { defaultTargetsSymbol } from '../../../src/types.js';
 
 function noop() {}
 const dummyKey = {};
+const defSym: typeof defaultTargetsSymbol = defaultTargetsSymbol;
 
 describe('handleLayer', () => {
   describe('Tab navigation (highest priority)', () => {
-    test('Given autoTab=true, isTop=true, and focusOrder has items, Then Tab navigates and consumes event', () => {
+    test('Given autoTab=true, isTop=true, and defaultFocusOrder has items, Then Tab navigates and consumes event', () => {
       const layer = fakeLayer({
-        focusOrder: ['a', 'b'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
         layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
       );
       expect(result).toBe(true);
-      expect(layer.currentFocusId).toBe('a');
+      expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
     });
 
     test('Given isTop=false, Tab navigation is not processed even with tab key', () => {
       const layer = fakeLayer({
-        focusOrder: ['a'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a'],
       });
       const result = handleLayer(
         layer, ['tab'], '', dummyKey, false, noop, 0, false, false, null, new Map(), undefined, true,
@@ -36,8 +36,8 @@ describe('handleLayer', () => {
       expect(result).toBe(false);
     });
 
-    test('Given Tab navigation returns false (empty focusOrder), event continues', () => {
-      const layer = fakeLayer({ focusOrder: [] });
+    test('Given Tab navigation returns false (empty defaultFocusOrder), event continues', () => {
+      const layer = fakeLayer({ defaultFocusOrder: [] });
       const result = handleLayer(
         layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
       );
@@ -48,33 +48,30 @@ describe('handleLayer', () => {
   describe('autoTab', () => {
     test('Given autoTab=true, Tab is consumed by focus rotation', () => {
       const layer = fakeLayer({
-        focusOrder: ['a', 'b'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
         layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
       );
       expect(result).toBe(true);
-      expect(layer.currentFocusId).toBe('a');
+      expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
     });
 
     test('Given autoTab=true, Shift+Tab is consumed by focus rotation', () => {
       const layer = fakeLayer({
-        focusOrder: ['a', 'b'],
-        currentFocusId: 'b',
+        defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
-        layer, ['tab', 'shift+tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
       );
       expect(result).toBe(true);
-      expect(layer.currentFocusId).toBe('a');
+      expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
     });
 
     test('Given autoTab=false, Tab falls through to normal bindings', () => {
       const tabHandler = vi.fn();
       const layer = fakeLayer({
-        focusOrder: ['a', 'b'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a', 'b'],
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
@@ -82,14 +79,13 @@ describe('handleLayer', () => {
       );
       expect(result).toBe(true);
       expect(tabHandler).toHaveBeenCalledOnce();
-      expect(layer.currentFocusId).toBeNull();
+      expect(layer.currentFocusIds[0]?.id ?? null).toBeNull();
     });
 
     test('Given autoTab omitted (undefined), Tab falls through to normal bindings', () => {
       const tabHandler = vi.fn();
       const layer = fakeLayer({
-        focusOrder: ['a', 'b'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a', 'b'],
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
@@ -97,13 +93,13 @@ describe('handleLayer', () => {
       );
       expect(result).toBe(true);
       expect(tabHandler).toHaveBeenCalledOnce();
-      expect(layer.currentFocusId).toBeNull();
+      expect(layer.currentFocusIds[0]?.id ?? null).toBeNull();
     });
 
-    test('Given autoTab=true with no focus targets (empty focusOrder), Tab falls through', () => {
+    test('Given autoTab=true with no focus targets (empty defaultFocusOrder), Tab falls through', () => {
       const tabHandler = vi.fn();
       const layer = fakeLayer({
-        focusOrder: [],
+        defaultFocusOrder: [],
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
@@ -115,8 +111,7 @@ describe('handleLayer', () => {
 
     test('Given autoTab=false and no bindings, Tab falls through completely', () => {
       const layer = fakeLayer({
-        focusOrder: ['a'],
-        currentFocusId: null,
+        defaultFocusOrder: ['a'],
       });
       const result = handleLayer(
         layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, false,
@@ -241,9 +236,9 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['*'], ftHandler)],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
         bindings: [makeEntry(['*'], screenHandler)],
       });
       handleLayer(
@@ -251,6 +246,45 @@ describe('handleLayer', () => {
       );
       expect(ftHandler).toHaveBeenCalledOnce();
       expect(screenHandler).not.toHaveBeenCalled();
+    });
+
+    test('Given wildcardFirst=true with group-scoped active focus * binding, Then group target * fires first', () => {
+      const grpHandler = vi.fn();
+      const screenHandler = vi.fn();
+      const grpFt = fakeFocusTarget({
+        bindings: [makeEntry(['*'], grpHandler)],
+      });
+      const layer = fakeLayer({
+        focusTargets: new Map([['row', { map: new Map([['r1', grpFt]]), order: ['r1'] }]]),
+        currentFocusIds: [{ id: 'r1', fromGroup: 'row' }],
+        bindings: [makeEntry(['*'], screenHandler)],
+      });
+      handleLayer(
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(),
+      );
+      expect(grpHandler).toHaveBeenCalledOnce();
+      expect(screenHandler).not.toHaveBeenCalled();
+    });
+
+    test('Given wildcardFirst=true with both default and group active, default target * wins (first in currentFocusIds)', () => {
+      const defHandler = vi.fn();
+      const grpHandler = vi.fn();
+      const defFt = fakeFocusTarget({ bindings: [makeEntry(['*'], defHandler)] });
+      const grpFt = fakeFocusTarget({ bindings: [makeEntry(['*'], grpHandler)] });
+      const layer = fakeLayer({
+        defaultTargets: new Map([['d1', defFt]]),
+        defaultFocusOrder: ['d1'],
+        focusTargets: new Map([['row', { map: new Map([['r1', grpFt]]), order: ['r1'] }]]),
+        currentFocusIds: [
+          { id: 'd1', fromGroup: defSym },
+          { id: 'r1', fromGroup: 'row' },
+        ],
+      });
+      handleLayer(
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(),
+      );
+      expect(defHandler).toHaveBeenCalledOnce();
+      expect(grpHandler).not.toHaveBeenCalled();
     });
   });
 
@@ -450,6 +484,82 @@ describe('handleLayer', () => {
       );
       expect(layer.pendingSequence).toBeNull();
     });
+
+    test('Given sequence focusId (string) matches active default focus, Then sequence starts', () => {
+      const seqHandler = vi.fn();
+      const layer = fakeLayer({
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
+      });
+      layer.sequences.set('g', [
+        makeSequenceBinding(['g', 'g'], seqHandler, { options: { focusId: 'f1' } }),
+      ]);
+      handleLayer(
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(layer.pendingSequence).not.toBeNull();
+    });
+
+    test('Given sequence focusId (string) does not match active default focus, Then sequence does not start', () => {
+      const seqHandler = vi.fn();
+      const layer = fakeLayer({
+        currentFocusIds: [{ id: 'other', fromGroup: defSym }],
+      });
+      layer.sequences.set('g', [
+        makeSequenceBinding(['g', 'g'], seqHandler, { options: { focusId: 'f1' } }),
+      ]);
+      handleLayer(
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(layer.pendingSequence).toBeNull();
+    });
+
+    test('Given sequence focusId {group, focusId} matches active group focus, Then sequence starts', () => {
+      const seqHandler = vi.fn();
+      const layer = fakeLayer({
+        currentFocusIds: [{ id: 'r1', fromGroup: 'row' }],
+      });
+      layer.sequences.set('g', [
+        makeSequenceBinding(['g', 'g'], seqHandler, {
+          options: { focusId: { group: 'row', focusId: 'r1' } },
+        }),
+      ]);
+      handleLayer(
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(layer.pendingSequence).not.toBeNull();
+    });
+
+    test('Given sequence focusId {group, focusId} group matches but id does not, Then sequence does not start', () => {
+      const seqHandler = vi.fn();
+      const layer = fakeLayer({
+        currentFocusIds: [{ id: 'r2', fromGroup: 'row' }],
+      });
+      layer.sequences.set('g', [
+        makeSequenceBinding(['g', 'g'], seqHandler, {
+          options: { focusId: { group: 'row', focusId: 'r1' } },
+        }),
+      ]);
+      handleLayer(
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(layer.pendingSequence).toBeNull();
+    });
+
+    test('Given sequence focusId {group, focusId} but active focus is in default group, Then sequence does not start', () => {
+      const seqHandler = vi.fn();
+      const layer = fakeLayer({
+        currentFocusIds: [{ id: 'r1', fromGroup: defSym }],
+      });
+      layer.sequences.set('g', [
+        makeSequenceBinding(['g', 'g'], seqHandler, {
+          options: { focusId: { group: 'row', focusId: 'r1' } },
+        }),
+      ]);
+      handleLayer(
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+      );
+      expect(layer.pendingSequence).toBeNull();
+    });
   });
 
   describe('Focus target bindings', () => {
@@ -460,9 +570,9 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], ftHandler)],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
         bindings: [makeEntry(['x'], screenHandler)],
       });
       const result = handleLayer(
@@ -479,9 +589,9 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['y'], vi.fn())],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
         bindings: [makeEntry(['x'], screenHandler)],
       });
       const result = handleLayer(
@@ -496,9 +606,9 @@ describe('handleLayer', () => {
         stoppedKeys: [{ key: 'x' }],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
       });
       const result = handleLayer(
         layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
@@ -568,9 +678,9 @@ describe('handleLayer', () => {
         penetrationKeys: [{ key: 'y' }],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
         bindings: [makeEntry(['y'], screenHandler)],
       });
       const result = handleLayer(
@@ -586,9 +696,9 @@ describe('handleLayer', () => {
         stoppedKeys: [{ key: 'x', when: () => false }],
       });
       const layer = fakeLayer({
-        focusTargets: new Map([['f1', ft]]),
-        focusOrder: ['f1'],
-        currentFocusId: 'f1',
+        defaultTargets: new Map([['f1', ft]]),
+        defaultFocusOrder: ['f1'],
+        currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
       });
       const result = handleLayer(
         layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),

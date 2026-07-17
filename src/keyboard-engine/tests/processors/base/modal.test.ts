@@ -1,6 +1,7 @@
 import { describe, test, expect, vi } from 'vitest';
 import { createModalProcessor } from '../../../src/processors/modal.js';
 import { createContext, fakeLayer, makeEntry } from '../../_helpers/factories.js';
+import { defaultTargetsSymbol } from '../../../src/types.js';
 
 describe('createModalProcessor', () => {
   const processor = createModalProcessor();
@@ -67,12 +68,12 @@ describe('createModalProcessor', () => {
     expect(result).toBe(false); // passed through
   });
 
-  test('Given allowed key matching focus target allowedKeys, Then passes through', () => {
+    test('Given allowed key matching focus target allowedKeys, Then passes through', () => {
     const layer = fakeLayer({
       kind: 'modal',
-      currentFocusId: 'ft1',
-      focusOrder: ['ft1'],
-      focusTargets: new Map([
+      currentFocusIds: [{ id: 'ft1', fromGroup: defaultTargetsSymbol }],
+      defaultFocusOrder: ['ft1'],
+      defaultTargets: new Map([
         ['ft1', {
           bindings: [],
           penetrationKeys: [],
@@ -142,9 +143,9 @@ describe('createModalProcessor', () => {
       };
       const layer = fakeLayer({
         kind: 'modal',
-        currentFocusId: 'f1',
-        focusOrder: ['f1'],
-        focusTargets: new Map([['f1', ft]]),
+        currentFocusIds: [{ id: 'f1', fromGroup: defaultTargetsSymbol }],
+        defaultFocusOrder: ['f1'],
+        defaultTargets: new Map([['f1', ft]]),
         onMiss,
         onMissOptions: { monitorWhen: true },
       });
@@ -179,9 +180,9 @@ describe('createModalProcessor', () => {
       };
       const layer = fakeLayer({
         kind: 'modal',
-        currentFocusId: 'f1',
-        focusOrder: ['f1', 'f2'],
-        focusTargets: new Map([['f1', activeFt], ['f2', otherFt]]),
+        currentFocusIds: [{ id: 'f1', fromGroup: defaultTargetsSymbol }],
+        defaultFocusOrder: ['f1', 'f2'],
+        defaultTargets: new Map([['f1', activeFt], ['f2', otherFt]]),
         onMiss,
         onMissOptions: { monitorFocusMismatch: true },
       });
@@ -196,6 +197,104 @@ describe('createModalProcessor', () => {
       expect(onMiss).toHaveBeenCalledWith(
         expect.objectContaining({ miss: true }),
       );
+    });
+
+    test('Given monitorFocusMismatch with binding on non-active group-scoped target, Then miss detected', () => {
+      const onMiss = vi.fn();
+      const activeGrpFt = {
+        bindings: [],
+        penetrationKeys: [],
+        stoppedKeys: [],
+        allowedKeys: [],
+        actionKeysMap: new Map(),
+      };
+      const otherGrpFt = {
+        bindings: [makeEntry(['x'], vi.fn())],
+        penetrationKeys: [],
+        stoppedKeys: [],
+        allowedKeys: [],
+        actionKeysMap: new Map(),
+      };
+      const layer = fakeLayer({
+        kind: 'modal',
+        currentFocusIds: [{ id: 'r1', fromGroup: 'row' }],
+        focusTargets: new Map([
+          ['row', {
+            map: new Map([['r1', activeGrpFt], ['r2', otherGrpFt]]),
+            order: ['r1', 'r2'],
+          }],
+        ]),
+        onMiss,
+        onMissOptions: { monitorFocusMismatch: true },
+      });
+      const ctx = createContext({
+        eventNames: ['x'],
+        input: 'x',
+        key: {},
+        activeModalId: 'modal1',
+        layersRef: { current: new Map([['modal1', layer]]) },
+      });
+      processor.process(ctx);
+      expect(onMiss).toHaveBeenCalledWith(
+        expect.objectContaining({ miss: true }),
+      );
+    });
+
+    test('Given monitorWhen with when=false binding on active group-scoped target, Then miss detected', () => {
+      const onMiss = vi.fn();
+      const grpFt = {
+        bindings: [makeEntry(['x'], vi.fn(), { when: () => false })],
+        penetrationKeys: [],
+        stoppedKeys: [],
+        allowedKeys: [],
+        actionKeysMap: new Map(),
+      };
+      const layer = fakeLayer({
+        kind: 'modal',
+        currentFocusIds: [{ id: 'r1', fromGroup: 'row' }],
+        focusTargets: new Map([
+          ['row', { map: new Map([['r1', grpFt]]), order: ['r1'] }],
+        ]),
+        onMiss,
+        onMissOptions: { monitorWhen: true },
+      });
+      const ctx = createContext({
+        eventNames: ['x'],
+        input: 'x',
+        key: {},
+        activeModalId: 'modal1',
+        layersRef: { current: new Map([['modal1', layer]]) },
+      });
+      processor.process(ctx);
+      expect(onMiss).toHaveBeenCalledWith(
+        expect.objectContaining({ miss: true }),
+      );
+    });
+  });
+
+  describe('group-scoped focus allowedKeys', () => {
+    test('Given allowed key matching group-scoped focus target allowedKeys, Then passes through', () => {
+      const grpFt = {
+        bindings: [],
+        penetrationKeys: [],
+        stoppedKeys: [],
+        allowedKeys: [{ key: 'escape' }],
+        actionKeysMap: new Map(),
+      };
+      const layer = fakeLayer({
+        kind: 'modal',
+        currentFocusIds: [{ id: 'r1', fromGroup: 'row' }],
+        focusTargets: new Map([
+          ['row', { map: new Map([['r1', grpFt]]), order: ['r1'] }],
+        ]),
+      });
+      const ctx = createContext({
+        eventNames: ['escape'],
+        input: '',
+        activeModalId: 'modal1',
+        layersRef: { current: new Map([['modal1', layer]]) },
+      });
+      expect(processor.process(ctx)).toBe(false);
     });
   });
 });

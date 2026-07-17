@@ -95,6 +95,7 @@ describe('cleanupGlobalKeyOverrides', () => {
     const layer = {
       bindings: [],
       focusTargets: new Map(),
+      defaultTargets: new Map(),
       globalKeyOverrides: new Set(['x']),
     } as any;
     cleanupGlobalKeyOverrides(layer, ['x']);
@@ -105,10 +106,51 @@ describe('cleanupGlobalKeyOverrides', () => {
     const layer = {
       bindings: [{ keys: ['x'] }],
       focusTargets: new Map(),
+      defaultTargets: new Map(),
       globalKeyOverrides: new Set(['x']),
     } as any;
     cleanupGlobalKeyOverrides(layer, ['x']);
     expect(layer.globalKeyOverrides.has('x')).toBe(true);
+  });
+
+  test('Given override still referenced by a group-scoped focus target binding, Then it is kept', () => {
+    const ft = { bindings: [{ keys: ['x'] }] };
+    const layer = {
+      bindings: [],
+      focusTargets: new Map([
+        ['row', { map: new Map([['r1', ft]]), order: ['r1'] }],
+      ]),
+      defaultTargets: new Map(),
+      globalKeyOverrides: new Set(['x']),
+    } as any;
+    cleanupGlobalKeyOverrides(layer, ['x']);
+    expect(layer.globalKeyOverrides.has('x')).toBe(true);
+  });
+
+  test('Given override still referenced by a default focus target binding, Then it is kept', () => {
+    const ft = { bindings: [{ keys: ['x'] }] };
+    const layer = {
+      bindings: [],
+      focusTargets: new Map(),
+      defaultTargets: new Map([['d1', ft]]),
+      globalKeyOverrides: new Set(['x']),
+    } as any;
+    cleanupGlobalKeyOverrides(layer, ['x']);
+    expect(layer.globalKeyOverrides.has('x')).toBe(true);
+  });
+
+  test('Given override referenced by neither layer, group, nor default bindings, Then it is removed', () => {
+    const ft = { bindings: [{ keys: ['y'] }] };
+    const layer = {
+      bindings: [],
+      focusTargets: new Map([
+        ['row', { map: new Map([['r1', ft]]), order: ['r1'] }],
+      ]),
+      defaultTargets: new Map([['d1', { bindings: [{ keys: ['z'] }] }]]),
+      globalKeyOverrides: new Set(['x']),
+    } as any;
+    cleanupGlobalKeyOverrides(layer, ['x']);
+    expect(layer.globalKeyOverrides.has('x')).toBe(false);
   });
 });
 

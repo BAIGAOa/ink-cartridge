@@ -662,7 +662,7 @@ describe('focus system', () => {
   it('first registered MultiSelectInput automatically gains focus', async () => {
     const { kbRef } = renderDualMultiSelectInput({ items: threeItems });
     await flush();
-    expect(kbRef.current!.focusCurrent()).toBe('select-a');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('select-a');
   });
 
   it('only focused MultiSelectInput responds to Space', async () => {
@@ -679,7 +679,7 @@ describe('focus system', () => {
       renderDualMultiSelectInput({ items: threeItems });
 
     kbRef.current!.focusSet('select-b');
-    expect(kbRef.current!.focusCurrent()).toBe('select-b');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('select-b');
 
     await press(stdin, KEYS.space);
     expect(onChangeB).toHaveBeenCalledTimes(1);

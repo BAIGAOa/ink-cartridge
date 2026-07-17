@@ -1,11 +1,14 @@
-import type {
-  ScreenKeyboardLayer,
-  BoundKeyEntry,
-  PendingSequence,
-  KeyRule,
-} from './types.js';
-import { isNormalCharacter } from './isNormalCharacter.js';
-import { checkWhen } from './checkWhen.js';
+import {
+  type ScreenKeyboardLayer,
+  type BoundKeyEntry,
+  type PendingSequence,
+  type KeyRule,
+  defaultTargetsSymbol,
+  FocusTarget,
+  SequenceBinding,
+} from "./types.js";
+import { isNormalCharacter } from "./isNormalCharacter.js";
+import { checkWhen } from "./checkWhen.js";
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
 
@@ -75,10 +78,11 @@ export function tryMatchBindings(
     }
   }
 
-  const wildcardBinding = bindings.find(b => b.keys.includes('*'));
+  const wildcardBinding = bindings.find((b) => b.keys.includes("*"));
   if (wildcardBinding && isNormalCharacter(input, key)) {
     if (!skipBinding || !skipBinding(wildcardBinding)) {
-      if (wildcardBinding.mode && wildcardBinding.mode !== currentMode) return false;
+      if (wildcardBinding.mode && wildcardBinding.mode !== currentMode)
+        return false;
       if (!checkWhen(wildcardBinding.when, conditions)) return false;
       wildcardBinding.handler(input, key);
       return true;
@@ -92,7 +96,7 @@ export function tryMatchBindings(
  * Built-in Tab / Shift+Tab focus rotation for a given layer.
  *
  * Cycles {@link ScreenKeyboardLayer.currentFocusId} through the layer's
- * {@link ScreenKeyboardLayer.focusOrder} list (Tab forward, Shift+Tab backward).
+ * {@link ScreenKeyboardLayer.defaultFocusOrder} list (Tab forward, Shift+Tab backward).
  * Wraps around at both ends.
  *
  * @returns `true` if a tab event was handled and focus was moved.
@@ -103,15 +107,43 @@ export function handleTabNavigation(
   shift: boolean,
   notifyFocusChange: () => void,
 ): boolean {
-  if (!eventNames.includes('tab') || layer.focusOrder.length === 0) return false;
-  const current = layer.currentFocusId;
-  let idx = current ? layer.focusOrder.indexOf(current) : -1;
-  if (shift) {
-    idx = idx <= 0 ? layer.focusOrder.length - 1 : idx - 1;
-  } else {
-    idx = (idx + 1) % layer.focusOrder.length;
+  if (!eventNames.includes("tab") || layer.defaultFocusOrder.length === 0)
+    return false;
+
+  let current: string | null = null;
+  for (const each of layer.currentFocusIds) {
+    if (each.fromGroup === defaultTargetsSymbol) {
+      current = each.id;
+      break;
+    }
   }
-  layer.currentFocusId = layer.focusOrder[idx];
+  let idx = current ? layer.defaultFocusOrder.indexOf(current) : -1;
+  if (shift) {
+    idx = idx <= 0 ? layer.defaultFocusOrder.length - 1 : idx - 1;
+  } else {
+    idx = (idx + 1) % layer.defaultFocusOrder.length;
+  }
+
+  if (current) {
+    const currentIdx = layer.currentFocusIds.findIndex((each) => {
+      return each.fromGroup === defaultTargetsSymbol;
+    });
+
+    // Theoretically, if current above is not null, then currentIdx here should not be -1
+    // But I don't believe in theory, so I decided to throw defensive mistakes.
+    if (currentIdx === -1) {
+      throw new Error(
+        `[ink-cartridge] [Unknown Reason] ${current} focus is missing for an unknown reason`,
+      );
+    }
+
+    layer.currentFocusIds.splice(currentIdx, 1);
+  }
+
+  layer.currentFocusIds.push({
+    id: layer.defaultFocusOrder[idx],
+    fromGroup: defaultTargetsSymbol,
+  });
   notifyFocusChange();
   return true;
 }
@@ -143,11 +175,18 @@ export function handleLayer(
   // Auto Tab navigation: only when the developer explicitly opts in via
   // autoTab: true. Otherwise Tab/Shift+Tab passes through to normal
   // bindings so developers can bind them to custom handlers.
-  const shift = eventNames.some(n => n.startsWith('shift+'));
-  if (autoTab && isTop && handleTabNavigation(layer, eventNames, shift, notifyFocusChange)) return true;
+  const shift = eventNames.some((n) => n.startsWith("shift+"));
+  if (
+    autoTab &&
+    isTop &&
+    handleTabNavigation(layer, eventNames, shift, notifyFocusChange)
+  )
+    return true;
 
   const penetrated = layer.penetrationKeys;
-  const available = eventNames.filter((n) => !keyMatchesRule(n, penetrated, conditions));
+  const available = eventNames.filter(
+    (n) => !keyMatchesRule(n, penetrated, conditions),
+  );
 
   // onlyThis semantics differ between screens and overlays:
   // - Screen: skip when any overlay is active (activeOverlayCount > 0)
@@ -163,17 +202,42 @@ export function handleLayer(
   // Only normal characters are affected — special keys fall through.
   if (isTop && wildcardFirst && available.length > 0) {
     // Check focus-target wildcard first
-    if (layer.currentFocusId) {
-      const ft = layer.focusTargets.get(layer.currentFocusId);
-      if (ft) {
-        const fPenetrated = ft.penetrationKeys;
-        const fAvailable = available.filter(n => !keyMatchesRule(n, fPenetrated, conditions));
+    if (layer.currentFocusIds.length > 0) {
+      const allFocusTargets: FocusTarget[] = [];
+
+      for (const each of layer.currentFocusIds) {
+        if (each.fromGroup === defaultTargetsSymbol) {
+          const defaultFt = layer.defaultTargets.get(each.id);
+          if (defaultFt) {
+            allFocusTargets.push(defaultFt);
+          }
+          continue;
+        }
+        const g = layer.focusTargets.get(each.fromGroup);
+        if (!g) continue;
+        const result = g.map.get(each.id);
+        if (!result) continue;
+        allFocusTargets.push(result);
+      }
+
+      if (allFocusTargets.length > 0) {
+        const allFPenetrated = new Set(
+          allFocusTargets.flatMap((each) => each.penetrationKeys),
+        );
+        const fAvailable = available.filter(
+          (n) => !keyMatchesRule(n, [...allFPenetrated], conditions),
+        );
         if (fAvailable.length > 0) {
-          const wb = ft.bindings.find(b => b.keys.includes('*'));
+          const allFBindings = new Set(
+            allFocusTargets.flatMap((each) => each.bindings),
+          );
+          const wb = [...allFBindings].find((b) => b.keys.includes("*"));
           if (wb && isNormalCharacter(input, key)) {
-            if (wb.mode && wb.mode !== currentMode) { /* skip */ }
-            else if (!checkWhen(wb.when, conditions)) { /* skip */ }
-            else if (!shouldSkipOnlyThis(wb)) {
+            if (wb.mode && wb.mode !== currentMode) {
+              /* skip */
+            } else if (!checkWhen(wb.when, conditions)) {
+              /* skip */
+            } else if (!shouldSkipOnlyThis(wb)) {
               wb.handler(input, key);
               return true;
             }
@@ -182,11 +246,13 @@ export function handleLayer(
       }
     }
     // Check screen-level wildcard
-    const wb = layer.bindings.find(b => b.keys.includes('*'));
+    const wb = layer.bindings.find((b) => b.keys.includes("*"));
     if (wb && isNormalCharacter(input, key)) {
-      if (wb.mode && wb.mode !== currentMode) { /* skip */ }
-      else if (!checkWhen(wb.when, conditions)) { /* skip */ }
-      else if (!shouldSkipOnlyThis(wb)) {
+      if (wb.mode && wb.mode !== currentMode) {
+        /* skip */
+      } else if (!checkWhen(wb.when, conditions)) {
+        /* skip */
+      } else if (!shouldSkipOnlyThis(wb)) {
         wb.handler(input, key);
         return true;
       }
@@ -216,7 +282,8 @@ export function handleLayer(
           if (pending.candidates && pending.candidates.length > 1) {
             const nextIdx = pending.nextIndex - 1;
             const narrowed = pending.candidates.filter(
-              c => c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
+              (c) =>
+                c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
             );
             pending.candidates = narrowed.length <= 1 ? undefined : narrowed;
           }
@@ -227,7 +294,8 @@ export function handleLayer(
           } else {
             // Still waiting for more keys — restart the timeout.
             pending.timer = setTimeout(() => {
-              if (layer.pendingSequence === pending) layer.pendingSequence = null;
+              if (layer.pendingSequence === pending)
+                layer.pendingSequence = null;
               notifyPendingSyncs?.();
             }, pending.timeout);
           }
@@ -243,7 +311,8 @@ export function handleLayer(
             // against every candidate's next expected key to disambiguate.
             const nextIdx = pending.nextIndex;
             const stillPossible = pending.candidates.filter(
-              c => c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
+              (c) =>
+                c.keys.length > nextIdx && available.includes(c.keys[nextIdx]),
             );
             if (stillPossible.length === 0) {
               // No candidate matches — cancel all and fall through.
@@ -263,13 +332,15 @@ export function handleLayer(
                 timeout,
                 options: chosen.options,
                 when: chosen.when,
-                candidates: stillPossible.length === 1 ? undefined : stillPossible,
+                candidates:
+                  stillPossible.length === 1 ? undefined : stillPossible,
               };
               if (newSeq.nextIndex === newSeq.sequences.length) {
                 chosen.handler(input, key);
               } else {
                 newSeq.timer = setTimeout(() => {
-                  if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+                  if (layer.pendingSequence === newSeq)
+                    layer.pendingSequence = null;
                   notifyPendingSyncs?.();
                 }, timeout);
               }
@@ -300,23 +371,44 @@ export function handleLayer(
         // Detect modifiers from normalized event names rather than reading
         // (key as any).ctrl / (key as any).meta. This keeps the engine
         // framework-agnostic.
-        const hasCtrlOrMeta = eventNames.some(n => n.startsWith('ctrl+') || n.startsWith('meta+'));
-        if (hasCtrlOrMeta && !keyName.includes('+')) {
+        const hasCtrlOrMeta = eventNames.some(
+          (n) => n.startsWith("ctrl+") || n.startsWith("meta+"),
+        );
+        if (hasCtrlOrMeta && !keyName.includes("+")) {
           continue;
         }
         const candidates = layer.sequences.get(keyName);
         if (!candidates || candidates.length === 0) continue;
         // Filter by mode, onlyThis, focusId, and when constraints.
-        const matching = candidates.filter(binding => {
-          if (binding.options?.mode && binding.options.mode !== currentMode) return false;
+        const matching: SequenceBinding[] = candidates.filter((binding) => {
+          if (binding.options?.mode && binding.options.mode !== currentMode)
+            return false;
+
           if (binding.options?.onlyThis) {
             if (isOverlay) return activeOverlayCount <= 1;
             else return activeOverlayCount === 0;
           }
+
           if (binding.options?.focusId) {
-            return layer.currentFocusId === binding.options.focusId;
+            const focus = binding.options.focusId;
+            if (typeof focus === "string") {
+              return layer.currentFocusIds.some((eachF) => {
+                if (eachF.fromGroup !== defaultTargetsSymbol) {
+                  return false;
+                }
+
+                return eachF.id === focus;
+              });
+            } else {
+              return layer.currentFocusIds.some((eachF) => {
+                return (
+                  eachF.fromGroup === focus.group && eachF.id === focus.focusId
+                );
+              });
+            }
           }
-          if (!checkWhen(binding.when, conditions)) return false
+
+          if (!checkWhen(binding.when, conditions)) return false;
           return true;
         });
         if (matching.length === 0) continue;
@@ -335,41 +427,111 @@ export function handleLayer(
           // disambiguate between sequences sharing the same first key.
           // In exclusive mode or when there is only one candidate, the
           // field is omitted so the mismatch path behaves as before.
-          candidates: selected.options?.exclusive === true
-            ? undefined
-            : (() => {
-                const nonExclusive = matching.filter(c => c.options?.exclusive !== true);
-                return nonExclusive.length <= 1 ? undefined : nonExclusive;
-              })(),
+          candidates:
+            selected.options?.exclusive === true
+              ? undefined
+              : (() => {
+                  const nonExclusive = matching.filter(
+                    (c) => c.options?.exclusive !== true,
+                  );
+                  return nonExclusive.length <= 1 ? undefined : nonExclusive;
+                })(),
         };
-          const timer = setTimeout(() => {
-            if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
-            notifyPendingSyncs?.();
-          }, timeout);
-          newSeq.timer = timer;
-          layer.pendingSequence = newSeq;
-          return true;
-      }
-    }
-  }
-
-  if (isTop && layer.currentFocusId) {
-    const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft) {
-      const fPenetrated = ft.penetrationKeys;
-      const fAvailable = available.filter((n) => !keyMatchesRule(n, fPenetrated, conditions));
-
-      if (tryMatchBindings(ft.bindings, currentMode, fAvailable, input, key, conditions,  shouldSkipOnlyThis)) return true;
-
-      if (eventNames.some((n) => keyMatchesRule(n, ft.stoppedKeys, conditions))) {
+        const timer = setTimeout(() => {
+          if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
+          notifyPendingSyncs?.();
+        }, timeout);
+        newSeq.timer = timer;
+        layer.pendingSequence = newSeq;
         return true;
       }
     }
   }
 
-  if (tryMatchBindings(layer.bindings, currentMode, available, input, key, conditions,  shouldSkipOnlyThis)) return true;
+  if (isTop && layer.currentFocusIds.length > 0) {
+    const allFt: FocusTarget[] = [];
 
-  if (isTop && eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys, conditions))) {
+    for (const each of layer.currentFocusIds) {
+      if (each.fromGroup === defaultTargetsSymbol) {
+        const dft = layer.defaultTargets.get(each.id);
+        if (dft) {
+          allFt.push(dft);
+        }
+        continue;
+      }
+
+      const gr = layer.focusTargets.get(each.fromGroup);
+      if (gr) {
+        const gft = gr.map.get(each.id);
+        if (gft) {
+          allFt.push(gft);
+        }
+      }
+    }
+
+    if (allFt.length > 0) {
+      const allBinding = [
+        ...new Set(
+          allFt.flatMap((each) => {
+            return each.bindings;
+          }),
+        ),
+      ];
+      const allPenetrated = [
+        ...new Set(
+          allFt.flatMap((each) => {
+            return each.penetrationKeys;
+          }),
+        ),
+      ];
+      const allStopped = [
+        ...new Set(
+          allFt.flatMap((each) => {
+            return each.stoppedKeys;
+          }),
+        ),
+      ];
+
+      const fAvailable = available.filter(
+        (n) => !keyMatchesRule(n, allPenetrated, conditions),
+      );
+
+      if (
+        tryMatchBindings(
+          allBinding,
+          currentMode,
+          fAvailable,
+          input,
+          key,
+          conditions,
+          shouldSkipOnlyThis,
+        )
+      )
+        return true;
+
+      if (eventNames.some((n) => keyMatchesRule(n, allStopped, conditions))) {
+        return true;
+      }
+    }
+  }
+
+  if (
+    tryMatchBindings(
+      layer.bindings,
+      currentMode,
+      available,
+      input,
+      key,
+      conditions,
+      shouldSkipOnlyThis,
+    )
+  )
+    return true;
+
+  if (
+    isTop &&
+    eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys, conditions))
+  ) {
     return true;
   }
 

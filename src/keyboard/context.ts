@@ -24,13 +24,22 @@ import type {
   CompositionEvent,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
+import { defaultTargetsSymbol } from "../keyboard-engine/dist/types.js";
 
 export type LayerOwner = unknown | string;
 
 export interface KeyboardContextValue {
   boundKeyboard: {
-    (keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions): () => void;
-    (keys: string | string[], actionId: string, options?: BoundKeyboardOptions): () => void;
+    (
+      keys: string | string[],
+      handler: KeyHandler,
+      options?: BoundKeyboardOptions,
+    ): () => void;
+    (
+      keys: string | string[],
+      actionId: string,
+      options?: BoundKeyboardOptions,
+    ): () => void;
     (actionId: string, options?: BoundKeyboardOptions): () => void;
   };
 
@@ -60,15 +69,42 @@ export interface KeyboardContextValue {
 
   currentScreenHasSequenceWaiting: (sync?: () => void) => boolean;
 
-  focusUnregister: (focusId: string) => void;
+  focusUnregister: (focusId: string, group?: string) => void;
 
-  focusSet: (focusId: string) => void;
+  focusSet: (focusId: string, group?: string) => void;
 
-  focusNext: () => void;
+  focusNext: (group?: string) => void;
 
-  focusPrev: () => void;
+  focusPrev: (group?: string) => void;
 
-  focusCurrent: () => string | null;
+  focusCurrent: (group?: string) =>
+    | {
+        noOwner: boolean;
+        noLayer?: undefined;
+        noFound?: undefined;
+        result?: undefined;
+      }
+    | {
+        noLayer: boolean;
+        noOwner?: undefined;
+        noFound?: undefined;
+        result?: undefined;
+      }
+    | {
+        noFound: boolean;
+        noOwner?: undefined;
+        noLayer?: undefined;
+        result?: undefined;
+      }
+    | {
+        result: {
+          id: string;
+          fromGroup: string | typeof defaultTargetsSymbol;
+        };
+        noOwner?: undefined;
+        noLayer?: undefined;
+        noFound?: undefined;
+      };
 
   subscribeFocus: (listener: () => void) => () => void;
 
@@ -83,7 +119,11 @@ export interface KeyboardContextValue {
   addSequenceAction: (entry: SequenceOperationEntry) => void;
   hasSequenceAction: (sequenceActionId: string) => boolean;
   removeSequenceAction: (sequenceActionId: string) => void;
-  modifySequenceAction: (sequenceActionId: string, keys: string[], timeout?: number) => void;
+  modifySequenceAction: (
+    sequenceActionId: string,
+    keys: string[],
+    timeout?: number,
+  ) => void;
   clearSequenceOperations: () => void;
 
   _pushOwner: (owner: LayerOwner) => void;
@@ -91,11 +131,15 @@ export interface KeyboardContextValue {
   _popOwner: (owner: LayerOwner) => void;
 
   boundSequence: {
-    (keys: string | string[], handler: KeyHandler, options?: SequenceOptions): () => void;
+    (
+      keys: string | string[],
+      handler: KeyHandler,
+      options?: SequenceOptions,
+    ): () => void;
     (actionId: string, options?: SequenceOptions): () => void;
   };
 
-  enableWildcardPriority: () => (() => void);
+  enableWildcardPriority: () => () => void;
 
   useModalMissListener: (
     cb: ModalMissCallback,
@@ -150,11 +194,16 @@ export interface KeyboardContextValue {
 
   setValueSchema: (schema: ValueSchema) => void;
 
-  undoComposition: (steps?: number, options?: { isolated?: boolean; byKey?: boolean }) => CompositionContext | null;
+  undoComposition: (
+    steps?: number,
+    options?: { isolated?: boolean; byKey?: boolean },
+  ) => CompositionContext | null;
   bufferedCompositionCount: () => number;
   clearCompositionBuffers: () => void;
   subscribeComposition: (fn: () => void) => () => void;
   getLastCompositionEvent: () => CompositionEvent | null;
+  activateFocusGroup: (focusId: string, group?: string) => boolean;
+  kickFocusGroup: (group?: string) => boolean;
 }
 
 /**

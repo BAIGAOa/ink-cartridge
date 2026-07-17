@@ -17,7 +17,7 @@ function penetration(
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `focusId` | `string` | — | Only transparent when this focus target is active. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Only transparent when this focus target is the active one for its group. See [Focus System](./focus-system-API.md). |
 | `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 
 ## Returns

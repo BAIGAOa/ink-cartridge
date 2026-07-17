@@ -15,7 +15,7 @@ function stop(
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `focusId` | `string` | — | Scope to a focus target. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Scope to a focus target. See [Focus System](./focus-system-API.md). |
 | `stopAction` | `string` | — | Resolve a shortcut action's bound keys to determine which keys to stop. |
 | `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 

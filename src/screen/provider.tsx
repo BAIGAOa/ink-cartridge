@@ -1,5 +1,10 @@
-import React, { useReducer, useMemo, useEffect, ReactNode } from 'react';
-import { ScreenSystemContext, ScreenSystemContextValue } from './context.js';
+import React, {
+  useReducer,
+  useMemo,
+  useEffect,
+  ReactNode,
+} from "react";
+import { ScreenSystemContext, ScreenSystemContextValue } from "./context.js";
 import {
   ScreenState,
   ScreenAction,
@@ -19,15 +24,8 @@ import {
   ModalEntry,
   OpenOverlayOptions,
   OpenModalOptions,
-} from './types.js';
-import {
-  getTemplate,
-  hasComponent,
-  isChildOf,
-  getParent,
-} from './registry.js';
-
-
+} from "./types.js";
+import { getTemplate, hasComponent, isChildOf, getParent } from "./registry.js";
 
 const _dispatchers = new Set<React.Dispatch<ScreenAction>>();
 
@@ -44,7 +42,7 @@ export function clearDispatchers(): void {
 function getDispatch(): React.Dispatch<ScreenAction> {
   if (_dispatchers.size === 0) {
     throw new Error(
-      '[Ink-Cartridge] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.',
+      "[Ink-Cartridge] Navigation function called before Provider is mounted. Please ensure <ScenarioManagementProvider> is mounted in the component tree.",
     );
   }
   return [..._dispatchers][_dispatchers.size - 1];
@@ -83,11 +81,11 @@ export function skip<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
-    type: 'skip',
+    type: "skip",
     component,
     params: params as Record<string, unknown>,
     onlyAttribute: options?.onlyAttribute ?? false,
@@ -99,11 +97,9 @@ export function skip<C extends React.ComponentType<any>>(
  */
 export function back(levels: number = 1): void {
   if (levels < 1) {
-    throw new Error(
-      '[Ink-Cartridge] back() levels must be >= 1.',
-    );
+    throw new Error("[Ink-Cartridge] back() levels must be >= 1.");
   }
-  getDispatch()({ type: 'back', levels });
+  getDispatch()({ type: "back", levels });
 }
 
 /**
@@ -115,11 +111,11 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
-    type: 'gotoScreen',
+    type: "gotoScreen",
     component,
     params: params as Record<string, unknown>,
   });
@@ -147,11 +143,11 @@ export function openOverlay<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
-    type: 'openOverlay',
+    type: "openOverlay",
     id,
     component,
     params: params as Record<string, unknown>,
@@ -172,7 +168,7 @@ export function openOverlay<C extends React.ComponentType<any>>(
  * @throws If the provider is not mounted.
  */
 export function closeOverlay(id: string): void {
-  getDispatch()({ type: 'closeOverlay', id });
+  getDispatch()({ type: "closeOverlay", id });
 }
 
 /**
@@ -181,7 +177,7 @@ export function closeOverlay(id: string): void {
  * @throws If the provider is not mounted.
  */
 export function closeAllOverlays(): void {
-  getDispatch()({ type: 'closeAllOverlays' });
+  getDispatch()({ type: "closeAllOverlays" });
 }
 
 /**
@@ -192,7 +188,7 @@ export function closeAllOverlays(): void {
  * @throws If the provider is not mounted or the overlay ID does not exist.
  */
 export function activateOverlay(id: string): void {
-  getDispatch()({ type: 'activateOverlay', id });
+  getDispatch()({ type: "activateOverlay", id });
 }
 
 /**
@@ -203,7 +199,7 @@ export function activateOverlay(id: string): void {
  * @throws If the provider is not mounted.
  */
 export function deactivateOverlay(id: string): void {
-  getDispatch()({ type: 'deactivateOverlay', id });
+  getDispatch()({ type: "deactivateOverlay", id });
 }
 
 /**
@@ -231,11 +227,11 @@ export function openModal<C extends React.ComponentType<any>>(
 ): void {
   if (!hasComponent(component)) {
     throw new Error(
-      `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
     );
   }
   getDispatch()({
-    type: 'openModal',
+    type: "openModal",
     id,
     component,
     params: params as Record<string, unknown>,
@@ -259,7 +255,7 @@ export function openModal<C extends React.ComponentType<any>>(
  * @throws If the provider is not mounted.
  */
 export function closeModal(id: string): void {
-  getDispatch()({ type: 'closeModal', id });
+  getDispatch()({ type: "closeModal", id });
 }
 
 /**
@@ -268,10 +264,8 @@ export function closeModal(id: string): void {
  * @throws If the provider is not mounted.
  */
 export function closeAllModals(): void {
-  getDispatch()({ type: 'closeAllModals' });
+  getDispatch()({ type: "closeAllModals" });
 }
-
-
 
 /**
  * 从树中查找共同祖先
@@ -367,32 +361,34 @@ function recalcActiveAfterNavigation(
  */
 function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   switch (action.type) {
-
-    case 'skip': {
+    case "skip": {
       const current = state.path[state.path.length - 1];
 
       if (!isChildOf(action.component, current)) {
         throw new Error(
-          `[Ink-Cartridge] "${action.component.displayName || action.component.name || 'anonymous'}" is not a child of "${current.displayName || current.name || 'anonymous'}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
+          `[Ink-Cartridge] "${action.component.displayName || action.component.name || "anonymous"}" is not a child of "${current.displayName || current.name || "anonymous"}". Use skip to navigate down the tree, or gotoScreen to jump across branches.`,
         );
       }
 
       const sameComponent = action.component === current;
-      const counter = sameComponent && action.onlyAttribute
-        ? state.counter
-        : state.counter + 1;
+      const counter =
+        sameComponent && action.onlyAttribute
+          ? state.counter
+          : state.counter + 1;
 
       const template = getTemplate(action.component) ?? {};
       const mergedParams = { ...template, ...action.params };
 
       const newPath = [...state.path, action.component];
 
-      const persistentOverlays = state.overlays.filter(o => o.persistent);
-      const persistentModals = state.modals.filter(m => m.persistent);
-      
+      const persistentOverlays = state.overlays.filter((o) => o.persistent);
+      const persistentModals = state.modals.filter((m) => m.persistent);
+
       const newTop = newPath[newPath.length - 1];
       const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays, persistentModals, newTop,
+        persistentOverlays,
+        persistentModals,
+        newTop,
       );
 
       return {
@@ -406,23 +402,25 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'back': {
+    case "back": {
       const levels = action.levels ?? 1;
 
       if (state.path.length <= levels) {
         throw new Error(
           levels === 1
-            ? '[Ink-Cartridge] back() failed: already at the root node, cannot go back.'
+            ? "[Ink-Cartridge] back() failed: already at the root node, cannot go back."
             : `[Ink-Cartridge] back(${levels}) failed: current depth is ${state.path.length}, cannot go back ${levels} levels.`,
         );
       }
 
       const newPath = state.path.slice(0, -levels);
-      const persistentOverlays = state.overlays.filter(o => o.persistent);
-      const persistentModals = state.modals.filter(m => m.persistent);
+      const persistentOverlays = state.overlays.filter((o) => o.persistent);
+      const persistentModals = state.modals.filter((m) => m.persistent);
       const newTop = newPath[newPath.length - 1];
       const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays, persistentModals, newTop,
+        persistentOverlays,
+        persistentModals,
+        newTop,
       );
 
       return {
@@ -436,7 +434,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'gotoScreen': {
+    case "gotoScreen": {
       const commonAncestor = findCommonAncestor(state.path, action.component);
       const ancestorIndex = state.path.indexOf(commonAncestor);
 
@@ -447,10 +445,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       }
 
       const suffix = buildPathFrom(commonAncestor, action.component);
-      const newPath = [
-        ...state.path.slice(0, ancestorIndex + 1),
-        ...suffix,
-      ];
+      const newPath = [...state.path.slice(0, ancestorIndex + 1), ...suffix];
 
       const template = getTemplate(action.component) ?? {};
       const mergedParams = { ...template, ...action.params };
@@ -463,11 +458,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         }),
       ];
 
-      const persistentOverlays = state.overlays.filter(o => o.persistent);
-      const persistentModals = state.modals.filter(m => m.persistent);
+      const persistentOverlays = state.overlays.filter((o) => o.persistent);
+      const persistentModals = state.modals.filter((m) => m.persistent);
       const newTop = newPath[newPath.length - 1];
       const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays, persistentModals, newTop,
+        persistentOverlays,
+        persistentModals,
+        newTop,
       );
 
       return {
@@ -481,12 +478,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'openOverlay': {
-      if (state.overlays.some(o => o.id === action.id)) {
+    case "openOverlay": {
+      if (state.overlays.some((o) => o.id === action.id)) {
         return state;
       }
 
-      if (state.modals.some(m => m.id === action.id)) {
+      if (state.modals.some((m) => m.id === action.id)) {
         return state;
       }
 
@@ -516,12 +513,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'closeOverlay': {
-      if (!state.overlays.some(o => o.id === action.id)) {
+    case "closeOverlay": {
+      if (!state.overlays.some((o) => o.id === action.id)) {
         return state;
       }
 
-      const newOverlays = state.overlays.filter(o => o.id !== action.id);
+      const newOverlays = state.overlays.filter((o) => o.id !== action.id);
       const newActiveIds = new Set(state.activeOverlayIds);
       newActiveIds.delete(action.id);
 
@@ -532,7 +529,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'closeAllOverlays': {
+    case "closeAllOverlays": {
       return {
         ...state,
         overlays: [],
@@ -540,8 +537,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'activateOverlay': {
-      if (!state.overlays.some(o => o.id === action.id)) {
+    case "activateOverlay": {
+      if (!state.overlays.some((o) => o.id === action.id)) {
         throw new Error(
           `[Ink-Cartridge] Cannot activate overlay "${action.id}": no overlay with that ID exists.`,
         );
@@ -556,8 +553,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'deactivateOverlay': {
-      if (!state.overlays.some(o => o.id === action.id)) {
+    case "deactivateOverlay": {
+      if (!state.overlays.some((o) => o.id === action.id)) {
         throw new Error(
           `[Ink-Cartridge] Cannot deactivate overlay "${action.id}": no overlay with that ID exists.`,
         );
@@ -572,12 +569,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'openModal': {
-      if (state.modals.some(m => m.id === action.id)) {
+    case "openModal": {
+      if (state.modals.some((m) => m.id === action.id)) {
         return state;
       }
 
-      if (state.overlays.some(o => o.id === action.id)) {
+      if (state.overlays.some((o) => o.id === action.id)) {
         return state;
       }
 
@@ -596,7 +593,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const newModals = sortModals([...state.modals, newEntry]);
       // The last element (highest zIndex) is the active modal
-      const activeId = newModals.length > 0 ? newModals[newModals.length - 1].id : null;
+      const activeId =
+        newModals.length > 0 ? newModals[newModals.length - 1].id : null;
 
       return {
         ...state,
@@ -605,13 +603,14 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'closeModal': {
-      if (!state.modals.some(m => m.id === action.id)) {
+    case "closeModal": {
+      if (!state.modals.some((m) => m.id === action.id)) {
         return state;
       }
 
-      const newModals = state.modals.filter(m => m.id !== action.id);
-      const activeId = newModals.length > 0 ? newModals[newModals.length - 1].id : null;
+      const newModals = state.modals.filter((m) => m.id !== action.id);
+      const activeId =
+        newModals.length > 0 ? newModals[newModals.length - 1].id : null;
 
       return {
         ...state,
@@ -620,7 +619,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       };
     }
 
-    case 'closeAllModals': {
+    case "closeAllModals": {
       return {
         ...state,
         modals: [],
@@ -633,8 +632,6 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   }
 }
 
-
-
 export interface ScenarioManagementProviderProps {
   children: ReactNode;
   /** 默认屏幕组件（必填，需先 registerComponent） */
@@ -642,7 +639,7 @@ export interface ScenarioManagementProviderProps {
   /** 默认参数（可选，未传则使用注册时的模板参数） */
   defaultParams?: Record<string, unknown>;
 
-  fullScreen?: boolean
+  fullScreen?: boolean;
 }
 
 /**
@@ -655,16 +652,15 @@ export function ScenarioManagementProvider({
   children,
   defaultScreen,
   defaultParams,
-  fullScreen
+  fullScreen,
 }: ScenarioManagementProviderProps) {
   if (!hasComponent(defaultScreen)) {
     throw new Error(
-      `[Ink-Cartridge] defaultScreen "${defaultScreen.displayName || defaultScreen.name || 'anonymous'}" is not registered. Please call registerComponent() first.`,
+      `[Ink-Cartridge] defaultScreen "${defaultScreen.displayName || defaultScreen.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
     );
   }
 
-  const initialParams =
-    defaultParams ?? getTemplate(defaultScreen) ?? {};
+  const initialParams = defaultParams ?? getTemplate(defaultScreen) ?? {};
 
   const [state, dispatch] = useReducer(screenReducer, {
     path: [defaultScreen],
@@ -675,6 +671,7 @@ export function ScenarioManagementProvider({
     activeModalId: null,
     counter: 0,
   });
+
 
   useEffect(() => {
     _dispatchers.add(dispatch);
@@ -710,9 +707,10 @@ export function ScenarioManagementProvider({
   // Determine which modals should be rendered: active modal
   // (highest zIndex) plus any modals with renderNow: true.
   const renderedModalEntries = useMemo(
-    () => state.modals.filter(
-      entry => entry.id === state.activeModalId || entry.renderNow,
-    ),
+    () =>
+      state.modals.filter(
+        (entry) => entry.id === state.activeModalId || entry.renderNow,
+      ),
     [state.modals, state.activeModalId],
   );
 
@@ -735,11 +733,11 @@ export function ScenarioManagementProvider({
     () => (component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered.`,
         );
       }
       dispatch({
-        type: 'skip',
+        type: "skip",
         component,
         params: params as Record<string, unknown>,
         onlyAttribute: options?.onlyAttribute ?? false,
@@ -749,14 +747,13 @@ export function ScenarioManagementProvider({
   );
 
   const backInContext: BackFn = useMemo(
-    () => (levels: number = 1) => {
-      if (levels < 1) {
-        throw new Error(
-          '[Ink-Cartridge] back() levels must be >= 1.',
-        );
-      }
-      dispatch({ type: 'back', levels });
-    },
+    () =>
+      (levels: number = 1) => {
+        if (levels < 1) {
+          throw new Error("[Ink-Cartridge] back() levels must be >= 1.");
+        }
+        dispatch({ type: "back", levels });
+      },
     [],
   );
 
@@ -764,11 +761,11 @@ export function ScenarioManagementProvider({
     () => (component, params) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered.`,
         );
       }
       dispatch({
-        type: 'gotoScreen',
+        type: "gotoScreen",
         component,
         params: params as Record<string, unknown>,
       });
@@ -780,11 +777,11 @@ export function ScenarioManagementProvider({
     () => (id, component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered.`,
         );
       }
       dispatch({
-        type: 'openOverlay',
+        type: "openOverlay",
         id,
         component,
         params: params as Record<string, unknown>,
@@ -797,22 +794,22 @@ export function ScenarioManagementProvider({
   );
 
   const closeOverlayInContext: CloseOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: 'closeOverlay', id }),
+    () => (id: string) => dispatch({ type: "closeOverlay", id }),
     [],
   );
 
   const closeAllOverlaysInContext: CloseAllOverlaysFn = useMemo(
-    () => () => dispatch({ type: 'closeAllOverlays' }),
+    () => () => dispatch({ type: "closeAllOverlays" }),
     [],
   );
 
   const activateOverlayInContext: ActivateOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: 'activateOverlay', id }),
+    () => (id: string) => dispatch({ type: "activateOverlay", id }),
     [],
   );
 
   const deactivateOverlayInContext: DeactivateOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: 'deactivateOverlay', id }),
+    () => (id: string) => dispatch({ type: "deactivateOverlay", id }),
     [],
   );
 
@@ -820,11 +817,11 @@ export function ScenarioManagementProvider({
     () => (id, component, params, options) => {
       if (!hasComponent(component)) {
         throw new Error(
-          `[Ink-Cartridge] Component "${component.displayName || component.name || 'anonymous'}" is not registered.`,
+          `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered.`,
         );
       }
       dispatch({
-        type: 'openModal',
+        type: "openModal",
         id,
         component,
         params: params as Record<string, unknown>,
@@ -837,12 +834,12 @@ export function ScenarioManagementProvider({
   );
 
   const closeModalInContext: CloseModalFn = useMemo(
-    () => (id: string) => dispatch({ type: 'closeModal', id }),
+    () => (id: string) => dispatch({ type: "closeModal", id }),
     [],
   );
 
   const closeAllModalsInContext: CloseAllModalsFn = useMemo(
-    () => () => dispatch({ type: 'closeAllModals' }),
+    () => () => dispatch({ type: "closeAllModals" }),
     [],
   );
 
@@ -853,7 +850,7 @@ export function ScenarioManagementProvider({
 
   // Compute activeModal from state
   const activeModal = state.activeModalId
-    ? state.modals.find(m => m.id === state.activeModalId) ?? null
+    ? (state.modals.find((m) => m.id === state.activeModalId) ?? null)
     : null;
 
   const value: ScreenSystemContextValue = useMemo(
@@ -880,7 +877,7 @@ export function ScenarioManagementProvider({
       openModal: openModalInContext,
       closeModal: closeModalInContext,
       closeAllModals: closeAllModalsInContext,
-      fullScreen
+      fullScreen,
     }),
     [
       currentScreen,
@@ -904,7 +901,7 @@ export function ScenarioManagementProvider({
       closeModalInContext,
       closeAllModalsInContext,
       state.activeModalId,
-      fullScreen
+      fullScreen,
     ],
   );
 

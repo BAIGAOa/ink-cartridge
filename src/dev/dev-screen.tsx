@@ -41,45 +41,41 @@ function collectAllFocusTargets(
 ): FocusEntry[] {
   const entries: FocusEntry[] = [];
 
+  function pushLayer(owner: React.ComponentType<any> | string, name: string) {
+    const layer = readLayer(owner);
+    if (!layer) return;
+
+    const activeIds = new Set(layer.currentFocusIds.map((e) => e.id));
+
+    // Default focus targets
+    for (const focusId of layer.defaultFocusOrder) {
+      if (!layer.defaultTargets.has(focusId)) continue;
+      entries.push({ layerName: name, focusId, isCurrent: activeIds.has(focusId) });
+    }
+
+    // Group-scoped focus targets
+    for (const [groupName, group] of layer.focusTargets) {
+      for (const focusId of group.order) {
+        if (!group.map.has(focusId)) continue;
+        const label = `${groupName}:${focusId}`;
+        entries.push({ layerName: name, focusId: label, isCurrent: activeIds.has(focusId) });
+      }
+    }
+  }
+
   // Screen layers — from root to top
   for (const component of currentPath) {
-    const layer = readLayer(component);
-    if (!layer || layer.focusOrder.length === 0) continue;
-    const name = component.displayName || component.name || 'Unknown';
-    for (const focusId of layer.focusOrder) {
-      entries.push({
-        layerName: name,
-        focusId,
-        isCurrent: focusId === layer.currentFocusId,
-      });
-    }
+    pushLayer(component, component.displayName || component.name || 'Unknown');
   }
 
   // Active overlay layers
   for (const overlayId of activeOverlayIds) {
-    const layer = readLayer(overlayId);
-    if (!layer || layer.focusOrder.length === 0) continue;
-    for (const focusId of layer.focusOrder) {
-      entries.push({
-        layerName: `overlay:${overlayId}`,
-        focusId,
-        isCurrent: focusId === layer.currentFocusId,
-      });
-    }
+    pushLayer(overlayId, `overlay:${overlayId}`);
   }
 
   // Active modal layer
   if (activeModalId) {
-    const layer = readLayer(activeModalId);
-    if (layer && layer.focusOrder.length > 0) {
-      for (const focusId of layer.focusOrder) {
-        entries.push({
-          layerName: `modal:${activeModalId}`,
-          focusId,
-          isCurrent: focusId === layer.currentFocusId,
-        });
-      }
-    }
+    pushLayer(activeModalId, `modal:${activeModalId}`);
   }
 
   return entries;
