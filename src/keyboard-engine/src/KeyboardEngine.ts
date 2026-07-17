@@ -318,33 +318,68 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Activate a named focus target on the current owner's layer.
    *
-   * @throws If the current owner has no layer or the focus target is not registered.
+   * When `group` is omitted, the target is looked up in the layer's default
+   * focus group ({@link defaultTargetsSymbol}). When `group` is provided, the
+   * target is looked up in the named group — each group tracks its own active
+   * focus independently, so multiple groups can hold focus simultaneously.
+   *
+   * @param focusId The focus target id to activate.
+   * @param group   Optional focus group name. Defaults to the default group.
+   * @throws If the current owner has no layer, the group is not registered,
+   *         or the focus target is not found within the group.
    */
-  focusSet(focusId: string) {
-    this.layers.focusSet(focusId);
-  }
-  /** Cycle to the next focus target (Tab). Wraps around. */
-  focusNext() {
-    this.layers.focusNext();
-  }
-  /** Cycle to the previous focus target (Shift+Tab). Wraps around. */
-  focusPrev() {
-    this.layers.focusPrev();
+  focusSet(focusId: string, group?: string) {
+    this.layers.focusSet(focusId, group);
   }
   /**
-   * Return the currently active focus target id, or null when no focus
-   * targets exist on the current layer.
+   * Cycle to the next focus target within a group (Tab semantics).
+   *
+   * Wraps around. When `group` is omitted, cycles the default group's
+   * {@link ScreenKeyboardLayer.defaultFocusOrder}; otherwise cycles the named
+   * group's registration order. Only switches the active target — does not
+   * activate a group that has no current focus.
    */
-  focusCurrent(): string | null {
-    return this.layers.focusCurrent();
+  focusNext(group?: string) {
+    this.layers.focusNext(group);
   }
   /**
-   * Remove a focus target from the current layer. If the removed target
-   * was the active one, the first remaining target (in registration order)
-   * is activated automatically.
+   * Cycle to the previous focus target within a group (Shift+Tab semantics).
+   *
+   * Wraps around. See {@link focusNext} for the `group` parameter behavior.
    */
-  focusUnregister(focusId: string) {
-    this.layers.focusUnregister(focusId);
+  focusPrev(group?: string) {
+    this.layers.focusPrev(group);
+  }
+  /**
+   * Query the currently active focus target for a group.
+   *
+   * Returns a discriminated union rather than a bare id so callers can
+   * distinguish the "no owner / no layer / no focus / result" cases without
+   * guessing. Check `.result?.id` for the active focus id, or one of
+   * `.noOwner` / `.noLayer` / `.noFound` for the empty cases.
+   *
+   * @param group Optional focus group name. Defaults to the default group.
+   */
+  focusCurrent(group?: string) {
+    return this.layers.focusCurrent(group);
+  }
+  /**
+   * Remove a focus target from the current owner's layer.
+   *
+   * If the removed target was the active one for its group, the first
+   * remaining target (in registration order) is auto-activated. When no
+   * targets remain in the group, that group's focus slot is cleared.
+   *
+   * Silently no-ops when the target or group is absent on the current
+   * layer — during unmount, `sync()` has already advanced the path to the
+   * new screen, so the focusId lives on the unmounting screen's layer
+   * (which `cleanLayers()` removes shortly after).
+   *
+   * @param focusId The focus target id to remove.
+   * @param group   Optional focus group name. Defaults to the default group.
+   */
+  focusUnregister(focusId: string, group?: string) {
+    this.layers.focusUnregister(focusId, group);
   }
 
   /**

@@ -105,15 +105,15 @@ export function useKeyboard(): KeyboardContextValue {
   return ctx;
 }
 
-export function useFocusState(focusId: string): boolean {
+export function useFocusState(focusId: string, group?: string): boolean {
   const { focusCurrent, subscribeFocus } = useKeyboard();
   const [isFocused, setIsFocused] = useState<boolean>(
-    () => focusCurrent() === focusId,
+    () => focusCurrent(group).result?.id === focusId,
   );
 
   useEffect(() => {
     return subscribeFocus(() => {
-      setIsFocused(focusCurrent() === focusId);
+      setIsFocused(focusCurrent(group).result?.id === focusId);
     });
   }, [focusId, focusCurrent, subscribeFocus]);
 

@@ -25,7 +25,7 @@ function boundSequence(
 |--------|------|---------|-------------|
 | `timeout` | `number` | `500` | Milliseconds before a partial sequence resets. |
 | `exclusive` | `boolean` | `false` | `true` = mismatched key is silently consumed. `false` = mismatch cancels the sequence and the key falls through. |
-| `focusId` | `string` | — | Scope to a focus target. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Scope to a focus target. Sequence only starts when this target is the active one for its group. See [Focus System](./focus-system-API.md). |
 | `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. Sequence is skipped when the active mode doesn't match. See [Mode System](./mode-system-API.md). |
 

@@ -57,6 +57,15 @@ function fmtKeys(keys: string | string[]): string {
   return Array.isArray(keys) ? (keys as string[]).join(', ') : keys;
 }
 
+function formatFocusId(
+  focusId: string | { group: string | symbol; focusId: string } | undefined,
+): string {
+  if (!focusId) return '—';
+  if (typeof focusId === 'string') return focusId;
+  const group = typeof focusId.group === 'symbol' ? '(default)' : focusId.group;
+  return `${group}:${focusId.focusId}`;
+}
+
 // ---- Mini display components ----
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -116,7 +125,7 @@ function SequenceDetail({ entry }: { firstKey: string; entry: SequenceBinding })
         <Row label="Timeout"><Text color="white">{entry.timeout ?? '500 (default)'}ms</Text></Row>
         <Row label="Exclusive"><BoolVal v={entry.options?.exclusive} /></Row>
         <Row label="OnlyThis"><BoolVal v={entry.options?.onlyThis} /></Row>
-        <Row label="FocusId"><Text color="white">{entry.options?.focusId ?? '—'}</Text></Row>
+        <Row label="FocusId"><Text color="white">{formatFocusId(entry.options?.focusId)}</Text></Row>
         <Row label="When"><BoolVal v={entry.when != null} /></Row>
       </Box>
     </Box>
@@ -295,13 +304,24 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
     });
   });
 
-  // Focus targets
-  for (const [focusId, target] of layer.focusTargets) {
+  // Focus targets — default
+  for (const [focusId, target] of layer.defaultTargets) {
     items.push({
       label: `[Foc]  ${focusId}  (bind:${target.bindings.length} pen:${target.penetrationKeys.length} stp:${target.stoppedKeys.length})`,
       value: { kind: 'focusTarget', focusId, target },
-      Key: `focus-${focusId}`,
+      Key: `focus-default-${focusId}`,
     });
+  }
+
+  // Focus targets — group-scoped
+  for (const [groupName, group] of layer.focusTargets) {
+    for (const [focusId, target] of group.map) {
+      items.push({
+        label: `[Foc]  ${groupName}:${focusId}  (bind:${target.bindings.length} pen:${target.penetrationKeys.length} stp:${target.stoppedKeys.length})`,
+        value: { kind: 'focusTarget', focusId, target },
+        Key: `focus-${groupName}-${focusId}`,
+      });
+    }
   }
 
   const handleSelect = (item: LayerKeyItem) => {
@@ -347,7 +367,7 @@ export default function LayerKeyDisplayBox({ top: initialTop, left, screenCompon
       <Box>
         <Text bold color="cyan">▌ Layer: </Text>
         <Text color="yellow">{layerName}</Text>
-        <Text dimColor>  kind={layer.kind}  focus={layer.currentFocusId ?? 'none'}</Text>
+        <Text dimColor>  kind={layer.kind}  focus={layer.currentFocusIds.map(e => e.id).join(',') || 'none'}</Text>
       </Box>
       <Sep />
 

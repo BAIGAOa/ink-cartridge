@@ -16,11 +16,27 @@ export function cleanupGlobalKeyOverrides(
   keys: string[],
 ): void {
   for (const k of keys) {
-    const stillBound =
-      layer.bindings.some(b => b.keys.includes(k)) ||
-      [...layer.focusTargets.values()].some(ft =>
-        ft.bindings.some(b => b.keys.includes(k))
-      );
+    let stillBound =
+      layer.bindings.some(b => b.keys.includes(k));
+    if (!stillBound) {
+      for (const group of layer.focusTargets.values()) {
+        for (const ft of group.map.values()) {
+          if (ft.bindings.some(b => b.keys.includes(k))) {
+            stillBound = true;
+            break;
+          }
+        }
+        if (stillBound) break;
+      }
+    }
+    if (!stillBound) {
+      for (const ft of layer.defaultTargets.values()) {
+        if (ft.bindings.some(b => b.keys.includes(k))) {
+          stillBound = true;
+          break;
+        }
+      }
+    }
     if (!stillBound) {
       layer.globalKeyOverrides.delete(k);
     }

@@ -1,9 +1,11 @@
-import type {
-  PipelineContext,
-  PipelineProcessor,
-  ScreenKeyboardLayer,
-  BoundKeyEntry,
-  KeyRule,
+import {
+  type PipelineContext,
+  type PipelineProcessor,
+  type ScreenKeyboardLayer,
+  type BoundKeyEntry,
+  type KeyRule,
+  type FocusTarget,
+  defaultTargetsSymbol,
 } from '../types.js';
 import { handleLayer } from '../layerHandler.js';
 import { checkWhen } from '../checkWhen.js';
@@ -11,6 +13,21 @@ import { checkWhen } from '../checkWhen.js';
 
 function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNames: string[]): boolean {
   return allowedKeys.some((k) => !blockedKeys.includes(k.key) && eventNames.includes(k.key));
+}
+
+/**
+ * Resolve a {@link ScreenKeyboardLayer.currentFocusIds} entry to its
+ * {@link FocusTarget}, searching both {@link ScreenKeyboardLayer.defaultTargets}
+ * and group-scoped {@link ScreenKeyboardLayer.focusTargets}.
+ */
+function getFocusTarget(
+  layer: ScreenKeyboardLayer,
+  entry: { id: string; fromGroup: string | typeof defaultTargetsSymbol },
+): FocusTarget | undefined {
+  if (entry.fromGroup === defaultTargetsSymbol) {
+    return layer.defaultTargets.get(entry.id);
+  }
+  return layer.focusTargets.get(entry.fromGroup)?.map.get(entry.id);
 }
 
 /**
@@ -22,9 +39,18 @@ function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[], conditions:
     .filter((r) => !checkWhen(r.when, conditions))
     .map((r) => r.key);
 
-  if (layer.currentFocusId) {
-    const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft && passAllowedKeys(ft.allowedKeys, blockedKeys, eventNames)) {
+  if (layer.currentFocusIds.length > 0) {
+    const allFt: FocusTarget[] = [];
+
+    for (const each of layer.currentFocusIds) {
+      const target = getFocusTarget(layer, each);
+      if (target) {
+        allFt.push(target);
+      }
+    }
+
+    const allAllowedKeys = [...new Set(allFt.flatMap(each => each.allowedKeys))]
+    if (allFt.length > 0 && passAllowedKeys(allAllowedKeys, blockedKeys, eventNames)) {
       return true;
     }
   }
@@ -59,12 +85,38 @@ function matchesOtherFocusTarget(
   layer: ScreenKeyboardLayer,
   eventNames: string[],
 ): boolean {
-  for (const [fid, ft] of layer.focusTargets) {
-    if (fid === layer.currentFocusId) continue;
+  const activeIds = new Set(
+    layer.currentFocusIds.map((e) => {
+      const groupKey =
+        e.fromGroup === defaultTargetsSymbol
+          ? String(defaultTargetsSymbol)
+          : e.fromGroup;
+      return `${groupKey}::${e.id}`;
+    }),
+  );
+
+  // Check defaultTargets
+  for (const [id, ft] of layer.defaultTargets) {
+    const key = `${String(defaultTargetsSymbol)}::${id}`;
+    if (activeIds.has(key)) continue;
     if (ft.bindings.some((b) => b.keys.some((k) => eventNames.includes(k)))) {
       return true;
     }
   }
+
+  // Check group-scoped focusTargets
+  for (const [groupName, group] of layer.focusTargets) {
+    for (const [id, ft] of group.map) {
+      const key = `${groupName}::${id}`;
+      if (activeIds.has(key)) continue;
+      if (
+        ft.bindings.some((b) => b.keys.some((k) => eventNames.includes(k)))
+      ) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -99,12 +151,14 @@ function invokeMissIfNeeded(
 
   if (
     opts.monitorWhen &&
-    layer.currentFocusId
+    layer.currentFocusIds.length > 0
   ) {
-    const ft = layer.focusTargets.get(layer.currentFocusId);
-    if (ft && hasWhenFalseBinding(ft.bindings, eventNames, conditions)) {
-      layer.onMiss({ miss: true, key, input, eventNames });
-      return true;
+    for (const each of layer.currentFocusIds) {
+      const ft = getFocusTarget(layer, each);
+      if (ft && hasWhenFalseBinding(ft.bindings, eventNames, conditions)) {
+        layer.onMiss({ miss: true, key, input, eventNames });
+        return true;
+      }
     }
   }
 

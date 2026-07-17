@@ -23,7 +23,7 @@ function boundKeyboard(
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `focusId` | `string` | — | Scope binding to a focus target. Key only fires when this target is active. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Scope binding to a focus target. Key only fires when this target is the active one for its group. Pass a string for the default group, or `{ group, focusId }` for a named group. See [Focus System](./focus-system-API.md). |
 | `onlyThis` | `boolean` | `false` | Only fire when this layer is the sole active overlay (or no overlays are active). |
 | `once` | `boolean` | `false` | Auto-unbind after first invocation. |
 | `times` | `number` | — | Fire on every Nth press (e.g. `2` = 2nd, 4th, 6th…). |

@@ -94,7 +94,7 @@ describe('BindingService — boundSequence', () => {
       engine.boundKeyboard('x', () => {}, { focusId: 'input1' });
       engine.boundSequence(['a', 'b'], handler, { focusId: 'input1' });
       // Focus is auto-set to 'input1' by boundKeyboard
-      expect(engine.focusCurrent()).toBe('input1');
+      expect(engine.focusCurrent().result?.id).toBe('input1');
       engine.processKey('a', {});
       engine.processKey('b', {});
       expect(handler).toHaveBeenCalled();

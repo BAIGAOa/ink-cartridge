@@ -471,7 +471,7 @@ describe('focus system', () => {
 
     await flush();
 
-    expect(kbRef.current!.focusCurrent()).toBe('select-a');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('select-a');
   });
 
   it('only focused SelectInput responds to keys', async () => {
@@ -492,7 +492,7 @@ describe('focus system', () => {
     });
 
     kbRef.current!.focusSet('select-b');
-    expect(kbRef.current!.focusCurrent()).toBe('select-b');
+    expect(kbRef.current!.focusCurrent().result?.id).toBe('select-b');
 
     await press(stdin, KEYS.enter);
     expect(onSelectB).toHaveBeenCalledTimes(1);

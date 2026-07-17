@@ -1,160 +1,207 @@
 import { createContext } from "react";
 import type {
-  KeyHandler,
-  BoundKeyboardOptions,
-  PenetrationOptions,
-  StopOptions,
-  AllowModalOptions,
-  GlobalKeyEntry,
-  GlobalSequenceEntry,
-  ShortcutOperationEntry,
-  SequenceOperationEntry,
-  SequenceOptions,
-  ModalMissCallback,
-  ModalMissOptions,
-  ResolvedGlobalKeyEntry,
-  ResolvedGlobalSequenceEntry,
-  GlobalPendingSequence,
-  ScreenKeyboardLayer,
-  PipelineProcessor,
-  CompositioKey,
-  CompositionContext,
-  ValueSchema,
-  Flags,
-  CompositionEvent,
+	KeyHandler,
+	BoundKeyboardOptions,
+	PenetrationOptions,
+	StopOptions,
+	AllowModalOptions,
+	GlobalKeyEntry,
+	GlobalSequenceEntry,
+	ShortcutOperationEntry,
+	SequenceOperationEntry,
+	SequenceOptions,
+	ModalMissCallback,
+	ModalMissOptions,
+	ResolvedGlobalKeyEntry,
+	ResolvedGlobalSequenceEntry,
+	GlobalPendingSequence,
+	ScreenKeyboardLayer,
+	PipelineProcessor,
+	CompositioKey,
+	CompositionContext,
+	ValueSchema,
+	Flags,
+	CompositionEvent,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
+import { defaultTargetsSymbol } from "../keyboard-engine/dist/types.js";
 
 export type LayerOwner = unknown | string;
 
 export interface KeyboardContextValue {
-  boundKeyboard: {
-    (keys: string | string[], handler: KeyHandler, options?: BoundKeyboardOptions): () => void;
-    (keys: string | string[], actionId: string, options?: BoundKeyboardOptions): () => void;
-    (actionId: string, options?: BoundKeyboardOptions): () => void;
-  };
+	boundKeyboard: {
+		(
+			keys: string | string[],
+			handler: KeyHandler,
+			options?: BoundKeyboardOptions,
+		): () => void;
+		(
+			keys: string | string[],
+			actionId: string,
+			options?: BoundKeyboardOptions,
+		): () => void;
+		(actionId: string, options?: BoundKeyboardOptions): () => void;
+	};
 
-  penetration: (keys: string[], options?: PenetrationOptions) => () => void;
+	penetration: (keys: string[], options?: PenetrationOptions) => () => void;
 
-  stop: (keys: string[], options?: StopOptions) => () => void;
+	stop: (keys: string[], options?: StopOptions) => () => void;
 
-  allowModal: (keys: string[], options?: AllowModalOptions) => () => void;
+	allowModal: (keys: string[], options?: AllowModalOptions) => () => void;
 
-  globalKeys: (
-    entries: GlobalKeyEntry[],
-    options?: { mode?: "replace" | "add" },
-  ) => void;
+	globalKeys: (
+		entries: GlobalKeyEntry[],
+		options?: { mode?: "replace" | "add" },
+	) => void;
 
-  getGlobalKeys: () => ResolvedGlobalKeyEntry[];
+	getGlobalKeys: () => ResolvedGlobalKeyEntry[];
 
-  globalSequence: (
-    entries: GlobalSequenceEntry[],
-    options?: { mode?: "replace" | "add" },
-  ) => void;
+	globalSequence: (
+		entries: GlobalSequenceEntry[],
+		options?: { mode?: "replace" | "add" },
+	) => void;
 
-  getGlobalSequences: () => ResolvedGlobalSequenceEntry[];
+	getGlobalSequences: () => ResolvedGlobalSequenceEntry[];
 
-  getGlobalPendingSequence: () => GlobalPendingSequence | null;
+	getGlobalPendingSequence: () => GlobalPendingSequence | null;
 
-  thereGlobalQueueWaiting: (sync?: () => void) => boolean;
+	thereGlobalQueueWaiting: (sync?: () => void) => boolean;
 
-  currentScreenHasSequenceWaiting: (sync?: () => void) => boolean;
+	currentScreenHasSequenceWaiting: (sync?: () => void) => boolean;
 
-  focusUnregister: (focusId: string) => void;
+	focusUnregister: (focusId: string, group?: string) => void;
 
-  focusSet: (focusId: string) => void;
+	focusSet: (focusId: string, group?: string) => void;
 
-  focusNext: () => void;
+	focusNext: (group?: string) => void;
 
-  focusPrev: () => void;
+	focusPrev: (group?: string) => void;
 
-  focusCurrent: () => string | null;
+	focusCurrent: (group?: string) =>
+		| {
+				noOwner: boolean;
+				noLayer?: undefined;
+				noFound?: undefined;
+				result?: undefined;
+		  }
+		| {
+				noLayer: boolean;
+				noOwner?: undefined;
+				noFound?: undefined;
+				result?: undefined;
+		  }
+		| {
+				noFound: boolean;
+				noOwner?: undefined;
+				noLayer?: undefined;
+				result?: undefined;
+		  }
+		| {
+				result: {
+					id: string;
+					fromGroup: string | typeof defaultTargetsSymbol;
+				};
+				noOwner?: undefined;
+				noLayer?: undefined;
+				noFound?: undefined;
+		  };
 
-  subscribeFocus: (listener: () => void) => () => void;
+	subscribeFocus: (listener: () => void) => () => void;
 
-  defineShortcutAction: (entries: ShortcutOperationEntry[]) => void;
-  addAction: (entry: ShortcutOperationEntry) => void;
-  hasAction: (actionId: string) => boolean;
-  removeAction: (actionId: string) => void;
-  modifyAction: (actionId: string, keys: string[]) => void;
-  clearShortcutOperations: () => void;
+	defineShortcutAction: (entries: ShortcutOperationEntry[]) => void;
+	addAction: (entry: ShortcutOperationEntry) => void;
+	hasAction: (actionId: string) => boolean;
+	removeAction: (actionId: string) => void;
+	modifyAction: (actionId: string, keys: string[]) => void;
+	clearShortcutOperations: () => void;
 
-  defineSequenceAction: (entries: SequenceOperationEntry[]) => void;
-  addSequenceAction: (entry: SequenceOperationEntry) => void;
-  hasSequenceAction: (sequenceActionId: string) => boolean;
-  removeSequenceAction: (sequenceActionId: string) => void;
-  modifySequenceAction: (sequenceActionId: string, keys: string[], timeout?: number) => void;
-  clearSequenceOperations: () => void;
+	defineSequenceAction: (entries: SequenceOperationEntry[]) => void;
+	addSequenceAction: (entry: SequenceOperationEntry) => void;
+	hasSequenceAction: (sequenceActionId: string) => boolean;
+	removeSequenceAction: (sequenceActionId: string) => void;
+	modifySequenceAction: (
+		sequenceActionId: string,
+		keys: string[],
+		timeout?: number,
+	) => void;
+	clearSequenceOperations: () => void;
 
-  _pushOwner: (owner: LayerOwner) => void;
+	_pushOwner: (owner: LayerOwner) => void;
 
-  _popOwner: (owner: LayerOwner) => void;
+	_popOwner: (owner: LayerOwner) => void;
 
-  boundSequence: {
-    (keys: string | string[], handler: KeyHandler, options?: SequenceOptions): () => void;
-    (actionId: string, options?: SequenceOptions): () => void;
-  };
+	boundSequence: {
+		(
+			keys: string | string[],
+			handler: KeyHandler,
+			options?: SequenceOptions,
+		): () => void;
+		(actionId: string, options?: SequenceOptions): () => void;
+	};
 
-  enableWildcardPriority: () => (() => void);
+	enableWildcardPriority: () => () => void;
 
-  useModalMissListener: (
-    cb: ModalMissCallback,
-    options?: ModalMissOptions,
-  ) => () => void;
+	useModalMissListener: (
+		cb: ModalMissCallback,
+		options?: ModalMissOptions,
+	) => () => void;
 
-  readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
+	readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
 
-  getCurrentMode: () => string | null;
+	getCurrentMode: () => string | null;
 
-  addMode: (mode: string) => boolean;
+	addMode: (mode: string) => boolean;
 
-  removeMode: (mode: string) => boolean;
+	removeMode: (mode: string) => boolean;
 
-  setMode: (mode: string | null) => boolean;
+	setMode: (mode: string | null) => boolean;
 
-  nextMode: () => void;
+	nextMode: () => void;
 
-  prevMode: () => void;
+	prevMode: () => void;
 
-  addCondition: (id: string, defaultVal: boolean) => boolean;
+	addCondition: (id: string, defaultVal: boolean) => boolean;
 
-  setCondition: (target: string, value: boolean) => boolean;
+	setCondition: (target: string, value: boolean) => boolean;
 
-  removeCondition: (target: string) => boolean;
+	removeCondition: (target: string) => boolean;
 
-  addProcessor: (
-    processor: PipelineProcessor,
-    options?:
-      | { before?: BuiltinProcessorId | (string & {}) }
-      | { after?: BuiltinProcessorId | (string & {}) }
-      | { index?: number },
-  ) => void;
+	addProcessor: (
+		processor: PipelineProcessor,
+		options?:
+			| { before?: BuiltinProcessorId | (string & {}) }
+			| { after?: BuiltinProcessorId | (string & {}) }
+			| { index?: number },
+	) => void;
 
-  removeProcessor: (processorId: string) => boolean;
+	removeProcessor: (processorId: string) => boolean;
 
-  getProcessors: () => readonly PipelineProcessor[];
+	getProcessors: () => readonly PipelineProcessor[];
 
-  resetProcessors: () => void;
+	resetProcessors: () => void;
 
-  registryCompositionKey: (entry: CompositioKey) => void;
-  removeCompositionKey: (key: string) => boolean;
-  clearAllCompositionKeys: () => void;
-  hasPendingComposition: () => boolean;
-  getCompositionContext: () => CompositionContext;
-  abortComposition: () => void;
-  updateCompositionKey: (
-    key: string,
-    flags: Flags,
-    updates: Partial<Omit<CompositioKey, "key" | "flags">>,
-  ) => boolean;
+	registryCompositionKey: (entry: CompositioKey) => void;
+	removeCompositionKey: (key: string) => boolean;
+	clearAllCompositionKeys: () => void;
+	hasPendingComposition: () => boolean;
+	getCompositionContext: () => CompositionContext;
+	abortComposition: () => void;
+	updateCompositionKey: (
+		key: string,
+		flags: Flags,
+		updates: Partial<Omit<CompositioKey, "key" | "flags">>,
+	) => boolean;
 
-  setValueSchema: (schema: ValueSchema) => void;
+	setValueSchema: (schema: ValueSchema) => void;
 
-  undoComposition: (steps?: number, options?: { isolated?: boolean; byKey?: boolean }) => CompositionContext | null;
-  bufferedCompositionCount: () => number;
-  clearCompositionBuffers: () => void;
-  subscribeComposition: (fn: () => void) => () => void;
-  getLastCompositionEvent: () => CompositionEvent | null;
+	undoComposition: (
+		steps?: number,
+		options?: { isolated?: boolean; byKey?: boolean },
+	) => CompositionContext | null;
+	bufferedCompositionCount: () => number;
+	clearCompositionBuffers: () => void;
+	subscribeComposition: (fn: () => void) => () => void;
+	getLastCompositionEvent: () => CompositionEvent | null;
 }
 
 /**

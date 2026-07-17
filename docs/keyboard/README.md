@@ -49,7 +49,7 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [setValueSchema](./setValueSchema-API.md) | Runtime type validation for composition chain values |
 | [globalKeys](./globalKeys-API.md) | Global single-key bindings |
 | [globalSequence](./globalSequence-API.md) | Global multi-key sequences |
-| [Focus system](./focus-system-API.md) | focusSet / focusNext / focusPrev / useFocusState / focusUnregister |
+| [Focus system](./focus-system-API.md) | focusSet / focusNext / focusPrev / focusCurrent / useFocusState / focusUnregister — default group + named multi-focus groups |
 | [Shortcut actions](./shortcut-actions-API.md) | Named operations: defineShortcutAction / addAction / modifyAction etc. |
 | [Sequence actions](./sequence-actions-API.md) | Named sequence operations: defineSequenceAction / addSequenceAction etc. |
 | [allowModal](./allowModal-API.md) | Let keys pass through the modal barrier |

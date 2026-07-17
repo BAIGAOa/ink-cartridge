@@ -100,10 +100,10 @@ describe('two KeyboardProvider instances are fully isolated', () => {
 
     a.kb().boundKeyboard(['return'], () => {}, { focusId: 'btn-a' });
 
-    expect(b.kb().focusCurrent()).toBeNull();
+    expect(b.kb().focusCurrent().noLayer).toBe(true);
     expect(() => b.kb().focusSet('btn-a'))
       .toThrow(/focus target not found.*btn-a|no keyboard layer found/);
-    expect(b.kb().focusCurrent()).toBeNull();
+    expect(b.kb().focusCurrent().noLayer).toBe(true);
 
     a.unmount();
     b.unmount();
@@ -120,13 +120,13 @@ describe('two KeyboardProvider instances are fully isolated', () => {
     b.kb().boundKeyboard(['x'], () => {}, { focusId: 'b1' });
     b.kb().boundKeyboard(['y'], () => {}, { focusId: 'b2' });
 
-    expect(a.kb().focusCurrent()).toBe('a1');
+    expect(a.kb().focusCurrent().result?.id).toBe('a1');
     a.kb().focusNext();
-    expect(a.kb().focusCurrent()).toBe('a2');
+    expect(a.kb().focusCurrent().result?.id).toBe('a2');
     a.kb().focusNext();
-    expect(a.kb().focusCurrent()).toBe('a3');
+    expect(a.kb().focusCurrent().result?.id).toBe('a3');
 
-    expect(b.kb().focusCurrent()).toBe('b1');
+    expect(b.kb().focusCurrent().result?.id).toBe('b1');
 
     a.unmount();
     b.unmount();
@@ -176,12 +176,12 @@ describe('two KeyboardProvider instances are fully isolated', () => {
     b.kb().penetration(['y']);
 
     expect(() => a.kb().boundKeyboard(['g2'], 'go')).not.toThrow();
-    expect(a.kb().focusCurrent()).toBe('fa1');
+    expect(a.kb().focusCurrent().result?.id).toBe('fa1');
     a.kb().focusNext();
-    expect(a.kb().focusCurrent()).toBe('fa2');
+    expect(a.kb().focusCurrent().result?.id).toBe('fa2');
 
     expect(() => b.kb().boundKeyboard(['z'], 'go')).toThrow(/go/);
-    expect(b.kb().focusCurrent()).toBe('fb1');
+    expect(b.kb().focusCurrent().result?.id).toBe('fb1');
     expect(() => b.kb().boundKeyboard(['r2'], 'run')).not.toThrow();
 
     a.unmount();
@@ -199,7 +199,7 @@ describe('two KeyboardProvider instances are fully isolated', () => {
 
     a.unmount();
 
-    expect(b.kb().focusCurrent()).toBe('fb');
+    expect(b.kb().focusCurrent().result?.id).toBe('fb');
     expect(() => b.kb().boundKeyboard(['s2'], 'stay')).not.toThrow();
     expect(() => b.kb().boundKeyboard(['x'], 'a-only-ghost')).toThrow();
 

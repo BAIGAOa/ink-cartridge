@@ -3,8 +3,6 @@ import React, {
   useMemo,
   useEffect,
   ReactNode,
-  useRef,
-  useCallback,
 } from "react";
 import { ScreenSystemContext, ScreenSystemContextValue } from "./context.js";
 import {
@@ -674,7 +672,6 @@ export function ScenarioManagementProvider({
     counter: 0,
   });
 
-  const actuatorsWhenClosed = useRef<Map<string, () => void>>(new Map());
 
   useEffect(() => {
     _dispatchers.add(dispatch);
@@ -705,19 +702,6 @@ export function ScenarioManagementProvider({
         }),
       ),
     [state.overlays],
-  );
-
-  const registerActuator = useCallback(
-    (actuatorId: string, actuator: () => void) => {
-      if (actuatorsWhenClosed.current.has(actuatorId)) {
-        return false;
-      }
-
-      actuatorsWhenClosed.current.set(actuatorId, actuator);
-
-      return true;
-    },
-    [],
   );
 
   // Determine which modals should be rendered: active modal

@@ -67,7 +67,7 @@ export interface BoundKeyboardOptions {
    */
   focusId?:
     | string
-    | { group: string | typeof defaultTargetsSymbol; focusId: string };
+    | { group: string; focusId: string };
 
   /**
    * When `true`, the binding is automatically removed after its first
@@ -365,8 +365,7 @@ export interface ScreenKeyboardLayer {
    * All focus of the default focus layer is used for automatic focus switching by default
    */
   defaultFocusOrder: string[];
-  /** Which groups currently have focus active within them, including the default layer */
-  activeFocusGroup: string[];
+  
   /** The currently active focus target id, or null. */
   currentFocusIds: {
     id: string;
@@ -441,7 +440,7 @@ export interface StopOptions {
   /** If provided, stops only within the named focus target. */
   focusId?:
     | string
-    | { group: string | typeof defaultTargetsSymbol; focusId: string };
+    | { group: string; focusId: string };
   /**
    * When `true`, treats each entry in `keys` as a shortcut **action ID**
    * and resolves it to the actual key names currently bound to that action
@@ -471,7 +470,7 @@ export interface PenetrationOptions {
   /** If provided, penetrates only within the named focus target. */
   focusId?:
     | string
-    | { group: string | typeof defaultTargetsSymbol; focusId: string };
+    | { group: string; focusId: string };
   /**
    * Optional condition callback. When provided, the key is only transparent
    * when this returns `true`. When `false`, the penetration rule
@@ -488,7 +487,7 @@ export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
   focusId?:
     | string
-    | { group: string | typeof defaultTargetsSymbol; focusId: string };
+    | { group: string; focusId: string };
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
   when?: (() => boolean) | string;
 }

@@ -104,7 +104,7 @@ describe('BindingService — stop with stopAction', () => {
     engine.defineShortcutAction([{ actionId: 'act', action: () => {} }]);
     engine.boundKeyboard(['x'], 'act', { focusId: 'f1' });
     engine.stop(['act'], { stopAction: true, focusId: 'f1' });
-    const ft = engine.readLayer('screenA')!.focusTargets.get('f1')!;
+    const ft = engine.readLayer('screenA')!.defaultTargets.get('f1')!;
     expect(ft.stoppedKeys).toHaveLength(1);
     expect(ft.stoppedKeys[0].key).toBe('x');
   });
@@ -199,7 +199,7 @@ describe('BindingService — allowModal', () => {
     engine.boundKeyboard(['x'], () => {}, { focusId: 'f1' });
     engine.allowModal(['escape'], { focusId: 'f1', when: () => true });
     engine.popOwner('modal1');
-    const ft = engine.readLayer('modal1')!.focusTargets.get('f1')!;
+    const ft = engine.readLayer('modal1')!.defaultTargets.get('f1')!;
     expect(ft.allowedKeys).toHaveLength(1);
     expect(ft.allowedKeys[0].key).toBe('escape');
   });

@@ -3,7 +3,7 @@ import { useInput } from 'ink';
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import type { KeyboardProcessorProps, ValueSchema } from '@cartridge-engine/keyboard-engine';
 import { clearShortcutOperations } from '@cartridge-engine/keyboard-engine';
-import { KeyboardContext } from '../context.js';
+import { KeyboardContext, KeyboardContextValue } from '../context.js';
 import { useScreenSystem } from '../../screen/hook.js';
 import { normalizeKeyNames } from '../keyNormalizer.js';
 
@@ -69,7 +69,7 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
   useEffect(() => { engine.cleanOverlayLayers(); }, [displayedOverlays, engine]);
   useEffect(() => { engine.cleanModalLayers(); }, [displayedModals, engine]);
 
-  const value = useMemo(
+  const value: KeyboardContextValue = useMemo(
     () => ({
       boundKeyboard: engine.boundKeyboard.bind(engine) as any,
       penetration: engine.penetration.bind(engine),
