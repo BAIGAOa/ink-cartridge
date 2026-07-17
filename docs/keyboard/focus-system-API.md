@@ -77,7 +77,52 @@ Silently no-ops when the target or group is absent on the current owner's layer 
 function subscribeFocus(listener: () => void): () => void
 ```
 
-Subscribe to focus change notifications. The listener fires whenever any group's active focus changes (via `focusSet`, `focusNext`, `focusPrev`, `focusUnregister` auto-activation, or first-target auto-selection). Returns an unsubscribe function.
+Subscribe to focus change notifications. The listener fires whenever any group's active focus changes (via `focusSet`, `focusNext`, `focusPrev`, `focusUnregister` auto-activation, `activateFocusGroup`, `kickFocusGroup`, or first-target auto-selection). Returns an unsubscribe function.
+
+### activateFocusGroup
+
+```ts
+function activateFocusGroup(focusId: string, group?: string): boolean
+```
+
+Activate a focus target in a group that currently has **no active focus**. Unlike `focusSet` — which always replaces a group's active target — this method only succeeds when the group's active slot is empty. Returns `true` on success, `false` when the group already has an active target, or when the owner/layer/group/target is absent.
+
+Designed for lazy activation: register focus targets early, then call `activateFocusGroup` to give a group its initial focus on demand without overwriting focus that was already established.
+
+```tsx
+const { activateFocusGroup } = useKeyboard();
+
+// Register targets across groups
+boundKeyboard('*', handleName,  { focusId: { group: 'field', focusId: 'name' } });
+boundKeyboard('*', handleEmail, { focusId: { group: 'field', focusId: 'email' } });
+boundKeyboard('tab', handleTab, { focusId: { group: 'nav', focusId: 'tabs' } });
+
+// The 'field' group was auto-activated when the first target registered,
+// so this returns false. The 'nav' group has no active focus yet, so it succeeds.
+activateFocusGroup('name', 'field');  // false — already active
+activateFocusGroup('tabs', 'nav');    // true  — first activation
+```
+
+### kickFocusGroup
+
+```ts
+function kickFocusGroup(group?: string): boolean
+```
+
+Remove an entire group's active focus entry. The group holds no active focus afterward — the specific `focusId` doesn't matter, the whole group is kicked out. Returns `true` if the group was removed, `false` if the owner/layer/group is absent or the group is not currently active.
+
+The group's registered focus targets remain intact. Call `activateFocusGroup` or `focusSet` later to re-establish focus for the group.
+
+```tsx
+const { kickFocusGroup } = useKeyboard();
+
+// Deactivate the entire field group so no field receives keys
+kickFocusGroup('field');  // true — group was active, now removed
+kickFocusGroup('field');  // false — safe no-op, group is no longer active
+
+// Re-activate later
+activateFocusGroup('name', 'field');
+```
 
 ## focusId option on bindings
 

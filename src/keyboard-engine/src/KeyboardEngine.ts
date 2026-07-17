@@ -25,7 +25,12 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
-import CompositionEngine, { CompositioKey, ValueSchema, Flags, CompositionEvent } from "./CompositionEngine.js";
+import CompositionEngine, {
+  CompositioKey,
+  ValueSchema,
+  Flags,
+  CompositionEvent,
+} from "./CompositionEngine.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -59,7 +64,7 @@ export interface EngineProps {
   /**
    * Default composition engine timeout
    */
-  defaultTimeout?: number
+  defaultTimeout?: number;
 
   /**
    * Optional runtime type schema for composition chain value validation.
@@ -80,7 +85,7 @@ export interface EngineProps {
    * });
    * ```
    */
-  valueSchema?: ValueSchema
+  valueSchema?: ValueSchema;
 
   /**
    * Whether the engine automatically handles Tab / Shift+Tab for focus
@@ -90,7 +95,7 @@ export interface EngineProps {
    * automatically. When `false` or `undefined`, developers must call
    * `focusNext` / `focusPrev` manually.
    */
-  autoTab?: boolean
+  autoTab?: boolean;
 }
 
 /**
@@ -139,7 +144,11 @@ export default class KeyboardEngine<TComponent = unknown> {
     this.pipeline = new PipelineManager(this.state, props.processors);
     this.bindings = new BindingService(this.state, this.layers);
     this.registry = new OperationRegistry(this.state, this.layers);
-    this.state.compositionEngine = new CompositionEngine(this.state, props.defaultTimeout, props.valueSchema);
+    this.state.compositionEngine = new CompositionEngine(
+      this.state,
+      props.defaultTimeout,
+      props.valueSchema,
+    );
   }
 
   /** The composition engine for composing multi-key compound actions. */
@@ -199,7 +208,10 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @returns The final context after undo, or `null` if nothing was undone.
    * @throws If `steps` exceeds the number of buffered sequences.
    */
-  undoComposition(steps?: number, options?: { isolated?: boolean; byKey?: boolean }) {
+  undoComposition(
+    steps?: number,
+    options?: { isolated?: boolean; byKey?: boolean },
+  ) {
     return this.state.compositionEngine.undo(steps, options);
   }
 
@@ -235,9 +247,13 @@ export default class KeyboardEngine<TComponent = unknown> {
   updateCompositionKey(
     key: string,
     flags: Flags,
-    updates: Partial<Omit<CompositioKey<TComponent>, 'key' | 'flags'>>,
+    updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flags">>,
   ) {
-    return this.state.compositionEngine.updateCompositionKey(key, flags, updates);
+    return this.state.compositionEngine.updateCompositionKey(
+      key,
+      flags,
+      updates,
+    );
   }
 
   /**
@@ -380,6 +396,49 @@ export default class KeyboardEngine<TComponent = unknown> {
    */
   focusUnregister(focusId: string, group?: string) {
     this.layers.focusUnregister(focusId, group);
+  }
+
+  /**
+   * Activate a focus target in a group that currently has no active focus.
+   *
+   * Unlike {@link focusSet} — which replaces a group's active target — this
+   * method only succeeds when the group has no active entry yet. It is
+   * designed for lazy activation: register focus targets early, then call
+   * `activateFocusGroup` to give a group its initial focus on demand without
+   * overwriting focus that was already established.
+   *
+   * Returns `false` (no-op) when the group already has an active target, or
+   * when the owner, layer, group, or focus target is absent. Use
+   * {@link focusSet} when you need to switch a group's active target
+   * regardless of its current state.
+   *
+   * @param focusId The focus target id to activate.
+   * @param group   Optional focus group name. Defaults to the default group.
+   * @returns `true` if the target was activated, `false` if the group already
+   *          had an active target or the target/group/layer could not be found.
+   */
+  activateFocusGroup(focusId: string, group?: string) {
+    return this.layers.activateFocusGroup(focusId, group);
+  }
+
+  /**
+   * Remove a group's active focus entry from the current owner's layer.
+   *
+   * Kicks the entire group out of the active focus slots — the specific
+   * `focusId` doesn't matter. After removal the group has no active focus
+   * until `activateFocusGroup`, `focusSet`, or an auto-select re-establishes
+   * one.
+   *
+   * Returns `false` when the owner has no layer, the group is not registered,
+   * or the group is not currently active. Does not unregister the group's
+   * focus targets — bindings remain intact.
+   *
+   * @param group Optional focus group name. Defaults to the default group.
+   * @returns `true` if the group was removed from active focus,
+   *          `false` if the group was not active or could not be found.
+   */
+  kickFocusGroup(group?: string) {
+    return this.layers.kickFocusGroup(group);
   }
 
   /**

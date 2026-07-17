@@ -7,12 +7,14 @@ Without focus, a screen with two text inputs would have both responding to every
 ## API surface
 
 ```ts
-focusSet(focusId: string): void
-focusNext(): void
-focusPrev(): void
-focusCurrent(): string | null
-focusUnregister(focusId: string): void
+focusSet(focusId: string, group?: string): void
+focusNext(group?: string): void
+focusPrev(group?: string): void
+focusCurrent(group?: string): { noOwner: true } | { noLayer: true } | { noFound: true } | { result: { id: string; fromGroup: string | typeof defaultTargetsSymbol } }
+focusUnregister(focusId: string, group?: string): void
 subscribeFocus(listener: () => void): () => void
+activateFocusGroup(focusId: string, group?: string): boolean
+kickFocusGroup(group?: string): boolean
 ```
 
 ## Method details
@@ -105,3 +107,5 @@ engine.subscribeFocus(() => {
 - **[`penetration`](./penetration.md)** / **[`stop`](./stop.md)** — both support `focusId` scoping
 - **[`allowModal`](./allowModal.md)** — supports `focusId` scoping on modal layers
 - **[`useModalMissListener`](./useModalMissListener.md)** — `monitorFocusMismatch` option controls whether non-active-focus key matches count as misses
+- **[`activateFocusGroup`](./activateFocusGroup.md)** — lazy initial activation for a group with no active focus; returns `false` if the group is already active
+- **[`kickFocusGroup`](./kickFocusGroup.md)** — remove a group's entire active focus slot without unregistering its targets

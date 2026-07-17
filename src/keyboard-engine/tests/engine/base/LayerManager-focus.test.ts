@@ -390,6 +390,237 @@ describe('LayerManager — focus', () => {
     });
   });
 
+  describe('activateFocusGroup', () => {
+    test('Given a group with no active focus, activateFocusGroup succeeds and returns true', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r2' } });
+      // Kick the group first so it has no active focus
+      engine.kickFocusGroup('row');
+      expect(engine.focusCurrent('row').noFound).toBe(true);
+
+      const result = engine.activateFocusGroup('r2', 'row');
+      expect(result).toBe(true);
+      expect(engine.focusCurrent('row').result?.id).toBe('r2');
+    });
+
+    test('Given a group that already has active focus, activateFocusGroup returns false and does not change focus', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r2' } });
+      // r1 is auto-selected
+      expect(engine.focusCurrent('row').result?.id).toBe('r1');
+
+      const result = engine.activateFocusGroup('r2', 'row');
+      expect(result).toBe(false);
+      // r1 is still active — activateFocusGroup does not replace
+      expect(engine.focusCurrent('row').result?.id).toBe('r1');
+    });
+
+    test('Given the default group with no active focus, activateFocusGroup succeeds without a group param', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+      engine.boundKeyboard('b', () => {}, { focusId: 'def2' });
+      engine.kickFocusGroup();
+      expect(engine.focusCurrent().noFound).toBe(true);
+
+      const result = engine.activateFocusGroup('def2');
+      expect(result).toBe(true);
+      expect(engine.focusCurrent().result?.id).toBe('def2');
+    });
+
+    test('Given the default group already has active focus, activateFocusGroup returns false', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+      engine.boundKeyboard('b', () => {}, { focusId: 'def2' });
+
+      const result = engine.activateFocusGroup('def2');
+      expect(result).toBe(false);
+      expect(engine.focusCurrent().result?.id).toBe('def1');
+    });
+
+    test('Given no current owner, activateFocusGroup returns false', () => {
+      const engine = createEngine();
+      const result = engine.activateFocusGroup('x', 'row');
+      expect(result).toBe(false);
+    });
+
+    test('Given an unregistered group, activateFocusGroup returns false', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+
+      const result = engine.activateFocusGroup('x', 'nope');
+      expect(result).toBe(false);
+    });
+
+    test('Given a focusId not in the group, activateFocusGroup returns false', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.kickFocusGroup('row');
+
+      const result = engine.activateFocusGroup('missing', 'row');
+      expect(result).toBe(false);
+    });
+
+    test('Given successful activation, subscriber is notified', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.kickFocusGroup('row');
+      const listener = vi.fn();
+      engine.subscribeFocus(listener);
+
+      engine.activateFocusGroup('r1', 'row');
+      expect(listener).toHaveBeenCalled();
+    });
+
+    test('Given failed activation (group already active), subscriber is not notified', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      const listener = vi.fn();
+      engine.subscribeFocus(listener);
+
+      engine.activateFocusGroup('r1', 'row');
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    test('Given activateFocusGroup after kickFocusGroup, re-activation succeeds', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r2' } });
+      // Auto-selected r1
+      expect(engine.focusCurrent('row').result?.id).toBe('r1');
+
+      engine.kickFocusGroup('row');
+      expect(engine.focusCurrent('row').noFound).toBe(true);
+
+      engine.activateFocusGroup('r2', 'row');
+      expect(engine.focusCurrent('row').result?.id).toBe('r2');
+    });
+  });
+
+  describe('kickFocusGroup', () => {
+    test('Given an active named group, kickFocusGroup removes it and returns true', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      expect(engine.focusCurrent('row').result?.id).toBe('r1');
+
+      const result = engine.kickFocusGroup('row');
+      expect(result).toBe(true);
+      expect(engine.focusCurrent('row').noFound).toBe(true);
+    });
+
+    test('Given an active default group, kickFocusGroup removes it and returns true', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+      expect(engine.focusCurrent().result?.id).toBe('def1');
+
+      const result = engine.kickFocusGroup();
+      expect(result).toBe(true);
+      expect(engine.focusCurrent().noFound).toBe(true);
+    });
+
+    test('Given a group that is not active, kickFocusGroup returns false', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.kickFocusGroup('row');
+      // Group is no longer active
+
+      const result = engine.kickFocusGroup('row');
+      expect(result).toBe(false);
+    });
+
+    test('Given no current owner, kickFocusGroup returns false', () => {
+      const engine = createEngine();
+      const result = engine.kickFocusGroup('row');
+      expect(result).toBe(false);
+    });
+
+    test('Given an unregistered group, kickFocusGroup returns false', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+
+      const result = engine.kickFocusGroup('nope');
+      expect(result).toBe(false);
+    });
+
+    test('Given successful kick, subscriber is notified', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      const listener = vi.fn();
+      engine.subscribeFocus(listener);
+
+      engine.kickFocusGroup('row');
+      expect(listener).toHaveBeenCalled();
+    });
+
+    test('Given failed kick (group not active), subscriber is not notified', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      const listener = vi.fn();
+      engine.subscribeFocus(listener);
+      // Consume the auto-select notification
+      listener.mockClear();
+
+      engine.kickFocusGroup('row');
+      expect(listener).toHaveBeenCalledTimes(1);
+      listener.mockClear();
+
+      engine.kickFocusGroup('row');
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    test('Given kickFocusGroup on default group does not disturb a named group', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.focusSet('r1', 'row');
+
+      engine.kickFocusGroup();
+      expect(engine.focusCurrent().noFound).toBe(true);
+      expect(engine.focusCurrent('row').result?.id).toBe('r1');
+    });
+
+    test('Given kickFocusGroup on a named group does not disturb the default group', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: 'def1' });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.focusSet('r1', 'row');
+
+      engine.kickFocusGroup('row');
+      expect(engine.focusCurrent('row').noFound).toBe(true);
+      expect(engine.focusCurrent().result?.id).toBe('def1');
+    });
+
+    test('Given targets still registered after kick, they remain intact for re-activation', () => {
+      const engine = createEngine();
+      setupScreen(engine);
+      engine.boundKeyboard('a', () => {}, { focusId: { group: 'row', focusId: 'r1' } });
+      engine.boundKeyboard('b', () => {}, { focusId: { group: 'row', focusId: 'r2' } });
+      engine.kickFocusGroup('row');
+
+      // Group targets still exist — can re-activate via focusSet
+      engine.focusSet('r2', 'row');
+      expect(engine.focusCurrent('row').result?.id).toBe('r2');
+    });
+  });
+
   // During unmount, sync() advances state.path to the new screen BEFORE the
   // unmounting component's effect cleanup runs. focusUnregister must therefore
   // be a silent no-op when the focusId is absent from the current owner's

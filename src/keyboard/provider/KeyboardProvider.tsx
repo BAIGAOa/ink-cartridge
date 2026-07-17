@@ -1,15 +1,18 @@
-import React, { ReactNode, useEffect, useMemo, useRef } from 'react';
-import { useInput } from 'ink';
-import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
-import type { KeyboardProcessorProps, ValueSchema } from '@cartridge-engine/keyboard-engine';
-import { clearShortcutOperations } from '@cartridge-engine/keyboard-engine';
-import { KeyboardContext, KeyboardContextValue } from '../context.js';
-import { useScreenSystem } from '../../screen/hook.js';
-import { normalizeKeyNames } from '../keyNormalizer.js';
+import React, { ReactNode, useEffect, useMemo, useRef } from "react";
+import { useInput } from "ink";
+import { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
+import type {
+  KeyboardProcessorProps,
+  ValueSchema,
+} from "@cartridge-engine/keyboard-engine";
+import { clearShortcutOperations } from "@cartridge-engine/keyboard-engine";
+import { KeyboardContext, KeyboardContextValue } from "../context.js";
+import { useScreenSystem } from "../../screen/hook.js";
+import { normalizeKeyNames } from "../keyNormalizer.js";
 
 export interface KeyboardProviderProps {
   children: ReactNode;
-  processors?: KeyboardProcessorProps[]
+  processors?: KeyboardProcessorProps[];
   modes?: string[];
   defaultMode?: string | null;
   /**
@@ -35,7 +38,14 @@ export interface KeyboardProviderProps {
   autoTab?: boolean;
 }
 
-export function KeyboardProvider({ children, processors, modes, defaultMode, valueSchema, autoTab }: KeyboardProviderProps) {
+export function KeyboardProvider({
+  children,
+  processors,
+  modes,
+  defaultMode,
+  valueSchema,
+  autoTab,
+}: KeyboardProviderProps) {
   const {
     currentPath,
     activeOverlayIds,
@@ -60,14 +70,20 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
   engine.sync({
     path: currentPath,
     activeOverlayIds,
-    displayedOverlays: displayedOverlays.map(o => ({ id: o.id })),
+    displayedOverlays: displayedOverlays.map((o) => ({ id: o.id })),
     activeModalId,
-    displayedModals: displayedModals.map(m => ({ id: m.id })),
+    displayedModals: displayedModals.map((m) => ({ id: m.id })),
   });
 
-  useEffect(() => { engine.cleanLayers(); }, [currentPath, engine]);
-  useEffect(() => { engine.cleanOverlayLayers(); }, [displayedOverlays, engine]);
-  useEffect(() => { engine.cleanModalLayers(); }, [displayedModals, engine]);
+  useEffect(() => {
+    engine.cleanLayers();
+  }, [currentPath, engine]);
+  useEffect(() => {
+    engine.cleanOverlayLayers();
+  }, [displayedOverlays, engine]);
+  useEffect(() => {
+    engine.cleanModalLayers();
+  }, [displayedModals, engine]);
 
   const value: KeyboardContextValue = useMemo(
     () => ({
@@ -80,7 +96,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
       getGlobalSequences: engine.getGlobalSequences.bind(engine),
       getGlobalPendingSequence: engine.getGlobalPendingSequence.bind(engine),
       thereGlobalQueueWaiting: engine.thereGlobalQueueWaiting.bind(engine),
-      currentScreenHasSequenceWaiting: engine.currentScreenHasSequenceWaiting.bind(engine),
+      currentScreenHasSequenceWaiting:
+        engine.currentScreenHasSequenceWaiting.bind(engine),
       focusSet: engine.focusSet.bind(engine),
       focusNext: engine.focusNext.bind(engine),
       focusPrev: engine.focusPrev.bind(engine),
@@ -132,6 +149,8 @@ export function KeyboardProvider({ children, processors, modes, defaultMode, val
       clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
       subscribeComposition: engine.subscribeComposition.bind(engine),
       getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
+      activateFocusGroup: engine.activateFocusGroup.bind(engine),
+      kickFocusGroup: engine.kickFocusGroup.bind(engine),
     }),
     [engine],
   );
