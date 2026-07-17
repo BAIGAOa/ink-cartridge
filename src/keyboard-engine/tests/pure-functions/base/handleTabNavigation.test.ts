@@ -3,7 +3,7 @@ import { handleTabNavigation } from '../../../src/layerHandler.js';
 import { fakeLayer } from '../../_helpers/factories.js';
 import { defaultTargetsSymbol } from '../../../src/types.js';
 
-const defSym = defaultTargetsSymbol;
+const defSym: typeof defaultTargetsSymbol = defaultTargetsSymbol;
 
 describe('handleTabNavigation', () => {
   describe('basic scenarios', () => {

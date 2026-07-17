@@ -11,7 +11,7 @@ import { defaultTargetsSymbol } from '../../../src/types.js';
 
 function noop() {}
 const dummyKey = {};
-const defSym = defaultTargetsSymbol;
+const defSym: typeof defaultTargetsSymbol = defaultTargetsSymbol;
 
 describe('handleLayer', () => {
   describe('Tab navigation (highest priority)', () => {
