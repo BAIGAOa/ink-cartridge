@@ -115,7 +115,7 @@ export function useFocusState(focusId: string, group?: string): boolean {
     return subscribeFocus(() => {
       setIsFocused(focusCurrent(group).result?.id === focusId);
     });
-  }, [focusId, focusCurrent, subscribeFocus]);
+  }, [focusId, focusCurrent, subscribeFocus, group]);
 
   return isFocused;
 }
