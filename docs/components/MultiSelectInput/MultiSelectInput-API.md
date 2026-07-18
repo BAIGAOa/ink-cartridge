@@ -18,7 +18,7 @@ Multi-select list with checkboxes and batch operations.
 | `limit` | `number` | no | `10` | Max visible items. |
 | `initialIndex` | `number` | no | `0` | Index of the initially highlighted item (0-based). |
 | `checkboxComponent` | `ComponentType<{ isSelected: boolean }>` | no | `◉`/`○` | Custom checkbox. Receives `isSelected`. |
-| `indicatorComponent` | `ComponentType<{ isHighlighted: boolean }>` | no | `›` | Left-of-item indicator. Receives `isHighlighted`. |
+| `indicatorComponent` | `ComponentType<{ isHighlighted: boolean }>` | no | `❯` | Left-of-item indicator. Receives `isHighlighted`. |
 | `itemComponent` | `ComponentType<I & { isHighlighted: boolean }>` | no | default label | Custom item renderer. Receives item plus `isHighlighted`. |
 
 ## Keyboard (scoped to `focusId`)

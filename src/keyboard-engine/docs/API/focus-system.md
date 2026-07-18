@@ -42,7 +42,7 @@ engine.focusPrev();  // Shift+Tab
 
 ### focusCurrent
 
-Return the currently active focus target id, or `null` when no focus targets exist on the current layer.
+Return the currently active focus target, or a tagged-union result when no focus targets exist on the current layer. Returns `{ noOwner: true }` when there is no current owner, `{ noLayer: true }` when the owner has no layer, or `{ noFound: true }` when no focus target is active.
 
 ```ts
 const active = engine.focusCurrent();
@@ -51,7 +51,7 @@ const active = engine.focusCurrent();
 
 ### focusUnregister
 
-Remove a focus target from the current layer. If the removed target was the active one, the first remaining target (in registration order) is auto-activated. Throws if not registered.
+Remove a focus target from the current layer. If the removed target was the active one, the first remaining target (in registration order) is auto-activated. Silently no-ops when the target is not registered or the current owner has no layer.
 
 ```ts
 engine.focusUnregister('searchInput');
@@ -72,8 +72,8 @@ const unsub = engine.subscribeFocus(() => {
 
 Focus state is stored on each `ScreenKeyboardLayer`:
 - `focusTargets: Map<string, FocusTarget>` — named targets with independent bindings
-- `focusOrder: string[]` — registration order (drives Tab/Shift+Tab cycling)
-- `currentFocusId: string | null` — the active target
+- `defaultFocusOrder: string[]` — registration order (drives Tab/Shift+Tab cycling)
+- `currentFocusIds: { id: string; fromGroup: string | typeof defaultTargetsSymbol }[]` — the active targets per group
 
 During key matching (pipeline stage 8), the active focus target's bindings are checked first. Only if no match is found do layer-level bindings get evaluated.
 
@@ -99,7 +99,7 @@ engine.subscribeFocus(() => {
 ## Throws
 
 - `[ink-cartridge]` on `focusSet` if the target is not registered
-- `[ink-cartridge]` on `focusUnregister` if the target is not registered
+- Silently no-ops on `focusUnregister` if the target is not registered
 
 ## API interactions
 

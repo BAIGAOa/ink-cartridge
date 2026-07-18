@@ -30,7 +30,7 @@ KeyboardEngine — framework-agnostic state machine
   8. Screen stack        (top-to-bottom, first match wins)
 ```
 
-Each stage is an independent processor. The first to return `true` consumes the event. The only exception is stage 3 (overlay broadcast), which always returns `false` to let the chain continue.
+Each stage is an independent processor. The first to return `true` consumes the event. The only exception is stage 4 (overlay broadcast), which always returns `false` to let the chain continue.
 
 The engine is framework-agnostic — any UI framework can drive it via `sync()` + `processKey()`. See [KeyboardEngine](./KeyboardEngine-API.md) for integration examples with Blessed, Vue, and other frameworks.
 

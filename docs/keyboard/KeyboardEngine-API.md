@@ -192,7 +192,7 @@ Under the hood:
 
 ```ts
 import { KeyboardEngine } from 'ink-cartridge'
-import { normalizeKeyNames } from 'ink-cartridge/keyNormalizer'
+import { normalizeKeyNames } from 'ink-cartridge'
 import { useInput } from 'ink'
 
 const engine = new KeyboardEngine({

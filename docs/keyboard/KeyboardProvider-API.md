@@ -56,7 +56,7 @@ A React element that provides keyboard context to all descendants.
 - Wires to Ink's `useInput` to receive raw key events, forwarding them to `engine.processKey()`.
 - Creates the engine once via `useRef` — it persists for the component lifetime.
 - On every render, calls `engine.sync()` to push screen-path and overlay/modal state into the engine.
-- Runs each key event through the 9-stage pipeline (composition → modal → global sequences → global keys → composition → overlay broadcast → global sequences → global keys → screen stack).
+- Runs each key event through the 9-stage pipeline (modal → composition → global sequences → global keys → overlay broadcast → composition → global sequences → global keys → screen stack).
 - Cleans up layers for screens, overlays, and modals that leave the tree via post-render effects.
 
 ## Best Practice

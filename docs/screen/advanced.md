@@ -54,9 +54,10 @@ Explicit close functions (`closeOverlay`, `closeModal`, `closeAllOverlays`, `clo
 Use `renderNow: true` to keep a non-active modal visible (e.g. a background modal stack):
 
 ```tsx
-openModal('settings', SettingsModal, {}, { zIndex: 1 });
-openModal('confirm', ConfirmModal, {}, { zIndex: 2, renderNow: false });
-// Only ConfirmModal receives keyboard. When closed, SettingsModal activates.
+openModal('settings', SettingsModal, {}, { zIndex: 1, renderNow: true });
+openModal('confirm', ConfirmModal, {}, { zIndex: 2 });
+// Both modals render, but only ConfirmModal receives keyboard. When closed, SettingsModal activates
+// and already has keyboard focus.
 ```
 
 ## onlyAttribute for Param Updates

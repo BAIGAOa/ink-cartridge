@@ -2,7 +2,7 @@
 
 Remove a processor from this instance's keyboard event pipeline by its ID.
 
-Works on both built-in and custom processors. For built-in processors, call `resetProcessors()` afterwards to restore the default 7-stage chain.
+Works on both built-in and custom processors. For built-in processors, call `resetProcessors()` afterwards to restore the default 9-stage chain.
 
 This is **per-instance** — each `KeyboardProvider` has its own pipeline. Removing a processor from one provider does not affect others in the same process.
 

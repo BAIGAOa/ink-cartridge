@@ -120,7 +120,7 @@ Link to related APIs inline using relative paths: `[`sync`](./sync.md)`. Link to
 
 ### Error prefix
 
-The engine package uses `[keyboard-engine]` as its error prefix (not `[ink-cartridge]`).
+The engine package uses `[ink-cartridge]` as its error prefix.
 
 ## Naming
 

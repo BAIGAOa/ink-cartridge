@@ -17,9 +17,11 @@ Add new themes or overlay values without restarting:
 ```tsx
 const { mergeTheme, addThemes } = useTheme();
 
-// Overlay new values onto existing themes
+// Overlay new values onto existing themes (silently skips unknown theme IDs — only themes
+// already in the base set are updated)
 mergeTheme(['./themes/extension']);
 
-// Add entirely new theme variants
+// Add entirely new theme variants (throws if a theme ID already exists or if keys don't
+// match the existing set)
 addThemes(['./themes/extra']);
 ```

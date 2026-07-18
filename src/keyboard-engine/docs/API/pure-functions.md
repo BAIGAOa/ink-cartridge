@@ -110,7 +110,7 @@ function handleTabNavigation(
 ): boolean
 ```
 
-Built-in Tab / Shift+Tab focus cycling. Moves `layer.currentFocusId` forward (Tab) or backward (Shift+Tab) through the layer's `focusOrder` list, wrapping at both ends. Returns `true` if focus was moved.
+Built-in Tab / Shift+Tab focus cycling. Moves the active focus target forward (Tab) or backward (Shift+Tab) through the layer's `defaultFocusOrder` list, wrapping at both ends. Returns `true` if focus was moved.
 
 ## handleLayer
 

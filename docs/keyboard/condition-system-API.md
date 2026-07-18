@@ -9,7 +9,7 @@ All methods are accessed via the `useKeyboard()` hook or directly on a `Keyboard
 ### addCondition
 
 ```ts
-function addCondition(id: string, defaultVal: boolean): void
+function addCondition(id: string, defaultVal: boolean): boolean
 ```
 
 Register a named condition with an initial boolean value.
@@ -17,18 +17,18 @@ Register a named condition with an initial boolean value.
 ### setCondition
 
 ```ts
-function setCondition(target: string, value: boolean): void
+function setCondition(target: string, value: boolean): boolean
 ```
 
-Update a registered condition's value. Throws if the condition is not found.
+Update a registered condition's value. Returns `true` if the condition was found and updated, `false` if not registered. Throws if the condition is not found.
 
 ### removeCondition
 
 ```ts
-function removeCondition(target: string): void
+function removeCondition(target: string): boolean
 ```
 
-Remove a registered condition by ID.
+Remove a registered condition by ID. Returns `true` if found and removed, `false` if not registered.
 
 ## Usage in Bindings
 

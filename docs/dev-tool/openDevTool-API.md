@@ -1,6 +1,6 @@
 # openDevTool
 
-Open the development panel as a **persistent** modal — it survives screen navigation so you can inspect state while moving between screens. Keyboard focus is automatically suspended when navigating away and restored on return. **Safe to call when already open** (no-op).
+Open the development panel as a **persistent** modal — it survives screen navigation so you can inspect state while moving between screens. Uses `renderNow: true` internally so it stays visible when sub-panels (e.g. global keys detail) are opened on top. Keyboard focus is automatically suspended when navigating away and restored on return. **Safe to call when already open** (no-op).
 
 ## Signature
 

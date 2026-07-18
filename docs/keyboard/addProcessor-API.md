@@ -33,12 +33,12 @@ The default pipeline has 9 processors in this order:
 
 | Index | ID | Stage |
 |-------|----|-------|
-| 0 | `composition-before` | Composition stage (before modal) |
-| 1 | `modal` | Modal — consumes everything except allowed keys |
+| 0 | `modal` | Modal — consumes everything except allowed keys |
+| 1 | `composition-overlay` | Composition stage (affectOverlay: true) |
 | 2 | `global-sequence-overlay` | Global sequences (affectOverlay: true) |
 | 3 | `global-key-overlay` | Global keys (affectOverlay: true) |
-| 4 | `overlay` | Overlay broadcast |
-| 5 | `composition-after` | Composition stage (after overlay) |
+| 4 | `overlay` | Overlay broadcast — always returns `false` |
+| 5 | `composition-screen` | Composition stage (affectOverlay: false) |
 | 6 | `global-sequence-screen` | Global sequences (affectOverlay: false) |
 | 7 | `global-key-screen` | Global keys (affectOverlay: false) |
 | 8 | `screen-stack` | Screen stack (top-to-bottom) |
