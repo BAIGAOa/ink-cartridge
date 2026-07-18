@@ -151,6 +151,8 @@ export function KeyboardProvider({
       getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
       activateFocusGroup: engine.activateFocusGroup.bind(engine),
       kickFocusGroup: engine.kickFocusGroup.bind(engine),
+      kickProcessor: engine.kickProcessor.bind(engine),
+      activeProcessor: engine.activeProcessor.bind(engine),
     }),
     [engine],
   );

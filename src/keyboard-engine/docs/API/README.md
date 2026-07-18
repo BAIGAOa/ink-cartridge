@@ -129,6 +129,7 @@ The engine package uses `[keyboard-engine]` as its error prefix (not `[ink-cartr
 | `processKey.md` | `KeyboardEngine#processKey` |
 | `sync.md` | `KeyboardEngine#sync` |
 | `boundKeyboard.md` | `KeyboardEngine#boundKeyboard` |
+| `kickProcessor.md` | `KeyboardEngine#kickProcessor` / `KeyboardEngine#activeProcessor` |
 | `composition.md` | `CompositionEngine` class overview |
 | `composition/setValueSchema.md` | `CompositionEngine#setValueSchema` |
 

@@ -16,6 +16,10 @@ import { handleLayer } from '../layerHandler.js';
 export function createOverlayProcessor(): PipelineProcessor {
   return {
     process(ctx: PipelineContext): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) {
+        return false
+      }
+
       for (const overlay of ctx.activeOverlays) {
         const layer = ctx.layersRef.current.get(overlay.id);
         if (layer && handleLayer(

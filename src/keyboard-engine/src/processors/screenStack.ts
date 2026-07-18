@@ -14,6 +14,7 @@ import { handleLayer } from '../layerHandler.js';
 export function createScreenStackProcessor(): PipelineProcessor {
   return {
     process(ctx: PipelineContext): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) return false
       if (ctx.anyOverlayConsumed) return false;
 
       const path = ctx.screenPath;

@@ -58,6 +58,7 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [Mode System](./mode-system-API.md) | Declare named modes (`"normal"`, `"insert"`), tag bindings, switch at runtime |
 | [addProcessor](./addProcessor-API.md) | Insert a custom processor into the event pipeline (per-instance) |
 | [removeProcessor](./removeProcessor-API.md) | Remove a previously added custom processor (per-instance) |
+| [kickProcessor / activeProcessor](./kickProcessor-API.md) | Disable / re-enable built-in pipeline processors at runtime (per-instance) |
 | [KeyboardProvider `processors` prop](./KeyboardProvider-API.md#processors-prop) | Per-instance custom processors |
 | [normalizeKeyNames](./KeyboardEngine-API.md) | Built-in Ink key normalizer (see EngineProps table in KeyboardEngine) |
 | [isNormalCharacter](./isNormalCharacter-API.md) | Check if a key event represents a normal character (no modifiers) — standalone utility |

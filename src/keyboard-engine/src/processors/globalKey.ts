@@ -18,6 +18,7 @@ export function createGlobalKeyProcessor(config: {
   const { affectOverlay } = config;
   return {
     process(ctx: PipelineContext): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) return false
       for (const entry of ctx.globalKeys) {
         if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
 

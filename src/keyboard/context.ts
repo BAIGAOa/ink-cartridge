@@ -204,6 +204,9 @@ export interface KeyboardContextValue {
   getLastCompositionEvent: () => CompositionEvent | null;
   activateFocusGroup: (focusId: string, group?: string) => boolean;
   kickFocusGroup: (group?: string) => boolean;
+
+  kickProcessor: (id: BuiltinProcessorId) => boolean;
+  activeProcessor: (id: BuiltinProcessorId) => boolean;
 }
 
 /**
