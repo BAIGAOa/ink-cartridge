@@ -2,7 +2,7 @@
 
 Framework-agnostic keyboard event engine for terminal UIs.
 
-[![test](https://img.shields.io/badge/tests-373%20passed-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
+[![test](https://img.shields.io/badge/tests-572%20passed-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
 [![coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
 [![npm version](https://img.shields.io/npm/v/@cartridge-engine/keyboard-engine.svg)](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
 
@@ -33,7 +33,7 @@ When used as a workspace dependency in the [ink-cartridge](https://github.com/BA
 ## Core Concepts
 
 - [KeyboardEngine](#keyboardengine)
-- [7-Stage Pipeline](#7-stage-pipeline)
+- [9-Stage Pipeline](#9-stage-pipeline)
 - [Layer System](#layer-system)
 - [Focus Targets](#focus-targets)
 - [Custom Processors](#custom-processors)
