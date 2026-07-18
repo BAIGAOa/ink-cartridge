@@ -252,6 +252,7 @@ export function createGlobalSequenceProcessor(config: {
   const { affectOverlay } = config;
   return {
     process(ctx: PipelineContext): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) return false
       if (processGlobalPending(ctx, affectOverlay)) return true;
       if (tryStartGlobalSequence(ctx.globalSequences, affectOverlay, ctx)) return true;
       return false;

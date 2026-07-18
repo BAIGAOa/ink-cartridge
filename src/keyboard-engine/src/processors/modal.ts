@@ -192,6 +192,10 @@ function invokeMissIfNeeded(
 export function createModalProcessor(): PipelineProcessor {
   return {
     process(ctx: PipelineContext): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) {
+        return false
+      }
+
       if (!ctx.activeModalId) return false;
 
       const layer = ctx.layersRef.current.get(ctx.activeModalId);

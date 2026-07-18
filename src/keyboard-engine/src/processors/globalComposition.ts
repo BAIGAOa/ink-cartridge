@@ -17,6 +17,7 @@ export function createCompositionProcessor(config: {
   const { affectOverlay } = config;
   return {
     process(ctx): boolean {
+      if (ctx.noActiveProcessor.includes(this.id)) return false
       // Guard: if a global sequence is pending and we are not already
       // handling a composition chain, let the key fall through.
       if (!ctx.compositionEngineHandler && ctx.pendingSeqRef.current !== null) {

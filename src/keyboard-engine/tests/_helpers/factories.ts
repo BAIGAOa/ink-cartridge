@@ -252,6 +252,7 @@ export function createContext(
     compositionEngineHandler: false,
     compositionEngine: undefined as unknown as PipelineContext['compositionEngine'],
     autoTab: false,
+    noActiveProcessor: [],
     ...overrides,
   } as PipelineContext;
 }

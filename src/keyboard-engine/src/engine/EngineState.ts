@@ -169,6 +169,8 @@ export default class EngineState<TComponent = unknown> {
   /** The composition engine instance, assigned by KeyboardEngine after construction. */
   compositionEngine!: CompositionEngine<TComponent>;
 
+  noActiveProcessor: string[] = []
+
   constructor(props: EngineProps) {
     this.modesRef = new Set(props.modes ?? []);
     this.currentModeRef = props.defaultMode ?? null;
