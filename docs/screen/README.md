@@ -44,6 +44,7 @@ Overlays and modals share a common ID namespace. An overlay is a floating panel 
 | [Overlay system](./overlay-API.md) | openOverlay / closeOverlay / closeAllOverlays / activateOverlay / deactivateOverlay |
 | [Modal system](./modal-API.md) | openModal / closeModal / closeAllModals |
 | [ModalContext](./ModalContext-API.md) | Context for per-instance modal ID |
+| `clearDispatchers()` | Test utility — clears stale dispatch references between test runs |
 
 ## Advanced
 

@@ -1,6 +1,6 @@
 import type { KeyboardProcessorProps, PipelineProcessor } from "../types.js";
 
-/** Known IDs of the 7 built-in pipeline processors. */
+/** Known IDs of the 9 built-in pipeline processors. */
 export type BuiltinProcessorId =
   | "modal"
   | "composition-overlay"

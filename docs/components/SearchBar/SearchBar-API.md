@@ -58,8 +58,7 @@ Items are filtered by case-insensitive substring match against `label`. Matches 
 ## Best Practice
 
 ```tsx
-import SearchBar from './search-bar/SearchBar.js';
-import { SelectInput } from './select/SelectInput.js';
+import { SearchBar, SelectInput } from 'ink-cartridge';
 
 interface MyItem extends SearchBarItem<string> {
   detail: string;

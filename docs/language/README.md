@@ -10,7 +10,7 @@ Terminal apps need to support multiple languages. The i18n system provides a fla
 LanguageProvider (JSON files or inline resources)
     │
     ▼
-useI18n() → { t(key, options?), setLanguage(lang), currentLanguage }
+useI18n() → { t(key, options?), setLanguage(lang), getLanguages(), mergeLanguage(paths), setDefaultContext(ctx), currentLanguage }
 ```
 
 Translation keys are dot-separated (nested JSON is flattened). The `t()` function tries: `key.context` → `key` → fallback language → raw key string.

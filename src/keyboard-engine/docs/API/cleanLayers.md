@@ -30,11 +30,11 @@ Iterates over all keyboard layers in `layersRef`. For each layer:
 
 ### cleanOverlayLayers
 
-Same pattern as `cleanLayers`, but checks against `displayedOverlays`. Only removes layers whose `kind` is `"overlay"`.
+Same pattern as `cleanLayers`, but checks against `displayedOverlays`. Only cleans up layers belonging to overlay owners that are no longer displayed.
 
 ### cleanModalLayers
 
-Same pattern, checks against `displayedModals`. Only removes layers whose `kind` is `"modal"`.
+Same pattern, checks against `displayedModals`. Only cleans up layers belonging to modal owners that are no longer displayed.
 
 ## Usage
 

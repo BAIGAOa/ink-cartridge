@@ -10,7 +10,7 @@ Terminal apps have no CSS. The theme system provides a flat key-value store for 
 ThemeProvider (JSON files or inline definitions)
     │
     ▼
-useTheme() → { color(key), style(key), setTheme(id), themes[] }
+useTheme() → { color(key), style(key), setTheme(id), themeId, themes[], mergeTheme(paths), addThemes(paths) }
 ```
 
 All themes must have identical keys. `color()` returns Ink color strings; `style()` returns booleans. Themes can be merged and extended at runtime via `mergeTheme` and `addThemes`.

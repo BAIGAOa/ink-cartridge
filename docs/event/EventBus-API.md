@@ -26,7 +26,7 @@ Unsubscribe. Omit `listener` to remove all subscribers for the event.
 emit<K extends EventKey<T>>(event: K, payload: T[K]): void
 ```
 
-Emit an event. Each listener is called inside its own try/catch — one error won't block other listeners.
+Emit an event. Each listener is called inside its own try/catch — one error won't block other listeners. Errors are logged to `console.error` with a `[ink-cartridge]` prefix.
 
 ### clear
 

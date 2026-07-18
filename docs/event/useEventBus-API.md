@@ -5,7 +5,7 @@ Access the raw EventBus instance from context. For advanced use cases where `use
 ## Signature
 
 ```ts
-function useEventBus<T extends EventMap>(): EventBus<T>
+function useEventBus<T extends EventMap = Record<string, any>>(): EventBus<T>
 ```
 
 ## Returns

@@ -19,7 +19,7 @@ function ThemeProvider({
 |------|------|-------------|
 | `children` | `ReactNode` | App content. |
 | `path` | `string` | Directory of `{id}.json` theme files (alternative to `themes`). |
-| `themes` | `ThemeDefinition[]` | Inline theme definitions (alternative to `path`). |
+| `themes` | `ThemeDefinition[]` | Inline theme definitions (alternative to `path`). Defaults to `[]`. |
 | `defaultTheme` | `string` | Initial theme ID. Defaults to the first available. |
 
 Either `path` or `themes` must be provided.
