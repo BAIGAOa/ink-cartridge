@@ -139,8 +139,7 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	needs: string[];
 
-
-
+	
 	alternativeFlag: string;
 
 	/**
@@ -207,8 +206,7 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	undoAction?: undo;
 
-
-	isEndKey?: string[]
+	isEndKey?: string[];
 }
 
 export type undo<TValue = unknown> = (
@@ -220,6 +218,12 @@ export type bufferEntry = {
 	undoAction: undo;
 	ctx: CompositionContext;
 };
+
+export interface MappingPendingEntry{
+	keys: string[]
+	nextIndex: number
+	timeout: number
+}
 
 function compositionFingerprint(entry: CompositioKey): string {
 	return JSON.stringify({
@@ -260,6 +264,18 @@ export default class CompositionEngine<TComponet = unknown> {
 	private subscribers: Set<() => void> = new Set();
 	private lastEvent: CompositionEvent | null = null;
 
+	private mapping: Map<
+		string,
+		Set<{
+			keys: string[];
+			target: string[];
+		}>
+	> = new Map();
+	private candidateMappingKey: {
+		keys: string[];
+		target: string[];
+	}[] = [];
+
 	private context: CompositionContext = {
 		value: undefined,
 		lastFlag: null,
@@ -278,6 +294,86 @@ export default class CompositionEngine<TComponet = unknown> {
 	/** Set or replace the runtime value schema for composition chain validation. */
 	setValueSchema(schema: ValueSchema): void {
 		this.valueSchema = schema;
+	}
+
+	private checkMapping(
+		set: Set<{
+			keys: string[];
+			target: string[];
+		}>,
+		newKeys: string[],
+	): boolean {
+		const newKeysStr = JSON.stringify(newKeys);
+
+		for (const each of set) {
+			const existingKeysStr = JSON.stringify(each.keys);
+			if (existingKeysStr === newKeysStr) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	addMapping(base: string[], target: string[]) {
+		if (base.length === 0) {
+			return false;
+		}
+
+		for (const each of target) {
+			if (!this.keyMappingTable.has(each)) {
+				return false;
+			}
+		}
+
+		const firstKey = base[0];
+		const mapKey = this.mapping.get(firstKey);
+		if (mapKey) {
+			const repetitive = this.checkMapping(mapKey, base);
+			if (repetitive) {
+				return false;
+			}
+
+			mapKey.add({
+				keys: base,
+				target: target,
+			});
+		} else {
+			this.mapping.set(
+				firstKey,
+				new Set([
+					{
+						keys: base,
+						target: target,
+					},
+				]),
+			);
+		}
+
+		return true;
+	}
+
+	removeMappingKey(keys: string[]) {
+		const firstKey = keys[0];
+		const mappingKey = this.mapping.get(firstKey);
+		if (!mappingKey) {
+			return false;
+		}
+
+		const stringArray = JSON.stringify(keys);
+		for (const each of mappingKey) {
+			const existingKeysStr = JSON.stringify(each.keys);
+			if (existingKeysStr === stringArray) {
+				mappingKey.delete(each);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	removeMapping(firstKey: string) {
+		return this.mapping.delete(firstKey);
 	}
 
 	/**
@@ -776,10 +872,14 @@ export default class CompositionEngine<TComponet = unknown> {
 			// There is only one scenario in which null is returned: the key is the head key.
 			// However, theoretically speaking, this situation shouldn't occur when this function is used within `processPending`.
 			// So we're keeping it as a fallback option.
-			return false
+			return false;
 		}
 
-		return neededKeysFlag.includes(lastFlag)
+		return neededKeysFlag.includes(lastFlag);
+	}
+
+	private getMappingKeys() {
+		return [...this.mapping.keys()];
 	}
 
 	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
@@ -886,7 +986,7 @@ export default class CompositionEngine<TComponet = unknown> {
 					: result.KeyReleaseWhenChainInterrupted;
 			}
 
-			// In fact, if the user manually returns `null`, 
+			// In fact, if the user manually returns `null`,
 			// it is possible to simulate the current key being the last key under specific circumstances.
 			// But I prefer to respect the user's choice.
 			// Therefore, the check for the trailing key is placed after the check for whether the context is null.
@@ -895,7 +995,7 @@ export default class CompositionEngine<TComponet = unknown> {
 				this.clearPending();
 				return result.KeyReleaseWhenChainInterrupted === undefined
 					? false
-					: result.KeyReleaseWhenChainInterrupted
+					: result.KeyReleaseWhenChainInterrupted;
 			}
 
 			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
