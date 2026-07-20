@@ -799,12 +799,12 @@ export interface GlobalPendingSequence {
  * arrived; mutable coordination fields allow cross-processor communication
  * within a single pipeline run.
  */
-export interface PipelineContext {
+export interface PipelineContext<TComponent> {
   // --- Immutable per-event snapshots ---
   readonly input: string;
   readonly key: unknown;
   readonly eventNames: string[];
-  readonly topComponent: unknown | null;
+  readonly topComponent: TComponent | null;
   readonly globalKeys: ResolvedGlobalKeyEntry[];
   readonly globalSequences: ResolvedGlobalSequenceEntry[];
   readonly activeOverlays: EngineOverlayEntry[];
@@ -845,8 +845,8 @@ export interface PipelineContext {
  * If it consumes the event it returns `true` and the chain stops;
  * otherwise it returns `false` to pass the event to the next processor.
  */
-export interface PipelineProcessor {
-  process(ctx: PipelineContext): boolean;
+export interface PipelineProcessor<TComponent> {
+  process(ctx: PipelineContext<TComponent>): boolean;
   id: string;
 }
 
@@ -858,8 +858,8 @@ export interface PipelineProcessor {
  * - `{ processor, index }`              — insert at a 0-based position
  * - `{ processor }`                      — append to the end of the chain
  */
-export interface KeyboardProcessorProps {
-  processor: PipelineProcessor;
+export interface KeyboardProcessorProps<TComponent> {
+  processor: PipelineProcessor<TComponent>;
   /** Target built-in processor ID. Use with {@link position}. */
   target?: BuiltinProcessorId;
   /** Insert before or after {@link target}. */

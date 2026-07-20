@@ -13,9 +13,9 @@ import { handleLayer } from '../layerHandler.js';
  *
  * @returns A PipelineProcessor for the overlay broadcast stage.
  */
-export function createOverlayProcessor(): PipelineProcessor {
+export function createOverlayProcessor<TComponent>(): PipelineProcessor<TComponent> {
   return {
-    process(ctx: PipelineContext): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) {
         return false
       }

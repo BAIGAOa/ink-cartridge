@@ -11,9 +11,9 @@ import { handleLayer } from '../layerHandler.js';
  *
  * @returns A PipelineProcessor for the screen stack stage.
  */
-export function createScreenStackProcessor(): PipelineProcessor {
+export function createScreenStackProcessor<TComponent>(): PipelineProcessor<TComponent> {
   return {
-    process(ctx: PipelineContext): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) return false
       if (ctx.anyOverlayConsumed) return false;
 

@@ -14,13 +14,13 @@ import type CompositionEngine from "../CompositionEngine.js";
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
  */
-export interface EngineProps {
+export interface EngineProps<TComponent> {
   /** Registered mode names (e.g. `["normal", "insert"]`). */
   modes?: string[];
   /** Default mode — must be null (no-mode) or a member of `modes`. */
   defaultMode?: string;
   /** Per-instance custom processors injected into the pipeline at init time. */
-  processors?: KeyboardProcessorProps[];
+  processors?: KeyboardProcessorProps<TComponent>[];
   /**
    * Converts a framework-specific key event into normalized key-name strings
    * for matching. Required so the engine stays framework-agnostic — each host
@@ -51,7 +51,7 @@ export interface EngineProps {
   autoTab?: boolean;
 }
 
-export default class EngineState<TComponent = unknown> {
+export default class EngineState<TComponent> {
   /**
    * Current navigation path from root to active screen.
    * Updated by {@link sync}.
@@ -139,7 +139,7 @@ export default class EngineState<TComponent = unknown> {
   layersRef: Map<TComponent | string, ScreenKeyboardLayer> = new Map();
 
   /** The active processor pipeline for this engine instance. */
-  _processors: PipelineProcessor[] = [];
+  _processors: PipelineProcessor<TComponent>[] = [];
 
   /** The host-provided key-name normalizer, wired at construction. */
   _normalizeKeyNames: (input: string, key: unknown) => string[];
@@ -171,7 +171,7 @@ export default class EngineState<TComponent = unknown> {
 
   noActiveProcessor: string[] = []
 
-  constructor(props: EngineProps) {
+  constructor(props: EngineProps<TComponent>) {
     this.modesRef = new Set(props.modes ?? []);
     this.currentModeRef = props.defaultMode ?? null;
     this._normalizeKeyNames = props.normalizeKeyNames;

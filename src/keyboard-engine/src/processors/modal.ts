@@ -189,9 +189,9 @@ function invokeMissIfNeeded(
  *
  * @returns A PipelineProcessor for the modal stage.
  */
-export function createModalProcessor(): PipelineProcessor {
+export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent>{
   return {
-    process(ctx: PipelineContext): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) {
         return false
       }

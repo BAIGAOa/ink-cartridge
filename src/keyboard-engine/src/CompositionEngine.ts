@@ -120,7 +120,7 @@ export interface CompositionContext<T = unknown> {
 	steps: string[];
 }
 
-export interface CompositioKey<TComponet = unknown, TValue = unknown> {
+export interface CompositioKey<TComponet, TValue = unknown> extends PrimitiveTypeKeys<TComponet> {
 	/**
 	 * Trigger key names, such as a, B, C, or even the number 3
 	 */
@@ -139,7 +139,6 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	needs: string[];
 
-	
 	alternativeFlag: string;
 
 	/**
@@ -147,16 +146,6 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 * It should be noted that if it is not the head key, the front type will also be checked.
 	 */
 	optional?: boolean;
-
-	/**
-	 * This key is restricted to only certain screens, and if it is a wildcard, it means that it will work on all screens.
-	 */
-	category?: TComponet[] | "*";
-
-	/**
-	 * Does it affect the floating layer
-	 */
-	affectOverlay?: boolean;
 
 	/**
 	 * What is the timeout for pressing a key
@@ -170,12 +159,6 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	exclusive?: boolean;
 
-	/**
-	 * When `true`, keys with `affectOverlay: true` still fire even when
-	 * no overlay is active. Defaults to `false`.
-	 */
-	executeWhenNoOverlay?: boolean;
-
 	execute?: (
 		ctx: CompositionContext<TValue>,
 	) => CompositionContext<TValue> | null;
@@ -185,15 +168,6 @@ export interface CompositioKey<TComponet = unknown, TValue = unknown> {
 	 */
 	when?: (() => boolean) | string;
 
-	/**
-	 * Restrict this composition key to a specific mode.
-	 *
-	 * When set, the entry is skipped unless
-	 * {@link PipelineContext.currentMode} matches. Checked after
-	 * affectOverlay, before `when`, `category`, and other filters.
-	 * When omitted, the key works in all modes (including no-mode).
-	 */
-	mode?: string;
 
 	/**
 	 * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
@@ -219,13 +193,28 @@ export type bufferEntry = {
 	ctx: CompositionContext;
 };
 
-export interface MappingPendingEntry{
-	keys: string[]
-	nextIndex: number
-	timeout: number
+export interface MappingPendingEntry {
+	keys: string[];
+	nextIndex: number;
+	timeout: number;
 }
 
-function compositionFingerprint(entry: CompositioKey): string {
+export interface MappingKeyEntry<TComponet> extends PrimitiveTypeKeys<TComponet> {
+	keys: string[];
+	target: string[];
+	timeout?: number;
+	when?: (() => boolean) | string;
+	exclusive?: boolean;
+}
+
+export interface PrimitiveTypeKeys<TComponet>{
+	affectOverlay?: boolean;
+	mode?: string;
+	category?: TComponet[] | "*";
+	executeWhenNoOverlay?: boolean;
+}
+
+function compositionFingerprint<TComponent>(entry: CompositioKey<TComponent>): string {
 	return JSON.stringify({
 		key: entry.key,
 		flags: entry.flags,
@@ -243,12 +232,11 @@ function compositionFingerprint(entry: CompositioKey): string {
 	});
 }
 
-export default class CompositionEngine<TComponet = unknown> {
+export default class CompositionEngine<TComponent = unknown> {
 	private currentKey: string[] = [];
-	private keyMappingTable: Map<string, Set<CompositioKey<TComponet>>> =
+	private keyMappingTable: Map<string, Set<CompositioKey<TComponent>>> =
 		new Map();
 
-	private pendingEntry: CompositionPneding | null = null;
 	private defaultTimeout: number;
 
 	// This array represents the history of pressed keys.
@@ -266,15 +254,13 @@ export default class CompositionEngine<TComponet = unknown> {
 
 	private mapping: Map<
 		string,
-		Set<{
-			keys: string[];
-			target: string[];
-		}>
+		Set<MappingKeyEntry<TComponent>>
 	> = new Map();
-	private candidateMappingKey: {
-		keys: string[];
-		target: string[];
-	}[] = [];
+	// Mapping keys independently maintain their own wait sequences.
+	// This is done to better distinguish between key combinations and mapped keys, and to make management easier.
+	// Sequences of mapped keys and sequences of key combinations cannot coexist.
+	private mappingPendingEntry: MappingPendingEntry | null = null;
+	private pendingEntry: CompositionPneding | null = null;
 
 	private context: CompositionContext = {
 		value: undefined,
@@ -283,7 +269,7 @@ export default class CompositionEngine<TComponet = unknown> {
 	};
 
 	constructor(
-		private state: EngineState<TComponet>,
+		private state: EngineState<TComponent>,
 		defaultTimeout?: number,
 		valueSchema?: ValueSchema,
 	) {
@@ -410,7 +396,7 @@ export default class CompositionEngine<TComponet = unknown> {
 		this.currentKey = eventName;
 	}
 
-	registryCompositionKey(entry: CompositioKey<TComponet>) {
+	registryCompositionKey(entry: CompositioKey<TComponent>) {
 		const key = entry.key;
 		const set = this.keyMappingTable.get(key);
 
@@ -743,7 +729,7 @@ export default class CompositionEngine<TComponet = unknown> {
 	updateCompositionKey(
 		key: string,
 		flags: Flags,
-		updates: Partial<Omit<CompositioKey<TComponet>, "key" | "flags">>,
+		updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flags">>,
 	): boolean {
 		const set = this.keyMappingTable.get(key);
 		if (!set) return false;
@@ -751,7 +737,7 @@ export default class CompositionEngine<TComponet = unknown> {
 		for (const entry of set) {
 			if (this.areFlagsEqual(flags, entry.flags)) {
 				set.delete(entry);
-				const merged: CompositioKey<TComponet> = {
+				const merged: CompositioKey<TComponent> = {
 					...entry,
 					...updates,
 					key,
@@ -825,11 +811,11 @@ export default class CompositionEngine<TComponet = unknown> {
 	 * Filter candidates by affectOverlay and category, mirroring the
 	 * pattern used in global-sequence / global-key processors.
 	 */
-	private filterEntries(
-		entries: CompositioKey<TComponet>[],
-		ctx: PipelineContext,
+	private filterEntries<TComponent, T extends PrimitiveTypeKeys<TComponent>>(
+		entries: T[],
+		ctx: PipelineContext<TComponent>,
 		affectOverlay: boolean,
-	): CompositioKey<TComponet>[] {
+	): T[] {
 		return entries.filter((entry) => {
 			if ((entry.affectOverlay ?? false) !== affectOverlay) return false;
 			if (entry.mode && entry.mode !== ctx.currentMode) return false;
@@ -841,7 +827,7 @@ export default class CompositionEngine<TComponet = unknown> {
 			const cat = entry.category;
 			if (cat !== undefined && cat !== "*") {
 				if (Array.isArray(cat) && cat.length === 0) return false;
-				if (Array.isArray(cat) && !cat.includes(ctx.topComponent as TComponet))
+				if (Array.isArray(cat) && !cat.includes(ctx.topComponent))
 					return false;
 			}
 
@@ -882,7 +868,21 @@ export default class CompositionEngine<TComponet = unknown> {
 		return [...this.mapping.keys()];
 	}
 
-	private startPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
+	private tryStartMappingKeyPending(ctx: PipelineContext<TComponent>, entries: MappingKeyEntry<TComponent>[],  affectOverlay: boolean) {
+		const mappingKeys = this.getMappingKeys();
+		const keyOfDestiny = mappingKeys.find((each) =>
+			this.currentKey.includes(each),
+		);
+		if (keyOfDestiny) {
+			const allCandidateKeys = this.mapping.get(keyOfDestiny);
+			if (allCandidateKeys) {
+				const filtered = this.filterEntries(entries, ctx, affectOverlay)
+				this.state.compositionEngineHandle = true;
+			}
+		}
+	}
+
+	private startPending(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
 		if (this.pendingEntry) return false;
 
 		this.historyKeys = [];
@@ -949,7 +949,7 @@ export default class CompositionEngine<TComponet = unknown> {
 	}
 
 	private processPending(
-		ctx: PipelineContext,
+		ctx: PipelineContext<TComponent>,
 		affectOverlay: boolean,
 	): boolean {
 		if (!this.pendingEntry) return false;
@@ -1060,7 +1060,7 @@ export default class CompositionEngine<TComponet = unknown> {
 		return false;
 	}
 
-	start(ctx: PipelineContext, affectOverlay: boolean): boolean {
+	start(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
 		this.synchronizingKey(ctx.eventNames);
 		if (this.processPending(ctx, affectOverlay)) return true;
 		return this.startPending(ctx, affectOverlay);

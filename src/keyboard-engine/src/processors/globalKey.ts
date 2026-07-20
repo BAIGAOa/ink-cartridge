@@ -12,12 +12,12 @@ import { checkWhen } from '../checkWhen.js';
  * @param config.affectOverlay - Which priority group this processor serves.
  * @returns A PipelineProcessor for the global key stage.
  */
-export function createGlobalKeyProcessor(config: {
+export function createGlobalKeyProcessor<TComponent>(config: {
   affectOverlay: boolean;
-}): PipelineProcessor {
+}): PipelineProcessor<TComponent> {
   const { affectOverlay } = config;
   return {
-    process(ctx: PipelineContext): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) return false
       for (const entry of ctx.globalKeys) {
         if ((entry.affectOverlay ?? false) !== affectOverlay) continue;

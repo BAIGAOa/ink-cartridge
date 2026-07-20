@@ -11,9 +11,9 @@ import type { PipelineProcessor } from '../types.js';
  * @param config.affectOverlay — Which pipeline phase this instance serves.
  * @returns A PipelineProcessor for the composition stage.
  */
-export function createCompositionProcessor(config: {
+export function createCompositionProcessor<TComponent>(config: {
   affectOverlay: boolean;
-}): PipelineProcessor {
+}): PipelineProcessor<TComponent> {
   const { affectOverlay } = config;
   return {
     process(ctx): boolean {
