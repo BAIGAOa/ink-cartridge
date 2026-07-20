@@ -2,11 +2,11 @@ import { describe, test, expect } from 'vitest';
 import { _insertRelative } from '../../src/keyboard/index.js';
 import type { PipelineProcessor } from '../../src/keyboard/index.js';
 
-function createProcessor(id: string): PipelineProcessor {
+function createProcessor(id: string): PipelineProcessor<unknown> {
   return { id, process: () => false };
 }
 
-const base = (): PipelineProcessor[] => [
+const base = (): PipelineProcessor<unknown>[] => [
   createProcessor('modal'),
   createProcessor('global-sequence-overlay'),
   createProcessor('global-key-overlay'),
