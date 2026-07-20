@@ -94,6 +94,21 @@ export type CompositionEvent =
 	| { type: "undone"; steps: number }
 	| { type: "cleared" };
 
+/**
+ * State-change events emitted by the mapping-key subsystem.
+ *
+ * Kept separate from {@link CompositionEvent} so subscribers of one
+ * subsystem are not notified by the other. The shape mirrors
+ * CompositionEvent but is intentionally smaller — mapping keys do not
+ * have an "aborted" / "undone" / "cleared" lifecycle.
+ */
+export type MappingKeyEvent =
+	| { type: "started"; key: string }
+	| { type: "continued"; key: string }
+	| { type: "completed" }
+	| { type: "broken"; key: string }
+	| { type: "consumed"; key: string };
+
 export interface CompositionPneding {
 	timeout: number;
 	timer: ReturnType<typeof setTimeout>;
@@ -120,7 +135,10 @@ export interface CompositionContext<T = unknown> {
 	steps: string[];
 }
 
-export interface CompositioKey<TComponet, TValue = unknown> extends PrimitiveTypeKeys<TComponet> {
+export interface CompositioKey<
+	TComponet,
+	TValue = unknown,
+> extends PrimitiveTypeKeys<TComponet> {
 	/**
 	 * Trigger key names, such as a, B, C, or even the number 3
 	 */
@@ -168,7 +186,6 @@ export interface CompositioKey<TComponet, TValue = unknown> extends PrimitiveTyp
 	 */
 	when?: (() => boolean) | string;
 
-
 	/**
 	 * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
 	 */
@@ -193,28 +210,43 @@ export type bufferEntry = {
 	ctx: CompositionContext;
 };
 
-export interface MappingPendingEntry {
+export interface MappingPendingEntry<TComponent> {
 	keys: string[];
 	nextIndex: number;
 	timeout: number;
+	timer: ReturnType<typeof setTimeout>;
+	exclusive: boolean;
+	affectOverlay: boolean;
+	candidates: MappingKeyEntry<TComponent>[];
 }
 
-export interface MappingKeyEntry<TComponet> extends PrimitiveTypeKeys<TComponet> {
+export interface MappingKeyEntry<
+	TComponet,
+> extends PrimitiveTypeKeys<TComponet> {
 	keys: string[];
 	target: string[];
 	timeout?: number;
 	when?: (() => boolean) | string;
 	exclusive?: boolean;
+	/**
+	 * If true, when the target composition chain is interrupted (any
+	 * target key fails to resolve / execute), the final key that broke
+	 * the sequence is swallowed silently instead of being released to
+	 * lower pipeline stages. Mirrors {@link CompositioKey.KeyReleaseWhenChainInterrupted}.
+	 */
+	KeyReleaseWhenChainInterrupted?: boolean;
 }
 
-export interface PrimitiveTypeKeys<TComponet>{
+export interface PrimitiveTypeKeys<TComponet> {
 	affectOverlay?: boolean;
 	mode?: string;
 	category?: TComponet[] | "*";
 	executeWhenNoOverlay?: boolean;
 }
 
-function compositionFingerprint<TComponent>(entry: CompositioKey<TComponent>): string {
+function compositionFingerprint<TComponent>(
+	entry: CompositioKey<TComponent>,
+): string {
 	return JSON.stringify({
 		key: entry.key,
 		flags: entry.flags,
@@ -252,14 +284,16 @@ export default class CompositionEngine<TComponent = unknown> {
 	private subscribers: Set<() => void> = new Set();
 	private lastEvent: CompositionEvent | null = null;
 
-	private mapping: Map<
-		string,
-		Set<MappingKeyEntry<TComponent>>
-	> = new Map();
+	// Separate subscriber pool for the mapping-key subsystem so its
+	// state changes do not fire composition subscribers (and vice versa).
+	private mappingSubscribers: Set<() => void> = new Set();
+	private lastMappingEvent: MappingKeyEvent | null = null;
+
+	private mapping: Map<string, Set<MappingKeyEntry<TComponent>>> = new Map();
 	// Mapping keys independently maintain their own wait sequences.
 	// This is done to better distinguish between key combinations and mapped keys, and to make management easier.
 	// Sequences of mapped keys and sequences of key combinations cannot coexist.
-	private mappingPendingEntry: MappingPendingEntry | null = null;
+	private mappingPendingEntry: MappingPendingEntry<TComponent> | null = null;
 	private pendingEntry: CompositionPneding | null = null;
 
 	private context: CompositionContext = {
@@ -301,7 +335,23 @@ export default class CompositionEngine<TComponent = unknown> {
 		return false;
 	}
 
-	addMapping(base: string[], target: string[]) {
+	/**
+	 * Register a mapping key entry.
+	 *
+	 * @param base   The external trigger key sequence (what the user presses).
+	 * @param target The internal composition key chain to execute in order.
+	 * @param options Optional fields forwarded to the stored {@link MappingKeyEntry}:
+	 *   `exclusive`, `KeyReleaseWhenChainInterrupted`, `when`, `affectOverlay`,
+	 *   `mode`, `category`, `executeWhenNoOverlay`.
+	 * @returns `true` if registered, `false` if `base` is empty, any `target`
+	 *          key is not registered in `keyMappingTable`, or an identical
+	 *          `base` sequence already exists.
+	 */
+	addMapping(
+		base: string[],
+		target: string[],
+		options?: Omit<MappingKeyEntry<TComponent>, "keys" | "target">,
+	) {
 		if (base.length === 0) {
 			return false;
 		}
@@ -312,6 +362,12 @@ export default class CompositionEngine<TComponent = unknown> {
 			}
 		}
 
+		const entry: MappingKeyEntry<TComponent> = {
+			keys: base,
+			target: target,
+			...options,
+		};
+
 		const firstKey = base[0];
 		const mapKey = this.mapping.get(firstKey);
 		if (mapKey) {
@@ -320,19 +376,11 @@ export default class CompositionEngine<TComponent = unknown> {
 				return false;
 			}
 
-			mapKey.add({
-				keys: base,
-				target: target,
-			});
+			mapKey.add(entry);
 		} else {
 			this.mapping.set(
 				firstKey,
-				new Set([
-					{
-						keys: base,
-						target: target,
-					},
-				]),
+				new Set([entry]),
 			);
 		}
 
@@ -388,6 +436,36 @@ export default class CompositionEngine<TComponent = unknown> {
 	private notify(event: CompositionEvent): void {
 		this.lastEvent = event;
 		for (const fn of this.subscribers) {
+			fn();
+		}
+	}
+
+	/**
+	 * Subscribe to mapping-key state changes. The callback fires whenever a
+	 * mapping-key sequence starts, advances, breaks, is consumed
+	 * (exclusive), or completes. Independent from {@link subscribe} so
+	 * composition subscribers are not notified by mapping-key events.
+	 *
+	 * @returns An unsubscribe function.
+	 */
+	subscribeMapping(fn: () => void): () => void {
+		this.mappingSubscribers.add(fn);
+		return () => {
+			this.mappingSubscribers.delete(fn);
+		};
+	}
+
+	/**
+	 * Return the most recent {@link MappingKeyEvent}, or `null` if no
+	 * mapping-key event has happened yet.
+	 */
+	getLastMappingEvent(): MappingKeyEvent | null {
+		return this.lastMappingEvent;
+	}
+
+	private notifyMapping(event: MappingKeyEvent): void {
+		this.lastMappingEvent = event;
+		for (const fn of this.mappingSubscribers) {
 			fn();
 		}
 	}
@@ -808,6 +886,33 @@ export default class CompositionEngine<TComponent = unknown> {
 	}
 
 	/**
+	 * Clear the mapping-key pending state: cancel its timer and reset the
+	 * composition-engine handle flag. Mirrors {@link clearPending} but for
+	 * {@link mappingPendingEntry}. Does not touch composition context.
+	 */
+	private clearMappingPending(): void {
+		if (this.mappingPendingEntry) {
+			clearTimeout(this.mappingPendingEntry.timer);
+			this.mappingPendingEntry = null;
+		}
+		this.state.compositionEngineHandle = false;
+	}
+
+	/**
+	 * Reset the mapping-key pending timer to a new timeout. Mirrors
+	 * {@link resetPendingTimer} but for {@link mappingPendingEntry}.
+	 */
+	private resetMappingPendingTimer(timeout: number): void {
+		if (!this.mappingPendingEntry) return;
+		clearTimeout(this.mappingPendingEntry.timer);
+		const timer = setTimeout(() => {
+			this.clearMappingPending();
+		}, timeout);
+		this.mappingPendingEntry.timer = timer;
+		this.mappingPendingEntry.timeout = timeout;
+	}
+
+	/**
 	 * Filter candidates by affectOverlay and category, mirroring the
 	 * pattern used in global-sequence / global-key processors.
 	 */
@@ -827,8 +932,7 @@ export default class CompositionEngine<TComponent = unknown> {
 			const cat = entry.category;
 			if (cat !== undefined && cat !== "*") {
 				if (Array.isArray(cat) && cat.length === 0) return false;
-				if (Array.isArray(cat) && !cat.includes(ctx.topComponent))
-					return false;
+				if (Array.isArray(cat) && !cat.includes(ctx.topComponent)) return false;
 			}
 
 			return true;
@@ -868,24 +972,345 @@ export default class CompositionEngine<TComponent = unknown> {
 		return [...this.mapping.keys()];
 	}
 
-	private tryStartMappingKeyPending(ctx: PipelineContext<TComponent>, entries: MappingKeyEntry<TComponent>[],  affectOverlay: boolean) {
+	private checkResult(result: CompositioKey<TComponent>, context: CompositionContext) {
+		const nextCtx = result.execute?.(context);
+		if (!nextCtx) {
+			return null;
+		}
+
+		if (!nextCtx.lastFlag) {
+			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
+			// it indicates that they want the system to handle the flag automatically.
+			// We give users control.
+			nextCtx.lastFlag = result.alternativeFlag;
+		}
+
+		if (!this.validateOutput(nextCtx.lastFlag, nextCtx.value, result.key)) {
+			return null;
+		}
+
+		return nextCtx
+	}
+
+	/**
+	 * Execute a mapping key's `target` composition chain end-to-end.
+	 *
+	 * Walks `entry.target` in order, resolving each target key against
+	 * `keyMappingTable` and running it via the same resolve → checkResult
+	 * pattern used by single-key composition. The first iteration uses
+	 * `lastFlag = null` (head of chain); subsequent iterations feed the
+	 * previous step's `lastFlag` forward.
+	 *
+	 * On any failure (no entries after filter, resolve returns null,
+	 * checkResult returns null) the chain is interrupted. The returned
+	 * `swallow` flag mirrors {@link MappingKeyEntry.KeyReleaseWhenChainInterrupted}:
+	 * when true, the breaking key is silently consumed rather than
+	 * released to lower pipeline stages.
+	 *
+	 * @param entry        The locked-in mapping key candidate.
+	 * @param ctx          Current pipeline context (for affectOverlay / category / mode filtering).
+	 * @param affectOverlay Which pipeline phase is calling.
+	 * @returns `{ ok: true }` on full success, or `{ ok: false, swallow }` on interruption.
+	 */
+	private runTargetChain(
+		entry: MappingKeyEntry<TComponent>,
+		ctx: PipelineContext<TComponent>,
+		affectOverlay: boolean,
+	): { ok: true } | { ok: false; swallow: boolean } {
+		const target = entry.target;
+		let currentCtx: CompositionContext = {
+			value: undefined,
+			lastFlag: null,
+			steps: [],
+		};
+
+		for (let i = 0; i < target.length; i++) {
+			const coms = [...(this.keyMappingTable.get(target[i]) ?? [])];
+			const f = this.filterEntries(coms, ctx, affectOverlay);
+
+			if (f.length === 0) {
+				return {
+					ok: false,
+					swallow: entry.KeyReleaseWhenChainInterrupted ?? false,
+				};
+			}
+
+			if (i === 0) {
+				const result = resolveCompositionKey(f, null);
+				if (!result) {
+					return {
+						ok: false,
+						swallow: entry.KeyReleaseWhenChainInterrupted ?? false,
+					};
+				}
+				const checkedCtx = this.checkResult(result, currentCtx);
+				if (!checkedCtx) {
+					return {
+						ok: false,
+						swallow: entry.KeyReleaseWhenChainInterrupted ?? false,
+					};
+				}
+				currentCtx = checkedCtx;
+				continue;
+			}
+
+			// Because the first key was specially handled during the first iteration,
+			// `lastFlag` here is extremely unlikely to be `null`.
+			const result = resolveCompositionKey(f, currentCtx.lastFlag);
+			if (!result) {
+				return {
+					ok: false,
+					swallow: entry.KeyReleaseWhenChainInterrupted ?? false,
+				};
+			}
+
+			const checked = this.checkResult(result, currentCtx);
+			if (!checked) {
+				return {
+					ok: false,
+					swallow: entry.KeyReleaseWhenChainInterrupted ?? false,
+				};
+			}
+
+			currentCtx = checked;
+		}
+
+		return { ok: true };
+	}
+
+	private tryStartMappingKeyPending(
+		ctx: PipelineContext<TComponent>,
+		affectOverlay: boolean,
+	) {
 		const mappingKeys = this.getMappingKeys();
 		const keyOfDestiny = mappingKeys.find((each) =>
 			this.currentKey.includes(each),
 		);
-		if (keyOfDestiny) {
-			const allCandidateKeys = this.mapping.get(keyOfDestiny);
-			if (allCandidateKeys) {
-				const filtered = this.filterEntries(entries, ctx, affectOverlay)
-				this.state.compositionEngineHandle = true;
-			}
+
+		if (!keyOfDestiny) {
+			return false;
 		}
+
+		const allCandidateKeys = this.mapping.get(keyOfDestiny);
+
+		if (!allCandidateKeys) {
+			return false;
+		}
+
+		const filtered = this.filterEntries(
+			[...allCandidateKeys],
+			ctx,
+			affectOverlay,
+		);
+
+		// Single-key mappings (keys.length === 1) are executed immediately on
+		// the head key — they have no subsequent keys to wait for. When both
+		// single-key and multi-key mappings share the same head key, the
+		// single-key mapping wins (first one in registration order), matching
+		// how globalSequence picks `matching[0]` as the selected entry.
+		const singleKeyEntries = filtered.filter((e) => e.keys.length === 1);
+		if (singleKeyEntries.length >= 1) {
+			const locked = singleKeyEntries[0];
+			this.notifyMapping({ type: "started", key: keyOfDestiny });
+			const outcome = this.runTargetChain(locked, ctx, affectOverlay);
+			if (!outcome.ok) {
+				this.notifyMapping({ type: "broken", key: keyOfDestiny });
+				return outcome.swallow;
+			}
+			this.notifyMapping({ type: "completed" });
+			return true;
+		}
+
+		// No single-key candidates — all remaining candidates need more keys.
+		// If none remain, there is nothing to start.
+		const multiKeyEntries = filtered.filter((e) => e.keys.length > 1);
+		if (multiKeyEntries.length === 0) {
+			return false;
+		}
+
+		// Mirrors globalSequence / boundSequence: the first matching entry
+		// seeds `exclusive`. In exclusive mode the selected entry is locked in
+		// immediately (no disambiguation needed), so it is kept as the sole
+		// candidate. In non-exclusive mode, only non-exclusive entries stay
+		// as disambiguation candidates.
+		const selected = multiKeyEntries[0];
+		const exclusive = selected.exclusive ?? false;
+		const candidates = exclusive
+			? [selected]
+			: multiKeyEntries.filter((c) => c.exclusive !== true);
+
+		const pending: MappingPendingEntry<TComponent> = {
+			keys: [keyOfDestiny],
+			nextIndex: 1,
+			timeout: this.defaultTimeout,
+			timer: undefined as unknown as NodeJS.Timeout,
+			exclusive,
+			affectOverlay,
+			candidates,
+		};
+
+		const timer = setTimeout(() => {
+			this.clearMappingPending();
+		}, pending.timeout);
+		pending.timer = timer;
+		this.mappingPendingEntry = pending;
+		this.state.compositionEngineHandle = true;
+		this.notifyMapping({ type: "started", key: keyOfDestiny });
+
+		return true;
 	}
 
-	private startPending(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
-		if (this.pendingEntry) return false;
+	/**
+	 * Narrow a list of mapping-key candidates by checking which ones have
+	 * a key at `nextIndex` that matches the user's current input.
+	 *
+	 * Used while a {@link MappingPendingEntry} is in progress and the user
+	 * presses the next key. When multiple candidates share the same head
+	 * key but diverge later, this filters out the ones whose next segment
+	 * does not match, progressively resolving the ambiguity.
+	 *
+	 * @param candidates   The current candidate pool (from `mappingPendingEntry.candidates`).
+	 * @param nextIndex    The index within each candidate's `keys` array to check against.
+	 * @param currentKey   The single key name the user just pressed (e.g. `"s"` or `"ctrl+s"`).
+	 * @returns The narrowed candidate list. May be empty (no candidate matches —
+	 *          sequence is broken), length 1 (locked in), or still > 1 (ambiguous,
+	 *          needs further narrowing on the next key).
+	 */
+	private disambiguateMappingCandidates(
+		candidates: MappingKeyEntry<TComponent>[],
+		nextIndex: number,
+		currentKey: string,
+	): MappingKeyEntry<TComponent>[] {
+		if (candidates.length <= 1) return candidates;
+		return candidates.filter((entry) => entry.keys[nextIndex] === currentKey);
+	}
 
+	/**
+	 * Advance or complete an in-progress mapping-key pending sequence.
+	 *
+	 * Called on every key event while {@link mappingPendingEntry} is set.
+	 * Resolves the user's current input against the registered mapping
+	 * keys, narrows the candidate pool, and either:
+	 *   - locks in a single candidate and runs its target chain,
+	 *   - keeps narrowing when still ambiguous, or
+	 *   - breaks the sequence (honoring exclusive / swallow semantics).
+	 *
+	 * @returns `true` if the key was consumed by the mapping subsystem,
+	 *          `false` to let it fall through to lower pipeline stages.
+	 */
+	private processMappingKeyPending(
+		ctx: PipelineContext<TComponent>,
+		affectOverlay: boolean,
+	): boolean {
+		if (!this.mappingPendingEntry) return false;
+		// Phase guard — a pending started in the overlay phase must not be
+		// advanced by the screen-phase processor (and vice versa). Mirrors
+		// processPending / globalSequence pending handling.
+		if (this.mappingPendingEntry.affectOverlay !== affectOverlay) return false;
+
+		clearTimeout(this.mappingPendingEntry.timer);
+
+		const pending = this.mappingPendingEntry;
+
+		// Determine the current input key name. Unlike tryStartMappingKeyPending
+		// (which looks up registered mapping head keys), here we need to match
+		// against the candidates' keys[nextIndex]. We try each name in
+		// eventNames and pick the first one that appears in some candidate's
+		// next segment. If none match, the key is unrelated to the sequence.
+		const nextIndex = pending.nextIndex;
+		let matchedKey: string | null = null;
+		for (const name of this.currentKey) {
+			if (pending.candidates.some((c) => c.keys[nextIndex] === name)) {
+				matchedKey = name;
+				break;
+			}
+		}
+
+		// No candidate's next segment matches any current eventName — the user
+		// pressed something unrelated. In exclusive mode the key is silently
+		// consumed and the sequence keeps waiting; otherwise the pending is
+		// cleared and the key is released to lower pipeline stages.
+		if (matchedKey === null) {
+			if (pending.exclusive) {
+				this.resetMappingPendingTimer(pending.timeout);
+				this.notifyMapping({ type: "consumed", key: this.currentKey[0] ?? "" });
+				return true;
+			}
+			this.clearMappingPending();
+			this.notifyMapping({ type: "broken", key: this.currentKey[0] ?? "" });
+			return false;
+		}
+
+		const narrowed = this.disambiguateMappingCandidates(
+			pending.candidates,
+			nextIndex,
+			matchedKey,
+		);
+
+		if (narrowed.length === 0) {
+			// Should not happen given the matchedKey check above, but guard anyway.
+			if (pending.exclusive) {
+				this.resetMappingPendingTimer(pending.timeout);
+				this.notifyMapping({ type: "consumed", key: this.currentKey[0] ?? "" });
+				return true;
+			}
+			this.clearMappingPending();
+			this.notifyMapping({ type: "broken", key: this.currentKey[0] ?? "" });
+			return false;
+		}
+
+		if (narrowed.length > 1) {
+			// Still ambiguous — record progress and keep waiting for the next key.
+			pending.candidates = narrowed;
+			pending.nextIndex++;
+			this.resetMappingPendingTimer(pending.timeout);
+			this.notifyMapping({ type: "continued", key: matchedKey });
+			return true;
+		}
+
+		// Locked in to a single candidate. But the sequence may not be over yet —
+		// only run the target chain when the current key is the last segment.
+		const locked = narrowed[0];
+		if (locked.keys.length > nextIndex + 1) {
+			// More keys expected — advance and keep waiting, no longer ambiguous.
+			pending.candidates = narrowed;
+			pending.nextIndex++;
+			this.resetMappingPendingTimer(pending.timeout);
+			this.notifyMapping({ type: "continued", key: matchedKey });
+			return true;
+		}
+
+		// Sequence complete — run the target composition chain end-to-end.
+		const outcome = this.runTargetChain(locked, ctx, affectOverlay);
+		if (outcome.ok) {
+			this.clearMappingPending();
+			this.notifyMapping({ type: "completed" });
+			return true;
+		}
+
+		// Chain interrupted — clear pending and decide whether to swallow the key.
+		this.clearMappingPending();
+		this.notifyMapping({ type: "broken", key: this.currentKey[0] ?? "" });
+		return outcome.swallow;
+	}
+
+	private startPending(
+		ctx: PipelineContext<TComponent>,
+		affectOverlay: boolean,
+	): boolean {
+		// We must ensure that only one of the mapped key sequence and the combined key sequence exists.
+		// Therefore, we must ensure that neither of these two sequences exists before attempting to trigger one of them.
+		if (this.pendingEntry || this.mappingPendingEntry) return false;
 		this.historyKeys = [];
+
+		const map = this.tryStartMappingKeyPending(ctx, affectOverlay);
+		// If the variable above returns true, it indicates that the mapping processor has initiated a sequence.
+		// If it returns `false`, it means the corresponding key was not found.
+		// We return `true` only when it is being processed, to prevent subsequent handling of the key combination that could lead to confusion.
+		// At the same time, the execution order ensures that mapped keys take precedence over standard key combinations.
+		if (map) {
+			return true;
+		}
 
 		const allEntries = this.currentKey.flatMap((name) => [
 			...(this.keyMappingTable.get(name) ?? []),
@@ -952,6 +1377,11 @@ export default class CompositionEngine<TComponent = unknown> {
 		ctx: PipelineContext<TComponent>,
 		affectOverlay: boolean,
 	): boolean {
+		// Mapping-key pending takes priority over composition pending,
+		// mirroring how tryStartMappingKeyPending takes priority over
+		// single-key composition in startPending.
+		if (this.processMappingKeyPending(ctx, affectOverlay)) return true;
+
 		if (!this.pendingEntry) return false;
 		if (this.pendingEntry.affectOverlay !== affectOverlay) return false;
 

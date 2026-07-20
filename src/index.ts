@@ -71,6 +71,8 @@ export type {
   ModalMissCallback,
   ModalMissOptions,
   ResolvedGlobalKeyEntry,
+  MappingKeyEvent,
+  MappingKeyEntry,
 } from "./keyboard/index.js";
 export { useFocusState, useModalMissListener } from "./keyboard/index.js";
 

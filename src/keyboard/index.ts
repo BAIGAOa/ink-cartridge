@@ -61,6 +61,8 @@ export type {
   ValueGuard,
   ValueSchema,
   Flags,
+  MappingKeyEvent,
+  MappingKeyEntry,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";

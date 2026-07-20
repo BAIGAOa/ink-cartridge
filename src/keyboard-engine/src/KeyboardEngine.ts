@@ -30,6 +30,8 @@ import CompositionEngine, {
 	ValueSchema,
 	Flags,
 	CompositionEvent,
+	MappingKeyEvent,
+	MappingKeyEntry,
 } from "./CompositionEngine.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
 
@@ -240,6 +242,59 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 */
 	getLastCompositionEvent(): CompositionEvent | null {
 		return this.state.compositionEngine.getLastEvent();
+	}
+
+	/**
+	 * Register a mapping key entry. See {@link CompositionEngine#addMapping}.
+	 *
+	 * @returns `true` if registered, `false` if `base` is empty, any `target`
+	 *          key is not registered, or an identical `base` already exists.
+	 */
+	addMapping(
+		base: string[],
+		target: string[],
+		options?: Omit<MappingKeyEntry<TComponent>, "keys" | "target">,
+	) {
+		return this.state.compositionEngine.addMapping(base, target, options);
+	}
+
+	/**
+	 * Remove a mapping key entry by its exact key sequence.
+	 * See {@link CompositionEngine#removeMappingKey}.
+	 *
+	 * @returns `true` if found and removed, `false` otherwise.
+	 */
+	removeMappingKey(keys: string[]) {
+		return this.state.compositionEngine.removeMappingKey(keys);
+	}
+
+	/**
+	 * Remove all mapping key entries whose head key matches `firstKey`.
+	 * See {@link CompositionEngine#removeMapping}.
+	 *
+	 * @returns `true` if any entries were removed, `false` if the head key
+	 *          was not registered.
+	 */
+	removeMapping(firstKey: string) {
+		return this.state.compositionEngine.removeMapping(firstKey);
+	}
+
+	/**
+	 * Subscribe to mapping-key state changes. See {@link CompositionEngine#subscribeMapping}.
+	 * Independent from {@link subscribeComposition} — mapping events do not
+	 * fire composition subscribers and vice versa.
+	 *
+	 * @returns An unsubscribe function.
+	 */
+	subscribeMapping(fn: () => void): () => void {
+		return this.state.compositionEngine.subscribeMapping(fn);
+	}
+
+	/**
+	 * Return the most recent mapping-key event. See {@link CompositionEngine#getLastMappingEvent}.
+	 */
+	getLastMappingEvent(): MappingKeyEvent | null {
+		return this.state.compositionEngine.getLastMappingEvent();
 	}
 
 	/**
