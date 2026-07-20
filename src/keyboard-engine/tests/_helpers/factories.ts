@@ -40,7 +40,7 @@ export function createEngine(
  * Create a KeyboardEngine with custom processors injected at construction time.
  */
 export function createEngineWithProcessors(
-  processors: KeyboardProcessorProps[],
+  processors: KeyboardProcessorProps<unknown>[],
   modes?: string[],
   defaultMode?: string,
 ): KeyboardEngine {
@@ -221,8 +221,8 @@ export function makeSequenceBinding(
  * Create a minimal PipelineContext for processor unit tests.
  */
 export function createContext(
-  overrides: Partial<PipelineContext> = {},
-): PipelineContext {
+  overrides: Partial<PipelineContext<unknown>> = {},
+): PipelineContext<unknown> {
   const layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>> = {
     current: new Map(),
   };
@@ -250,11 +250,11 @@ export function createContext(
     currentMode: null,
     conditions: new Map(),
     compositionEngineHandler: false,
-    compositionEngine: undefined as unknown as PipelineContext['compositionEngine'],
+    compositionEngine: undefined as unknown as PipelineContext<unknown>['compositionEngine'],
     autoTab: false,
     noActiveProcessor: [],
     ...overrides,
-  } as PipelineContext;
+  } as PipelineContext<unknown>;
 }
 
 /**

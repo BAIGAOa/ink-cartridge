@@ -22,10 +22,10 @@ export type BuiltinProcessorId =
  *
  * @throws If the target processor is not found, or if a duplicate ID is detected.
  */
-function insertRelative(
-  arr: PipelineProcessor[],
-  items: KeyboardProcessorProps[],
-): PipelineProcessor[] {
+function insertRelative<TComponent>(
+  arr: PipelineProcessor<TComponent>[],
+  items: KeyboardProcessorProps<TComponent>[],
+): PipelineProcessor<TComponent>[] {
   let currentArr = [...arr];
 
   for (const each of items) {
@@ -70,9 +70,9 @@ function insertRelative(
 }
 
 /** @internal Exposed for testing and KeyboardEngine. */
-export function _insertRelative(
-  arr: PipelineProcessor[],
-  items: KeyboardProcessorProps[],
-): PipelineProcessor[] {
+export function _insertRelative<TComponent>(
+  arr: PipelineProcessor<TComponent>[],
+  items: KeyboardProcessorProps<TComponent>[],
+): PipelineProcessor<TComponent>[] {
   return insertRelative(arr, items);
 }

@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { KeyboardEngine } from '../../../src/keyboard/index.js';
 import type { PipelineProcessor } from '../../../src/keyboard/index.js';
 
-function createProcessor(id: string): PipelineProcessor {
+function createProcessor(id: string): PipelineProcessor<unknown> {
   return { id, process: () => false };
 }
 

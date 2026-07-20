@@ -46,6 +46,7 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [penetration](./penetration-API.md) | Mark keys as transparent (pass-through) |
 | [stop](./stop-API.md) | Block keys from propagating down |
 | [compositionEngine](./compositionEngine-API.md) | Flag/needs key composition for compound actions |
+| [Mapping Key](./mappingKey-API.md) | Vim-style key mapping: map an external key sequence to an internal composition chain (addMapping / removeMappingKey / subscribeMapping) |
 | [setValueSchema](./setValueSchema-API.md) | Runtime type validation for composition chain values |
 | [globalKeys](./globalKeys-API.md) | Global single-key bindings |
 | [globalSequence](./globalSequence-API.md) | Global multi-key sequences |

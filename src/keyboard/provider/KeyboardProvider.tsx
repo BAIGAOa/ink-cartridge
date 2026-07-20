@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useRef } from "react";
+import React, { ComponentType, ReactNode, useEffect, useMemo, useRef } from "react";
 import { useInput } from "ink";
 import { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 import type {
@@ -12,7 +12,7 @@ import { normalizeKeyNames } from "../keyNormalizer.js";
 
 export interface KeyboardProviderProps {
   children: ReactNode;
-  processors?: KeyboardProcessorProps[];
+  processors?: KeyboardProcessorProps<ComponentType<any>>[];
   modes?: string[];
   defaultMode?: string | null;
   /**
@@ -149,6 +149,11 @@ export function KeyboardProvider({
       clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
       subscribeComposition: engine.subscribeComposition.bind(engine),
       getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
+      addMapping: engine.addMapping.bind(engine),
+      removeMappingKey: engine.removeMappingKey.bind(engine),
+      removeMapping: engine.removeMapping.bind(engine),
+      subscribeMapping: engine.subscribeMapping.bind(engine),
+      getLastMappingEvent: engine.getLastMappingEvent.bind(engine),
       activateFocusGroup: engine.activateFocusGroup.bind(engine),
       kickFocusGroup: engine.kickFocusGroup.bind(engine),
       kickProcessor: engine.kickProcessor.bind(engine),

@@ -2,8 +2,8 @@ import { describe, test, expect } from 'vitest';
 import { resolveCompositionKey, CompositioKey } from '../../../src/CompositionEngine.js';
 
 function mk(
-  overrides: Partial<CompositioKey> = {},
-): CompositioKey {
+  overrides: Partial<CompositioKey<unknown>> = {},
+): CompositioKey<unknown> {
   return {
     key: 'x',
     flags: [],

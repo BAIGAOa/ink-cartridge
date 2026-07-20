@@ -30,6 +30,8 @@ import CompositionEngine, {
 	ValueSchema,
 	Flags,
 	CompositionEvent,
+	MappingKeyEvent,
+	MappingKeyEntry,
 } from "./CompositionEngine.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
 
@@ -37,13 +39,13 @@ import { BuiltinProcessorId } from "./pipeline/chain.js";
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
  */
-export interface EngineProps {
+export interface EngineProps<TComponent> {
 	/** Registered mode names (e.g. `["normal", "insert"]`). */
 	modes?: string[];
 	/** Default mode — must be null (no-mode) or a member of `modes`. */
 	defaultMode?: string;
 	/** Per-instance custom processors injected into the pipeline at init time. */
-	processors?: KeyboardProcessorProps[];
+	processors?: KeyboardProcessorProps<TComponent>[];
 	/**
 	 * Converts a framework-specific key event into normalized key-name strings
 	 * for matching. Required so the engine stays framework-agnostic — each host
@@ -131,7 +133,7 @@ export interface EngineProps {
 export default class KeyboardEngine<TComponent = unknown> {
 	private state: EngineState<TComponent>;
 	private layers: LayerManager<TComponent>;
-	private pipeline: PipelineManager;
+	private pipeline: PipelineManager<TComponent>;
 	private bindings: BindingService<TComponent>;
 	private registry: OperationRegistry<TComponent>;
 
@@ -140,7 +142,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 *   `normalizeKeyNames` is required — the engine has no built-in default
 	 *   so each framework must provide its own adapter.
 	 */
-	constructor(props: EngineProps) {
+	constructor(props: EngineProps<TComponent>) {
 		this.state = new EngineState(props);
 		this.layers = new LayerManager(this.state);
 		this.pipeline = new PipelineManager(this.state, props.processors);
@@ -240,6 +242,59 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 */
 	getLastCompositionEvent(): CompositionEvent | null {
 		return this.state.compositionEngine.getLastEvent();
+	}
+
+	/**
+	 * Register a mapping key entry. See {@link CompositionEngine#addMapping}.
+	 *
+	 * @returns `true` if registered, `false` if `base` is empty, any `target`
+	 *          key is not registered, or an identical `base` already exists.
+	 */
+	addMapping(
+		base: string[],
+		target: string[],
+		options?: Omit<MappingKeyEntry<TComponent>, "keys" | "target">,
+	) {
+		return this.state.compositionEngine.addMapping(base, target, options);
+	}
+
+	/**
+	 * Remove a mapping key entry by its exact key sequence.
+	 * See {@link CompositionEngine#removeMappingKey}.
+	 *
+	 * @returns `true` if found and removed, `false` otherwise.
+	 */
+	removeMappingKey(keys: string[]) {
+		return this.state.compositionEngine.removeMappingKey(keys);
+	}
+
+	/**
+	 * Remove all mapping key entries whose head key matches `firstKey`.
+	 * See {@link CompositionEngine#removeMapping}.
+	 *
+	 * @returns `true` if any entries were removed, `false` if the head key
+	 *          was not registered.
+	 */
+	removeMapping(firstKey: string) {
+		return this.state.compositionEngine.removeMapping(firstKey);
+	}
+
+	/**
+	 * Subscribe to mapping-key state changes. See {@link CompositionEngine#subscribeMapping}.
+	 * Independent from {@link subscribeComposition} — mapping events do not
+	 * fire composition subscribers and vice versa.
+	 *
+	 * @returns An unsubscribe function.
+	 */
+	subscribeMapping(fn: () => void): () => void {
+		return this.state.compositionEngine.subscribeMapping(fn);
+	}
+
+	/**
+	 * Return the most recent mapping-key event. See {@link CompositionEngine#getLastMappingEvent}.
+	 */
+	getLastMappingEvent(): MappingKeyEvent | null {
+		return this.state.compositionEngine.getLastMappingEvent();
 	}
 
 	/**
@@ -660,7 +715,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 * @throws If the processor id duplicates an existing one or the target is not found.
 	 */
 	addProcessor(
-		processor: PipelineProcessor,
+		processor: PipelineProcessor<TComponent>,
 		options?: { before?: string } | { after?: string } | { index?: number },
 	): void {
 		this.pipeline.addProcessor(processor, options);
@@ -673,7 +728,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 		return this.pipeline.removeProcessor(processorId);
 	}
 	/** @returns A read-only snapshot of the current processor pipeline. */
-	getProcessors(): readonly PipelineProcessor[] {
+	getProcessors(): readonly PipelineProcessor<TComponent>[] {
 		return this.pipeline.getProcessors();
 	}
 	/** Restore the processor pipeline to the default 7-stage chain. */
@@ -792,7 +847,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 * the typed interface — this is a bridge point that will be resolved when
 	 * the pipeline types are fully generic.
 	 */
-	buildPipelineContext(input: string, key: unknown): PipelineContext {
+	buildPipelineContext(input: string, key: unknown): PipelineContext<TComponent> {
 		const eventNames = this.state._normalizeKeyNames(input, key);
 		const topComponent =
 			this.state.path.length > 0

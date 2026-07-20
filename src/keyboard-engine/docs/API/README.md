@@ -130,6 +130,7 @@ The engine package uses `[ink-cartridge]` as its error prefix.
 | `sync.md` | `KeyboardEngine#sync` |
 | `boundKeyboard.md` | `KeyboardEngine#boundKeyboard` |
 | `kickProcessor.md` | `KeyboardEngine#kickProcessor` / `KeyboardEngine#activeProcessor` |
+| `mappingKey.md` | `CompositionEngine#addMapping` / `CompositionEngine#removeMappingKey` / `CompositionEngine#subscribeMapping` |
 | `composition.md` | `CompositionEngine` class overview |
 | `composition/setValueSchema.md` | `CompositionEngine#setValueSchema` |
 

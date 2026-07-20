@@ -20,10 +20,10 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
  * @param ctx            Full pipeline context.
  * @returns true when a new pending sequence was started (event consumed).
  */
-function tryStartGlobalSequence(
+function tryStartGlobalSequence<TComponent>(
   entries: ResolvedGlobalSequenceEntry[],
   affectOverlay: boolean,
-  ctx: PipelineContext,
+  ctx: PipelineContext<TComponent>,
 ): boolean {
   // Collect all entries that pass every filter AND whose first key
   // matches the current event. When multiple entries share the same
@@ -122,7 +122,7 @@ function tryStartGlobalSequence(
  * @param ctx  Full pipeline context.
  * @returns true when the event was consumed by the pending sequence.
  */
-function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boolean {
+function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
   const pending = ctx.pendingSeqRef.current;
   if (pending === null) return false;
 
@@ -246,12 +246,12 @@ function processGlobalPending(ctx: PipelineContext, affectOverlay: boolean): boo
  * @param config.affectOverlay - Which priority group this processor serves.
  * @returns A PipelineProcessor for the global sequence stage.
  */
-export function createGlobalSequenceProcessor(config: {
+export function createGlobalSequenceProcessor<TComponent>(config: {
   affectOverlay: boolean;
-}): PipelineProcessor {
+}): PipelineProcessor<TComponent> {
   const { affectOverlay } = config;
   return {
-    process(ctx: PipelineContext): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) return false
       if (processGlobalPending(ctx, affectOverlay)) return true;
       if (tryStartGlobalSequence(ctx.globalSequences, affectOverlay, ctx)) return true;

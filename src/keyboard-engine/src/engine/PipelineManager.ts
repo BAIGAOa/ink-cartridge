@@ -8,18 +8,18 @@ import { _insertRelative, BuiltinProcessorId } from "../pipeline/chain.js";
 import { KeyboardProcessorProps, PipelineProcessor } from "../types.js";
 import EngineState from "./EngineState.js";
 
-export default class PipelineManager {
+export default class PipelineManager<TComponent> {
 	constructor(
-		private state: EngineState,
-		custom?: KeyboardProcessorProps[],
+		private state: EngineState<TComponent>,
+		custom?: KeyboardProcessorProps<TComponent>[],
 	) {
 		this.state._processors = this._buildDefaultProcessors(custom);
 	}
 
 	_buildDefaultProcessors(
-		custom?: KeyboardProcessorProps[],
-	): PipelineProcessor[] {
-		const defaults: PipelineProcessor[] = [
+		custom?: KeyboardProcessorProps<TComponent>[],
+	): PipelineProcessor<TComponent>[] {
+		const defaults: PipelineProcessor<TComponent>[] = [
 			createModalProcessor(),
 			createCompositionProcessor({ affectOverlay: true }),
 			createGlobalSequenceProcessor({ affectOverlay: true }),
@@ -37,7 +37,7 @@ export default class PipelineManager {
 	}
 
 	addProcessor(
-		processor: PipelineProcessor,
+		processor: PipelineProcessor<TComponent>,
 		options?: { before?: string } | { after?: string } | { index?: number },
 	): void {
 		if (this.state._processors.some((p) => p.id === processor.id)) {
@@ -88,7 +88,7 @@ export default class PipelineManager {
 		return true;
 	}
 
-	getProcessors(): readonly PipelineProcessor[] {
+	getProcessors(): readonly PipelineProcessor<TComponent>[] {
 		return this.state._processors;
 	}
 

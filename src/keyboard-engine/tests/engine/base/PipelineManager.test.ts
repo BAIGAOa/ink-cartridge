@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { createEngine, createEngineWithProcessors } from '../../_helpers/factories.js';
 import type { PipelineProcessor } from '../../../src/types.js';
 
-function makeProcessor(id: string): PipelineProcessor {
+function makeProcessor(id: string): PipelineProcessor<unknown> {
   return { id, process: () => false };
 }
 

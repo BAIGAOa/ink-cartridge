@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { ComponentType, createContext } from "react";
 import type {
   KeyHandler,
   BoundKeyboardOptions,
@@ -22,6 +22,8 @@ import type {
   ValueSchema,
   Flags,
   CompositionEvent,
+  MappingKeyEvent,
+  MappingKeyEntry,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 import { defaultTargetsSymbol } from "../keyboard-engine/dist/types.js";
@@ -167,7 +169,7 @@ export interface KeyboardContextValue {
   removeCondition: (target: string) => boolean;
 
   addProcessor: (
-    processor: PipelineProcessor,
+    processor: PipelineProcessor<ComponentType<any>>,
     options?:
       | { before?: BuiltinProcessorId | (string & {}) }
       | { after?: BuiltinProcessorId | (string & {}) }
@@ -176,11 +178,11 @@ export interface KeyboardContextValue {
 
   removeProcessor: (processorId: string) => boolean;
 
-  getProcessors: () => readonly PipelineProcessor[];
+  getProcessors: () => readonly PipelineProcessor<ComponentType<any>>[];
 
   resetProcessors: () => void;
 
-  registryCompositionKey: (entry: CompositioKey) => void;
+  registryCompositionKey: (entry: CompositioKey<ComponentType<any>>) => void;
   removeCompositionKey: (key: string) => boolean;
   clearAllCompositionKeys: () => void;
   hasPendingComposition: () => boolean;
@@ -189,7 +191,7 @@ export interface KeyboardContextValue {
   updateCompositionKey: (
     key: string,
     flags: Flags,
-    updates: Partial<Omit<CompositioKey, "key" | "flags">>,
+    updates: Partial<Omit<CompositioKey<ComponentType<any>>, "key" | "flags">>,
   ) => boolean;
 
   setValueSchema: (schema: ValueSchema) => void;
@@ -202,6 +204,17 @@ export interface KeyboardContextValue {
   clearCompositionBuffers: () => void;
   subscribeComposition: (fn: () => void) => () => void;
   getLastCompositionEvent: () => CompositionEvent | null;
+
+  addMapping: (
+    base: string[],
+    target: string[],
+    options?: Omit<MappingKeyEntry<ComponentType<any>>, "keys" | "target">,
+  ) => boolean;
+  removeMappingKey: (keys: string[]) => boolean;
+  removeMapping: (firstKey: string) => boolean;
+  subscribeMapping: (fn: () => void) => () => void;
+  getLastMappingEvent: () => MappingKeyEvent | null;
+
   activateFocusGroup: (focusId: string, group?: string) => boolean;
   kickFocusGroup: (group?: string) => boolean;
 
