@@ -9,13 +9,13 @@ function mkState() {
   });
 }
 
-function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
+function mk(overrides: Partial<CompositioKey<unknown>> = {}): CompositioKey<unknown> {
   return {
     key: 'x',
     flags: [],
     alternativeFlag: 'action',
     needs: [],
-    execute: (ctx) => ({ ...ctx, lastFlag: (overrides.alternativeFlag ?? 'action'), steps: [...ctx.steps, overrides.key ?? 'x'] }),
+    execute: (ctx: CompositionContext) => ({ ...ctx, lastFlag: (overrides.alternativeFlag ?? 'action'), steps: [...ctx.steps, overrides.key ?? 'x'] }),
     ...overrides,
   };
 }

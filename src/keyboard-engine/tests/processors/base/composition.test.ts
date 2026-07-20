@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
 import { createContext } from '../../_helpers/factories.js';
-import CompositionEngine, { CompositioKey } from '../../../src/CompositionEngine.js';
+import CompositionEngine, { CompositioKey, CompositionContext } from '../../../src/CompositionEngine.js';
 import EngineState from '../../../src/engine/EngineState.js';
 import { createCompositionProcessor } from '../../../src/processors/globalComposition.js';
 
@@ -12,14 +12,14 @@ function mkState() {
   return state;
 }
 
-function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
+function mk(overrides: Partial<CompositioKey<unknown>> = {}): CompositioKey<unknown> {
   return {
     key: 'x',
     flags: [],
     alternativeFlag: 'action',
     needs: [],
     optional: true,
-    execute: (c) => ({ ...c, lastFlag: overrides.alternativeFlag ?? 'action', steps: [...c.steps, overrides.key ?? 'x'] }),
+    execute: (c: CompositionContext) => ({ ...c, lastFlag: overrides.alternativeFlag ?? 'action', steps: [...c.steps, overrides.key ?? 'x'] }),
     ...overrides,
   };
 }

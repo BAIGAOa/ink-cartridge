@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import CompositionEngine, { MappingKeyEvent, CompositioKey } from '../../../src/CompositionEngine.js';
+import CompositionEngine, { MappingKeyEvent, CompositioKey, CompositionContext } from '../../../src/CompositionEngine.js';
 import EngineState from '../../../src/engine/EngineState.js';
 import { createContext } from '../../_helpers/factories.js';
 
@@ -9,7 +9,7 @@ function mkState() {
   });
 }
 
-function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
+function mk(overrides: Partial<CompositioKey<unknown>> = {}): CompositioKey<unknown> {
   const flag = overrides.alternativeFlag ?? 'action';
   const keyName = overrides.key ?? 'x';
   return {
@@ -17,7 +17,7 @@ function mk(overrides: Partial<CompositioKey> = {}): CompositioKey {
     flags: [],
     alternativeFlag: flag,
     needs: [],
-    execute: (ctx) => ({
+    execute: (ctx: CompositionContext) => ({
       ...ctx,
       lastFlag: flag,
       steps: [...ctx.steps, keyName],
@@ -30,7 +30,7 @@ function ctx(eventNames: string[], topComponent: unknown = 'screen') {
   return createContext({ eventNames, topComponent });
 }
 
-function mkEngine(keys: CompositioKey[] = []) {
+function mkEngine(keys: CompositioKey<unknown>[] = []) {
   const state = mkState();
   const engine = new CompositionEngine(state);
   for (const k of keys) engine.registryCompositionKey(k);

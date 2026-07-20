@@ -2,14 +2,14 @@ import { describe, test, expect } from 'vitest';
 import { _insertRelative, BuiltinProcessorId } from '../../../src/pipeline/chain.js';
 import type { PipelineProcessor, KeyboardProcessorProps } from '../../../src/types.js';
 
-function makeProcessor(id: string): PipelineProcessor {
+function makeProcessor(id: string): PipelineProcessor<unknown> {
   return { id, process: () => false };
 }
 
 function props(
-  processor: PipelineProcessor,
-  overrides?: Partial<KeyboardProcessorProps>,
-): KeyboardProcessorProps {
+  processor: PipelineProcessor<unknown>,
+  overrides?: Partial<KeyboardProcessorProps<unknown>>,
+): KeyboardProcessorProps<unknown> {
   return { processor, ...overrides };
 }
 
