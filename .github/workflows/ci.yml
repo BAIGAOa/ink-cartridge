@@ -1,15 +1,10 @@
 name: CI
 
-
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
   pull_request:
     branches: [main]
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -29,73 +24,6 @@ jobs:
       - run: npm run lint
       - run: npx tsc --project tests/tsconfig.json --noEmit
       - run: npx tsc --project src/keyboard-engine/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/editor/tests/tsconfig.json --noEmit
 
       - run: npx vitest run --coverage
-
-  release-ink-cartridge:
-    needs: [test, release-keyboard-engine]
-    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-
-      - name: Check if version exists on npm
-        id: check
-        run: |
-          PKG_NAME=$(node -p "require('./package.json').name")
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Version ${PKG_VERSION} already published, skipping"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Version ${PKG_VERSION} not published, continuing"
-          fi
-
-      - name: Publish to npm
-        if: steps.check.outputs.exists != 'true'
-        run: npm publish --access public
-
-  release-keyboard-engine:
-    needs: test
-    if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-          cache: npm
-      - run: npm ci
-      - run: npm run build -w @cartridge-engine/keyboard-engine
-
-      - name: Check if version exists on npm
-        id: check
-        run: |
-          PKG_NAME="@cartridge-engine/keyboard-engine"
-          PKG_VERSION=$(node -p "require('./src/keyboard-engine/package.json').version")
-          if npm view "${PKG_NAME}@${PKG_VERSION}" version 2>/dev/null; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "${PKG_NAME}@${PKG_VERSION} already published, skipping"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "${PKG_NAME}@${PKG_VERSION} not published, continuing"
-          fi
-
-      - name: Publish to npm
-        if: steps.check.outputs.exists != 'true'
-        run: npm publish -w @cartridge-engine/keyboard-engine --access public
-
-

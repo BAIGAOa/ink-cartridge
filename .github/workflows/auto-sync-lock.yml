@@ -6,6 +6,7 @@ on:
     paths:
       - 'package.json'
       - 'src/keyboard-engine/package.json'
+      - 'packages/editor/package.json'
   workflow_dispatch:
 
 jobs:
