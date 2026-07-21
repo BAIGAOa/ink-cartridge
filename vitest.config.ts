@@ -31,6 +31,7 @@ export default defineConfig({
         },
       },
       './src/keyboard-engine',
+      './packages/editor',
 
     ],
   },

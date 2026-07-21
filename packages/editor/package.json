@@ -1,0 +1,67 @@
+{
+	"name": "blots-editor",
+	"version": "0.0.1",
+	"description": "A lightweight Markdown editor for the terminal, built on ink-cartridge",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"bin": {
+		"blots-editor": "./dist/index.js"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
+	},
+	"scripts": {
+		"build": "tsc",
+		"clean": "rm -rf dist",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"keywords": [
+		"ink",
+		"keyboard",
+		"react",
+		"tui",
+		"cli",
+		"terminal",
+		"editor",
+		"markdown"
+	],
+	"author": "aigao",
+	"license": "MIT",
+	"engines": {
+		"node": ">=22"
+	},
+	"peerDependencies": {
+		"ink": ">=5",
+		"react": ">=18"
+	},
+	"dependencies": {
+		"ink-cartridge": "*"
+	},
+	"devDependencies": {
+		"@types/node": "^20.19.39",
+		"@types/react": "^19.2.14",
+		"ink": "^7.1.1",
+		"ink-testing-library": "^4.0.0",
+		"react": "^19.2.4",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.5"
+	},
+	"bugs": {
+		"url": "https://github.com/BAIGAOa/ink-cartridge/issues"
+	},
+	"homepage": "https://github.com/BAIGAOa/ink-cartridge#readme"
+}
