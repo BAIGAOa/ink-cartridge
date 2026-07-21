@@ -25,6 +25,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"start": "tsx src/index.tsx",
 		"clean": "rm -rf dist",
 		"test": "vitest run",
 		"test:watch": "vitest"
