@@ -85,59 +85,77 @@ describe('normalizeKeyNames', () => {
   });
 
   describe('modifier keys with special keys', () => {
-    it('adds ctrl prefix for special key', () => {
+    it('bare key name is excluded when ctrl is held', () => {
       const result = normalizeKeyNames('', makeKey({ return: true, ctrl: true }));
-      expect(result).toContain('return');
+      expect(result).not.toContain('return');
       expect(result).toContain('ctrl+return');
+      expect(result).toEqual(['ctrl+return']);
     });
 
-    it('adds shift prefix for special key', () => {
+    it('bare key name is excluded when shift is held', () => {
       const result = normalizeKeyNames('', makeKey({ return: true, shift: true }));
-      expect(result).toContain('return');
+      expect(result).not.toContain('return');
       expect(result).toContain('shift+return');
+      expect(result).toEqual(['shift+return']);
     });
 
-    it('adds meta prefix for special key', () => {
+    it('bare key name is excluded when meta is held', () => {
       const result = normalizeKeyNames('', makeKey({ return: true, meta: true }));
-      expect(result).toContain('return');
+      expect(result).not.toContain('return');
       expect(result).toContain('meta+return');
+      expect(result).toEqual(['meta+return']);
     });
 
-    it('adds ctrl+shift prefix for special key', () => {
+    it('bare key name is included when no modifier is held', () => {
+      const result = normalizeKeyNames('', makeKey({ return: true }));
+      expect(result).toEqual(['return']);
+    });
+
+    it('includes all modifier variants but not bare name for ctrl+shift', () => {
       const result = normalizeKeyNames('', makeKey({ return: true, ctrl: true, shift: true }));
-      expect(result).toContain('return');
+      expect(result).not.toContain('return');
       expect(result).toContain('ctrl+return');
       expect(result).toContain('shift+return');
       expect(result).toContain('ctrl+shift+return');
     });
+
+    it('shift+tab does not include bare tab', () => {
+      const result = normalizeKeyNames('', makeKey({ tab: true, shift: true }));
+      expect(result).not.toContain('tab');
+      expect(result).toContain('shift+tab');
+      expect(result).toEqual(['shift+tab']);
+    });
   });
 
-  describe('character keys', () => {
-    it('returns raw character', () => {
+  describe('character keys with modifiers', () => {
+    it('returns raw character when no modifier is held', () => {
       expect(normalizeKeyNames('a', makeKey())).toEqual(['a']);
     });
 
-    it('adds ctrl prefix for character', () => {
+    it('bare character is excluded when ctrl is held', () => {
       const result = normalizeKeyNames('s', makeKey({ ctrl: true }));
-      expect(result).toContain('s');
+      expect(result).not.toContain('s');
       expect(result).toContain('ctrl+s');
+      expect(result).toEqual(['ctrl+s']);
     });
 
-    it('adds shift prefix for character', () => {
+    it('bare character is excluded when shift is held', () => {
       const result = normalizeKeyNames('A', makeKey({ shift: true }));
-      expect(result).toContain('A');
+      expect(result).not.toContain('A');
       expect(result).toContain('shift+A');
+      expect(result).toEqual(['shift+A']);
     });
 
-    it('adds meta prefix for character', () => {
+    it('bare character is excluded when meta is held', () => {
       const result = normalizeKeyNames('x', makeKey({ meta: true }));
-      expect(result).toContain('x');
+      expect(result).not.toContain('x');
       expect(result).toContain('meta+x');
+      expect(result).toEqual(['meta+x']);
     });
 
-    it('adds ctrl+shift prefix for character', () => {
+    it('includes all modifier variants but not bare character for ctrl+shift', () => {
       const result = normalizeKeyNames('S', makeKey({ ctrl: true, shift: true }));
-      expect(result).toContain('S');
+      expect(result).not.toContain('S');
       expect(result).toContain('ctrl+S');
       expect(result).toContain('shift+S');
       expect(result).toContain('ctrl+shift+S');
