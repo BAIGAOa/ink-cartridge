@@ -146,44 +146,68 @@ export function Editor({
       }),
     );
 
-    unBinds.push(boundKeyboard(["backspace"], () => {
-        let wrap: boolean = false
-        let lastLineLenth: number | null = null
-        setValue(prev => {
-            const newValue = [...prev]
-            if (cursor.column === 0 && cursor.line !== 0) {
-                wrap = true
-                lastLineLenth = newValue[cursor.line - 1].length
-                const newStr = insertStr(newValue[cursor.line - 1], newValue[cursor.line - 1].length, newValue[cursor.line])
-                newValue[cursor.line - 1] = newStr
-                newValue.splice(cursor.line, 1)
-            } else {
-                const newStr = cursor.column === 0 ? newValue[cursor.line] : deleteCharAt(newValue[cursor.line], cursor.column - 1)
-                newValue[cursor.line] = newStr
-            }
-            return newValue
-        })
-        setCursor(prev => {
-            return {
-                line: wrap ? prev.line - 1 : prev.line,
-                column: lastLineLenth ? lastLineLenth : Math.max(prev.column - 1, 0)
-            }
-        })
-    }))
+    unBinds.push(
+      boundKeyboard(["backspace"], () => {
+        let wrap: boolean = false;
+        let lastLineLenth: number | null = null;
+        setValue((prev) => {
+          const newValue = [...prev];
+          if (cursor.column === 0 && cursor.line !== 0) {
+            wrap = true;
+            lastLineLenth = newValue[cursor.line - 1].length;
+            const newStr = insertStr(
+              newValue[cursor.line - 1],
+              newValue[cursor.line - 1].length,
+              newValue[cursor.line],
+            );
+            newValue[cursor.line - 1] = newStr;
+            newValue.splice(cursor.line, 1);
+          } else {
+            const newStr =
+              cursor.column === 0
+                ? newValue[cursor.line]
+                : deleteCharAt(newValue[cursor.line], cursor.column - 1);
+            newValue[cursor.line] = newStr;
+          }
+          return newValue;
+        });
+        setCursor((prev) => {
+          return {
+            line: wrap ? prev.line - 1 : prev.line,
+            column: lastLineLenth
+              ? lastLineLenth
+              : Math.max(prev.column - 1, 0),
+          };
+        });
+      }),
+    );
 
-    unBinds.push(boundKeyboard(["delete"], () => {
-        setValue(prev => {
-            const newValue = [...prev]
-            newValue[cursor.line] = ""
-            return newValue
-        })
-        setCursor(prev => {
-            return {
-                line: prev.line,
-                column: 0
-            }
-        })
-    }))
+    unBinds.push(
+      boundKeyboard(["delete"], () => {
+        setValue((prev) => {
+          const newValue = [...prev];
+          newValue[cursor.line] = "";
+          return newValue;
+        });
+        setCursor((prev) => {
+          return {
+            line: prev.line,
+            column: 0,
+          };
+        });
+      }),
+    );
+
+    unBinds.push(
+      boundKeyboard(["up"], () => {
+        setCursor((prev) => {
+          return {
+            line: prev.line - 1,
+            column: Math.min(value[cursor.line - 1].length, prev.column),
+          };
+        });
+      }),
+    );
 
     return () => {
       removeWildcardPrecedence();
@@ -220,8 +244,6 @@ export function Editor({
     () => cursor.line + cursorHeightOffset,
     [cursor.line, cursorHeightOffset],
   );
-
-  console.debug({ x: x, y });
 
   // Testing has revealed a flaw in the cursor operations provided by ink.
   // It could also be due to a specific device.
