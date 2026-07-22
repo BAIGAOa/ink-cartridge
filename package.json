@@ -79,6 +79,7 @@
     },
     "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme",
     "workspaces": [
+        ".",
         "src/keyboard-engine",
         "packages/*"
     ],
