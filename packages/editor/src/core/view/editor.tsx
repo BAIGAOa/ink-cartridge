@@ -1,0 +1,205 @@
+import { Box, Text, useCursor } from "ink";
+import { useKeyboard } from "ink-cartridge";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import stringWidth from "string-width";
+
+export type EditorContext = {
+  /**
+   * Used to externally get all current text, etc.
+   */
+  onChance: () => void;
+  /**
+   * Original text, including some special symbols
+   */
+  value: string;
+  /**
+   * What is the right margin of the left line number,
+   * which also affects the cursor position
+   */
+  lineNumberRightSpacing?: number;
+
+  /**
+   * Cursor offset. The default value is 1.
+   * It is also recommended to be 1. Otherwise,
+   * it will cause the cursor visual position to exceed the limit.
+   */
+  cursorOffset?: number;
+  /**
+   * Cursor height offset, default is 2
+   */
+  cursorHeightOffset?: number;
+};
+
+export type CursorCoordinates = {
+  /**
+   * How many rows are currently in
+   */
+  line: number;
+  /**
+   * How many columns are currently in
+   */
+  column: number;
+};
+
+function splitTextByLines(text: string) {
+  if (!text) return [];
+  return text.split(/\r?\n/);
+}
+
+function insertStr(original: string, index: number, insertText: string) {
+  return original.slice(0, index) + insertText + original.slice(index);
+}
+
+function splitString(string: string, index: number): [string, string] {
+  return [string.slice(0, index), string.slice(index)];
+}
+
+export function Editor({
+  value: line,
+  lineNumberRightSpacing = 1,
+  cursorOffset = 1,
+  cursorHeightOffset = 2,
+}: EditorContext) {
+  const [value, setValue] = useState<string[]>(() => {
+    const lines = splitTextByLines(line);
+    return lines;
+  });
+  const [cursor, setCursor] = useState<CursorCoordinates>({
+    line: 0,
+    column: 0,
+  });
+  const checkedLineNumberRightSpacing = useMemo(() => {
+    return Math.max(0, lineNumberRightSpacing);
+  }, [lineNumberRightSpacing]);
+
+  const currentLineNumberLength = useMemo(() => {
+    return stringWidth(String(cursor.line));
+  }, [stringWidth, cursor.line]);
+
+  const { setCursorPosition } = useCursor();
+  const boxRef = useRef(null);
+
+  const { boundKeyboard, enableWildcardPriority } = useKeyboard();
+
+  useEffect(() => {
+    const removeWildcardPrecedence = enableWildcardPriority();
+
+    const unBinds: (() => void)[] = [];
+
+    unBinds.push(
+      boundKeyboard(["*"], (input, _key) => {
+        const cur = cursor;
+        setValue((prev) => {
+          const newValue = [...prev];
+          const newStr = insertStr(newValue[cur.line], cur.column, input);
+          newValue[cur.line] = newStr;
+          return newValue;
+        });
+        setCursor((prev) => {
+          return {
+            line: prev.line,
+            column: prev.column + input.length,
+          };
+        });
+      }),
+    );
+
+    unBinds.push(
+      boundKeyboard(["return"], () => {
+        const cur = cursor;
+        setValue((prev) => {
+          const newLine = [...prev];
+          const newStr = splitString(newLine[cur.line], cur.column);
+          newLine.splice(cur.line, 1);
+          newLine.splice(cur.line, 0, newStr[0]);
+          newLine.splice(cur.line + 1, 0, newStr[1]);
+          return newLine;
+        });
+        setCursor((prev) => {
+          return {
+            line: prev.line + 1,
+            column: 0,
+          };
+        });
+      }),
+    );
+
+    unBinds.push(
+      boundKeyboard(["right"], () => {
+        setCursor((prev) => ({
+          line: prev.line,
+          column: Math.min(prev.column + 1, value[cursor.line].length),
+        }));
+      }),
+    );
+
+    unBinds.push(
+      boundKeyboard(["left"], () => {
+        setCursor((prev) => ({
+          line: prev.line,
+          column: Math.max(prev.column - 1, 0),
+        }));
+      }),
+    );
+
+    return () => {
+      removeWildcardPrecedence();
+      unBinds.forEach((each) => each());
+    };
+  }, [boundKeyboard, cursor.column, cursor.line, enableWildcardPriority]);
+
+  const currentLineText = useMemo(
+    () => value[cursor.line] ?? "",
+    [value, cursor.line],
+  );
+  const clampedColumn = useMemo(
+    () => Math.max(0, Math.min(currentLineText.length, cursor.column)),
+    [cursor.column, currentLineText],
+  );
+  const visualColumn = useMemo(
+    () => stringWidth(currentLineText.slice(0, clampedColumn)),
+    [stringWidth, currentLineText, clampedColumn],
+  );
+  const x = useMemo(
+    () =>
+      visualColumn +
+      currentLineNumberLength +
+      checkedLineNumberRightSpacing +
+      cursorOffset,
+    [
+      visualColumn,
+      currentLineNumberLength,
+      checkedLineNumberRightSpacing,
+      cursorOffset,
+    ],
+  );
+  const y = useMemo(
+    () => cursor.line + cursorHeightOffset,
+    [cursor.line, cursorHeightOffset],
+  );
+
+  console.debug({ x: x, y });
+
+  setCursorPosition({ x: x, y: y });
+
+  return (
+    <Box
+      ref={boxRef}
+      height="100%"
+      width="100%"
+      backgroundColor="#1e1e1e"
+      flexDirection="column"
+    >
+      {value.map((each, number) => {
+        return (
+          <Box key={number} flexDirection="row">
+            <Box marginLeft={1} marginRight={checkedLineNumberRightSpacing}>
+              <Text bold>{number}</Text>
+            </Box>
+            <Text>{each}</Text>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
