@@ -2,22 +2,29 @@
  * Convert Ink's `(input, key)` event into a list of possible key-name
  * strings for matching.
  *
- * For special keys (return, escape, arrows, etc.) it produces the base
- * name plus any modifier-prefixed variants. For character keys it
- * produces the raw character and modifier combinations.
+ * When a modifier (ctrl, shift, meta) is held, the bare key name is
+ * excluded so that modified keys (e.g. "shift+tab") do not accidentally
+ * trigger bindings registered for the bare key alone (e.g. "tab").
  *
  * Examples:
- *   press('s', { ctrl: true })               → ["s", "ctrl+s"]
+ *   press('s', { ctrl: true })               → ["ctrl+s"]
  *   press('',  { escape: true })             → ["escape"]
- *   press('',  { return: true, shift: true }) → ["return", "shift+return"]
+ *   press('',  { return: true, shift: true }) → ["shift+return"]
+ *   press('',  { tab: true })                → ["tab"]
+ *   press('',  { tab: true, shift: true })   → ["shift+tab"]
  *
  * @param input - Raw character string from Ink's useInput (empty for special keys).
  * @param key   - Full Key descriptor from Ink.
- * @returns An ordered array of key-name strings; first match wins in the pipeline.
+ * @returns An ordered array of key-name strings.
  */
 export function normalizeKeyNames(input: string, key: unknown): string[] {
   const k = key as any;
   const names: string[] = [];
+
+  const hasCtrl = k.ctrl as boolean;
+  const hasShift = k.shift as boolean;
+  const hasMeta = k.meta as boolean;
+  const hasModifier = hasCtrl || hasShift || hasMeta;
 
   const specialMap: Array<[string, string]> = [
     ['return', 'return'],
@@ -36,22 +43,47 @@ export function normalizeKeyNames(input: string, key: unknown): string[] {
   ];
 
   for (const [kProp, kName] of specialMap) {
-    if (k[kProp]) {
-      names.push(kName);
-      if (k.ctrl) names.push(`ctrl+${kName}`);
-      if (k.shift) names.push(`shift+${kName}`);
-      if (k.meta) names.push(`meta+${kName}`);
-      if (k.ctrl && k.shift) names.push(`ctrl+shift+${kName}`);
-      return names;
+    if (!k[kProp]) {
+      continue;
     }
+
+    if (!hasModifier) {
+      names.push(kName);
+    }
+
+    if (hasCtrl) {
+      names.push(`ctrl+${kName}`);
+    }
+    if (hasShift) {
+      names.push(`shift+${kName}`);
+    }
+    if (hasMeta) {
+      names.push(`meta+${kName}`);
+    }
+    if (hasCtrl && hasShift) {
+      names.push(`ctrl+shift+${kName}`);
+    }
+
+    return names;
   }
 
   if (input) {
-    names.push(input);
-    if (k.ctrl) names.push(`ctrl+${input}`);
-    if (k.shift) names.push(`shift+${input}`);
-    if (k.meta) names.push(`meta+${input}`);
-    if (k.ctrl && k.shift) names.push(`ctrl+shift+${input}`);
+    if (!hasModifier) {
+      names.push(input);
+    }
+
+    if (hasCtrl) {
+      names.push(`ctrl+${input}`);
+    }
+    if (hasShift) {
+      names.push(`shift+${input}`);
+    }
+    if (hasMeta) {
+      names.push(`meta+${input}`);
+    }
+    if (hasCtrl && hasShift) {
+      names.push(`ctrl+shift+${input}`);
+    }
   }
 
   return names;
