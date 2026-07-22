@@ -1,5 +1,11 @@
 # ink-cartridge
 
+## 4.4.2
+
+### Patch Changes
+
+- 03d4061: fix: Fixing incorrect documentation issues
+
 ## 4.4.1
 
 ### Patch Changes
