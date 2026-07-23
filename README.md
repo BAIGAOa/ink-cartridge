@@ -41,103 +41,145 @@ TWO pillars:
 ## Quick Start
 
 ```tsx
-import { Box, render, Text } from "ink";
+import React, { useContext, useEffect, useState } from "react";
+import { Box, Text, render } from "ink";
 import {
-  CurrentScreen,
-  KeyboardProvider,
-  registerComponent,
-  ScenarioManagementProvider,
-  useKeyboard,
-  useScreenSystem,
+	CurrentScreen,
+	KeyboardProvider,
+	ModalContext,
+	registerComponent,
+	ScenarioManagementProvider,
+	useKeyboard,
+	useScreenSystem,
 } from "ink-cartridge";
-import React, { useEffect, useState } from "react";
 
-function Main() {
-  // Get key APIs through hooks
-  const { skip } = useScreenSystem();
-  const { boundKeyboard } = useKeyboard();
+// ── Home ──
+function Home() {
+	const { skip, openModal } = useScreenSystem();
+	const { boundKeyboard } = useKeyboard();
 
-  useEffect(() => {
-    return boundKeyboard(["s"], () => skip(Counter, {}));
-  }, [boundKeyboard]);
+	useEffect(() => {
+		const toProgress = boundKeyboard(["p"], () => skip(ProgressBar, {}));
+		const modals = boundKeyboard(["m"], () => {
+			openModal("low", Modal, {top: 0, left: 80}, { zIndex: 1, renderNow: true });
+			openModal("high", Modal, {top: 4, left: 70}, { zIndex: 2, renderNow: true });
+            openModal("high-high", Modal, {top: 8, left: 60}, { zIndex: 3, renderNow: true });
+            openModal("high-high-high", Modal, {top: 10, left: 55}, { zIndex: 4, renderNow: true });
+            openModal("high-high-high-high", Modal, {top: 12, left: 50}, { zIndex: 5, renderNow: true });
+            openModal("high-high-high-high-high", Modal, {top: 13, left: 45}, { zIndex: 6, renderNow: true });
+            openModal("high-high-high-high-high-high", Modal, {top: 12, left: 40}, { zIndex: 7, renderNow: true });
+            openModal("high-high-high-high-high-high-high", Modal, {top: 11, left: 35}, { zIndex: 8, renderNow: true });
+		});
+		return () => {
+			toProgress();
+			modals();
+		};
+	}, [boundKeyboard]);
 
-  return (
-    <Box
-      height="100%"
-      width="100%"
-      justifyContent="center"
-      alignContent="center"
-    >
-      <Text bold> Press S to Counter </Text>
-    </Box>
-  );
+	return (
+		<Box flexDirection="column">
+			<Text bold>🏠 Home</Text>
+			<Text>Press P to open Progress Bar</Text>
+			<Text>Press M to open stacked modals</Text>
+		</Box>
+	);
 }
+registerComponent(Home, {});
 
-// Registering a Component in the Registry
-registerComponent(Main, {});
+// ── Progress Bar ──
+function ProgressBar() {
+	const [value, setValue] = useState(50);
+	const { back } = useScreenSystem();
+	const { boundKeyboard } = useKeyboard();
 
-function Counter() {
-  const [count, setCount] = useState(0);
-  const { boundKeyboard } = useKeyboard();
-  const { back } = useScreenSystem();
+	useEffect(() => {
+		const left = boundKeyboard(["left"], () => setValue((v) => Math.max(0, v - 5)));
+		const right = boundKeyboard(["right"], () => setValue((v) => Math.min(100, v + 5)));
+		const esc = boundKeyboard(["escape"], () => back());
+		return () => {
+			left();
+			right();
+			esc();
+		};
+	}, [boundKeyboard]);
 
-  useEffect(() => {
-    const u1 = boundKeyboard(["up"], () => {
-      setCount((prev) => prev + 1);
-    });
-    const u2 = boundKeyboard(["down"], () => {
-      setCount((prev) => prev - 1);
-    });
+	// Smooth color gradient: red(0) → yellow(50) → green(100)
+	const r = value <= 50 ? 255 : Math.round(255 - (value - 50) * 5.1);
+	const g = value <= 50 ? Math.round(value * 5.1) : 255;
+	const color = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}00`;
 
-    // Used to go back to Main
-    const uBack = boundKeyboard(["escape"], () => back());
+	const filled = Math.round(value * 0.4);
+	const bar = "█".repeat(filled) + "░".repeat(40 - filled);
 
-    // Return to the unbind function to ensure that there is no confusion.
-    return () => {
-      u1();
-      u2();
-      uBack();
-    };
-  }, [boundKeyboard]);
-
-  return (
-    <Box
-      height="100%"
-      width="100%"
-      justifyContent="center"
-      alignContent="center"
-    >
-      <Text bold color="yellow">
-        Count: {count}
-      </Text>
-    </Box>
-  );
+	return (
+		<Box height="100%" width="100%" justifyContent="center" alignItems="center" flexDirection="column">
+			<Text dimColor>← → adjust  ·  Esc back</Text>
+			<Text color={color}>{bar} {value}%</Text>
+		</Box>
+	);
 }
+registerComponent(ProgressBar, {}, { parent: Home });
 
-// Register the counter component as a child of the main interface
-registerComponent(
-  Counter,
-  {},
-  {
-    parent: Main,
-  },
-);
 
-// Rendering main interface
-// Note: The screen system provider must be wrapped around the Keyboard Provider
-// Because the keyboard system depends on the screen system for data
-// Set the Main interface as the default interface
-// Full Screen is an optional full screen model
-// The keyboard system can turn on autoTab to automatically host the focus rotation function
-// The Current Screen component must be used, otherwise functions such as jumping, including mode boxes, will be disabled
+
+function Modal({ top, left }: { top: number; left: number }) {
+	const { closeModal } = useScreenSystem();
+	const { boundKeyboard } = useKeyboard();
+    const modal = useContext(ModalContext)
+
+	useEffect(() => {
+		return boundKeyboard(["escape"], () => {
+			if (modal) {
+                closeModal(modal.id)
+            }
+		});
+	}, [boundKeyboard]);
+
+	return (
+		<Box
+			position="absolute"
+			top={top}
+			left={left}
+			borderStyle="round"
+			borderColor="yellow"
+			padding={1}
+			backgroundColor="black"
+		>
+			<Text bold color="yellow">
+				{"┌──────────────────────────────────────────┐\n" +
+				 "│ ⚠  cartridge.exe — Application Error  X  │\n" +
+				 "├──────────────────────────────────────────┤\n" +
+				 "│                                          │\n" +
+				 "│  Unhandled exception has occurred in     │\n" +
+				 "│  your application.                       │\n" +
+				 "│                                          │\n" +
+				 "│  NullReferenceException:                 │\n" +
+				 "│  Object reference not set to an          │\n" +
+				 "│  instance of an object.                  │\n" +
+				 "│                                          │\n" +
+				 "│                        [  OK  ]  [Cancel]│\n" +
+				 "└──────────────────────────────────────────┘"}
+			</Text>
+		</Box>
+	);
+}
+registerComponent(Modal, {top: 0, left:0});
+
 render(
-  <ScenarioManagementProvider defaultScreen={Main} fullScreen>
-    <KeyboardProvider autoTab>
-      <CurrentScreen />
-    </KeyboardProvider>
-  </ScenarioManagementProvider>,
+	<ScenarioManagementProvider defaultScreen={Home} fullScreen>
+		<KeyboardProvider>
+			<CurrentScreen />
+		</KeyboardProvider>
+	</ScenarioManagementProvider>
 );
+
 ```
+
+<div align="center">
+<img src="static/quickstart-keyboard.gif" width="2040" alt="Progress bar — ← → adjusts, color transitions red→yellow→green" />
+
+<img src="static/quickstart-modal.gif" width="2040" alt="Modal stacking — zIndex sorting, absolute positioning" />
+</div>
 
 ## Installation
 
