@@ -1,4 +1,10 @@
-import React, { ComponentType, ReactNode, useEffect, useMemo, useRef } from "react";
+import React, {
+  ComponentType,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useInput } from "ink";
 import { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 import type {
@@ -12,11 +18,40 @@ import { normalizeKeyNames } from "../keyNormalizer.js";
 
 export interface KeyboardProviderProps {
   children: ReactNode;
-  processors?: KeyboardProcessorProps<ComponentType<any>>[];
-  modes?: string[];
-  defaultMode?: string | null;
+
   /**
-   * Optional runtime type schema for composition chain value validation.
+   * Here you can pre-insert the custom processors you want,
+   * and they will be inserted into the pipeline based on their index and ID.
+   * @example
+   * ```tsx
+   * <KeyboardProvider
+   *   processors={[
+   *     { id: "uppercase", index: 0, processor: MyUppercaseProcessor },
+   *     { id: "logger", index: 1, processor: MyLoggerProcessor },
+   *   ]}
+   * >
+   * ```
+   *
+   */
+  processors?: KeyboardProcessorProps<ComponentType<any>>[];
+
+  /**
+   * Please enter the mode flag you wish to register directly.
+   *
+   * @example
+   * ```tsx
+   * <KeyboardProvider modes={["insert", "editor"]}>
+   * ```
+   */
+  modes?: string[];
+
+  /**
+   * The default mode must be pre-registered in the modes list.
+   */
+  defaultMode?: string | null;
+
+  /**
+   * Optional runtime type schema for composition chain value validatio
    *
    * @example
    * ```tsx
@@ -36,6 +71,12 @@ export interface KeyboardProviderProps {
    * `focusNext` / `focusPrev` manually.
    */
   autoTab?: boolean;
+
+  /**
+   * After enabling this option,
+   * the system will automatically listen for mouse events.
+   */
+  mouse?: boolean;
 }
 
 export function KeyboardProvider({
