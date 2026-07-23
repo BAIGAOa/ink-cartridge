@@ -1,5 +1,11 @@
 # blots-editor
 
+## 0.0.6
+
+### Patch Changes
+
+- ba85864: fix: Fixed issues with cursor misalignment and rendering misalignment.
+
 ## 0.0.5
 
 ### Patch Changes
