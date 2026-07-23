@@ -9,6 +9,7 @@ function createProcessor(id: string): PipelineProcessor<unknown> {
 function createEngine() {
   return new KeyboardEngine({
     normalizeKeyNames: (input: string, _key: unknown) => input ? [input] : [],
+    isNormalChar: () => false,
   });
 }
 

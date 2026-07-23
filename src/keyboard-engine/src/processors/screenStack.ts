@@ -29,6 +29,7 @@ export function createScreenStackProcessor<TComponent>(): PipelineProcessor<TCom
           false, ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
+          ctx.isNormalChar,
           ctx.notifyPendingSyncs,
           ctx.autoTab
         )) break;

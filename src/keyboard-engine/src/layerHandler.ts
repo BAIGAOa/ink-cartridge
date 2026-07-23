@@ -63,6 +63,7 @@ export function tryMatchBindings(
 	input: string,
 	key: unknown,
 	conditions: Map<string, boolean>,
+	isNormalChar: (key: unknown) => boolean,
 	skipBinding?: (binding: BoundKeyEntry) => boolean,
 ): boolean {
 	if (availableKeys.length === 0) return false;
@@ -79,7 +80,7 @@ export function tryMatchBindings(
 	}
 
 	const wildcardBinding = bindings.find((b) => b.keys.includes("*"));
-	if (wildcardBinding && isNormalCharacter(input, key)) {
+	if (wildcardBinding && isNormalCharacter(input, key, isNormalChar)) {
 		if (!skipBinding || !skipBinding(wildcardBinding)) {
 			if (wildcardBinding.mode && wildcardBinding.mode !== currentMode)
 				return false;
@@ -196,6 +197,7 @@ export function handleLayer(
 	wildcardFirst: boolean,
 	currentMode: string | null,
 	conditions: Map<string, boolean>,
+	isNormalChar: (key: unknown) => boolean,
 	notifyPendingSyncs?: () => void,
 	autoTab?: boolean,
 ): boolean {
@@ -247,7 +249,7 @@ export function handleLayer(
 						allFocusTargets.flatMap((each) => each.bindings),
 					);
 					const wb = [...allFBindings].find((b) => b.keys.includes("*"));
-					if (wb && isNormalCharacter(input, key)) {
+					if (wb && isNormalCharacter(input, key, isNormalChar)) {
 						if (wb.mode && wb.mode !== currentMode) {
 							/* skip */
 						} else if (!checkWhen(wb.when, conditions)) {
@@ -262,7 +264,7 @@ export function handleLayer(
 		}
 		// Check screen-level wildcard
 		const wb = layer.bindings.find((b) => b.keys.includes("*"));
-		if (wb && isNormalCharacter(input, key)) {
+		if (wb && isNormalCharacter(input, key, isNormalChar)) {
 			if (wb.mode && wb.mode !== currentMode) {
 				/* skip */
 			} else if (!checkWhen(wb.when, conditions)) {
@@ -504,6 +506,7 @@ export function handleLayer(
 					input,
 					key,
 					conditions,
+					isNormalChar,
 					shouldSkipOnlyThis,
 				)
 			)
@@ -523,6 +526,7 @@ export function handleLayer(
 			input,
 			key,
 			conditions,
+			isNormalChar,
 			shouldSkipOnlyThis,
 		)
 	)

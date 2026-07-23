@@ -2,13 +2,15 @@ import { describe, test, expect, vi } from 'vitest';
 import { tryMatchBindings } from '../../../src/layerHandler.js';
 import { makeEntry } from '../../_helpers/factories.js';
 
+const notSpecial = (_key: unknown): boolean => false;
+
 describe('tryMatchBindings', () => {
   describe('basic scenarios', () => {
     test('Given availableKeys is empty, Then returns false', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler)];
       expect(
-        tryMatchBindings(bindings, null, [], '', {}, new Map()),
+        tryMatchBindings(bindings, null, [], '', {}, new Map(), notSpecial),
       ).toBe(false);
       expect(handler).not.toHaveBeenCalled();
     });
@@ -17,7 +19,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(true);
       expect(handler).toHaveBeenCalledWith('a', {});
     });
@@ -26,7 +28,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['b'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(false);
     });
   });
@@ -36,7 +38,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler, { mode: 'insert' })];
       expect(
-        tryMatchBindings(bindings, 'insert', ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, 'insert', ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(true);
     });
 
@@ -44,7 +46,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler, { mode: 'insert' })];
       expect(
-        tryMatchBindings(bindings, 'normal', ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, 'normal', ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(false);
     });
   });
@@ -54,7 +56,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler, { when: () => false })];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(false);
     });
 
@@ -62,7 +64,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler, { when: () => true })];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(true);
     });
 
@@ -71,7 +73,7 @@ describe('tryMatchBindings', () => {
       const conditions = new Map([['editing', false]]);
       const bindings = [makeEntry(['a'], handler, { when: 'editing' })];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, conditions),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, conditions, notSpecial),
       ).toBe(false);
     });
   });
@@ -81,7 +83,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), () => true),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial, () => true),
       ).toBe(false);
     });
 
@@ -89,7 +91,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['a'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), () => false),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial, () => false),
       ).toBe(true);
     });
   });
@@ -99,7 +101,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['*'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(true);
       expect(handler).toHaveBeenCalledWith('a', {});
     });
@@ -108,7 +110,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['*'], handler)];
       expect(
-        tryMatchBindings(bindings, null, [''], '', {}, new Map()),
+        tryMatchBindings(bindings, null, [''], '', {}, new Map(), notSpecial),
       ).toBe(false);
     });
 
@@ -116,7 +118,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['*'], handler)];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), () => true),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial, () => true),
       ).toBe(false);
     });
   });
@@ -129,7 +131,7 @@ describe('tryMatchBindings', () => {
         makeEntry(['a'], exactHandler),
         makeEntry(['*'], wildcardHandler),
       ];
-      tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map());
+      tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial);
       expect(exactHandler).toHaveBeenCalledOnce();
       expect(wildcardHandler).not.toHaveBeenCalled();
     });
@@ -140,7 +142,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const when = vi.fn(() => true);
       const bindings = [makeEntry(['a'], handler, { mode: 'insert', when })];
-      tryMatchBindings(bindings, 'normal', ['a'], 'a', {}, new Map());
+      tryMatchBindings(bindings, 'normal', ['a'], 'a', {}, new Map(), notSpecial);
       expect(when).not.toHaveBeenCalled();
     });
 
@@ -148,7 +150,7 @@ describe('tryMatchBindings', () => {
       const handler = vi.fn();
       const bindings = [makeEntry(['nonexistent'], handler, { when: () => false })];
       expect(
-        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map()),
+        tryMatchBindings(bindings, null, ['a'], 'a', {}, new Map(), notSpecial),
       ).toBe(false);
     });
   });

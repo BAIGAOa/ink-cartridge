@@ -804,6 +804,7 @@ export interface PipelineContext<TComponent> {
   readonly input: string;
   readonly key: unknown;
   readonly eventNames: string[];
+  readonly isNormalChar: (key: unknown) => boolean;
   readonly topComponent: TComponent | null;
   readonly globalKeys: ResolvedGlobalKeyEntry[];
   readonly globalSequences: ResolvedGlobalSequenceEntry[];

@@ -14,7 +14,17 @@ npm install @cartridge-engine/keyboard-engine
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import * as readline from 'node:readline';
 
+function isSpecialKey(key: unknown): boolean {
+  const k = key as Record<string, unknown>;
+  if (k.ctrl || k.meta || k.shift) return true;
+  return (k.name === 'return' || k.name === 'escape' || k.name === 'tab'
+    || k.name === 'backspace' || k.name === 'delete'
+    || k.name === 'up' || k.name === 'down' || k.name === 'left' || k.name === 'right'
+    || k.name === 'pageup' || k.name === 'pagedown' || k.name === 'home' || k.name === 'end');
+}
+
 const engine = new KeyboardEngine({
+  isNormalChar: isSpecialKey,
   normalizeKeyNames: (input, key) => {
     if (key.name === 'return') return ['return'];
     if (key.name === 'escape') return ['escape'];
@@ -69,6 +79,7 @@ import * as readline from 'node:readline';
 const engine = new KeyboardEngine({
   modes: ['normal', 'insert'],
   defaultMode: 'normal',
+  isNormalChar: isSpecialKey,
   normalizeKeyNames: (input, key) => {
     if (key.name === 'return') return ['return'];
     if (key.name === 'escape') return ['escape'];
@@ -118,6 +129,7 @@ process.stdin.on('keypress', (_input, key) => {
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 const engine = new KeyboardEngine({
+  isNormalChar: isSpecialKey,
   normalizeKeyNames: (input, key) => {
     if (key.name) return [key.name];
     return [input];

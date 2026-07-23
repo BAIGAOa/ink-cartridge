@@ -17,6 +17,7 @@ new KeyboardEngine(props: EngineProps): KeyboardEngine
 ```ts
 interface EngineProps {
   normalizeKeyNames: (input: string, key: unknown) => string[];
+  isNormalChar: (key: unknown) => boolean;
   modes?: string[];
   defaultMode?: string | null;
   processors?: KeyboardProcessorProps[];
@@ -29,6 +30,7 @@ interface EngineProps {
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `normalizeKeyNames` | `(input, key) => string[]` | yes | Converts framework-specific key events into normalized key-name strings. Each host framework provides its own adapter. |
+| `isNormalChar` | `(key: unknown) => boolean` | yes | Determines whether a key is a special key (arrow, navigation, modifier, or release). Returns `true` when the key is NOT a normal character. Each host framework provides its own adapter that inspects its native Key shape. |
 | `modes` | `string[]` | no | Registered mode names (e.g. `["normal", "insert"]`). |
 | `defaultMode` | `string \| null` | no | Active mode on construction. Must be `null` or a member of `modes`. |
 | `processors` | `KeyboardProcessorProps[]` | no | Custom processors injected into the pipeline at construction time. |
@@ -61,8 +63,17 @@ function normalizeKeyNames(input: string, key: unknown): string[] {
   return [input.toLowerCase()];
 }
 
+function isSpecialKey(key: unknown): boolean {
+  const k = key as Record<string, unknown>;
+  return k.ctrl || k.meta || k.return || k.escape || k.tab
+    || k.upArrow || k.downArrow || k.leftArrow || k.rightArrow
+    || k.backspace || k.delete || k.pageDown || k.pageUp
+    || k.home || k.end || k.eventType === 'release';
+}
+
 const engine = new KeyboardEngine({
   normalizeKeyNames,
+  isNormalChar: isSpecialKey,
   modes: ['normal', 'insert'],
   defaultMode: 'normal',
   defaultTimeout: 400,
@@ -74,6 +85,7 @@ With value schema:
 ```ts
 const engine = new KeyboardEngine({
   normalizeKeyNames,
+  isNormalChar: isSpecialKey,
   valueSchema: {
     times: (v): v is number => typeof v === 'number',
     action: (v): v is number => typeof v === 'number',

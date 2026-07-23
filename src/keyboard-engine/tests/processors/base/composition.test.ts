@@ -7,6 +7,7 @@ import { createCompositionProcessor } from '../../../src/processors/globalCompos
 function mkState() {
   const state = new EngineState({
     normalizeKeyNames: (_input: string, _key: unknown) => [],
+    isNormalChar: () => false,
   });
   state.compositionEngine = new CompositionEngine(state);
   return state;

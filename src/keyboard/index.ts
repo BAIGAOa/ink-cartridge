@@ -1,8 +1,23 @@
 export { KeyboardProvider } from "./provider/KeyboardProvider.js";
 export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
 
-export { isNormalCharacter } from "@cartridge-engine/keyboard-engine";
-export { normalizeKeyNames } from "./keyNormalizer.js";
+import { isNormalCharacter as engineIsNormalCharacter } from "@cartridge-engine/keyboard-engine";
+import { isInkSpecialKey } from "./keyNormalizer.js";
+
+/**
+ * Determine whether the key event represents a "normal" character.
+ *
+ * Ink-specific wrapper — uses {@link isInkSpecialKey} to inspect
+ * Ink's Key descriptor for special keys.
+ *
+ * @param input - Raw character from Ink's useInput.
+ * @param key   - Key descriptor from Ink.
+ * @returns true when the event should be treated as a normal character.
+ */
+export function isNormalCharacter(input: string, key: unknown): boolean {
+  return engineIsNormalCharacter(input, key, isInkSpecialKey);
+}
+export { isInkSpecialKey, normalizeKeyNames } from "./keyNormalizer.js";
 
 export { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 export {

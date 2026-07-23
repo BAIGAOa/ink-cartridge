@@ -213,6 +213,7 @@ export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent
           ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
+          ctx.isNormalChar,
           ctx.notifyPendingSyncs,
           ctx.autoTab
         );

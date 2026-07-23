@@ -20,9 +20,19 @@ export function useKeyboardEngine(options?: {
   modes?: string[];
   defaultMode?: string | null;
 }) {
+  function isSpecialKey(key: unknown): boolean {
+    const k = key as KeyboardEvent;
+    return k.key === 'ArrowUp' || k.key === 'ArrowDown' || k.key === 'ArrowLeft'
+      || k.key === 'ArrowRight' || k.key === 'Enter' || k.key === 'Escape'
+      || k.key === 'Tab' || k.key === 'Backspace' || k.key === 'Delete'
+      || k.key === 'PageUp' || k.key === 'PageDown' || k.key === 'Home'
+      || k.key === 'End' || k.ctrlKey || k.metaKey || k.altKey;
+  }
+
   const engine = new KeyboardEngine({
     modes: options?.modes,
     defaultMode: options?.defaultMode ?? undefined,
+    isNormalChar: isSpecialKey,
     normalizeKeyNames: (input, key) => {
       const e = key as KeyboardEvent;
       const names: string[] = [];

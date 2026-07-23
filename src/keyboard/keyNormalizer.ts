@@ -1,4 +1,22 @@
 /**
+ * Inspect an Ink `Key` descriptor and return `true` when the key is
+ * NOT a normal character — i.e. it is an arrow key, navigation key,
+ * modifier key, or release event.
+ *
+ * Used as the `isNormalChar` adapter for the keyboard-engine so it
+ * stays framework-agnostic.
+ */
+export function isInkSpecialKey(key: unknown): boolean {
+  const k = key as Record<string, unknown>;
+  if (k.upArrow || k.downArrow || k.leftArrow || k.rightArrow) return true;
+  if (k.pageDown || k.pageUp || k.home || k.end) return true;
+  if (k.return || k.escape || k.tab || k.backspace || k.delete) return true;
+  if (k.ctrl || k.meta || k.super || k.hyper) return true;
+  if (k.eventType === 'release') return true;
+  return false;
+}
+
+/**
  * Convert Ink's `(input, key)` event into a list of possible key-name
  * strings for matching.
  *
