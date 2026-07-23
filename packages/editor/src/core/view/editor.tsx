@@ -87,7 +87,7 @@ export function Editor({
   }, [lineNumberRightSpacing]);
 
   const currentLineNumberLength = useMemo(() => {
-    return stringWidth(String(value.length - 1));
+    return Math.max(stringWidth(String(value.length - 1)), 1);
   }, [stringWidth, cursor.line]);
 
   const { setCursorPosition } = useCursor();
@@ -326,7 +326,7 @@ export function Editor({
         return (
           <Box key={number} flexDirection="row">
             <Box
-              width={Math.max(currentLineNumberLength - 1, 1)}
+              width={currentLineNumberLength}
               justifyContent="flex-end"
               marginRight={checkedLineNumberRightSpacing}
             >
