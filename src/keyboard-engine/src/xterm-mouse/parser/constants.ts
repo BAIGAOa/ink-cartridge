@@ -95,6 +95,7 @@ const ANSI_RESPONSE_PATTERNS = {
    * - ^ anchor ensures match only at start
    */
   // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
+  // eslint-disable-next-line no-control-regex
   sgrPattern: /^\x1b\[<(\d{1,3});(\d{1,4});(\d{1,4})([Mm])/,
 
   /**
@@ -104,6 +105,7 @@ const ANSI_RESPONSE_PATTERNS = {
    * - No possibility of backtracking or ambiguous matches
    */
   // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
+  // eslint-disable-next-line no-control-regex
   escPattern: /^\x1b\[M([\x20-\x7f])([\x20-\x7f])([\x20-\x7f])/,
 };
 

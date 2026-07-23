@@ -326,6 +326,7 @@ describe('Validation Utilities - Security Tests', () => {
       const fakeStream = {
         isTTY: true, // Lies about being a TTY
         // biome-ignore lint/complexity/noBannedTypes: Testing generic function type
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         on: (event: string, handler: Function) => {
           // Attempt to exfiltrate data
           _exfiltratedData = { event, handler: handler.toString() };

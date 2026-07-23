@@ -1409,6 +1409,7 @@ class Mouse {
       const allEvents: MouseEventAction[] = ['press', 'release', 'drag', 'wheel', 'move', 'click'];
 
       const inputHandler =
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         (_action: MouseEventAction) =>
         (event: MouseEvent): void => {
           cleanup();

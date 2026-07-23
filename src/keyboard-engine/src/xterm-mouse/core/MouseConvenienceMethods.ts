@@ -96,6 +96,7 @@ export class MouseConvenienceMethods {
       const handlers = new Map<MouseEventAction, (event: MouseEvent) => void>();
 
       const inputHandler =
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         (_action: MouseEventAction) =>
         (event: MouseEvent): void => {
           cleanup();

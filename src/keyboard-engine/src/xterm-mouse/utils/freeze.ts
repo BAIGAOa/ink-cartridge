@@ -16,6 +16,7 @@ type Primitive = string | number | boolean | bigint | symbol | null | undefined;
  * Built-in objects that have their own freezing semantics
  */
 // biome-ignore lint/complexity/noBannedTypes: Function type is appropriate for generic built-in check
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 type Builtin = Primitive | Function | Date | RegExp | Error | File | Blob | URL;
 
 /**
