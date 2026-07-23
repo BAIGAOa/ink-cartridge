@@ -32,6 +32,7 @@ export function createEngine(
     defaultMode,
     normalizeKeyNames: (input: string, _key: unknown) =>
       input ? [input] : [],
+    isNormalChar: () => false,
     autoTab,
   });
 }
@@ -49,6 +50,7 @@ export function createEngineWithProcessors(
     defaultMode,
     normalizeKeyNames: (input: string, _key: unknown) =>
       input ? [input] : [],
+    isNormalChar: () => false,
     processors,
   });
 }
@@ -68,6 +70,7 @@ export function createEngineWithKeys(
     defaultMode,
     normalizeKeyNames: (input: string, _key: unknown) =>
       keyMap[input] ?? (input ? [input] : []),
+    isNormalChar: () => false,
     autoTab,
   });
 }
@@ -249,6 +252,7 @@ export function createContext(
     anyOverlayConsumed: false,
     currentMode: null,
     conditions: new Map(),
+    isNormalChar: () => false,
     compositionEngineHandler: false,
     compositionEngine: undefined as unknown as PipelineContext<unknown>['compositionEngine'],
     autoTab: false,

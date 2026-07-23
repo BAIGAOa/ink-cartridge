@@ -6,6 +6,7 @@ import { createContext } from '../../_helpers/factories.js';
 function mkState() {
   return new EngineState({
     normalizeKeyNames: (_input: string, _key: unknown) => [],
+    isNormalChar: () => false,
   });
 }
 
