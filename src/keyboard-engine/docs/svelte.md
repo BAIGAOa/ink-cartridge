@@ -17,8 +17,18 @@ import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 import type { EngineOverlayEntry, EngineModalEntry } from '@cartridge-engine/keyboard-engine';
 
 function createKeyboardEngine() {
+  function isSpecialKey(key: unknown): boolean {
+    const k = key as KeyboardEvent;
+    return k.key === 'ArrowUp' || k.key === 'ArrowDown' || k.key === 'ArrowLeft'
+      || k.key === 'ArrowRight' || k.key === 'Enter' || k.key === 'Escape'
+      || k.key === 'Tab' || k.key === 'Backspace' || k.key === 'Delete'
+      || k.key === 'PageUp' || k.key === 'PageDown' || k.key === 'Home'
+      || k.key === 'End' || k.ctrlKey || k.metaKey || k.altKey;
+  }
+
   const engine = new KeyboardEngine({
     modes: ['normal', 'insert'],
+    isNormalChar: isSpecialKey,
     normalizeKeyNames: (input, key) => {
       const e = key as KeyboardEvent;
       const names: string[] = [];

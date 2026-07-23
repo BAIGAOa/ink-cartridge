@@ -65,6 +65,26 @@ export interface EngineProps<TComponent> {
 	 */
 	normalizeKeyNames: (input: string, key: unknown) => string[];
 
+  /**
+   * Determines whether a key is a special key (NOT a normal character).
+   *
+   * Required so the engine stays framework-agnostic — each host framework
+   * provides its own adapter that inspects its native Key shape.
+   *
+   * @example Ink
+   * ```ts
+   * isNormalChar: (key) => {
+   *   const k = key as Record<string, unknown>;
+   *   return k.upArrow || k.downArrow || k.leftArrow || k.rightArrow
+   *     || k.pageDown || k.pageUp || k.home || k.end
+   *     || k.return || k.escape || k.tab || k.backspace || k.delete
+   *     || k.ctrl || k.meta || k.super || k.hyper
+   *     || k.eventType === 'release';
+   * }
+   * ```
+   */
+  isNormalChar: (key: unknown) => boolean;
+
 	/**
 	 * Default composition engine timeout
 	 */
@@ -878,6 +898,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 			currentMode: this.state.currentModeRef,
 			conditions: this.state.conditions,
 			key,
+			isNormalChar: this.state._isNormalChar,
 			compositionEngineHandler,
 			compositionEngine: this.state.compositionEngine,
 			autoTab: this.state.autoTab,

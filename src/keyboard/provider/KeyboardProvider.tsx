@@ -14,7 +14,7 @@ import type {
 import { clearShortcutOperations } from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
 import { useScreenSystem } from "../../screen/hook.js";
-import { normalizeKeyNames } from "../keyNormalizer.js";
+import { isInkSpecialKey, normalizeKeyNames } from "../keyNormalizer.js";
 
 export interface KeyboardProviderProps {
   children: ReactNode;
@@ -102,6 +102,7 @@ export function KeyboardProvider({
       defaultMode: defaultMode ?? undefined,
       processors,
       normalizeKeyNames,
+      isNormalChar: isInkSpecialKey,
       valueSchema,
       autoTab,
     });

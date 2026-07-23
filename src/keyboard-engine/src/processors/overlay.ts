@@ -28,6 +28,7 @@ export function createOverlayProcessor<TComponent>(): PipelineProcessor<TCompone
           true, ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
+          ctx.isNormalChar,
           ctx.notifyPendingSyncs,
           ctx.autoTab
         )) {

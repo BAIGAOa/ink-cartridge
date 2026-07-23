@@ -1,3 +1,4 @@
+
 import { describe, test, expect, vi } from 'vitest';
 import { handleLayer } from '../../../src/layerHandler.js';
 import {
@@ -7,6 +8,8 @@ import {
   makePendingSequence,
   fakeFocusTarget,
 } from '../../_helpers/factories.js';
+const notSpecial = (_key: unknown): boolean => false;
+
 import { defaultTargetsSymbol } from '../../../src/types.js';
 
 function noop() {}
@@ -20,7 +23,7 @@ describe('handleLayer', () => {
         defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(true);
       expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
@@ -31,7 +34,7 @@ describe('handleLayer', () => {
         defaultFocusOrder: ['a'],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, false, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, false, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(false);
     });
@@ -39,7 +42,7 @@ describe('handleLayer', () => {
     test('Given Tab navigation returns false (empty defaultFocusOrder), event continues', () => {
       const layer = fakeLayer({ defaultFocusOrder: [] });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(false);
     });
@@ -51,7 +54,7 @@ describe('handleLayer', () => {
         defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(true);
       expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
@@ -62,7 +65,7 @@ describe('handleLayer', () => {
         defaultFocusOrder: ['a', 'b'],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(true);
       expect(layer.currentFocusIds[0]?.id ?? null).toBe('a');
@@ -75,7 +78,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, false,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, false,
       );
       expect(result).toBe(true);
       expect(tabHandler).toHaveBeenCalledOnce();
@@ -89,7 +92,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(tabHandler).toHaveBeenCalledOnce();
@@ -103,7 +106,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['tab'], tabHandler)],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, true,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, true,
       );
       expect(result).toBe(true);
       expect(tabHandler).toHaveBeenCalledOnce();
@@ -114,7 +117,7 @@ describe('handleLayer', () => {
         defaultFocusOrder: ['a'],
       });
       const result = handleLayer(
-        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), undefined, false,
+        layer, ['tab'], '', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial, undefined, false,
       );
       expect(result).toBe(false);
     });
@@ -128,7 +131,7 @@ describe('handleLayer', () => {
       const handler = vi.fn();
       layer.bindings = [makeEntry(['x'], handler)];
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
       expect(handler).not.toHaveBeenCalled();
@@ -141,7 +144,7 @@ describe('handleLayer', () => {
       const handler = vi.fn();
       layer.bindings = [makeEntry(['x'], handler)];
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(handler).toHaveBeenCalledOnce();
@@ -155,7 +158,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], handler, { onlyThis: true })],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 1, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 1, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
       expect(handler).not.toHaveBeenCalled();
@@ -167,7 +170,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], handler, { onlyThis: true })],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(handler).toHaveBeenCalledOnce();
@@ -180,7 +183,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], handler, { onlyThis: true })],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 2, true, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 2, true, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
     });
@@ -192,7 +195,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], handler, { onlyThis: true })],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 1, true, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 1, true, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(handler).toHaveBeenCalledOnce();
@@ -210,7 +213,7 @@ describe('handleLayer', () => {
         ],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', {}, true, noop, 0, false, true, null, new Map(),
+        layer, ['x'], 'x', {}, true, noop, 0, false, true, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(wildcardHandler).toHaveBeenCalledOnce();
@@ -223,7 +226,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['*'], handler, { mode: 'insert' })],
       });
       const result = handleLayer(
-        layer, ['a'], 'a', {}, true, noop, 0, false, true, 'normal', new Map(),
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, 'normal', new Map(), notSpecial,
       );
       expect(result).toBe(false);
       expect(handler).not.toHaveBeenCalled();
@@ -242,7 +245,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['*'], screenHandler)],
       });
       handleLayer(
-        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(),
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(), notSpecial,
       );
       expect(ftHandler).toHaveBeenCalledOnce();
       expect(screenHandler).not.toHaveBeenCalled();
@@ -260,7 +263,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['*'], screenHandler)],
       });
       handleLayer(
-        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(),
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(), notSpecial,
       );
       expect(grpHandler).toHaveBeenCalledOnce();
       expect(screenHandler).not.toHaveBeenCalled();
@@ -281,7 +284,7 @@ describe('handleLayer', () => {
         ],
       });
       handleLayer(
-        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(),
+        layer, ['a'], 'a', {}, true, noop, 0, false, true, null, new Map(), notSpecial,
       );
       expect(defHandler).toHaveBeenCalledOnce();
       expect(grpHandler).not.toHaveBeenCalled();
@@ -299,7 +302,7 @@ describe('handleLayer', () => {
         }),
       });
       handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
       expect(handler).toHaveBeenCalledOnce();
@@ -313,7 +316,7 @@ describe('handleLayer', () => {
         }),
       });
       const result = handleLayer(
-        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(seqHandler).toHaveBeenCalledWith('b', dummyKey);
@@ -328,7 +331,7 @@ describe('handleLayer', () => {
         }),
       });
       const result = handleLayer(
-        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(layer.pendingSequence!.nextIndex).toBe(2);
@@ -346,7 +349,7 @@ describe('handleLayer', () => {
         }),
       });
       handleLayer(
-        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['b'], 'b', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence!.nextIndex).toBe(2);
     });
@@ -359,7 +362,7 @@ describe('handleLayer', () => {
         }),
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
     });
@@ -373,7 +376,7 @@ describe('handleLayer', () => {
         }),
       });
       handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
       expect(bindingHandler).toHaveBeenCalledOnce();
@@ -391,7 +394,7 @@ describe('handleLayer', () => {
         }),
       });
       handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence!.sequences).toEqual(['a', 'x', 'y']);
       expect(layer.pendingSequence!.nextIndex).toBe(2);
@@ -407,7 +410,7 @@ describe('handleLayer', () => {
         }),
       });
       handleLayer(
-        layer, ['z'], 'z', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['z'], 'z', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -419,7 +422,7 @@ describe('handleLayer', () => {
       const layer = fakeLayer();
       layer.sequences.set('g', [makeSequenceBinding(['g', 'g'], seqHandler)]);
       const result = handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(layer.pendingSequence).not.toBeNull();
@@ -432,7 +435,7 @@ describe('handleLayer', () => {
       const layer = fakeLayer();
       layer.sequences.set('d', [makeSequenceBinding(['d', 'v'], seqHandler)]);
       const result = handleLayer(
-        layer, ['d', 'ctrl+d'], 'd', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['d', 'ctrl+d'], 'd', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
       expect(layer.pendingSequence).toBeNull();
@@ -444,7 +447,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 'g'], vi.fn(), { options: { mode: 'insert' } }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, 'normal', new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, 'normal', new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -458,7 +461,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 't'], h2),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence!.candidates).toHaveLength(2);
     });
@@ -469,7 +472,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 'g'], vi.fn(), { options: { exclusive: true } }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence!.candidates).toBeUndefined();
     });
@@ -480,7 +483,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 'g'], vi.fn(), { when: () => false }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -494,7 +497,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 'g'], seqHandler, { options: { focusId: 'f1' } }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).not.toBeNull();
     });
@@ -508,7 +511,7 @@ describe('handleLayer', () => {
         makeSequenceBinding(['g', 'g'], seqHandler, { options: { focusId: 'f1' } }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -524,7 +527,7 @@ describe('handleLayer', () => {
         }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).not.toBeNull();
     });
@@ -540,7 +543,7 @@ describe('handleLayer', () => {
         }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -556,7 +559,7 @@ describe('handleLayer', () => {
         }),
       ]);
       handleLayer(
-        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['g'], 'g', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(layer.pendingSequence).toBeNull();
     });
@@ -576,7 +579,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], screenHandler)],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(ftHandler).toHaveBeenCalledOnce();
@@ -595,7 +598,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], screenHandler)],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(screenHandler).toHaveBeenCalledOnce();
@@ -611,7 +614,7 @@ describe('handleLayer', () => {
         currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
     });
@@ -624,7 +627,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['x'], handler)],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
       expect(handler).toHaveBeenCalledWith('x', dummyKey);
@@ -639,7 +642,7 @@ describe('handleLayer', () => {
         stoppedKeys: [{ key: 'x', when: () => false }],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       // stopped key when=false → key is NOT stopped, falls through to bindings
       expect(result).toBe(true);
@@ -653,7 +656,7 @@ describe('handleLayer', () => {
         stoppedKeys: [{ key: 'x' }],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(true);
     });
@@ -663,7 +666,7 @@ describe('handleLayer', () => {
         stoppedKeys: [{ key: 'x' }],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, false, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, false, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
     });
@@ -684,7 +687,7 @@ describe('handleLayer', () => {
         bindings: [makeEntry(['y'], screenHandler)],
       });
       const result = handleLayer(
-        layer, ['y'], 'y', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['y'], 'y', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       // Focus target 'y' binding is penetrated, so falls through to screen level
       expect(ftHandler).not.toHaveBeenCalled();
@@ -701,7 +704,7 @@ describe('handleLayer', () => {
         currentFocusIds: [{ id: 'f1', fromGroup: defSym }],
       });
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
     });
@@ -711,7 +714,7 @@ describe('handleLayer', () => {
     test('Given no match at all (binding/sequence/focus/stop), Then returns false', () => {
       const layer = fakeLayer();
       const result = handleLayer(
-        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(),
+        layer, ['x'], 'x', dummyKey, true, noop, 0, false, false, null, new Map(), notSpecial,
       );
       expect(result).toBe(false);
     });

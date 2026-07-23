@@ -5,10 +5,14 @@ Utility functions for framework adapter authors. Stateless — no engine instanc
 ## isNormalCharacter
 
 ```ts
-function isNormalCharacter(input: string, key: unknown): boolean
+function isNormalCharacter(
+  input: string,
+  key: unknown,
+  isSpecialKey: (key: unknown) => boolean,
+): boolean
 ```
 
-Check whether a keyboard event represents a normal (printable) character — no modifier keys, no arrows, no special keys. Drives the wildcard `"*"` binding.
+Check whether a keyboard event represents a normal (printable) character — no modifier keys, no arrows, no special keys. The `isSpecialKey` predicate is provided by the host framework so the engine stays framework-agnostic. Drives the wildcard `"*"` binding.
 
 See [isNormalCharacter](./isNormalCharacter.md) for full documentation.
 
@@ -83,18 +87,19 @@ function tryMatchBindings(
   input: string,
   key: unknown,
   conditions: Map<string, boolean>,
+  isNormalChar: (key: unknown) => boolean,
   skipBinding?: (binding: BoundKeyEntry) => boolean,
 ): boolean
 ```
 
-Iterate through a list of bindings and fire the first matching handler. Matches exact key names first, then falls back to the wildcard `"*"` binding for normal character input. Each binding is checked against mode, when, and skipBinding constraints before firing.
+Iterate through a list of bindings and fire the first matching handler. Matches exact key names first, then falls back to the wildcard `"*"` binding for normal character input. Each binding is checked against mode, when, and skipBinding constraints before firing. The `isNormalChar` predicate comes from the engine's [`isNormalChar` constructor adapter](./constructor.md).
 
 **Usage (inside a custom processor):**
 
 ```ts
 import { tryMatchBindings } from '@cartridge-engine/keyboard-engine';
 
-if (tryMatchBindings(layer.bindings, currentMode, eventNames, input, key, conditions)) {
+if (tryMatchBindings(layer.bindings, currentMode, eventNames, input, key, conditions, ctx.isNormalChar)) {
   return true; // event consumed
 }
 ```
@@ -127,6 +132,7 @@ function handleLayer(
   wildcardFirst: boolean,
   currentMode: string | null,
   conditions: Map<string, boolean>,
+  isNormalChar: (key: unknown) => boolean,
   notifyPendingSyncs?: () => void,
   autoTab?: boolean,
 ): boolean
@@ -135,5 +141,7 @@ function handleLayer(
 Full keyboard event handling for a single layer. Evaluates in order: tab navigation (only when `autoTab` is `true`), penetration keys, wildcard priority, sequence matching, focus-target bindings, layer-level bindings, and stopped keys. Returns `true` if the event was consumed.
 
 When `autoTab` is `false` or omitted, Tab / Shift+Tab pass through to normal bindings instead of triggering automatic focus rotation. Developers can then bind Tab to custom handlers via [`boundKeyboard`](./boundKeyboard.md).
+
+The `isNormalChar` predicate comes from `PipelineContext` (wired from the engine's `isNormalChar` constructor adapter) and is forwarded to [`tryMatchBindings`](#trymatchbindings) and [`isNormalCharacter`](./isNormalCharacter.md).
 
 This is the core routing function. Framework adapters that want to reuse the built-in layer dispatch logic should call `handleLayer` rather than re-implementing the evaluation order.

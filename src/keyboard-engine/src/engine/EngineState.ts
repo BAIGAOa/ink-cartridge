@@ -41,6 +41,31 @@ export interface EngineProps<TComponent> {
   normalizeKeyNames: (input: string, key: unknown) => string[];
 
   /**
+   * Determines whether a key event should match the wildcard `"*"` binding.
+   *
+   * The engine calls this predicate on every `"*"` match attempt. It should
+   * return `true` when the key is a special key (arrows, return, escape, tab,
+   * backspace, delete, pageup, pagedown, home, end), a modifier key (ctrl,
+   * meta, super, hyper), or a release event — in other words, anything that
+   * is NOT a normal text character.
+   *
+   * Required so the engine stays framework-agnostic — each host framework
+   * provides its own adapter that knows its Key shape.
+   *
+   * @example Ink
+   * ```ts
+   * isNormalChar: (input, key) => isNormalCharacter(input, key, k =>
+   *   k.upArrow || k.downArrow || k.leftArrow || k.rightArrow
+   *   || k.pageDown || k.pageUp || k.home || k.end
+   *   || k.return || k.escape || k.tab || k.backspace || k.delete
+   *   || k.ctrl || k.meta || k.super || k.hyper
+   *   || k.eventType === 'release'
+   * )
+   * ```
+   */
+  isNormalChar: (key: unknown) => boolean;
+
+  /**
    * Whether the engine automatically handles Tab / Shift+Tab for focus
    * rotation. Defaults to `false`.
    *
@@ -144,6 +169,9 @@ export default class EngineState<TComponent> {
   /** The host-provided key-name normalizer, wired at construction. */
   _normalizeKeyNames: (input: string, key: unknown) => string[];
 
+  /** The host-provided normal-character checker, wired at construction. */
+  _isNormalChar: (key: unknown) => boolean;
+
   /**
    * Persistent wrapper for `layersRef` so pipeline processors see the same
    * Map across invocations. Processors mutate the Map in place (get/set/delete),
@@ -175,6 +203,7 @@ export default class EngineState<TComponent> {
     this.modesRef = new Set(props.modes ?? []);
     this.currentModeRef = props.defaultMode ?? null;
     this._normalizeKeyNames = props.normalizeKeyNames;
+    this._isNormalChar = props.isNormalChar;
     this.autoTab = props.autoTab ?? false;
     this._layersWrapper = { current: this.layersRef };
     const self = this;
