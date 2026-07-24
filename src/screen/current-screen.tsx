@@ -1,8 +1,8 @@
-import React from 'react';
-import { Box, useWindowSize } from 'ink';
-import { useScreenSystem } from './hook.js';
-import { OverlayContext } from './OverlayContext.js';
-import { ModalContext } from './ModalContext.js';
+import React from "react";
+import { Box, useWindowSize } from "ink";
+import { useScreenSystem } from "./hook.js";
+import { OverlayContext } from "./OverlayContext.js";
+import { ModalContext } from "./ModalContext.js";
 
 /**
  * Render the current screen, overlays, and modals.
@@ -19,37 +19,51 @@ import { ModalContext } from './ModalContext.js';
  * Architecturally symmetric between overlays and modals.
  */
 export function CurrentScreen(): React.ReactNode {
-  const { currentScreen, currentOverlays, displayedOverlays, currentModals, renderedModalEntries, fullScreen } = useScreenSystem();
-  const { rows } = useWindowSize()
+	const {
+		pageLayer,
+		currentModals,
+		renderedModalEntries,
+		fullScreen,
+		allLayers,
+	} = useScreenSystem();
+	const { rows } = useWindowSize();
 
-  // Build overlay elements with OverlayContext wrappers
-  const wrappedOverlays = currentOverlays.map((overlayNode, i) => {
-    const entry = displayedOverlays[i];
-    if (!entry) return overlayNode;
-    return React.createElement(
-      OverlayContext.Provider,
-      { value: { id: entry.id, originComponent: entry.originComponent }, key: `ovl-ctx-${entry.id}` },
-      overlayNode,
-    );
-  });
+	const layers = allLayers.map((layer) => {
+		return (
+			<Box position="absolute" top={0} left={0} height="100%" width="100%">
+				{Array.from(layer.elements)
+					.map((each) => each[1])
+					.map((layerElement) => {
+						return <layerElement.element />;
+					})}
+			</Box>
+		);
+	});
 
-  // Build modal elements with ModalContext wrappers (symmetric to overlays).
-  // Uses renderedModalEntries (parallel to currentModals) for correct ID matching.
-  const wrappedModals = currentModals.map((modalNode, i) => {
-    const entry = renderedModalEntries[i];
-    if (!entry) return modalNode;
-    return React.createElement(
-      ModalContext.Provider,
-      { value: { id: entry.id, originComponent: entry.originComponent }, key: `mdl-ctx-${entry.id}` },
-      modalNode,
-    );
-  });
+	// Build modal elements with ModalContext wrappers (symmetric to overlays).
+	// Uses renderedModalEntries (parallel to currentModals) for correct ID matching.
+	const standardLayers = currentModals.map((modalNode, i) => {
+		const entry = renderedModalEntries[i];
+		if (!entry) return modalNode;
+		return React.createElement(
+			ModalContext.Provider,
+			{
+				value: { id: entry.id, originComponent: entry.originComponent },
+				key: `mdl-ctx-${entry.id}`,
+			},
+			modalNode
+		);
+	});
 
-  return (
-    <Box flexDirection='column' width='100%' height={fullScreen ? rows : '100%'}>
-      {currentScreen}
-      {wrappedOverlays.map((w) => w)}
-      {wrappedModals.map((w) => w)}
-    </Box>
-  )
+	return (
+		<Box
+			flexDirection="column"
+			width="100%"
+			height={fullScreen ? rows : "100%"}
+		>
+			{pageLayer}
+			{layers}
+			{standardLayers.map((w) => w)}
+		</Box>
+	);
 }

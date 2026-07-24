@@ -3,17 +3,12 @@ import type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OpenOverlayFn,
-  CloseOverlayFn,
-  CloseAllOverlaysFn,
-  ActivateOverlayFn,
-  DeactivateOverlayFn,
   OpenModalFn,
   CloseModalFn,
   CloseAllModalsFn,
-  OverlayEntry,
   ModalEntry,
 } from './types.js';
+import { ApplyElementFn, CloseAllLayerFn, CloseLayerFn, EraseElementFn, Layer, OpenLayerFn } from './types/layer.js';
 
 /**
  * Value provided by {@link ScenarioManagementProvider} via React context.
@@ -23,33 +18,19 @@ import type {
  */
 export interface ScreenSystemContextValue {
   /** The rendered React element for the current (top-of-stack) screen. */
-  currentScreen: ReactNode;
-  /** Rendered React elements for all overlays, sorted by zIndex ascending. */
-  currentOverlays: ReactNode[];
+  pageLayer: ReactNode;
   /** Rendered React elements for all modals, sorted by zIndex ascending. */
   currentModals: ReactNode[];
   /** Full navigation path from root to the current screen. */
   currentPath: React.ComponentType<any>[];
+  /** All layers */
+  allLayers: Layer[]
   /** Navigate down the tree to a direct child of the current screen. */
   skip: SkipFn;
   /** Navigate up the tree toward the root. */
   back: BackFn;
   /** Jump to any registered screen across branches via LCA resolution. */
   gotoScreen: GotoScreenFn;
-  /** Open a new overlay with a unique ID. Multiple overlays can coexist. */
-  openOverlay: OpenOverlayFn;
-  /** Close a specific overlay by its ID. */
-  closeOverlay: CloseOverlayFn;
-  /** Close all open overlays at once. */
-  closeAllOverlays: CloseAllOverlaysFn;
-  /** Activate an overlay so it receives keyboard events. */
-  activateOverlay: ActivateOverlayFn;
-  /** Deactivate an overlay so it stops receiving keyboard events. */
-  deactivateOverlay: DeactivateOverlayFn;
-  /** IDs of overlays that are currently active (receiving keyboard events). */
-  activeOverlayIds: string[];
-  /** All currently displayed overlays with metadata (id, zIndex, etc.). */
-  displayedOverlays: OverlayEntry[];
   /** All open modals with metadata (id, zIndex, etc.), sorted by zIndex ascending. */
   displayedModals: ModalEntry[];
   /** The modal entries that correspond to the rendered modal nodes (active + renderNow). Sorted by zIndex ascending. */
@@ -68,6 +49,17 @@ export interface ScreenSystemContextValue {
   closeAllModals: CloseAllModalsFn;
   /** Whether to turn on full screen effect */
   fullScreen?: boolean;
+
+  /** Opens a new layer with a unique ID and z-index. */
+  openLayer: OpenLayerFn
+  /** Applies an element to a registered layer. */
+  applyElement: ApplyElementFn
+  /** Closes a registered layer by its ID. */
+  closeLayer: CloseLayerFn
+  /** Removes an element from a registered layer. */
+  eraseElement: EraseElementFn
+  /** Closes all layers at once. */
+  closeAllLayer: CloseAllLayerFn
 }
 
 /**
