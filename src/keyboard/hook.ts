@@ -1,9 +1,12 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
-import { OverlayContext } from "../screen/OverlayContext.js";
+import { LayerElementContext } from "../screen/OverlayContext.js";
 import { ModalContext } from "../screen/ModalContext.js";
 import { useScreenSystem } from "../screen/hook.js";
-import type { ModalMissCallback, ModalMissOptions } from "@cartridge-engine/keyboard-engine";
+import type {
+  ModalMissCallback,
+  ModalMissOptions,
+} from "@cartridge-engine/keyboard-engine";
 
 /**
  * Access the keyboard API from within a React component.
@@ -25,7 +28,7 @@ import type { ModalMissCallback, ModalMissOptions } from "@cartridge-engine/keyb
  */
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
-  const overlayCtx = useContext(OverlayContext);
+  const overlayCtx = useContext(LayerElementContext);
   const modalCtx = useContext(ModalContext);
 
   const overlayId = overlayCtx?.id ?? null;
