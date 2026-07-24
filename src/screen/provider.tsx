@@ -5,27 +5,11 @@ import React, {
   ReactNode,
 } from "react";
 import { ScreenSystemContext, ScreenSystemContextValue } from "./context.js";
-import {
-  ScreenState,
-  ScreenAction,
-  SkipOptions,
-  SkipFn,
-  BackFn,
-  GotoScreenFn,
-  OpenOverlayFn,
-  CloseOverlayFn,
-  CloseAllOverlaysFn,
-  ActivateOverlayFn,
-  DeactivateOverlayFn,
-  OpenModalFn,
-  CloseModalFn,
-  CloseAllModalsFn,
-  OverlayEntry,
-  ModalEntry,
-  OpenOverlayOptions,
-  OpenModalOptions,
-} from "./types.js";
 import { getTemplate, hasComponent, isChildOf, getParent } from "./registry.js";
+import { ScreenAction } from "./types/actions.js";
+import {  BackFn, CloseAllModalsFn, CloseModalFn, GotoScreenFn, ModalEntry, OpenModalFn, OpenModalOptions, ScreenState, SkipFn, SkipOptions } from "./types.js";
+import { ApplyElementFn, CloseAllLayerFn, CloseLayerFn, EraseElementFn, Layer, LayerOptions, OpenLayerFn } from "./types/layer.js";
+import { LayerElement } from "./types/element.js";
 
 const _dispatchers = new Set<React.Dispatch<ScreenAction>>();
 
@@ -48,11 +32,10 @@ function getDispatch(): React.Dispatch<ScreenAction> {
   return [..._dispatchers][_dispatchers.size - 1];
 }
 
-/**
- * Sort overlays by zIndex ascending, then by createdAt for tie-breaking.
- */
-function sortOverlays(overlays: OverlayEntry[]): OverlayEntry[] {
-  return [...overlays].sort((a, b) => {
+
+
+function sortLayers(layers: Layer[]): Layer[] {
+  return [...layers].sort((a, b) => {
     if (a.zIndex !== b.zIndex) return a.zIndex - b.zIndex;
     return a.createdAt - b.createdAt;
   });
@@ -121,86 +104,7 @@ export function gotoScreen<C extends React.ComponentType<any>>(
   });
 }
 
-/**
- * Open a floating overlay on top of the current screen stack.
- *
- * Multiple overlays can be open simultaneously, distinguished by unique IDs.
- * Calling with an ID that already exists is a no-op — the existing overlay is
- * left unchanged.
- *
- * @param id         Unique identifier for this overlay.
- * @param component  The overlay component (must be registered).
- * @param params     Props to pass to the overlay component.
- * @param options    Optional activation and zIndex settings.
- *
- * @throws If the provider is not mounted or the component is not registered.
- */
-export function openOverlay<C extends React.ComponentType<any>>(
-  id: string,
-  component: C,
-  params: React.ComponentProps<C>,
-  options?: OpenOverlayOptions,
-): void {
-  if (!hasComponent(component)) {
-    throw new Error(
-      `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered. Please call registerComponent() first.`,
-    );
-  }
-  getDispatch()({
-    type: "openOverlay",
-    id,
-    component,
-    params: params as Record<string, unknown>,
-    activate: options?.activate ?? true,
-    zIndex: options?.zIndex,
-    persistent: options?.persistent,
-  });
-}
 
-/**
- * Close a specific overlay by its ID.
- *
- * If no overlay with the given ID exists, this is a no-op — safe to call
- * even when the overlay may have already been closed.
- *
- * @param id  The ID of the overlay to close.
- *
- * @throws If the provider is not mounted.
- */
-export function closeOverlay(id: string): void {
-  getDispatch()({ type: "closeOverlay", id });
-}
-
-/**
- * Close all open overlays.
- *
- * @throws If the provider is not mounted.
- */
-export function closeAllOverlays(): void {
-  getDispatch()({ type: "closeAllOverlays" });
-}
-
-/**
- * Activate an overlay by its ID (so it receives keyboard events).
- *
- * @param id  The ID of the overlay to activate.
- *
- * @throws If the provider is not mounted or the overlay ID does not exist.
- */
-export function activateOverlay(id: string): void {
-  getDispatch()({ type: "activateOverlay", id });
-}
-
-/**
- * Deactivate an overlay by its ID (so it no longer receives keyboard events).
- *
- * @param id  The ID of the overlay to deactivate.
- *
- * @throws If the provider is not mounted.
- */
-export function deactivateOverlay(id: string): void {
-  getDispatch()({ type: "deactivateOverlay", id });
-}
 
 /**
  * Open a modal on top of all overlays.
@@ -268,6 +172,41 @@ export function closeAllModals(): void {
 }
 
 /**
+ * Open a new layer with a unique ID and z-index.
+ */
+export function openLayer(layerId: string, zIndex: number, options?: LayerOptions): void {
+  getDispatch()({ type: "openLayer", layerId, zIndex, options });
+}
+
+/**
+ * Apply an element to a registered layer.
+ */
+export function applyElement(targetLayerId: string, layerElement: LayerElement): void {
+  getDispatch()({ type: "applyElement", targetLayerId, layerElement });
+}
+
+/**
+ * Close a registered layer by its ID.
+ */
+export function closeLayer(targetLayerId: string): void {
+  getDispatch()({ type: "closeLayer", targetLayerId });
+}
+
+/**
+ * Remove an element from a registered layer.
+ */
+export function eraseElement(targetLayerId: string, targetElementId: string): void {
+  getDispatch()({ type: "eraseElement", targetLayerId, targetElementId });
+}
+
+/**
+ * Close all layers at once.
+ */
+export function closeAllLayer(): void {
+  getDispatch()({ type: "closeAllLayer" });
+}
+
+/**
  * 从树中查找共同祖先
  * 从 currentPath 栈底向上找到第一个在 targetAncestors 中的节点
  */
@@ -315,38 +254,7 @@ function buildPathFrom(
   return path;
 }
 
-/**
- * Rebuild active IDs for overlays and modals after navigation.
- *
- * Only persistent entries survive navigation. Among them, only those
- * whose originComponent matches the current top-of-path screen are
- * re-activated.
- *
- * @2026-07-04 v3.8.0
- */
-function recalcActiveAfterNavigation(
-  persistentOverlays: OverlayEntry[],
-  persistentModals: ModalEntry[],
-  newTopScreen: React.ComponentType<any>,
-): { activeOverlayIds: Set<string>; activeModalId: string | null } {
-  const activeOverlayIds = new Set<string>();
-  for (const o of persistentOverlays) {
-    if (o.originComponent === newTopScreen) {
-      activeOverlayIds.add(o.id);
-    }
-  }
 
-  let activeModalId: string | null = null;
-  let maxZ = -1;
-  for (const m of persistentModals) {
-    if (m.originComponent === newTopScreen && m.zIndex > maxZ) {
-      activeModalId = m.id;
-      maxZ = m.zIndex;
-    }
-  }
-
-  return { activeOverlayIds, activeModalId };
-}
 
 /**
  * Pure reducer for {@link ScreenState}.
@@ -381,24 +289,17 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const newPath = [...state.path, action.component];
 
-      const persistentOverlays = state.overlays.filter((o) => o.persistent);
+     
       const persistentModals = state.modals.filter((m) => m.persistent);
 
-      const newTop = newPath[newPath.length - 1];
-      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays,
-        persistentModals,
-        newTop,
-      );
+      const crossPageLayers = state.allLayers.filter(each => each.crossPage === true)
 
       return {
         path: newPath,
         pathParams: [...state.pathParams, mergedParams],
-        overlays: persistentOverlays,
-        activeOverlayIds,
         modals: persistentModals,
-        activeModalId,
         counter,
+        allLayers: crossPageLayers
       };
     }
 
@@ -414,23 +315,17 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       }
 
       const newPath = state.path.slice(0, -levels);
-      const persistentOverlays = state.overlays.filter((o) => o.persistent);
+      
       const persistentModals = state.modals.filter((m) => m.persistent);
-      const newTop = newPath[newPath.length - 1];
-      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays,
-        persistentModals,
-        newTop,
-      );
+
+      const crossPageLayers = state.allLayers.filter(each => each.crossPage === true)
 
       return {
         path: newPath,
         pathParams: state.pathParams.slice(0, -levels),
-        overlays: persistentOverlays,
-        activeOverlayIds,
         modals: persistentModals,
-        activeModalId,
         counter: state.counter + 1,
+        allLayers: crossPageLayers
       };
     }
 
@@ -458,123 +353,124 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         }),
       ];
 
-      const persistentOverlays = state.overlays.filter((o) => o.persistent);
       const persistentModals = state.modals.filter((m) => m.persistent);
-      const newTop = newPath[newPath.length - 1];
-      const { activeOverlayIds, activeModalId } = recalcActiveAfterNavigation(
-        persistentOverlays,
-        persistentModals,
-        newTop,
-      );
 
+      const crossPageLayers = state.allLayers.filter(each => each.crossPage === true)
       return {
         path: newPath,
         pathParams: newPathParams,
-        overlays: persistentOverlays,
-        activeOverlayIds,
         modals: persistentModals,
         activeModalId,
         counter: state.counter + 1,
+        allLayers: crossPageLayers
       };
     }
 
-    case "openOverlay": {
-      if (state.overlays.some((o) => o.id === action.id)) {
-        return state;
+    case "openLayer": {
+      if (state.allLayers.some(each => each.layerId === action.layerId)) {
+        return state
       }
 
-      if (state.modals.some((m) => m.id === action.id)) {
-        return state;
+      const newLayer: Layer = {
+        layerId: action.layerId,
+        zIndex: action.zIndex,
+        elements: new Map(),
+        crossPage: action.options?.crossPage ?? false,
+        // Use the current timestamp as the creation time to ensure no errors occur, 
+        // even if the z-index values ​​are identical.
+        createdAt: Date.now()
       }
 
-      const newEntry: OverlayEntry = {
-        id: action.id,
-        component: action.component,
-        props: action.params,
-        zIndex: action.zIndex ?? state.overlays.length,
-        createdAt: Date.now(),
-        persistent: action.persistent,
-        originComponent: action.persistent
-          ? state.path[state.path.length - 1]
-          : undefined,
-      };
-
-      const newOverlays = sortOverlays([...state.overlays, newEntry]);
-      const newActiveIds = new Set(state.activeOverlayIds);
-
-      if (action.activate) {
-        newActiveIds.add(action.id);
-      }
+      const newLayers = sortLayers([...state.allLayers, newLayer])
 
       return {
         ...state,
-        overlays: newOverlays,
-        activeOverlayIds: newActiveIds,
-      };
-    }
-
-    case "closeOverlay": {
-      if (!state.overlays.some((o) => o.id === action.id)) {
-        return state;
+        allLayers: newLayers
       }
-
-      const newOverlays = state.overlays.filter((o) => o.id !== action.id);
-      const newActiveIds = new Set(state.activeOverlayIds);
-      newActiveIds.delete(action.id);
-
-      return {
-        ...state,
-        overlays: newOverlays,
-        activeOverlayIds: newActiveIds,
-      };
     }
 
-    case "closeAllOverlays": {
-      return {
-        ...state,
-        overlays: [],
-        activeOverlayIds: new Set<string>(),
-      };
-    }
+    case "applyElement": {
+      const targetLayer = state.allLayers.find(each => each.layerId === action.targetLayerId)
 
-    case "activateOverlay": {
-      if (!state.overlays.some((o) => o.id === action.id)) {
+      if (!targetLayer) {
         throw new Error(
-          `[Ink-Cartridge] Cannot activate overlay "${action.id}": no overlay with that ID exists.`,
-        );
+          `
+          [ink-cartridge] The target ${action.targetLayerId} you entered has not been registered.
+
+          Try calling the openLayer method.
+          For example:
+          const { openLayer } = useScreenSystem()
+
+          openLayer(${action.targetLayerId}, 1)
+          `
+        )
       }
 
-      const newActiveIds = new Set(state.activeOverlayIds);
-      newActiveIds.add(action.id);
+      if (targetLayer.elements.has(action.layerElement.elementId)) {
+        throw new Error(
+          `
+          [in-cartridge] The element ID ${action.layerElement.elementId} you are applying has already been used on target layer ${targetLayer.layerId}; 
+          try using a new one or deleting the old one.
+          `
+        )
+      }
 
-      return {
-        ...state,
-        activeOverlayIds: newActiveIds,
-      };
+      targetLayer.elements.set(action.layerElement.elementId, action.layerElement)
+
+      return state
     }
 
-    case "deactivateOverlay": {
-      if (!state.overlays.some((o) => o.id === action.id)) {
+    case "closeLayer": {
+      const targetLayer = state.allLayers.findIndex(each => each.layerId === action.targetLayerId)
+      if (targetLayer === -1) {
         throw new Error(
-          `[Ink-Cartridge] Cannot deactivate overlay "${action.id}": no overlay with that ID exists.`,
-        );
+          `
+          [ink-cartridge] The layer ${action.targetLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
+          `
+        )
       }
 
-      const newActiveIds = new Set(state.activeOverlayIds);
-      newActiveIds.delete(action.id);
+      state.allLayers.splice(targetLayer, 1)
+
+      const newLayers = sortLayers(state.allLayers)
 
       return {
         ...state,
-        activeOverlayIds: newActiveIds,
-      };
+        allLayers: newLayers
+      }
+    }
+
+    case "eraseElement": {
+      const targetLayer = state.allLayers.find(each => each.layerId === action.targetLayerId)
+
+      if (!targetLayer) {
+        throw new Error(
+          `
+          [ink-cartridge] The layer ${action.targetLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
+          `
+        )
+      }
+
+      if (!targetLayer.elements.has(action.targetElementId)) {
+        throw new Error(
+          `[ink-cartridge] The target element ${action.targetElementId} does not exist in layer ${action.targetLayerId}; you may have mistyped the string, or the corresponding element was never registered.`
+        )
+      }
+
+      targetLayer.elements.delete(action.targetElementId)
+
+      return state
+    }
+
+    case "closeAllLayer": {
+      return {
+        ...state,
+        allLayers: []
+      }
     }
 
     case "openModal": {
       if (state.modals.some((m) => m.id === action.id)) {
-        return state;
-      }
-
-      if (state.overlays.some((o) => o.id === action.id)) {
         return state;
       }
 
@@ -665,11 +561,10 @@ export function ScenarioManagementProvider({
   const [state, dispatch] = useReducer(screenReducer, {
     path: [defaultScreen],
     pathParams: [initialParams],
-    overlays: [],
-    activeOverlayIds: new Set<string>(),
     modals: [],
     activeModalId: null,
     counter: 0,
+    allLayers: []
   });
 
 
@@ -683,25 +578,13 @@ export function ScenarioManagementProvider({
   const topComponent = state.path[state.path.length - 1];
   const topParams = state.pathParams[state.pathParams.length - 1];
 
-  const currentScreen = useMemo(
+  const pageLayer = useMemo(
     () =>
       React.createElement(topComponent, {
         ...topParams,
         key: state.counter,
       }),
     [topComponent, topParams, state.counter],
-  );
-
-  // Render all overlay elements (sorted by zIndex)
-  const currentOverlays = useMemo(
-    () =>
-      state.overlays.map((entry) =>
-        React.createElement(entry.component, {
-          ...entry.props,
-          key: entry.id,
-        }),
-      ),
-    [state.overlays],
   );
 
   // Determine which modals should be rendered: active modal
@@ -773,44 +656,44 @@ export function ScenarioManagementProvider({
     [],
   );
 
-  const openOverlayInContext: OpenOverlayFn = useMemo(
-    () => (id, component, params, options) => {
-      if (!hasComponent(component)) {
-        throw new Error(
-          `[Ink-Cartridge] Component "${component.displayName || component.name || "anonymous"}" is not registered.`,
-        );
-      }
+  const openLayerInContext: OpenLayerFn = useMemo(
+    () => (layerId: string, zIndex: number, options?: LayerOptions) => {
       dispatch({
-        type: "openOverlay",
-        id,
-        component,
-        params: params as Record<string, unknown>,
-        activate: options?.activate ?? true,
-        zIndex: options?.zIndex,
-        persistent: options?.persistent,
-      });
+        type: "openLayer",
+        layerId,
+        zIndex,
+        options: options
+      })
     },
-    [],
+    []
+  )
+
+  const applyElementInContext: ApplyElementFn = useMemo(
+    () => (targetLayerId: string, layerElement: LayerElement) => {
+      dispatch({ type: "applyElement", targetLayerId, layerElement });
+    },
+    []
   );
 
-  const closeOverlayInContext: CloseOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: "closeOverlay", id }),
-    [],
+  const closeLayerInContext: CloseLayerFn = useMemo(
+    () => (targetLayerId: string) => {
+      dispatch({ type: "closeLayer", targetLayerId });
+    },
+    []
   );
 
-  const closeAllOverlaysInContext: CloseAllOverlaysFn = useMemo(
-    () => () => dispatch({ type: "closeAllOverlays" }),
-    [],
+  const eraseElementInContext: EraseElementFn = useMemo(
+    () => (targetLayerId: string, targetElementId: string) => {
+      dispatch({ type: "eraseElement", targetLayerId, targetElementId });
+    },
+    []
   );
 
-  const activateOverlayInContext: ActivateOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: "activateOverlay", id }),
-    [],
-  );
-
-  const deactivateOverlayInContext: DeactivateOverlayFn = useMemo(
-    () => (id: string) => dispatch({ type: "deactivateOverlay", id }),
-    [],
+  const closeAllLayerInContext: CloseAllLayerFn = useMemo(
+    () => () => {
+      dispatch({ type: "closeAllLayer" });
+    },
+    []
   );
 
   const openModalInContext: OpenModalFn = useMemo(
@@ -843,11 +726,6 @@ export function ScenarioManagementProvider({
     [],
   );
 
-  const activeOverlayIdsArray = useMemo(
-    () => [...state.activeOverlayIds],
-    [state.activeOverlayIds],
-  );
-
   // Compute activeModal from state
   const activeModal = state.activeModalId
     ? (state.modals.find((m) => m.id === state.activeModalId) ?? null)
@@ -855,20 +733,13 @@ export function ScenarioManagementProvider({
 
   const value: ScreenSystemContextValue = useMemo(
     () => ({
-      currentScreen,
-      currentOverlays,
+      pageLayer,
       currentModals,
+      allLayers: state.allLayers,
       currentPath: state.path,
       skip: skipInContext,
       back: backInContext,
       gotoScreen: gotoScreenInContext,
-      openOverlay: openOverlayInContext,
-      closeOverlay: closeOverlayInContext,
-      closeAllOverlays: closeAllOverlaysInContext,
-      activateOverlay: activateOverlayInContext,
-      deactivateOverlay: deactivateOverlayInContext,
-      activeOverlayIds: activeOverlayIdsArray,
-      displayedOverlays: state.overlays,
       displayedModals: state.modals,
       renderedModalEntries,
       activeModalId: state.activeModalId,
@@ -877,29 +748,32 @@ export function ScenarioManagementProvider({
       openModal: openModalInContext,
       closeModal: closeModalInContext,
       closeAllModals: closeAllModalsInContext,
+      openLayer: openLayerInContext,
+      applyElement: applyElementInContext,
+      closeLayer: closeLayerInContext,
+      eraseElement: eraseElementInContext,
+      closeAllLayer: closeAllLayerInContext,
       fullScreen,
     }),
     [
-      currentScreen,
-      currentOverlays,
+      pageLayer,
       currentModals,
       state.path,
-      state.overlays,
       state.modals,
+      state.allLayers,
       renderedModalEntries,
       activeModal,
-      activeOverlayIdsArray,
       skipInContext,
       backInContext,
       gotoScreenInContext,
-      openOverlayInContext,
-      closeOverlayInContext,
-      closeAllOverlaysInContext,
-      activateOverlayInContext,
-      deactivateOverlayInContext,
       openModalInContext,
       closeModalInContext,
       closeAllModalsInContext,
+      openLayerInContext,
+      applyElementInContext,
+      closeLayerInContext,
+      eraseElementInContext,
+      closeAllLayerInContext,
       state.activeModalId,
       fullScreen,
     ],
