@@ -1,15 +1,9 @@
-import {
-  EngineModalEntry,
-  EngineOverlayEntry,
-  GlobalPendingSequence,
-  KeyboardProcessorProps,
-  MutableRef,
-  PipelineProcessor,
-  ResolvedGlobalKeyEntry,
-  ResolvedGlobalSequenceEntry,
-  ScreenKeyboardLayer,
-} from "../types.js";
 import type CompositionEngine from "../CompositionEngine.js";
+import { ResolvedGlobalKeyEntry, ResolvedGlobalSequenceEntry } from "../types/entry.js";
+import { PageKeyboardLayer, pageLayerSymbol } from "../types/page-layer.js";
+import { GlobalPendingSequence } from "../types/pending-sequence.js";
+import { KeyboardProcessorProps, PipelineProcessor } from "../types/processor.js";
+import { SyncState } from "../types/state-sync.js";
 
 /**
  * Configuration passed to {@link KeyboardEngine} at construction time.
@@ -78,18 +72,13 @@ export interface EngineProps<TComponent> {
 
 export default class EngineState<TComponent> {
   /**
-   * Current navigation path from root to active screen.
-   * Updated by {@link sync}.
+   * Data input from an external source for recognition by the keyboard engine.
    */
-  path: TComponent[] = [];
-  /** Set of overlay IDs currently receiving keyboard events. */
-  activeOverlayIds: Set<string> = new Set();
-  /** All open overlays, sorted by zIndex ascending. */
-  displayedOverlays: EngineOverlayEntry[] = [];
-  /** ID of the currently active modal (highest zIndex), or null. */
-  activeModalIdRef: string | null = null;
-  /** All open modals, sorted by zIndex ascending. */
-  displayedModalsRef: EngineModalEntry[] = [];
+  synchronizedData: SyncState<TComponent> = {
+    pagePath: [],
+    layers: [],
+    modalLayers: []
+  }
 
   /** Set of registered mode names. */
   modesRef: Set<string>;
@@ -149,19 +138,13 @@ export default class EngineState<TComponent> {
     { action: () => void; keys?: string[]; timeout?: number }
   > = new Map();
 
-  /**
-   * Owner stack — top of stack is the current "owner" for keyboard bindings.
-   * Overlays push their ID onto this stack so that `getCurrentOwner()` returns
-   * the overlay instead of the underlying screen during overlay rendering.
-   */
-  ownerStackRef: (TComponent | string)[] = [];
+  pageLayerEelementsKeyboards: Map<TComponent, PageKeyboardLayer> = new Map()
 
   /**
-   * All keyboard layers, keyed by component or overlay/modal ID.
-   * Layers are created lazily by {@link getLayer} and cleaned up by
-   * {@link cleanLayers}, {@link cleanOverlayLayers}, and {@link cleanModalLayers}.
+   * Note: This field is used solely to store the layer's keyboard layer data; 
+   * the keys of the nested Map correspond to element IDs.
    */
-  layersRef: Map<TComponent | string, ScreenKeyboardLayer> = new Map();
+  layersKeyboardMap: Map<string, Map<string, PageKeyboardLayer>> = new Map();
 
   /** The active processor pipeline for this engine instance. */
   _processors: PipelineProcessor<TComponent>[] = [];
@@ -171,20 +154,6 @@ export default class EngineState<TComponent> {
 
   /** The host-provided normal-character checker, wired at construction. */
   _isNormalChar: (key: unknown) => boolean;
-
-  /**
-   * Persistent wrapper for `layersRef` so pipeline processors see the same
-   * Map across invocations. Processors mutate the Map in place (get/set/delete),
-   * so reassignment is never needed — a plain `{ current }` object is sufficient.
-   */
-  _layersWrapper: MutableRef<Map<unknown | string, ScreenKeyboardLayer>>;
-  /**
-   * Persistent wrapper for `globalPendingSeqRef` that propagates writes back
-   * to the engine property. Uses a getter/setter because the global-sequence
-   * processor reassigns `pendingSeqRef.current` (it does NOT mutate in place),
-   * and without write-back the next `processKey` call would see a stale value.
-   */
-  _pendingSeqWrapper: MutableRef<GlobalPendingSequence | null>;
 
   /**
    * Indicates which processor is waiting to process the sequence at this point
@@ -205,15 +174,5 @@ export default class EngineState<TComponent> {
     this._normalizeKeyNames = props.normalizeKeyNames;
     this._isNormalChar = props.isNormalChar;
     this.autoTab = props.autoTab ?? false;
-    this._layersWrapper = { current: this.layersRef };
-    const self = this;
-    this._pendingSeqWrapper = {
-      get current() {
-        return self.globalPendingSeqRef;
-      },
-      set current(v) {
-        self.globalPendingSeqRef = v;
-      },
-    };
   }
 }

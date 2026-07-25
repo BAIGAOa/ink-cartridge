@@ -162,7 +162,7 @@ export type ModalLayerOptions = {
    * Normally, when the application executes page-switching methods such as `skip` or `gotoScreen`,
    * the layer is automatically cleared; a toggle is provided here to prevent this automatic clearing.
    */
-  crossPage: boolean;
+  crossPage?: boolean;
 };
 
 export type OpenModalLayerAction = {
@@ -191,7 +191,7 @@ export type OpenModalLayerAction = {
 export type OpenModalLayerFn = (
   layerId: string,
   zIndex: number,
-  options?: LayerOptions,
+  options?: ModalLayerOptions,
 ) => void;
 
 export type ApplyElementToModalLayerAction = {
@@ -224,3 +224,40 @@ export type ApplyElementToModalLayerFn = (
   targetModalLayerId: string,
   modalLayerElement: LayerElement,
 ) => void;
+
+export type CloseModalLayerAction = {
+  type: "closeModalLayer";
+
+  /**
+   * The IDs of the layers to be turned off must be already registered.
+   */
+  targetModalLayerId: string;
+};
+/** Closes a registered layer by ID. */
+export type CloseModalLayerFn = (targetModalLayerId: string) => void;
+
+export type EraseElementInModalLayerAction = {
+  type: "eraseElementInModalLayer";
+
+  /**
+   * The layer ID corresponding to the element to be deleted must be a registered one.
+   */
+  targetModalLayerId: string;
+
+  /**
+   * The ID of the element to be deleted must correspond to an element that has existed.
+   */
+  targetElementId: string;
+};
+
+/** Removes an element from a registered layer. */
+export type EraseElementInModalLayerFn = (
+  targetLayerId: string,
+  targetElementId: string,
+) => void;
+
+export type CloseAllModaalLayerAction = {
+  type: "closeAllModaalLayer";
+};
+
+export type CloseAllModalLayerFn = () => void;

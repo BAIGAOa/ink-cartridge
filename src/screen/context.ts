@@ -3,12 +3,21 @@ import type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OpenModalFn,
-  CloseModalFn,
-  CloseAllModalsFn,
-  ModalEntry,
 } from './types.js';
-import { ApplyElementFn, CloseAllLayerFn, CloseLayerFn, EraseElementFn, Layer, OpenLayerFn } from './types/layer.js';
+import {
+  ApplyElementFn,
+  ApplyElementToModalLayerFn,
+  CloseAllLayerFn,
+  CloseAllModalLayerFn,
+  CloseLayerFn,
+  CloseModalLayerFn,
+  EraseElementFn,
+  EraseElementInModalLayerFn,
+  Layer,
+  ModalLayer,
+  OpenLayerFn,
+  OpenModalLayerFn,
+} from './types/layer.js';
 
 /**
  * Value provided by {@link ScenarioManagementProvider} via React context.
@@ -19,34 +28,18 @@ import { ApplyElementFn, CloseAllLayerFn, CloseLayerFn, EraseElementFn, Layer, O
 export interface ScreenSystemContextValue {
   /** The rendered React element for the current (top-of-stack) screen. */
   pageLayer: ReactNode;
-  /** Rendered React elements for all modals, sorted by zIndex ascending. */
-  currentModals: ReactNode[];
   /** Full navigation path from root to the current screen. */
   currentPath: React.ComponentType<any>[];
   /** All layers */
   allLayers: Layer[]
+  /** All modal layers */
+  allModalLayers: ModalLayer[]
   /** Navigate down the tree to a direct child of the current screen. */
   skip: SkipFn;
   /** Navigate up the tree toward the root. */
   back: BackFn;
   /** Jump to any registered screen across branches via LCA resolution. */
   gotoScreen: GotoScreenFn;
-  /** All open modals with metadata (id, zIndex, etc.), sorted by zIndex ascending. */
-  displayedModals: ModalEntry[];
-  /** The modal entries that correspond to the rendered modal nodes (active + renderNow). Sorted by zIndex ascending. */
-  renderedModalEntries: ModalEntry[];
-  /** ID of the currently active modal (zIndex highest), or null if none. */
-  activeModalId: string | null;
-  /** The currently active modal entry (zIndex highest), or null if none. */
-  activeModal: ModalEntry | null;
-  /** All open modals sorted by zIndex ascending. */
-  modalQueue: ModalEntry[];
-  /** Open a new modal with a unique ID. */
-  openModal: OpenModalFn;
-  /** Close a specific modal by its ID. */
-  closeModal: CloseModalFn;
-  /** Close all open modals at once. */
-  closeAllModals: CloseAllModalsFn;
   /** Whether to turn on full screen effect */
   fullScreen?: boolean;
 
@@ -60,6 +53,17 @@ export interface ScreenSystemContextValue {
   eraseElement: EraseElementFn
   /** Closes all layers at once. */
   closeAllLayer: CloseAllLayerFn
+
+  /** Opens a new modal layer with a unique ID and z-index. */
+  openModalLayer: OpenModalLayerFn
+  /** Applies an element to a registered modal layer. */
+  applyElementToModalLayer: ApplyElementToModalLayerFn
+  /** Closes a registered modal layer by its ID. */
+  closeModalLayer: CloseModalLayerFn
+  /** Removes an element from a registered modal layer. */
+  eraseElementInModalLayer: EraseElementInModalLayerFn
+  /** Closes all modal layers at once. */
+  closeAllModalLayer: CloseAllModalLayerFn
 }
 
 /**

@@ -1,25 +1,4 @@
-import {
-	EngineOverlayEntry,
-	EngineModalEntry,
-	ResolvedGlobalSequenceEntry,
-	GlobalPendingSequence,
-	ShortcutOperationEntry,
-	SequenceOperationEntry,
-	GlobalKeyEntry,
-	GlobalSequenceEntry,
-	ResolvedGlobalKeyEntry,
-	PipelineProcessor,
-	KeyboardProcessorProps,
-	PipelineContext,
-	KeyHandler,
-	BoundKeyboardOptions,
-	PenetrationOptions,
-	StopOptions,
-	AllowModalOptions,
-	SequenceOptions,
-	ModalMissCallback,
-	ModalMissOptions,
-} from "./types.js";
+
 import EngineState from "./engine/EngineState.js";
 import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
@@ -34,6 +13,13 @@ import CompositionEngine, {
 	MappingKeyEntry,
 } from "./CompositionEngine.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
+import { SyncState } from "./types/state-sync.js";
+import { GlobalKeyEntry, GlobalSequenceEntry, ResolvedGlobalKeyEntry, ResolvedGlobalSequenceEntry, SequenceOperationEntry, ShortcutOperationEntry } from "./types/entry.js";
+import { GlobalPendingSequence } from "./types/pending-sequence.js";
+import { PipelineContext, PipelineProcessor } from "./types/processor.js";
+import { KeyHandler } from "./types/binding.js";
+import { AllowModalOptions, BoundKeyboardOptions, ModalMissOptions, PenetrationOptions, SequenceOptions, StopOptions } from "./types/options.js";
+import { ModalMissCallback } from "./types/modal.js";
 
 
 /**
@@ -343,18 +329,8 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 *
 	 * @param state - Current screen system state from the host framework.
 	 */
-	sync(state: {
-		path: TComponent[];
-		activeOverlayIds: string[];
-		displayedOverlays: EngineOverlayEntry[];
-		activeModalId: string | null;
-		displayedModals: EngineModalEntry[];
-	}) {
-		this.state.path = state.path;
-		this.state.activeOverlayIds = new Set(state.activeOverlayIds);
-		this.state.displayedOverlays = state.displayedOverlays;
-		this.state.activeModalIdRef = state.activeModalId;
-		this.state.displayedModalsRef = state.displayedModals;
+	sync(state: SyncState<TComponent>) {
+		this.state.synchronizedData = state
 	}
 
 	/**
@@ -363,11 +339,11 @@ export default class KeyboardEngine<TComponent = unknown> {
 	 * stale timeouts from firing after the layer is gone.
 	 */
 	cleanLayers() {
-		this.layers.cleanLayers();
+		this.layers.cleanPages();
 	}
 	/** Remove keyboard layers for overlays that have been closed. */
 	cleanOverlayLayers() {
-		this.layers.cleanOverlayLayers();
+		this.layers.cleanLayers();
 	}
 	/** Remove keyboard layers for modals that have been closed. */
 	cleanModalLayers() {
@@ -870,31 +846,24 @@ export default class KeyboardEngine<TComponent = unknown> {
 	buildPipelineContext(input: string, key: unknown): PipelineContext<TComponent> {
 		const eventNames = this.state._normalizeKeyNames(input, key);
 		const topComponent =
-			this.state.path.length > 0
-				? this.state.path[this.state.path.length - 1]
+			this.state.synchronizedData.pagePath.length > 0
+				? this.state.synchronizedData.pagePath[this.state.synchronizedData.pagePath.length - 1]
 				: null;
-		const activeOverlays = this.state.displayedOverlays.filter((o) =>
-			this.state.activeOverlayIds.has(o.id),
-		);
 		const compositionEngineHandler = this.state.compositionEngineHandle;
 		const noActiveProcessor = this.state.noActiveProcessor;
 
 		return {
 			input,
 			eventNames,
+			elementsFromAllLayers: this.state.synchronizedData.layers,
 			topComponent,
 			globalKeys: this.state.globalKeysRef,
 			globalSequences: this.state.globalSequencesRef,
-			activeOverlays,
-			activeCount: this.state.activeOverlayIds.size,
 			wildcardFirst: this.state.wildcardPriorityCountRef > 0,
-			screenPath: [...this.state.path],
-			activeModalId: this.state.activeModalIdRef,
 			layersRef: this.state._layersWrapper,
 			pendingSeqRef: this.state._pendingSeqWrapper,
 			notifyFocusChange: () => this.layers.notifyFocusChange(),
 			notifyPendingSyncs: () => this.notifyPendingSyncs(),
-			anyOverlayConsumed: false,
 			currentMode: this.state.currentModeRef,
 			conditions: this.state.conditions,
 			key,

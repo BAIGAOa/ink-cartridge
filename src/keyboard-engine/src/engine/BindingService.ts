@@ -3,19 +3,9 @@ import {
 	finalizeBoundKeyboard,
 	pushKeyEntries,
 } from "../providers/helpers.js";
-import {
-	AllowModalOptions,
-	BoundKeyboardOptions,
-	BoundKeyEntry,
-	KeyHandler,
-	ModalMissCallback,
-	ModalMissOptions,
-	PenetrationOptions,
-	ScreenKeyboardLayer,
-	SequenceBinding,
-	SequenceOptions,
-	StopOptions,
-} from "../types.js";
+import { BoundKeyEntry, KeyHandler, SequenceBinding } from "../types/binding.js";
+import { BoundKeyboardOptions, SequenceOptions, StopOptions } from "../types/options.js";
+import { PageKeyboardLayer } from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 import LayerManager from "./LayerManager.js";
 
@@ -33,8 +23,6 @@ export default class BindingService<TComponent = unknown> {
 		const createBoundKeyEntry = (
 			keys: string[],
 			handler: KeyHandler | string,
-			onlyThis: boolean,
-			owner: TComponent | string,
 		): BoundKeyEntry => {
 			if (typeof handler === "string") {
 				const entry = this.state.shortcutOperationsRef.get(handler);
@@ -43,15 +31,15 @@ export default class BindingService<TComponent = unknown> {
 						`[Ink-Cartridge] The shortcut key you used does not exist with ID ${handler}`,
 					);
 				}
-				return { keys, handler: entry.action, onlyThis, owner };
+				return { keys, handler: entry.action };
 			}
-			return { keys, handler, onlyThis, owner };
+			return { keys, handler };
 		};
 
 		const applyGlobalKeyOverrides = (
 			keys: string[],
 			owner: TComponent | string,
-			layer: ScreenKeyboardLayer,
+			layer: PageKeyboardLayer,
 			bindingContext: string,
 		): void => {
 			for (const gk of this.state.globalKeysRef) {
@@ -163,7 +151,7 @@ export default class BindingService<TComponent = unknown> {
 			const entry = createBoundKeyEntry(
 				keys,
 				handler,
-				options?.onlyThis ?? false,
+				
 				owner,
 			);
 			entry.when = options?.when;
@@ -187,8 +175,6 @@ export default class BindingService<TComponent = unknown> {
 		const entry = createBoundKeyEntry(
 			keys,
 			handler,
-			options?.onlyThis ?? false,
-			owner,
 		);
 		entry.when = options?.when;
 		entry.mode = options?.mode;

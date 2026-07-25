@@ -6,17 +6,19 @@ export {
   skip,
   back,
   gotoScreen,
-  openOverlay,
-  closeOverlay,
-  closeAllOverlays,
-  activateOverlay,
-  deactivateOverlay,
-  openModal,
-  closeModal,
-  closeAllModals,
+  openLayer,
+  applyElement,
+  closeLayer,
+  eraseElement,
+  closeAllLayer,
+  openModalLayer,
+  applyElementToModalLayer,
+  closeModalLayer,
+  eraseElementInModalLayer,
+  closeAllModalLayer,
   useScreenSystem,
-  ModalContext,
-  OverlayContext,
+  ModalLayerElementContext,
+  LayerElementContext,
 } from "./screen/index.js";
 
 export type {
@@ -24,20 +26,23 @@ export type {
   SkipFn,
   BackFn,
   GotoScreenFn,
-  OpenOverlayFn,
-  CloseOverlayFn,
-  CloseAllOverlaysFn,
-  ActivateOverlayFn,
-  DeactivateOverlayFn,
-  OpenModalFn,
-  CloseModalFn,
-  CloseAllModalsFn,
-  OpenOverlayOptions,
-  OpenModalOptions,
-  OverlayEntry,
-  ModalEntry,
   RegisterOptions,
   ScenarioManagementProviderProps,
+  Layer,
+  LayerOptions,
+  OpenLayerFn,
+  ApplyElementFn,
+  CloseLayerFn,
+  EraseElementFn,
+  CloseAllLayerFn,
+  ModalLayer,
+  ModalLayerOptions,
+  OpenModalLayerFn,
+  ApplyElementToModalLayerFn,
+  CloseModalLayerFn,
+  EraseElementInModalLayerFn,
+  CloseAllModalLayerFn,
+  LayerElement,
 } from "./screen/index.js";
 
 // ── Keyboard System ────────────────────────────────────────
@@ -165,6 +170,4 @@ export type {
   EventProviderProps,
 } from "./event/index.js";
 
-// Dev Tool
-export { openDevTool, closeDevTool } from "./dev/entrance.js";
-export type { DevProps } from "./dev/types.js";
+

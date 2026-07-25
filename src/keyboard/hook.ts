@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
-import { LayerElementContext } from "../screen/OverlayContext.js";
-import { ModalContext } from "../screen/ModalContext.js";
+import { LayerElementContext } from "../screen/LayerElementContext.js";
+import { ModalLayerElementContext } from "../screen/ModalLayerElementContext.js";
 import { useScreenSystem } from "../screen/hook.js";
 import type {
   ModalMissCallback,
@@ -29,7 +29,7 @@ import type {
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
   const overlayCtx = useContext(LayerElementContext);
-  const modalCtx = useContext(ModalContext);
+  const modalCtx = useContext(ModalLayerElementContext);
 
   const overlayId = overlayCtx?.id ?? null;
   const modalId = modalCtx?.id ?? null;
@@ -128,7 +128,7 @@ export function useModalMissListener(
   options?: ModalMissOptions,
 ): () => void {
   const ctx = useContext(KeyboardContext);
-  const modalCtx = useContext(ModalContext);
+  const modalCtx = useContext(ModalLayerElementContext);
   const modalId = modalCtx?.id ?? null;
 
   useEffect(() => {

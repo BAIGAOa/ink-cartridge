@@ -1,8 +1,8 @@
 import React from "react";
 import { Box, useWindowSize } from "ink";
 import { useScreenSystem } from "./hook.js";
-import { ModalContext } from "./ModalContext.js";
-import { LayerElementContext } from "./OverlayContext.js";
+import { ModalLayerElementContext } from "./ModalLayerElementContext.js";
+import { LayerElementContext } from "./LayerElementContext.js";
 
 /**
  * Render the current screen, overlays, and modals.
@@ -21,10 +21,9 @@ import { LayerElementContext } from "./OverlayContext.js";
 export function CurrentScreen(): React.ReactNode {
   const {
     pageLayer,
-    currentModals,
-    renderedModalEntries,
     fullScreen,
     allLayers,
+    allModalLayers,
   } = useScreenSystem();
   const { rows } = useWindowSize();
 
@@ -59,18 +58,34 @@ export function CurrentScreen(): React.ReactNode {
     );
   });
 
-  // Build modal elements with ModalContext wrappers (symmetric to overlays).
-  // Uses renderedModalEntries (parallel to currentModals) for correct ID matching.
-  const standardLayers = currentModals.map((modalNode, i) => {
-    const entry = renderedModalEntries[i];
-    if (!entry) return modalNode;
-    return React.createElement(
-      ModalContext.Provider,
-      {
-        value: { id: entry.id, originComponent: entry.originComponent },
-        key: `mdl-ctx-${entry.id}`,
-      },
-      modalNode,
+  const modals = allModalLayers.map((modalLayer) => {
+    return (
+      <Box
+        key={modalLayer.layerId}
+        position="absolute"
+        top={0}
+        left={0}
+        height="100%"
+        width="100%"
+      >
+        {Array.from(modalLayer.elements)
+          .map((each) => each[1])
+          .map((layerElement) => {
+            const contextValue = {
+              id: layerElement.elementId,
+              modalLayer: modalLayer,
+            };
+
+            return (
+              <ModalLayerElementContext.Provider
+                value={contextValue}
+                key={layerElement.elementId}
+              >
+                <layerElement.element />
+              </ModalLayerElementContext.Provider>
+            );
+          })}
+      </Box>
     );
   });
 
@@ -82,7 +97,7 @@ export function CurrentScreen(): React.ReactNode {
     >
       {pageLayer}
       {layers}
-      {standardLayers.map((w) => w)}
+      {modals}
     </Box>
   );
 }

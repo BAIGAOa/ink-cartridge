@@ -1,22 +1,47 @@
 import {
 	BackAction,
-	CloseAllModalsAction,
-	CloseModalAction,
 	GotoScreenAction,
-	OpenModalAction,
 	SkipAction,
 } from "../types.js";
-import { ApplyElementAction, CloseAllLayerAction, CloseLayerAction, EraseElementAction, OpenLayerAction } from "./layer.js";
+import {
+	ApplyElementAction,
+	ApplyElementToModalLayerAction,
+	CloseAllLayerAction,
+	CloseAllModaalLayerAction,
+	CloseLayerAction,
+	CloseModalLayerAction,
+	EraseElementAction,
+	EraseElementInModalLayerAction,
+	OpenLayerAction,
+	OpenModalLayerAction,
+} from "./layer.js";
 
 export type ScreenAction =
 	| SkipAction
 	| BackAction
 	| GotoScreenAction
-	| OpenModalAction
-	| CloseModalAction
-	| CloseAllModalsAction
 	| OpenLayerAction
-    | ApplyElementAction
-    | CloseLayerAction
-    | EraseElementAction
-    | CloseAllLayerAction;
+	| ApplyElementAction
+	| CloseLayerAction
+	| EraseElementAction
+	| CloseAllLayerAction
+	| OpenModalLayerAction
+	| CloseModalLayerAction
+	| ApplyElementToModalLayerAction
+	| EraseElementInModalLayerAction
+	| CloseAllModaalLayerAction;
+
+export type ScreenActionType =
+	| "skip"
+	| "back"
+	| "gotoScreen"
+	| "openLayer"
+	| "applyElement"
+	| "closeLayer"
+	| "eraseElement"
+	| "closeAllLayer"
+	| "openModalLayer"
+	| "closeModalLayer"
+	| "applyElementToModalLayer"
+	| "eraseElementInModalLayer"
+	| "closeAllModaalLayer";
