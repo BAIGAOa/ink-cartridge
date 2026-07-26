@@ -148,6 +148,10 @@ export interface StopOptions {
    * ignored and the key propagates normally.
    */
   when?: (() => boolean) | string;
+  /**
+   * Bind the keyboard to the ID of the specified element
+   */
+  elementId?: string;
 }
 
 /**
@@ -169,6 +173,11 @@ export interface ModalMissOptions {
    * is treated as a **miss**. Default `false` (treated as handled).
    */
   monitorFocusMismatch?: boolean;
+
+  /**
+   * The ID of the element to which you want to bind the keyboard
+   */
+  elementId?: string;
 }
 
 /**
@@ -184,6 +193,10 @@ export interface PenetrationOptions {
    * is ignored and the key is not passed through.
    */
   when?: (() => boolean) | string;
+  /**
+   * ID bound to the corresponding element
+   */
+  elementId?: string;
 }
 
 /**
@@ -195,4 +208,12 @@ export interface AllowModalOptions {
   focusId?: string | { group: string; focusId: string };
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
   when?: (() => boolean) | string;
+  /**
+   * The ID of the element to which you want to bind
+   */
+  elementId?: string;
+}
+
+export interface SequenceListeningOptions {
+  elementId?: string;
 }

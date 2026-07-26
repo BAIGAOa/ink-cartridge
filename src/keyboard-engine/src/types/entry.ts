@@ -34,7 +34,7 @@ export interface GlobalKeyEntry {
    * - `false` (default): Overlay → global key → screen stack
    * - `true`:            Global key → overlay → screen stack
    */
-  affectOverlay?: boolean;
+  affectLayer?: boolean;
 
   /**
    * Number of times the global key must be pressed before the handler fires.
@@ -137,7 +137,7 @@ export interface GlobalSequenceEntry {
    * - `false` (default): overlay → global sequence → … → screen stack
    * - `true`:            global sequence → overlay → … → screen stack
    */
-  affectOverlay?: boolean;
+  affectLayer?: boolean;
 
   /**
    * Whitelist of screen components that may use this global sequence.
@@ -256,7 +256,7 @@ export interface ResolvedGlobalKeyEntry {
   key: string | string[];
   operate: () => void;
   cover?: boolean;
-  affectOverlay?: boolean;
+  affectLayer?: boolean;
   category?: unknown[] | "*";
   times?: number;
   observer?: (times: number) => void;

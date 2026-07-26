@@ -8,8 +8,12 @@ import {
   KeyHandler,
   SequenceBinding,
 } from "../types/binding.js";
+import { ModalMissCallback } from "../types/modal.js";
 import {
+  AllowModalOptions,
   BoundKeyboardOptions,
+  ModalMissOptions,
+  PenetrationOptions,
   SequenceOptions,
   StopOptions,
 } from "../types/options.js";
@@ -22,6 +26,31 @@ export default class BindingService<TComponent = unknown> {
     private state: EngineState<TComponent>,
     private layers: LayerManager<TComponent>,
   ) {}
+
+  private getKeyboardInCurrentContext(
+    owner: string | TComponent,
+    elementId?: string,
+  ) {
+    let layer: PageKeyboardLayer;
+    if (typeof owner === "string" && elementId) {
+      layer = this.layers.getLayer(owner, elementId);
+    } else if (typeof owner !== "string" && !elementId) {
+      layer = this.layers.getLayer(owner);
+    } else {
+      const topComponent = this.layers.getTopPage();
+
+      if (!topComponent) {
+        throw new Error(
+          `
+          [keyboard-engine] getKeyboardInCurrentContext(): No Page currently exists, but a Layer does. You must provide an elementId, or register it
+  		`,
+        );
+      }
+
+      layer = this.layers.getLayer(topComponent);
+    }
+    return layer;
+  }
 
   boundKeyboard(
     keysOrActionId: string | string[],
@@ -69,7 +98,7 @@ export default class BindingService<TComponent = unknown> {
         }
 
         const cover = gk.cover ?? true;
-        const affectOverlay = gk.affectOverlay ?? false;
+        const affectOverlay = gk.affectLayer ?? false;
 
         if (isOverlayOwner) {
           if (!affectOverlay) continue;
@@ -145,30 +174,7 @@ export default class BindingService<TComponent = unknown> {
       );
     }
 
-    let layer: PageKeyboardLayer | null = null;
-    if (options?.elementId && typeof owner === "string") {
-      layer = this.layers.getLayer(owner, options.elementId);
-    } else if (typeof owner !== "string" && !options?.elementId) {
-      layer = this.layers.getLayer(owner);
-    } else {
-      const topC = this.layers.getTopPage();
-      // Although the case where get CurrentOwner is null was checked earlier
-      // However, it is worth noting that the application layer may not register the screen, but only the layer.
-      // So you still need to check if topPage is null
-      // At this point, the user can either register a new Page or just use the layer and pass the elementId parameter
-      // This also ensures that if the user currently has a Page and opens a new Layer,
-      // the keyboard data of the boundKeyboard of the Page can still be bound to the Page instead of the wrong one.
-      // Graceful fallback to Page even if no elementId is passed in at Layer
-      if (!topC) {
-        throw new Error(
-          `
-						[keyboard-engine] boundKeyboard(): No Page currently exists, but a Layer does. You must provide an elementId, or register a Page
-					`,
-        );
-      }
-      layer = this.layers.getLayer(topC);
-    }
-
+    let layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
     if (options?.focusId) {
       const fid = options.focusId;
       const target =
@@ -218,10 +224,10 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (!owner) {
       throw new Error(
-        "[Ink-Cartridge] penetration() must be called inside a screen component or overlay.",
+        "[keyboard-engine] penetration() must be called inside a screen component or overlay.",
       );
     }
-    const layer = this.layers.getLayer(owner);
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
     const compiledWhen = options?.when;
 
     const container: KeyRuleContainer = options?.focusId
@@ -244,10 +250,10 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (!owner) {
       throw new Error(
-        "[Ink-Cartridge] stop() must be called inside a screen component or overlay.",
+        "[keyboard-engine] stop() must be called inside a screen component or overlay.",
       );
     }
-    const layer = this.layers.getLayer(owner);
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
     let effectiveKeys: string[] = keys;
     if (options?.stopAction) {
@@ -270,7 +276,7 @@ export default class BindingService<TComponent = unknown> {
         const boundKeys = map.get(actionId);
         if (!boundKeys) {
           throw new Error(
-            `[Ink-Cartridge] stop(["${actionId}"], { stopAction: true }) on "${ownerName}": ` +
+            `[keyboard-engine] stop(["${actionId}"], { stopAction: true }) on "${ownerName}": ` +
               `action "${actionId}" is not registered or has no keys bound. ` +
               `Register it with defineShortcutAction() and bind it with boundKeyboard() first.`,
           );
@@ -304,16 +310,10 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (!owner) {
       throw new Error(
-        "[Ink-Cartridge] allowModal() must be called inside a modal component.",
+        "[keyboard-engine] allowModal() must be called inside a modal component.",
       );
     }
-    const layer = this.layers.getLayer(owner);
-
-    if (layer.kind !== "modal") {
-      throw new Error(
-        "[Ink-Cartridge] allowModal() can only be used on a modal layer.",
-      );
-    }
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
     const container: KeyRuleContainer = options?.focusId
       ? typeof options.focusId === "string"
@@ -345,12 +345,12 @@ export default class BindingService<TComponent = unknown> {
       const entry = this.state.sequenceOperationsRef.get(actionId);
       if (!entry) {
         throw new Error(
-          `[Ink-Cartridge] Sequence action "${actionId}" is not registered.`,
+          `[keyboard-engine] Sequence action "${actionId}" is not registered.`,
         );
       }
       if (!entry.keys || entry.keys.length === 0) {
         throw new Error(
-          `[Ink-Cartridge] Sequence action "${actionId}" does not have predefined keys. Please register with a keys field or call boundSequence with explicit keys.`,
+          `[keyboard-engine] Sequence action "${actionId}" does not have predefined keys. Please register with a keys field or call boundSequence with explicit keys.`,
         );
       }
       const mergedOptions: SequenceOptions = {
@@ -369,12 +369,12 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (!owner) {
       throw new Error(
-        "[Ink-Cartridge] boundSequence() must be called inside a screen component or overlay.",
+        "[keyboard-engine] boundSequence() must be called inside a screen component or overlay.",
       );
     }
     if (keys.length < 2) {
       throw new Error(
-        "[Ink-Cartridge] boundSequence() requires at least 2 keys in the sequence.",
+        "[keyboard-engine] boundSequence() requires at least 2 keys in the sequence.",
       );
     }
 
@@ -384,7 +384,7 @@ export default class BindingService<TComponent = unknown> {
       if (gs.cover !== false) continue;
       if (gs.keys[0] !== firstKey) continue;
       if (isOverlayOwner) {
-        if (!(gs.affectOverlay ?? false)) continue;
+        if (!(gs.affectLayer ?? false)) continue;
       } else {
         const cat = gs.category;
         if (cat !== undefined && cat !== "*") {
@@ -395,14 +395,14 @@ export default class BindingService<TComponent = unknown> {
         ? owner
         : (owner as any).displayName || (owner as any).name || "anonymous";
       throw new Error(
-        `[Ink-Cartridge] ${isOverlayOwner ? `Overlay "${ownerName}"` : `Component "${ownerName}"`} ` +
+        `[keyboard-engine] ${isOverlayOwner ? `Overlay "${ownerName}"` : `Component "${ownerName}"`} ` +
           `attempted to bind sequence [${keys.join(", ")}] via boundSequence, ` +
           `but the first key "${firstKey}" is already declared in globalSequence ` +
           `with cover: false, so overriding is not allowed.`,
       );
     }
 
-    const layer = this.layers.getLayer(owner);
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
     const binding: SequenceBinding = {
       keys,
@@ -432,13 +432,8 @@ export default class BindingService<TComponent = unknown> {
   ): () => void {
     const owner = this.layers.getCurrentOwner();
     if (!owner) return () => {};
-    const layer = this.layers.getLayer(owner);
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
-    if (layer.kind !== "modal") {
-      throw new Error(
-        "[Ink-Cartridge] useModalMissListener() can only be used on a modal layer.",
-      );
-    }
     layer.onMiss = cb;
     layer.onMissOptions = options;
     return () => {
