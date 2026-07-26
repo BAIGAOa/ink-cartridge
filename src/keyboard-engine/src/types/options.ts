@@ -30,19 +30,21 @@ export interface SequenceOptions extends BoundKeyboardOptions {
   exclusive?: boolean;
 }
 
-
 /**
  * Options for {@link KeyboardEngine.boundKeyboard}.
  */
 export interface BoundKeyboardOptions {
   /**
+   * If an ID is specified,
+   * the keyboard data is bound to the target element of the current layer
+   */
+  elementId?: string;
+  /**
    * In which focus must the currently bound key be active for it to take effect
    * If only one string is filled in, this key is bound to the default focus layer
    * If an explicit group is declared, it is bound to that group.
    */
-  focusId?:
-    | string
-    | { group: string; focusId: string };
+  focusId?: string | { group: string; focusId: string };
 
   /**
    * When `true`, the binding is automatically removed after its first
@@ -120,16 +122,13 @@ export interface BoundKeyboardOptions {
   mode?: string;
 }
 
-
 /**
  * Options for {@link KeyboardEngine.stop} when stopping keys
  * within a specific focus target.
  */
 export interface StopOptions {
   /** If provided, stops only within the named focus target. */
-  focusId?:
-    | string
-    | { group: string; focusId: string };
+  focusId?: string | { group: string; focusId: string };
   /**
    * When `true`, treats each entry in `keys` as a shortcut **action ID**
    * and resolves it to the actual key names currently bound to that action
@@ -178,9 +177,7 @@ export interface ModalMissOptions {
  */
 export interface PenetrationOptions {
   /** If provided, penetrates only within the named focus target. */
-  focusId?:
-    | string
-    | { group: string; focusId: string };
+  focusId?: string | { group: string; focusId: string };
   /**
    * Optional condition callback. When provided, the key is only transparent
    * when this returns `true`. When `false`, the penetration rule
@@ -195,9 +192,7 @@ export interface PenetrationOptions {
  */
 export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
-  focusId?:
-    | string
-    | { group: string; focusId: string };
+  focusId?: string | { group: string; focusId: string };
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
   when?: (() => boolean) | string;
 }

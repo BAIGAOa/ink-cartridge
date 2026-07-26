@@ -162,6 +162,18 @@ export default class LayerManager<TComponent = unknown> {
     return elementKeyboard;
   }
 
+  /**
+   * Used to get the current page
+   * This method will be used for graceful fallback of
+   * the binding method and to ensure that the page level binding
+   * remains stable even after the layer is present
+   */
+  getTopPage() {
+    const data = this.state.synchronizedData;
+    if (data.pagePath.length === 0) return null;
+    return data.pagePath[data.pagePath.length - 1];
+  }
+
   getCurrentOwner(): TComponent | string | null {
     const data = this.state.synchronizedData;
     if (data.modalLayers.length > 0) {
