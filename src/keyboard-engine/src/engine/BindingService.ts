@@ -230,7 +230,7 @@ export default class BindingService<TComponent = unknown> {
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
     const compiledWhen = options?.when;
 
-    const container: KeyRuleContainer = options?.focusId
+    const container = options?.focusId
       ? typeof options.focusId === "string"
         ? this.layers.getOrCreateFocusTarget(layer, options.focusId)
         : this.layers.getOrCreateFocusTarget(

@@ -1,6 +1,6 @@
 import type CompositionEngine from "../CompositionEngine.js";
 import { ResolvedGlobalKeyEntry, ResolvedGlobalSequenceEntry } from "../types/entry.js";
-import { PageKeyboardLayer, pageLayerSymbol } from "../types/page-layer.js";
+import { LayerKeyboardLayer, PageKeyboardLayer, pageLayerSymbol } from "../types/page-layer.js";
 import { GlobalPendingSequence } from "../types/pending-sequence.js";
 import { KeyboardProcessorProps, PipelineProcessor } from "../types/processor.js";
 import { SyncState } from "../types/state-sync.js";
@@ -144,7 +144,7 @@ export default class EngineState<TComponent> {
    * Note: This field is used solely to store the layer's keyboard layer data; 
    * the keys of the nested Map correspond to element IDs.
    */
-  layersKeyboardMap: Map<string, Map<string, PageKeyboardLayer>> = new Map();
+  layersKeyboardMap: Map<string, LayerKeyboardLayer> = new Map();
 
   /** The active processor pipeline for this engine instance. */
   _processors: PipelineProcessor<TComponent>[] = [];

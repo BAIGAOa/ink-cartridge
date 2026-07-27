@@ -40,15 +40,25 @@ export default class LayerManager<TComponent = unknown> {
         for (const element of prevLayer.elements) {
           const layer = this.state.synchronizedData.layers[layerIndex];
           if (!layer.elements.includes(element)) {
-            const elementKeyboard = layerKeyboard.get(element);
-            if (elementKeyboard?.pendingSequence) {
-              clearTimeout(elementKeyboard.pendingSequence.timer);
-              elementKeyboard.pendingSequence = null;
+            if (layerKeyboard.pendingSequence.fromElementId === element) {
+              const timer = layerKeyboard.pendingSequence.pendingSequence.timer
+              clearTimeout(timer)
+              layerKeyboard.pendingSequence = {
+                fromElementId: null,
+                pendingSequence: null
+              }
             }
-            layerKeyboard.delete(element);
           }
         }
       } else {
+        if (layerKeyboard?.pendingSequence.pendingSequence) {
+          const timer = layerKeyboard.pendingSequence.pendingSequence.timer
+          clearTimeout(timer)
+          layerKeyboard.pendingSequence = {
+            fromElementId: null,
+            pendingSequence: null
+          }
+        }
         this.state.layersKeyboardMap.delete(prevLayer.layerId);
       }
     }
