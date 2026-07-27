@@ -17,7 +17,7 @@ import {
   SequenceOptions,
   StopOptions,
 } from "../types/options.js";
-import { PageKeyboardLayer } from "../types/page-layer.js";
+import { ElementKeyboard, PageKeyboardLayer } from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 import LayerManager from "./LayerManager.js";
 
@@ -31,7 +31,7 @@ export default class BindingService<TComponent = unknown> {
     owner: string | TComponent,
     elementId?: string,
   ) {
-    let layer: PageKeyboardLayer;
+    let layer: PageKeyboardLayer | ElementKeyboard;
     if (typeof owner === "string" && elementId) {
       layer = this.layers.getLayer(owner, elementId);
     } else if (typeof owner !== "string" && !elementId) {

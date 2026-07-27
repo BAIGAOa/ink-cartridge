@@ -1,7 +1,11 @@
 import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
 import { FocusSetOptions, FocusTarget } from "../types/focus.js";
 import { KyeboardLayer } from "../types/keyboard-layer.js";
-import { ElementKeyboard, LayerKeyboardLayer, PageKeyboardLayer } from "../types/page-layer.js";
+import {
+  ElementKeyboard,
+  LayerKeyboardLayer,
+  PageKeyboardLayer,
+} from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 
 export default class LayerManager<TComponent = unknown> {
@@ -215,15 +219,28 @@ export default class LayerManager<TComponent = unknown> {
     this.state.focusSubscribersRef.forEach((fn) => fn());
   }
 
-  clearPendingSequence(layer: PageKeyboardLayer) {
-    if (layer.pendingSequence !== null) {
-      clearTimeout(layer.pendingSequence.timer);
-      layer.pendingSequence = null;
+  clearPendingSequence(layer: PageKeyboardLayer | ElementKeyboard) {
+    if ("associatedLayer" in layer) {
+      const from = this.state.layersKeyboardMap.get(layer.associatedLayer);
+      if (from?.pendingSequence.pendingSequence) {
+        const timer = from.pendingSequence.pendingSequence.timer;
+        clearTimeout(timer);
+        from.pendingSequence = {
+          fromElementId: null,
+          pendingSequence: null,
+        };
+      }
+    } else {
+      if (layer.pendingSequence) {
+        const timer = layer.pendingSequence.timer;
+        clearTimeout(timer);
+        layer.pendingSequence = null;
+      }
     }
   }
 
   getOrCreateFocusTarget(
-    layer: PageKeyboardLayer,
+    layer: PageKeyboardLayer | ElementKeyboard,
     focusId: string,
     group?: string,
   ): FocusTarget {
@@ -603,7 +620,7 @@ export default class LayerManager<TComponent = unknown> {
     const element =
       typeof groupOrOptions !== "string" ? groupOrOptions?.element : undefined;
 
-    let layer: PageKeyboardLayer;
+    let layer: PageKeyboardLayer | ElementKeyboard;
     try {
       layer = this.resolveKeyboardLayer(owner, element).layer;
     } catch {
@@ -655,7 +672,7 @@ export default class LayerManager<TComponent = unknown> {
     const element =
       typeof groupOrOptions !== "string" ? groupOrOptions?.element : undefined;
 
-    let layer: PageKeyboardLayer;
+    let layer: PageKeyboardLayer | ElementKeyboard;
     try {
       layer = this.resolveKeyboardLayer(owner, element).layer;
     } catch {
@@ -736,7 +753,7 @@ export default class LayerManager<TComponent = unknown> {
     const element =
       typeof groupOrOptions !== "string" ? groupOrOptions?.element : undefined;
 
-    let layer: PageKeyboardLayer;
+    let layer: PageKeyboardLayer | ElementKeyboard;
     try {
       layer = this.resolveKeyboardLayer(owner, element).layer;
     } catch {
@@ -796,7 +813,7 @@ export default class LayerManager<TComponent = unknown> {
     const element =
       typeof groupOrOptions !== "string" ? groupOrOptions?.element : undefined;
 
-    let layer: PageKeyboardLayer;
+    let layer: PageKeyboardLayer | ElementKeyboard;
     try {
       layer = this.resolveKeyboardLayer(owner, element).layer;
     } catch {
