@@ -6,12 +6,28 @@ import { ModalMissCallback } from "./modal.js";
 import { ModalMissOptions } from "./options.js";
 import { PendingSequence } from "./pending-sequence.js";
 
-
 /**
  * Use Symbol to avoid conflicts with user-defined layer IDs.
  */
-export const pageLayerSymbol: unique symbol = Symbol("pageLayer")
+export const pageLayerSymbol: unique symbol = Symbol("pageLayer");
 
+export interface LayerKeyboardLayer {
+  /**
+   * Key indicating that the modal box allows penetration to the underlying layer
+   * Only the modal layer is valid
+   */
+  allowedKeys: KeyRule[];
+
+  /**
+   * Waiting sequence for the current layer, only one waiting sequence per layer is allowed
+   */
+  pendingSequence: PendingSequence | null;
+
+  /**
+   * Keyboard layer for all elements below this layer
+   */
+  elementKeyboards: PageKeyboardLayer;
+}
 
 /**
  * Per-layer keyboard state: bindings, transparent keys, stop keys,
@@ -29,17 +45,6 @@ export interface PageKeyboardLayer {
   penetrationKeys: KeyRule[];
   /** Key rules stopped at the screen level (propagation barrier). */
   stoppedKeys: KeyRule[];
-  /**
-   * Key rules that are allowed to pass through the modal barrier.
-   *
-   * Only meaningful on modal layers. When the active modal processes a key
-   * that matches an entry in this list, the key is NOT consumed by the modal
-   * processor — it falls through to the next pipeline stage (global keys,
-   * overlays, or screens).
-   *
-   * Registered via {@link KeyboardEngine.allowModal}.
-   */
-  allowedKeys: KeyRule[];
   /** Keys from globalKeys that this layer has overridden. */
   globalKeyOverrides: Set<string>;
 
@@ -61,7 +66,7 @@ export interface PageKeyboardLayer {
    * All focus of the default focus layer is used for automatic focus switching by default
    */
   defaultFocusOrder: string[];
-  
+
   /** The currently active focus target id, or null. */
   currentFocusIds: {
     id: string;
@@ -76,8 +81,7 @@ export interface PageKeyboardLayer {
    * to create a {@link PendingSequence} on this layer.
    */
   sequences: Map<string, SequenceBinding[]>;
-  /** Currently active pending sequence, or `null` if none. */
-  pendingSequence: PendingSequence | null;
+
   /**
    * Callback invoked when the active modal receives a key that was not
    * handled by any binding (registered via {@link useModalMissListener}).

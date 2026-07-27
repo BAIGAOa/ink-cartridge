@@ -15,12 +15,6 @@ export interface FocusTarget {
   penetrationKeys: KeyRule[];
   /** Key rules stopped on this target (propagation barrier). */
   stoppedKeys: KeyRule[];
-  /**
-   * Key rules allowed to pass through the modal barrier, scoped to
-   * this focus target. Only meaningful on modal layers.
-   * Registered via {@link KeyboardEngine.allowModal} with a `focusId`.
-   */
-  allowedKeys: KeyRule[];
   /** Maps action IDs to the normalized keys that trigger them (for stopAction). */
   actionKeysMap: Map<string, string[]>;
 }
