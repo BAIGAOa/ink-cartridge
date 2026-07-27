@@ -1,7 +1,7 @@
 import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
 import { FocusSetOptions, FocusTarget } from "../types/focus.js";
 import { KyeboardLayer } from "../types/keyboard-layer.js";
-import { PageKeyboardLayer, pageLayerSymbol } from "../types/page-layer.js";
+import { ElementKeyboard, LayerKeyboardLayer, PageKeyboardLayer } from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 
 export default class LayerManager<TComponent = unknown> {
@@ -41,24 +41,24 @@ export default class LayerManager<TComponent = unknown> {
           const layer = this.state.synchronizedData.layers[layerIndex];
           if (!layer.elements.includes(element)) {
             if (layerKeyboard.pendingSequence.fromElementId === element) {
-              const timer = layerKeyboard.pendingSequence.pendingSequence.timer
-              clearTimeout(timer)
+              const timer = layerKeyboard.pendingSequence.pendingSequence.timer;
+              clearTimeout(timer);
               layerKeyboard.pendingSequence = {
                 fromElementId: null,
-                pendingSequence: null
-              }
+                pendingSequence: null,
+              };
             }
-            layerKeyboard.delete(element);
+            layerKeyboard.elementKeyboards.delete(element);
           }
         }
       } else {
         if (layerKeyboard?.pendingSequence.pendingSequence) {
-          const timer = layerKeyboard.pendingSequence.pendingSequence.timer
-          clearTimeout(timer)
+          const timer = layerKeyboard.pendingSequence.pendingSequence.timer;
+          clearTimeout(timer);
           layerKeyboard.pendingSequence = {
             fromElementId: null,
-            pendingSequence: null
-          }
+            pendingSequence: null,
+          };
         }
         this.state.layersKeyboardMap.delete(prevLayer.layerId);
       }
@@ -82,24 +82,24 @@ export default class LayerManager<TComponent = unknown> {
             this.state.synchronizedData.modalLayers[modalLayerIndex];
           if (!currentModalLayer.elements.includes(element)) {
             if (layerKeyboard.pendingSequence.fromElementId === element) {
-              const timer = layerKeyboard.pendingSequence.pendingSequence.timer
-              clearTimeout(timer)
+              const timer = layerKeyboard.pendingSequence.pendingSequence.timer;
+              clearTimeout(timer);
               layerKeyboard.pendingSequence = {
                 fromElementId: null,
-                pendingSequence: null
-              }
+                pendingSequence: null,
+              };
             }
-            layerKeyboard.delete(element);
+            layerKeyboard.elementKeyboards.delete(element);
           }
         }
       } else {
         if (layerKeyboard?.pendingSequence.pendingSequence) {
-          const timer = layerKeyboard.pendingSequence.pendingSequence.timer
-          clearTimeout(timer)
+          const timer = layerKeyboard.pendingSequence.pendingSequence.timer;
+          clearTimeout(timer);
           layerKeyboard.pendingSequence = {
             fromElementId: null,
-            pendingSequence: null
-          }
+            pendingSequence: null,
+          };
         }
         this.state.layersKeyboardMap.delete(prevModalLayer.layerId);
       }
@@ -108,15 +108,11 @@ export default class LayerManager<TComponent = unknown> {
     this.prevModalLayers = [...this.state.synchronizedData.modalLayers];
   }
 
-  private createKeyboardLayer(
-    associated: typeof pageLayerSymbol | string,
-  ): PageKeyboardLayer {
+  private createKeyboardLayer(): PageKeyboardLayer {
     return {
-      associatedLayer: associated,
       bindings: [],
       penetrationKeys: [],
       stoppedKeys: [],
-      allowedKeys: [],
       globalKeyOverrides: new Set(),
       focusTargets: new Map(),
       defaultFocusOrder: [],
@@ -129,11 +125,11 @@ export default class LayerManager<TComponent = unknown> {
   }
 
   getLayer(screenComponent: TComponent): PageKeyboardLayer;
-  getLayer(layerId: string, elementId: string): PageKeyboardLayer;
+  getLayer(layerId: string, elementId: string): ElementKeyboard;
   getLayer(
     ownerOrLayer: TComponent | string,
     elementId?: string,
-  ): PageKeyboardLayer {
+  ): PageKeyboardLayer | ElementKeyboard {
     const state = this.state.synchronizedData;
 
     // No layers/modals → page layer mode
@@ -147,7 +143,7 @@ export default class LayerManager<TComponent = unknown> {
 
       let layer = this.state.pageLayerEelementsKeyboards.get(ownerOrLayer);
       if (!layer) {
-        layer = this.createKeyboardLayer(pageLayerSymbol);
+        layer = this.createKeyboardLayer();
         this.state.pageLayerEelementsKeyboards.set(ownerOrLayer, layer);
       }
       return layer;
@@ -160,18 +156,33 @@ export default class LayerManager<TComponent = unknown> {
       );
     }
 
-    let layerMap = this.state.layersKeyboardMap.get(ownerOrLayer);
-    if (!layerMap) {
-      const keyboardData = this.createKeyboardLayer(ownerOrLayer);
-      layerMap = new Map([[elementId, keyboardData]]);
-      this.state.layersKeyboardMap.set(ownerOrLayer, layerMap);
-      return keyboardData;
+    let layerData = this.state.layersKeyboardMap.get(ownerOrLayer);
+    if (!layerData) {
+      layerData = {
+        layerId: ownerOrLayer,
+        pendingSequence: { fromElementId: null, pendingSequence: null },
+        elementKeyboards: new Map(),
+      };
+      this.state.layersKeyboardMap.set(ownerOrLayer, layerData);
     }
 
-    let elementKeyboard = layerMap.get(elementId);
+    let elementKeyboard = layerData.elementKeyboards.get(elementId);
     if (!elementKeyboard) {
-      elementKeyboard = this.createKeyboardLayer(ownerOrLayer);
-      layerMap.set(elementId, elementKeyboard);
+      elementKeyboard = {
+        bindings: [],
+        penetrationKeys: [],
+        stoppedKeys: [],
+        globalKeyOverrides: new Set(),
+        focusTargets: new Map(),
+        defaultFocusOrder: [],
+        currentFocusIds: [],
+        defaultTargets: new Map(),
+        actionKeysMap: new Map(),
+        sequences: new Map(),
+        associatedLayer: ownerOrLayer,
+        allowedKeys: [],
+      };
+      layerData.elementKeyboards.set(elementId, elementKeyboard);
     }
     return elementKeyboard;
   }
@@ -218,40 +229,40 @@ export default class LayerManager<TComponent = unknown> {
   ): FocusTarget {
     if (group && typeof group === "string") {
       let g = layer.focusTargets.get(group);
-      let target: FocusTarget | undefined;
 
       if (!g) {
-        g = {
-          map: new Map<string, FocusTarget>(),
-          order: [],
+        const target: FocusTarget = {
+          bindings: [],
+          stoppedKeys: [],
+          penetrationKeys: [],
+          actionKeysMap: new Map(),
         };
 
+        g = {
+          map: new Map([[focusId, target]]),
+          order: [focusId],
+        };
+        layer.focusTargets.set(group, g);
+
+        if (layer.currentFocusIds.length === 0) {
+          layer.currentFocusIds.push({ fromGroup: group, id: focusId });
+          this.notifyFocusChange();
+        }
+
+        return target;
+      }
+
+      let target = g.map.get(focusId);
+      if (!target) {
         target = {
           bindings: [],
           stoppedKeys: [],
           penetrationKeys: [],
-          allowedKeys: [],
           actionKeysMap: new Map(),
         };
 
-        // Since the group has just been created, there must be no focusId in it.
         g.map.set(focusId, target);
         g.order.push(focusId);
-        layer.focusTargets.set(group, g);
-      } else {
-        target = g.map.get(focusId);
-        if (!target) {
-          target = {
-            bindings: [],
-            stoppedKeys: [],
-            penetrationKeys: [],
-            allowedKeys: [],
-            actionKeysMap: new Map(),
-          };
-
-          g.map.set(focusId, target);
-          g.order.push(focusId);
-        }
       }
 
       if (layer.currentFocusIds.length === 0) {
@@ -267,7 +278,6 @@ export default class LayerManager<TComponent = unknown> {
         bindings: [],
         penetrationKeys: [],
         stoppedKeys: [],
-        allowedKeys: [],
         actionKeysMap: new Map(),
       };
       layer.defaultTargets.set(focusId, target);
@@ -284,17 +294,19 @@ export default class LayerManager<TComponent = unknown> {
   }
 
   readLayer(screenComponent: TComponent): PageKeyboardLayer | undefined;
-  readLayer(layerId: string): Map<string, PageKeyboardLayer> | undefined;
-  readLayer(layerId: string, elementId: string): PageKeyboardLayer | undefined;
+  readLayer(layerId: string): LayerKeyboardLayer | undefined;
+  readLayer(layerId: string, elementId: string): ElementKeyboard | undefined;
   readLayer(
     ownerOrLayer: TComponent | string,
     elementId?: string,
-  ): PageKeyboardLayer | Map<string, PageKeyboardLayer> | undefined {
+  ): PageKeyboardLayer | LayerKeyboardLayer | ElementKeyboard | undefined {
     if (typeof ownerOrLayer !== "string") {
       return this.state.pageLayerEelementsKeyboards.get(ownerOrLayer);
     }
     if (elementId) {
-      return this.state.layersKeyboardMap.get(ownerOrLayer)?.get(elementId);
+      return this.state.layersKeyboardMap
+        .get(ownerOrLayer)
+        ?.elementKeyboards.get(elementId);
     }
     return this.state.layersKeyboardMap.get(ownerOrLayer);
   }
@@ -315,7 +327,7 @@ export default class LayerManager<TComponent = unknown> {
   private resolveKeyboardLayer(
     owner: TComponent | string,
     element?: string,
-  ): { layer: PageKeyboardLayer; name: string } {
+  ): { layer: PageKeyboardLayer | ElementKeyboard; name: string } {
     if (typeof owner !== "string") {
       const layer = this.state.pageLayerEelementsKeyboards.get(owner);
       const name =
@@ -337,7 +349,9 @@ export default class LayerManager<TComponent = unknown> {
       );
     }
 
-    const layer = this.state.layersKeyboardMap.get(owner)?.get(elementId);
+    const layer = this.state.layersKeyboardMap
+      .get(owner)
+      ?.elementKeyboards.get(elementId);
     if (!layer) {
       throw new Error(
         `[keyboard-engine] no keyboard layer found for layer "${owner}" element "${elementId}". ` +
