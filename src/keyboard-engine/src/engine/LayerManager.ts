@@ -48,6 +48,7 @@ export default class LayerManager<TComponent = unknown> {
                 pendingSequence: null
               }
             }
+            layerKeyboard.delete(element);
           }
         }
       } else {
@@ -80,21 +81,24 @@ export default class LayerManager<TComponent = unknown> {
           const currentModalLayer =
             this.state.synchronizedData.modalLayers[modalLayerIndex];
           if (!currentModalLayer.elements.includes(element)) {
-            const elementKeyboard = layerKeyboard.get(element);
-            if (elementKeyboard?.pendingSequence) {
-              clearTimeout(elementKeyboard.pendingSequence.timer);
-              elementKeyboard.pendingSequence = null;
+            if (layerKeyboard.pendingSequence.fromElementId === element) {
+              const timer = layerKeyboard.pendingSequence.pendingSequence.timer
+              clearTimeout(timer)
+              layerKeyboard.pendingSequence = {
+                fromElementId: null,
+                pendingSequence: null
+              }
             }
             layerKeyboard.delete(element);
           }
         }
       } else {
-        if (layerKeyboard) {
-          for (const [, elementKeyboard] of layerKeyboard) {
-            if (elementKeyboard?.pendingSequence) {
-              clearTimeout(elementKeyboard.pendingSequence.timer);
-              elementKeyboard.pendingSequence = null;
-            }
+        if (layerKeyboard?.pendingSequence.pendingSequence) {
+          const timer = layerKeyboard.pendingSequence.pendingSequence.timer
+          clearTimeout(timer)
+          layerKeyboard.pendingSequence = {
+            fromElementId: null,
+            pendingSequence: null
           }
         }
         this.state.layersKeyboardMap.delete(prevModalLayer.layerId);
