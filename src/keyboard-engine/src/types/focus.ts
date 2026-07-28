@@ -17,8 +17,11 @@ export interface FocusTarget {
   stoppedKeys: KeyRule[];
   /** Maps action IDs to the normalized keys that trigger them (for stopAction). */
   actionKeysMap: Map<string, string[]>;
-  
-  allowedKeys: string[]
+
+  /**
+   * Allowed for the current focus layer
+   */
+  allowedKeys: KeyRule[];
 }
 
 export interface FocusSetOptions {

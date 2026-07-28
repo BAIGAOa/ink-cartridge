@@ -1,9 +1,12 @@
 import CompositionEngine from "../CompositionEngine.js";
 import { BuiltinProcessorId } from "../pipeline/chain.js";
-import { ResolvedGlobalKeyEntry, ResolvedGlobalSequenceEntry } from "./entry.js";
+import {
+  ResolvedGlobalKeyEntry,
+  ResolvedGlobalSequenceEntry,
+} from "./entry.js";
+import { KeyboardLayer } from "./keyboard-layer.js";
 import { PageKeyboardLayer } from "./page-layer.js";
 import { GlobalPendingSequence } from "./pending-sequence.js";
-
 
 /**
  * Snapshot of all mutable state needed to process a single key event
@@ -25,8 +28,8 @@ export interface PipelineContext<TComponent> {
   readonly wildcardFirst: boolean;
   readonly pagePath: TComponent[];
 
-  readonly elementsFromAllLayers: Map<string, PageKeyboardLayer[]>
-  readonly elementsFromAllModalLayers: Map<string, PageKeyboardLayer[]>
+  readonly allLayers: KeyboardLayer[];
+  readonly allModalLayers: KeyboardLayer[];
 
   // --- Mutable refs (shared with engine instance) ---
   readonly layersRef: Map<unknown | string, PageKeyboardLayer>;
@@ -40,7 +43,7 @@ export interface PipelineContext<TComponent> {
   readonly compositionEngine: CompositionEngine;
   /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
   readonly autoTab: boolean;
-  readonly noActiveProcessor: string[]
+  readonly noActiveProcessor: string[];
 }
 
 /**

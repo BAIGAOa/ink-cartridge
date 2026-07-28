@@ -1,18 +1,20 @@
-import {
-  type PipelineContext,
-  type PipelineProcessor,
-  type ScreenKeyboardLayer,
-  type BoundKeyEntry,
-  type KeyRule,
-  type FocusTarget,
-  defaultTargetsSymbol,
-} from '../types.js';
-import { handleLayer } from '../layerHandler.js';
-import { checkWhen } from '../checkWhen.js';
+import { handleLayer } from "../layerHandler.js";
+import { checkWhen } from "../checkWhen.js";
+import { KeyRule } from "../types/key-rule.js";
+import { ElementKeyboard, LayerKeyboardLayer } from "../types/page-layer.js";
+import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
+import { FocusTarget } from "../types/focus.js";
+import { BoundKeyEntry } from "../types/binding.js";
+import { PipelineContext, PipelineProcessor } from "../types/processor.js";
 
-
-function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNames: string[]): boolean {
-  return allowedKeys.some((k) => !blockedKeys.includes(k.key) && eventNames.includes(k.key));
+function passAllowedKeys(
+  allowedKeys: KeyRule[],
+  blockedKeys: string[],
+  eventNames: string[],
+): boolean {
+  return allowedKeys.some(
+    (k) => !blockedKeys.includes(k.key) && eventNames.includes(k.key),
+  );
 }
 
 /**
@@ -21,7 +23,7 @@ function passAllowedKeys(allowedKeys: KeyRule[], blockedKeys: string[], eventNam
  * and group-scoped {@link ScreenKeyboardLayer.focusTargets}.
  */
 function getFocusTarget(
-  layer: ScreenKeyboardLayer,
+  layer: ElementKeyboard,
   entry: { id: string; fromGroup: string | typeof defaultTargetsSymbol },
 ): FocusTarget | undefined {
   if (entry.fromGroup === defaultTargetsSymbol) {
@@ -34,7 +36,11 @@ function getFocusTarget(
  * Check whether a key event matches any entry in the allow-list of
  * the active focus target or the layer itself.
  */
-function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[], conditions: Map<string, boolean>): boolean {
+function isAllowed(
+  layer: ElementKeyboard,
+  eventNames: string[],
+  conditions: Map<string, boolean>,
+): boolean {
   const blockedKeys = layer.allowedKeys
     .filter((r) => !checkWhen(r.when, conditions))
     .map((r) => r.key);
@@ -49,8 +55,14 @@ function isAllowed(layer: ScreenKeyboardLayer, eventNames: string[], conditions:
       }
     }
 
-    const allAllowedKeys = [...new Set(allFt.flatMap(each => each.allowedKeys))]
-    if (allFt.length > 0 && passAllowedKeys(allAllowedKeys, blockedKeys, eventNames)) {
+    const allAllowedKeys = [
+      ...new Set(allFt.flatMap((each) => each.allowedKeys)),
+    ];
+
+    if (
+      allFt.length > 0 &&
+      passAllowedKeys(allAllowedKeys, blockedKeys, eventNames)
+    ) {
       return true;
     }
   }
@@ -82,7 +94,7 @@ function hasWhenFalseBinding(
  * the event.
  */
 function matchesOtherFocusTarget(
-  layer: ScreenKeyboardLayer,
+  layer: ElementKeyboard,
   eventNames: string[],
 ): boolean {
   const activeIds = new Set(
@@ -109,9 +121,7 @@ function matchesOtherFocusTarget(
     for (const [id, ft] of group.map) {
       const key = `${groupName}::${id}`;
       if (activeIds.has(key)) continue;
-      if (
-        ft.bindings.some((b) => b.keys.some((k) => eventNames.includes(k)))
-      ) {
+      if (ft.bindings.some((b) => b.keys.some((k) => eventNames.includes(k)))) {
         return true;
       }
     }
@@ -125,34 +135,43 @@ function matchesOtherFocusTarget(
  *
  * @returns true if the callback was invoked with miss=true.
  */
-function invokeMissIfNeeded(
-  layer: ScreenKeyboardLayer,
+function invokeMissIfNeeded<TC>(
+  layer: LayerKeyboardLayer,
   handled: boolean,
   key: unknown,
   input: string,
   eventNames: string[],
   conditions: Map<string, boolean>,
+  ctx: PipelineContext<TC>,
 ): boolean {
-  if (!layer.onMiss) return false;
+  for (const [elementId, elementKeyboard] of layer.elementKeyboards) {
+    const syncLayerData = ctx.allModalLayers;
+  }
 
-  const opts = layer.onMissOptions ?? {};
+  if (!layer.missListener.onMiss || !layer.missListener.onMissOptions)
+    return false;
+
+  const opts = layer.missListener.onMissOptions;
 
   if (handled) {
-    layer.onMiss({ miss: false });
+    layer.missListener.onMiss({ miss: false });
     return false;
   }
 
   // handled === false — key was not consumed by handleLayer.
-
-  if (opts.monitorWhen && hasWhenFalseBinding(layer.bindings, eventNames, conditions)) {
-    layer.onMiss({ miss: true, key, input, eventNames });
-    return true;
-  }
+  let allBinding: BoundKeyEntry[] = Array.from(layer.elementKeyboards).flatMap(
+    (each) => each[1].bindings,
+  );
 
   if (
     opts.monitorWhen &&
-    layer.currentFocusIds.length > 0
+    hasWhenFalseBinding(allBinding, eventNames, conditions)
   ) {
+    layer.missListener.onMiss({ miss: true, key, input, eventNames });
+    return true;
+  }
+
+  if (opts.monitorWhen && layer.currentFocusIds.length > 0) {
     for (const each of layer.currentFocusIds) {
       const ft = getFocusTarget(layer, each);
       if (ft && hasWhenFalseBinding(ft.bindings, eventNames, conditions)) {
@@ -162,10 +181,7 @@ function invokeMissIfNeeded(
     }
   }
 
-  if (
-    opts.monitorFocusMismatch &&
-    matchesOtherFocusTarget(layer, eventNames)
-  ) {
+  if (opts.monitorFocusMismatch && matchesOtherFocusTarget(layer, eventNames)) {
     layer.onMiss({ miss: true, key, input, eventNames });
     return true;
   }
@@ -189,11 +205,13 @@ function invokeMissIfNeeded(
  *
  * @returns A PipelineProcessor for the modal stage.
  */
-export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent>{
+export function createModalProcessor<
+  TComponent,
+>(): PipelineProcessor<TComponent> {
   return {
-    process(ctx: PipelineContext<TComponent>): boolean {
+    process(ctx): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) {
-        return false
+        return false;
       }
 
       if (!ctx.activeModalId) return false;
@@ -206,23 +224,27 @@ export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent
           ctx.eventNames,
           ctx.input,
           ctx.key,
-          true,  // isTop — modal is always the top layer
+          true, // isTop — modal is always the top layer
           ctx.notifyFocusChange,
-          1,     // activeCount — modal is singleton
-          true,  // isOverlay — modal is treated as a floating layer for onlyThis semantics
+          1, // activeCount — modal is singleton
+          true, // isOverlay — modal is treated as a floating layer for onlyThis semantics
           ctx.wildcardFirst,
           ctx.currentMode,
           ctx.conditions,
           ctx.isNormalChar,
           ctx.notifyPendingSyncs,
-          ctx.autoTab
+          ctx.autoTab,
         );
       }
 
       // If the key was not handled by any modal binding but it is in
       // the allow-list (layer-level or active focus target), pass it
       // through to the next pipeline stage instead of blocking.
-      if (!handled && layer && isAllowed(layer, ctx.eventNames, ctx.conditions)) {
+      if (
+        !handled &&
+        layer &&
+        isAllowed(layer, ctx.eventNames, ctx.conditions)
+      ) {
         return false;
       }
 
@@ -239,6 +261,6 @@ export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent
 
       return true;
     },
-    id: 'modal',
+    id: "modal",
   };
 }

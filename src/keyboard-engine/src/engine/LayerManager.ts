@@ -1,6 +1,6 @@
 import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
 import { FocusSetOptions, FocusTarget } from "../types/focus.js";
-import { KyeboardLayer } from "../types/keyboard-layer.js";
+import { KeyboardLayer } from "../types/keyboard-layer.js";
 import {
   ElementKeyboard,
   LayerKeyboardLayer,
@@ -12,8 +12,8 @@ export default class LayerManager<TComponent = unknown> {
   constructor(private state: EngineState<TComponent>) {}
 
   prevPath: TComponent[] = [];
-  prevLayers: KyeboardLayer[] = [];
-  prevModalLayers: KyeboardLayer[] = [];
+  prevLayers: KeyboardLayer[] = [];
+  prevModalLayers: KeyboardLayer[] = [];
 
   /**
    * Clear the keyboard data layer of a page that no longer exists in the path
@@ -252,7 +252,7 @@ export default class LayerManager<TComponent = unknown> {
           stoppedKeys: [],
           penetrationKeys: [],
           actionKeysMap: new Map(),
-          allowedKeys: []
+          allowedKeys: [],
         };
 
         g = {
@@ -276,7 +276,7 @@ export default class LayerManager<TComponent = unknown> {
           stoppedKeys: [],
           penetrationKeys: [],
           actionKeysMap: new Map(),
-          allowedKeys: []
+          allowedKeys: [],
         };
 
         g.map.set(focusId, target);
@@ -297,7 +297,7 @@ export default class LayerManager<TComponent = unknown> {
         penetrationKeys: [],
         stoppedKeys: [],
         actionKeysMap: new Map(),
-        allowedKeys: []
+        allowedKeys: [],
       };
       layer.defaultTargets.set(focusId, target);
       layer.defaultFocusOrder.push(focusId);

@@ -873,7 +873,8 @@ export default class KeyboardEngine<TComponent = unknown> {
     return {
       input,
       eventNames,
-      elementsFromAllLayers: this.state.synchronizedData.layers,
+      allLayers: this.state.synchronizedData.layers,
+      allModalLayers: this.state.synchronizedData.modalLayers,
       topComponent,
       globalKeys: this.state.globalKeysRef,
       globalSequences: this.state.globalSequencesRef,
