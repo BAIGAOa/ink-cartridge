@@ -76,7 +76,7 @@ export default class BindingService<TComponent = unknown> {
     const applyGlobalKeyOverrides = (
       keys: string[],
       owner: TComponent | string,
-      layer: PageKeyboardLayer,
+      layer: PageKeyboardLayer | ElementKeyboard,
       bindingContext: string,
     ): void => {
       for (const gk of this.state.globalKeysRef) {
@@ -230,7 +230,7 @@ export default class BindingService<TComponent = unknown> {
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
     const compiledWhen = options?.when;
 
-    const container = options?.focusId
+    const container: KeyRuleContainer = options?.focusId
       ? typeof options.focusId === "string"
         ? this.layers.getOrCreateFocusTarget(layer, options.focusId)
         : this.layers.getOrCreateFocusTarget(
@@ -315,6 +315,10 @@ export default class BindingService<TComponent = unknown> {
     }
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
+	if ("pendingSequence" in layer) {
+		throw new Error("[keyboard-engine] allowModal() must be called inside a modal component.")
+	}
+
     const container: KeyRuleContainer = options?.focusId
       ? typeof options.focusId === "string"
         ? this.layers.getOrCreateFocusTarget(layer, options.focusId)
@@ -324,6 +328,9 @@ export default class BindingService<TComponent = unknown> {
             options.focusId.group,
           )
       : layer;
+
+	
+
     return pushKeyEntries(container, "allowedKeys", keys, (key) => ({
       key,
       when: options?.when,
@@ -431,15 +438,19 @@ export default class BindingService<TComponent = unknown> {
     options?: ModalMissOptions,
   ): () => void {
     const owner = this.layers.getCurrentOwner();
-    if (!owner) return () => {};
-    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
+    if (typeof owner !== "string") return () => {};
 
-    layer.onMiss = cb;
-    layer.onMissOptions = options;
+	const layer = this.state.layersKeyboardMap.get(owner)
+
+	if (!layer) return () => {}
+
+    layer.missListener = {
+      onMiss: cb,
+      onMissOptions: options ?? {},
+    };
     return () => {
-      if (layer.onMiss === cb) {
-        layer.onMiss = undefined;
-        layer.onMissOptions = undefined;
+      if (layer.missListener.onMiss === cb) {
+        layer.missListener = { onMiss: null, onMissOptions: null };
       }
     };
   }

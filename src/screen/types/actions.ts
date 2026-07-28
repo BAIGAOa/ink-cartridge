@@ -4,12 +4,16 @@ import {
 	SkipAction,
 } from "../types.js";
 import {
+	ActivateElementAction,
+	ActivateElementInModalLayerAction,
 	ApplyElementAction,
 	ApplyElementToModalLayerAction,
 	CloseAllLayerAction,
-	CloseAllModaalLayerAction,
+	CloseAllModalLayerAction,
 	CloseLayerAction,
 	CloseModalLayerAction,
+	DeactivateElementAction,
+	DeactivateElementInModalLayerAction,
 	EraseElementAction,
 	EraseElementInModalLayerAction,
 	OpenLayerAction,
@@ -29,7 +33,11 @@ export type ScreenAction =
 	| CloseModalLayerAction
 	| ApplyElementToModalLayerAction
 	| EraseElementInModalLayerAction
-	| CloseAllModaalLayerAction;
+	| CloseAllModalLayerAction
+	| ActivateElementAction
+	| DeactivateElementAction
+	| ActivateElementInModalLayerAction
+	| DeactivateElementInModalLayerAction;
 
 export type ScreenActionType =
 	| "skip"
@@ -44,4 +52,8 @@ export type ScreenActionType =
 	| "closeModalLayer"
 	| "applyElementToModalLayer"
 	| "eraseElementInModalLayer"
-	| "closeAllModaalLayer";
+	| "closeAllModalLayer"
+	| "activateElement"
+	| "deactivateElement"
+	| "activateElementInModalLayer"
+	| "deactivateElementInModalLayer";

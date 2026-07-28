@@ -5,12 +5,16 @@ import type {
   GotoScreenFn,
 } from './types.js';
 import {
+  ActivateElementFn,
+  ActivateElementInModalLayerFn,
   ApplyElementFn,
   ApplyElementToModalLayerFn,
   CloseAllLayerFn,
   CloseAllModalLayerFn,
   CloseLayerFn,
   CloseModalLayerFn,
+  DeactivateElementFn,
+  DeactivateElementInModalLayerFn,
   EraseElementFn,
   EraseElementInModalLayerFn,
   Layer,
@@ -53,6 +57,10 @@ export interface ScreenSystemContextValue {
   eraseElement: EraseElementFn
   /** Closes all layers at once. */
   closeAllLayer: CloseAllLayerFn
+  /** Reactivates a previously deactivated layer element. */
+  activateElement: ActivateElementFn
+  /** Deactivates a layer element (it unmounts, releasing its keyboard owner). */
+  deactivateElement: DeactivateElementFn
 
   /** Opens a new modal layer with a unique ID and z-index. */
   openModalLayer: OpenModalLayerFn
@@ -64,6 +72,10 @@ export interface ScreenSystemContextValue {
   eraseElementInModalLayer: EraseElementInModalLayerFn
   /** Closes all modal layers at once. */
   closeAllModalLayer: CloseAllModalLayerFn
+  /** Reactivates a previously deactivated modal-layer element. */
+  activateElementInModalLayer: ActivateElementInModalLayerFn
+  /** Deactivates a modal-layer element (it unmounts, releasing its keyboard owner). */
+  deactivateElementInModalLayer: DeactivateElementInModalLayerFn
 }
 
 /**

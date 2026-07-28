@@ -70,9 +70,9 @@ export function removeKeysFromActionMap(
  * as {@link KeyRule} arrays.
  */
 export interface KeyRuleContainer {
-  allowedKeys: KeyRule[];
   penetrationKeys: KeyRule[];
   stoppedKeys: KeyRule[];
+  allowedKeys?: KeyRule[]
 }
 
 /**
@@ -92,7 +92,7 @@ export interface KeyRuleContainer {
  */
 export function pushKeyEntries(
   container: KeyRuleContainer,
-  property: 'allowedKeys' | 'penetrationKeys' | 'stoppedKeys',
+  property: 'penetrationKeys' | 'stoppedKeys' | "allowedKeys",
   keys: string[],
   createEntry: (key: string) => KeyRule,
 ): () => void {

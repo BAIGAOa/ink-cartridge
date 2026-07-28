@@ -4,12 +4,16 @@ import { getTemplate, hasComponent, isChildOf, getParent } from "./registry.js";
 import { ScreenAction } from "./types/actions.js";
 import { BackFn, GotoScreenFn, SkipFn, SkipOptions } from "./types.js";
 import {
+	ActivateElementFn,
+	ActivateElementInModalLayerFn,
 	ApplyElementFn,
 	ApplyElementToModalLayerFn,
 	CloseAllLayerFn,
 	CloseAllModalLayerFn,
 	CloseLayerFn,
 	CloseModalLayerFn,
+	DeactivateElementFn,
+	DeactivateElementInModalLayerFn,
 	EraseElementFn,
 	EraseElementInModalLayerFn,
 	Layer,
@@ -184,7 +188,60 @@ export function eraseElementInModalLayer(
 }
 
 export function closeAllModalLayer(): void {
-	getDispatch()({ type: "closeAllModaalLayer" });
+	getDispatch()({ type: "closeAllModalLayer" });
+}
+
+/**
+ * Activate a previously deactivated element on a registered layer.
+ * The element stays mounted — only its keyboard-active flag is set to `true`,
+ * so the keyboard engine resumes dispatching key events to its bindings.
+ */
+export function activateElement(
+	targetLayerId: string,
+	targetElementId: string
+): void {
+	getDispatch()({ type: "activateElement", targetLayerId, targetElementId });
+}
+
+/**
+ * Deactivate an element on a registered layer.
+ * The element stays mounted — only its keyboard-active flag is set to `false`,
+ * so the keyboard engine stops dispatching key events to its bindings while
+ * keeping all registration data intact for a later reactivation.
+ */
+export function deactivateElement(
+	targetLayerId: string,
+	targetElementId: string
+): void {
+	getDispatch()({ type: "deactivateElement", targetLayerId, targetElementId });
+}
+
+/**
+ * Modal-layer counterpart of {@link activateElement}.
+ */
+export function activateElementInModalLayer(
+	targetModalLayerId: string,
+	targetElementId: string
+): void {
+	getDispatch()({
+		type: "activateElementInModalLayer",
+		targetModalLayerId,
+		targetElementId,
+	});
+}
+
+/**
+ * Modal-layer counterpart of {@link deactivateElement}.
+ */
+export function deactivateElementInModalLayer(
+	targetModalLayerId: string,
+	targetElementId: string
+): void {
+	getDispatch()({
+		type: "deactivateElementInModalLayer",
+		targetModalLayerId,
+		targetElementId,
+	});
 }
 
 /**
@@ -366,6 +423,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
           `
 				);
 			}
+			if (state.allModalLayers.some((each) => each.layerId === action.layerId)) {
+				throw new Error(
+					`
+          [ink-cartridge] Layer ID "${action.layerId}" is already used by a modal layer. Modal layers and normal layers share the ID namespace in the keyboard engine, so reuse across the two is not allowed.
+          `
+				);
+			}
 
 			const newLayer: Layer = {
 				layerId: action.layerId,
@@ -386,11 +450,11 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 		}
 
 		case "applyElement": {
-			const targetLayer = state.allLayers.find(
+			const targetLayerIndex = state.allLayers.findIndex(
 				(each) => each.layerId === action.targetLayerId
 			);
 
-			if (!targetLayer) {
+			if (targetLayerIndex === -1) {
 				throw new Error(
 					`
           [ink-cartridge] The target ${action.targetLayerId} you entered has not been registered.
@@ -404,28 +468,37 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
+			const targetLayer = state.allLayers[targetLayerIndex];
+
 			if (targetLayer.elements.has(action.layerElement.elementId)) {
 				throw new Error(
 					`
-          [in-cartridge] The element ID ${action.layerElement.elementId} you are applying has already been used on target layer ${targetLayer.layerId}; 
+          [in-cartridge] The element ID ${action.layerElement.elementId} you are applying has already been used on target layer ${targetLayer.layerId};
           try using a new one or deleting the old one.
           `
 				);
 			}
 
-			targetLayer.elements.set(
-				action.layerElement.elementId,
-				action.layerElement
-			);
+			const newElements = new Map(targetLayer.elements);
+			newElements.set(action.layerElement.elementId, action.layerElement);
 
-			return state;
+			const newAllLayers = [...state.allLayers];
+			newAllLayers[targetLayerIndex] = {
+				...targetLayer,
+				elements: newElements,
+			};
+
+			return {
+				...state,
+				allLayers: newAllLayers,
+			};
 		}
 
 		case "closeLayer": {
-			const targetLayer = state.allLayers.findIndex(
+			const targetLayerIndex = state.allLayers.findIndex(
 				(each) => each.layerId === action.targetLayerId
 			);
-			if (targetLayer === -1) {
+			if (targetLayerIndex === -1) {
 				throw new Error(
 					`
           [ink-cartridge] The layer ${action.targetLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
@@ -433,9 +506,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
-			state.allLayers.splice(targetLayer, 1);
-
-			const newLayers = sortLayers(state.allLayers);
+			const remainingLayers = state.allLayers.filter(
+				(_, idx) => idx !== targetLayerIndex
+			);
+			const newLayers = sortLayers(remainingLayers);
 
 			return {
 				...state,
@@ -444,11 +518,11 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 		}
 
 		case "eraseElement": {
-			const targetLayer = state.allLayers.find(
+			const targetLayerIndex = state.allLayers.findIndex(
 				(each) => each.layerId === action.targetLayerId
 			);
 
-			if (!targetLayer) {
+			if (targetLayerIndex === -1) {
 				throw new Error(
 					`
           [ink-cartridge] The layer ${action.targetLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
@@ -456,15 +530,27 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
+			const targetLayer = state.allLayers[targetLayerIndex];
+
 			if (!targetLayer.elements.has(action.targetElementId)) {
 				throw new Error(
 					`[ink-cartridge] The target element ${action.targetElementId} does not exist in layer ${action.targetLayerId}; you may have mistyped the string, or the corresponding element was never registered.`
 				);
 			}
 
-			targetLayer.elements.delete(action.targetElementId);
+			const newElements = new Map(targetLayer.elements);
+			newElements.delete(action.targetElementId);
 
-			return state;
+			const newAllLayers = [...state.allLayers];
+			newAllLayers[targetLayerIndex] = {
+				...targetLayer,
+				elements: newElements,
+			};
+
+			return {
+				...state,
+				allLayers: newAllLayers,
+			};
 		}
 
 		case "closeAllLayer": {
@@ -474,13 +560,82 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 			};
 		}
 
+		case "activateElement": {
+			const targetLayerIndex = state.allLayers.findIndex(
+				(each) => each.layerId === action.targetLayerId
+			);
+			if (targetLayerIndex === -1) {
+				throw new Error(
+					`[ink-cartridge] activateElement: layer "${action.targetLayerId}" is not registered.`
+				);
+			}
+			const targetLayer = state.allLayers[targetLayerIndex];
+			const targetElement = targetLayer.elements.get(action.targetElementId);
+			if (!targetElement) {
+				throw new Error(
+					`[ink-cartridge] activateElement: element "${action.targetElementId}" does not exist on layer "${action.targetLayerId}".`
+				);
+			}
+			if (targetElement.active !== false) return state;
+
+			const newElements = new Map(targetLayer.elements);
+			newElements.set(action.targetElementId, {
+				...targetElement,
+				active: true,
+			});
+			const newAllLayers = [...state.allLayers];
+			newAllLayers[targetLayerIndex] = {
+				...targetLayer,
+				elements: newElements,
+			};
+			return { ...state, allLayers: newAllLayers };
+		}
+
+		case "deactivateElement": {
+			const targetLayerIndex = state.allLayers.findIndex(
+				(each) => each.layerId === action.targetLayerId
+			);
+			if (targetLayerIndex === -1) {
+				throw new Error(
+					`[ink-cartridge] deactivateElement: layer "${action.targetLayerId}" is not registered.`
+				);
+			}
+			const targetLayer = state.allLayers[targetLayerIndex];
+			const targetElement = targetLayer.elements.get(action.targetElementId);
+			if (!targetElement) {
+				throw new Error(
+					`[ink-cartridge] deactivateElement: element "${action.targetElementId}" does not exist on layer "${action.targetLayerId}".`
+				);
+			}
+			if (targetElement.active === false) return state;
+
+			const newElements = new Map(targetLayer.elements);
+			newElements.set(action.targetElementId, {
+				...targetElement,
+				active: false,
+			});
+			const newAllLayers = [...state.allLayers];
+			newAllLayers[targetLayerIndex] = {
+				...targetLayer,
+				elements: newElements,
+			};
+			return { ...state, allLayers: newAllLayers };
+		}
+
 		case "openModalLayer": {
 			if (
 				state.allModalLayers.some((each) => each.layerId === action.layerId)
 			) {
 				throw new Error(
 					`
-          [ink-cartridge] The ID of the layer you wish to register has already been registered; the duplicate ID is ${action.layerId}.
+          [ink-cartridge] The ID of the modal layer you wish to register has already been registered; the duplicate ID is ${action.layerId}.
+          `
+				);
+			}
+			if (state.allLayers.some((each) => each.layerId === action.layerId)) {
+				throw new Error(
+					`
+          [ink-cartridge] Modal layer ID "${action.layerId}" is already used by a normal layer. Modal layers and normal layers share the ID namespace in the keyboard engine, so reuse across the two is not allowed.
           `
 				);
 			}
@@ -504,11 +659,11 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 		}
 
 		case "applyElementToModalLayer": {
-			const targetModalLayer = state.allModalLayers.find(
+			const targetModalLayerIndex = state.allModalLayers.findIndex(
 				(each) => each.layerId === action.targetModalLayerId
 			);
 
-			if (!targetModalLayer) {
+			if (targetModalLayerIndex === -1) {
 				throw new Error(
 					`
           [ink-cartridge] The target modal layer ${action.targetModalLayerId} you entered has not been registered.
@@ -522,23 +677,35 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
+			const targetModalLayer = state.allModalLayers[targetModalLayerIndex];
+
 			if (
 				targetModalLayer.elements.has(action.modalLayerElement.elementId)
 			) {
 				throw new Error(
 					`
-          [ink-cartridge] The element ID ${action.modalLayerElement.elementId} you are applying has already been used on target modal layer ${targetModalLayer.layerId}; 
+          [ink-cartridge] The element ID ${action.modalLayerElement.elementId} you are applying has already been used on target modal layer ${targetModalLayer.layerId};
           try using a new one or deleting the old one.
           `
 				);
 			}
 
-			targetModalLayer.elements.set(
+			const newElements = new Map(targetModalLayer.elements);
+			newElements.set(
 				action.modalLayerElement.elementId,
 				action.modalLayerElement
 			);
 
-			return state;
+			const newAllModalLayers = [...state.allModalLayers];
+			newAllModalLayers[targetModalLayerIndex] = {
+				...targetModalLayer,
+				elements: newElements,
+			};
+
+			return {
+				...state,
+				allModalLayers: newAllModalLayers,
+			};
 		}
 
 		case "closeModalLayer": {
@@ -553,9 +720,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
-			state.allModalLayers.splice(targetModalLayerIndex, 1);
-
-			const newModalLayers = sortLayers(state.allModalLayers);
+			const remainingModalLayers = state.allModalLayers.filter(
+				(_, idx) => idx !== targetModalLayerIndex
+			);
+			const newModalLayers = sortLayers(remainingModalLayers);
 
 			return {
 				...state,
@@ -564,11 +732,11 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 		}
 
 		case "eraseElementInModalLayer": {
-			const targetModalLayer = state.allModalLayers.find(
+			const targetModalLayerIndex = state.allModalLayers.findIndex(
 				(each) => each.layerId === action.targetModalLayerId
 			);
 
-			if (!targetModalLayer) {
+			if (targetModalLayerIndex === -1) {
 				throw new Error(
 					`
           [ink-cartridge] The modal layer ${action.targetModalLayerId} you want to delete elements from is not registered; you might have made a typo, or it was never registered at all.
@@ -576,22 +744,100 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
+			const targetModalLayer = state.allModalLayers[targetModalLayerIndex];
+
 			if (!targetModalLayer.elements.has(action.targetElementId)) {
 				throw new Error(
 					`[ink-cartridge] The target element ${action.targetElementId} does not exist in modal layer ${action.targetModalLayerId}; you may have mistyped the string, or the corresponding element was never registered.`
 				);
 			}
 
-			targetModalLayer.elements.delete(action.targetElementId);
+			const newElements = new Map(targetModalLayer.elements);
+			newElements.delete(action.targetElementId);
 
-			return state;
+			const newAllModalLayers = [...state.allModalLayers];
+			newAllModalLayers[targetModalLayerIndex] = {
+				...targetModalLayer,
+				elements: newElements,
+			};
+
+			return {
+				...state,
+				allModalLayers: newAllModalLayers,
+			};
 		}
 
-		case "closeAllModaalLayer": {
+case "closeAllModalLayer": {
 			return {
 				...state,
 				allModalLayers: [],
 			};
+		}
+
+		case "activateElementInModalLayer": {
+			const targetModalLayerIndex = state.allModalLayers.findIndex(
+				(each) => each.layerId === action.targetModalLayerId
+			);
+			if (targetModalLayerIndex === -1) {
+				throw new Error(
+					`[ink-cartridge] activateElementInModalLayer: modal layer "${action.targetModalLayerId}" is not registered.`
+				);
+			}
+			const targetModalLayer =
+				state.allModalLayers[targetModalLayerIndex];
+			const targetElement =
+				targetModalLayer.elements.get(action.targetElementId);
+			if (!targetElement) {
+				throw new Error(
+					`[ink-cartridge] activateElementInModalLayer: element "${action.targetElementId}" does not exist on modal layer "${action.targetModalLayerId}".`
+				);
+			}
+			if (targetElement.active !== false) return state;
+
+			const newElements = new Map(targetModalLayer.elements);
+			newElements.set(action.targetElementId, {
+				...targetElement,
+				active: true,
+			});
+			const newAllModalLayers = [...state.allModalLayers];
+			newAllModalLayers[targetModalLayerIndex] = {
+				...targetModalLayer,
+				elements: newElements,
+			};
+			return { ...state, allModalLayers: newAllModalLayers };
+		}
+
+		case "deactivateElementInModalLayer": {
+			const targetModalLayerIndex = state.allModalLayers.findIndex(
+				(each) => each.layerId === action.targetModalLayerId
+			);
+			if (targetModalLayerIndex === -1) {
+				throw new Error(
+					`[ink-cartridge] deactivateElementInModalLayer: modal layer "${action.targetModalLayerId}" is not registered.`
+				);
+			}
+			const targetModalLayer =
+				state.allModalLayers[targetModalLayerIndex];
+			const targetElement =
+				targetModalLayer.elements.get(action.targetElementId);
+			if (!targetElement) {
+				throw new Error(
+					`[ink-cartridge] deactivateElementInModalLayer: element "${action.targetElementId}" does not exist on modal layer "${action.targetModalLayerId}".`
+				);
+			}
+			if (targetElement.active === false) return state;
+
+			const newElements = new Map(targetModalLayer.elements);
+			newElements.set(action.targetElementId, {
+				...targetElement,
+				active: false,
+			});
+			const newAllModalLayers = [...state.allModalLayers];
+			newAllModalLayers[targetModalLayerIndex] = {
+				...targetModalLayer,
+				elements: newElements,
+			};
+			return { ...state, allModalLayers: newAllModalLayers };
 		}
 
 		default:
@@ -747,6 +993,20 @@ export function ScenarioManagementProvider({
 		[]
 	);
 
+	const activateElementInContext: ActivateElementFn = useMemo(
+		() => (targetLayerId: string, targetElementId: string) => {
+			dispatch({ type: "activateElement", targetLayerId, targetElementId });
+		},
+		[]
+	);
+
+	const deactivateElementInContext: DeactivateElementFn = useMemo(
+		() => (targetLayerId: string, targetElementId: string) => {
+			dispatch({ type: "deactivateElement", targetLayerId, targetElementId });
+		},
+		[]
+	);
+
 	const openModalLayerInContext: OpenModalLayerFn = useMemo(
 		() =>
 			(layerId: string, zIndex: number, options?: ModalLayerOptions) => {
@@ -798,10 +1058,34 @@ export function ScenarioManagementProvider({
 
 	const closeAllModalLayerInContext: CloseAllModalLayerFn = useMemo(
 		() => () => {
-			dispatch({ type: "closeAllModaalLayer" });
+			dispatch({ type: "closeAllModalLayer" });
 		},
 		[]
 	);
+
+	const activateElementInModalLayerInContext: ActivateElementInModalLayerFn =
+		useMemo(
+			() => (targetModalLayerId: string, targetElementId: string) => {
+				dispatch({
+					type: "activateElementInModalLayer",
+					targetModalLayerId,
+					targetElementId,
+				});
+			},
+			[]
+		);
+
+	const deactivateElementInModalLayerInContext: DeactivateElementInModalLayerFn =
+		useMemo(
+			() => (targetModalLayerId: string, targetElementId: string) => {
+				dispatch({
+					type: "deactivateElementInModalLayer",
+					targetModalLayerId,
+					targetElementId,
+				});
+			},
+			[]
+		);
 
 	const value: ScreenSystemContextValue = useMemo(
 		() => ({
@@ -817,11 +1101,15 @@ export function ScenarioManagementProvider({
 			closeLayer: closeLayerInContext,
 			eraseElement: eraseElementInContext,
 			closeAllLayer: closeAllLayerInContext,
+			activateElement: activateElementInContext,
+			deactivateElement: deactivateElementInContext,
 			openModalLayer: openModalLayerInContext,
 			applyElementToModalLayer: applyElementToModalLayerInContext,
 			closeModalLayer: closeModalLayerInContext,
 			eraseElementInModalLayer: eraseElementInModalLayerInContext,
 			closeAllModalLayer: closeAllModalLayerInContext,
+			activateElementInModalLayer: activateElementInModalLayerInContext,
+			deactivateElementInModalLayer: deactivateElementInModalLayerInContext,
 			fullScreen,
 		}),
 		[
@@ -837,11 +1125,15 @@ export function ScenarioManagementProvider({
 			closeLayerInContext,
 			eraseElementInContext,
 			closeAllLayerInContext,
+			activateElementInContext,
+			deactivateElementInContext,
 			openModalLayerInContext,
 			applyElementToModalLayerInContext,
 			closeModalLayerInContext,
 			eraseElementInModalLayerInContext,
 			closeAllModalLayerInContext,
+			activateElementInModalLayerInContext,
+			deactivateElementInModalLayerInContext,
 			fullScreen,
 		]
 	);

@@ -134,17 +134,7 @@ export default class LayerManager<TComponent = unknown> {
     ownerOrLayer: TComponent | string,
     elementId?: string,
   ): PageKeyboardLayer | ElementKeyboard {
-    const state = this.state.synchronizedData;
-
-    // No layers/modals → page layer mode
-    if (state.layers.length === 0 && state.modalLayers.length === 0) {
-      if (typeof ownerOrLayer === "string") {
-        throw new Error(
-          "[keyboard-engine] getLayer: string owner requires active layers/modals. " +
-            "Use getLayer(component) when no layers exist.",
-        );
-      }
-
+    if (typeof ownerOrLayer !== "string") {
       let layer = this.state.pageLayerEelementsKeyboards.get(ownerOrLayer);
       if (!layer) {
         layer = this.createKeyboardLayer();
@@ -153,10 +143,18 @@ export default class LayerManager<TComponent = unknown> {
       return layer;
     }
 
-    // Layers/modals active → layer keyboard mode
-    if (typeof ownerOrLayer !== "string" || !elementId) {
+    if (!elementId) {
       throw new Error(
-        "[keyboard-engine] getLayer: layers/modals are active, call getLayer(layerId, elementId).",
+        "[keyboard-engine] getLayer: string owner (layerId) requires an elementId. " +
+          "Pass getLayer(layerId, elementId).",
+      );
+    }
+
+    const state = this.state.synchronizedData;
+    if (state.layers.length === 0 && state.modalLayers.length === 0) {
+      throw new Error(
+        "[keyboard-engine] getLayer: string owner requires active layers/modals. " +
+          "Use getLayer(component) when no layers exist.",
       );
     }
 
@@ -165,6 +163,7 @@ export default class LayerManager<TComponent = unknown> {
       layerData = {
         layerId: ownerOrLayer,
         pendingSequence: { fromElementId: null, pendingSequence: null },
+        missListener: { onMiss: null, onMissOptions: null },
         elementKeyboards: new Map(),
       };
       this.state.layersKeyboardMap.set(ownerOrLayer, layerData);
@@ -253,6 +252,7 @@ export default class LayerManager<TComponent = unknown> {
           stoppedKeys: [],
           penetrationKeys: [],
           actionKeysMap: new Map(),
+          allowedKeys: []
         };
 
         g = {
@@ -276,6 +276,7 @@ export default class LayerManager<TComponent = unknown> {
           stoppedKeys: [],
           penetrationKeys: [],
           actionKeysMap: new Map(),
+          allowedKeys: []
         };
 
         g.map.set(focusId, target);
@@ -296,6 +297,7 @@ export default class LayerManager<TComponent = unknown> {
         penetrationKeys: [],
         stoppedKeys: [],
         actionKeysMap: new Map(),
+        allowedKeys: []
       };
       layer.defaultTargets.set(focusId, target);
       layer.defaultFocusOrder.push(focusId);

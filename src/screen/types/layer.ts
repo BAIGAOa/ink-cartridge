@@ -121,6 +121,44 @@ export type EraseElementFn = (
   targetElementId: string,
 ) => void;
 
+export type ActivateElementAction = {
+  type: "activateElement";
+  /** ID of the registered layer that owns the target element. */
+  targetLayerId: string;
+  /** ID of the element to activate. Must already exist on the layer. */
+  targetElementId: string;
+};
+
+/**
+ * Marks a layer element as active (`active: true`). The element will render on
+ * the next pass and the keyboard adapter will re-push its owner — effectively
+ * reactivating the corresponding keyboard layer without the screen system
+ * touching the keyboard engine directly.
+ */
+export type ActivateElementFn = (
+  targetLayerId: string,
+  targetElementId: string,
+) => void;
+
+export type DeactivateElementAction = {
+  type: "deactivateElement";
+  /** ID of the registered layer that owns the target element. */
+  targetLayerId: string;
+  /** ID of the element to deactivate. Must already exist on the layer. */
+  targetElementId: string;
+};
+
+/**
+ * Marks a layer element as inactive (`active: false`). The element is removed
+ * from the rendered tree, which triggers the keyboard adapter's owner-stack
+ * cleanup (`_popOwner`) — the corresponding keyboard layer goes dormant but
+ * its bindings are retained for later reactivation via {@link ActivateElementFn}.
+ */
+export type DeactivateElementFn = (
+  targetLayerId: string,
+  targetElementId: string,
+) => void;
+
 export type CloseAllLayerAction = {
   type: "closeAllLayer";
 };
@@ -256,8 +294,44 @@ export type EraseElementInModalLayerFn = (
   targetElementId: string,
 ) => void;
 
-export type CloseAllModaalLayerAction = {
-  type: "closeAllModaalLayer";
+export type ActivateElementInModalLayerAction = {
+  type: "activateElementInModalLayer";
+  /** ID of the registered modal layer that owns the target element. */
+  targetModalLayerId: string;
+  /** ID of the element to activate. Must already exist on the modal layer. */
+  targetElementId: string;
+};
+
+/**
+ * Modal-layer counterpart of {@link ActivateElementFn}. Marks a modal-layer
+ * element as active so the keyboard adapter re-pushes the modal's owner and
+ * restores keyboard handling.
+ */
+export type ActivateElementInModalLayerFn = (
+  targetModalLayerId: string,
+  targetElementId: string,
+) => void;
+
+export type DeactivateElementInModalLayerAction = {
+  type: "deactivateElementInModalLayer";
+  /** ID of the registered modal layer that owns the target element. */
+  targetModalLayerId: string;
+  /** ID of the element to deactivate. Must already exist on the modal layer. */
+  targetElementId: string;
+};
+
+/**
+ * Modal-layer counterpart of {@link DeactivateElementFn}. Marks a modal-layer
+ * element as inactive so it unmounts, triggering the keyboard adapter's
+ * `_popOwner` cleanup and putting the modal's keyboard layer dormant.
+ */
+export type DeactivateElementInModalLayerFn = (
+  targetModalLayerId: string,
+  targetElementId: string,
+) => void;
+
+export type CloseAllModalLayerAction = {
+  type: "closeAllModalLayer";
 };
 
 export type CloseAllModalLayerFn = () => void;

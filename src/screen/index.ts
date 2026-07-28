@@ -14,6 +14,10 @@ export {
   closeModalLayer,
   eraseElementInModalLayer,
   closeAllModalLayer,
+  activateElement,
+  deactivateElement,
+  activateElementInModalLayer,
+  deactivateElementInModalLayer,
   clearDispatchers,
 } from "./provider.js";
 export type { ScenarioManagementProviderProps } from "./provider.js";
@@ -36,6 +40,10 @@ export type {
   CloseLayerFn,
   EraseElementFn,
   CloseAllLayerFn,
+  ActivateElementFn,
+  ActivateElementAction,
+  DeactivateElementFn,
+  DeactivateElementAction,
   ModalLayer,
   ModalLayerOptions,
   OpenModalLayerFn,
@@ -43,5 +51,9 @@ export type {
   CloseModalLayerFn,
   EraseElementInModalLayerFn,
   CloseAllModalLayerFn,
+  ActivateElementInModalLayerFn,
+  ActivateElementInModalLayerAction,
+  DeactivateElementInModalLayerFn,
+  DeactivateElementInModalLayerAction,
 } from "./types/layer.js";
 export type { LayerElement } from "./types/element.js";
