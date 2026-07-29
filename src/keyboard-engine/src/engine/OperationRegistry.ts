@@ -12,8 +12,7 @@ import {
   ShortcutOperationEntry,
 } from "../types/entry.js";
 import { SequenceListeningOptions } from "../types/options.js";
-import { PageKeyboardLayer } from "../types/page-layer.js";
-import { GlobalPendingSequence } from "../types/pending-sequence.js";
+import { GlobalPendingSequence, PendingSequence } from "../types/pending-sequence.js";
 import EngineState from "./EngineState.js";
 import type LayerManager from "./LayerManager.js";
 
@@ -345,28 +344,41 @@ export default class OperationRegistry<TComponent = unknown> {
       );
     }
 
-    let layer: PageKeyboardLayer;
+    let pending: PendingSequence | null = null;
 
-    if (options?.elementId && typeof owner === "string") {
-      layer = this.layers.getLayer(owner, options.elementId);
-    } else if (!options?.elementId && typeof owner !== "string") {
-      layer = this.layers.getLayer(owner);
+    if (options?.monitorLayer === true && typeof owner === "string") {
+      const seq = this.state.layersKeyboardMap.get(owner)
+      if (seq) {
+        pending = seq.pendingSequence.pendingSequence
+      }
+    } else if (typeof owner !== "string") {
+      pending = this.layers.getLayer(owner).pendingSequence;
+      
     } else {
       const topC = this.layers.getTopPage();
 
       if (!topC) {
         throw new Error(
           `
-								[keyboard-engine] currentScreenHasSequenceWaiting(): No Pages are currently registered, but you seem to have some layers turned on. You must either provide an elementId, or register a Page.
+								[keyboard-engine] currentScreenHasSequenceWaiting(): You have not enabled the option to listen for layers, yet there are currently no pages; 
+                you must enable this option, or else register a new page.
+
+                enable option:
+                currentScreenHasSequenceWaiting(sync, {
+                  monitorLayer: true
+                })
+
+                Create a registration page: Determined by the framework host.
+
 							`,
         );
       }
 
-      layer = this.layers.getLayer(topC);
+      pending = this.layers.getLayer(topC).pendingSequence;
     }
 
     return (
-      layer?.pendingSequence !== null && layer?.pendingSequence !== undefined
+      pending !== null && pending !== undefined
     );
   }
 }

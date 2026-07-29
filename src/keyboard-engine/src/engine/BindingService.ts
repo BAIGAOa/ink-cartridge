@@ -440,17 +440,27 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (typeof owner !== "string") return () => {};
 
-	const layer = this.state.layersKeyboardMap.get(owner)
+	const keyboard = this.getKeyboardInCurrentContext(owner, options?.elementId)
+	const isLayer = "associatedLayer" in keyboard
 
-	if (!layer) return () => {}
+	if (isLayer) {
+		keyboard.missListener = {
+			onMiss: cb,
+			onMissOptions: options ?? {}
+		}
+	} else {
+		throw new Error(
+			`
+			[keyboard-engine] useModalMissListener(): It cannot be used outside of a layer. 
+			While you can call this method within a layer, 
+			it will not take effect; it only becomes truly active when the modalLayer appears.
+			`
+		)
+	}
 
-    layer.missListener = {
-      onMiss: cb,
-      onMissOptions: options ?? {},
-    };
     return () => {
-      if (layer.missListener.onMiss === cb) {
-        layer.missListener = { onMiss: null, onMissOptions: null };
+      if (keyboard.missListener.onMiss === cb) {
+        keyboard.missListener = { onMiss: null, onMissOptions: null };
       }
     };
   }

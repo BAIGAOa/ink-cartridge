@@ -5,8 +5,8 @@ import { createGlobalKeyProcessor } from "../processors/globalKey.js";
 import { createOverlayProcessor } from "../processors/overlay.js";
 import { createScreenStackProcessor } from "../processors/screenStack.js";
 import { _insertRelative, BuiltinProcessorId } from "../pipeline/chain.js";
-import { KeyboardProcessorProps, PipelineProcessor } from "../types.js";
 import EngineState from "./EngineState.js";
+import { KeyboardProcessorProps, PipelineProcessor } from "../types/processor.js";
 
 export default class PipelineManager<TComponent> {
 	constructor(

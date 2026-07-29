@@ -163,7 +163,6 @@ export default class LayerManager<TComponent = unknown> {
       layerData = {
         layerId: ownerOrLayer,
         pendingSequence: { fromElementId: null, pendingSequence: null },
-        missListener: { onMiss: null, onMissOptions: null },
         elementKeyboards: new Map(),
       };
       this.state.layersKeyboardMap.set(ownerOrLayer, layerData);
@@ -184,6 +183,10 @@ export default class LayerManager<TComponent = unknown> {
         sequences: new Map(),
         associatedLayer: ownerOrLayer,
         allowedKeys: [],
+        missListener: {
+          onMiss: null,
+          onMissOptions: null
+        }
       };
       layerData.elementKeyboards.set(elementId, elementKeyboard);
     }

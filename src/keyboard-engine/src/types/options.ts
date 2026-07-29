@@ -215,5 +215,5 @@ export interface AllowModalOptions {
 }
 
 export interface SequenceListeningOptions {
-  elementId?: string;
+  monitorLayer?: boolean;
 }
