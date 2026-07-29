@@ -1,178 +1,119 @@
 import type CompositionEngine from "../CompositionEngine.js";
-import { ResolvedGlobalKeyEntry, ResolvedGlobalSequenceEntry } from "../types/entry.js";
-import { LayerKeyboardLayer, PageKeyboardLayer, pageLayerSymbol } from "../types/page-layer.js";
+import { EngineProps } from "../KeyboardEngine.js";
+import {
+	ResolvedGlobalKeyEntry,
+	ResolvedGlobalSequenceEntry,
+} from "../types/entry.js";
+import { LayerKeyboardLayer, PageKeyboardLayer } from "../types/page-layer.js";
 import { GlobalPendingSequence } from "../types/pending-sequence.js";
-import { KeyboardProcessorProps, PipelineProcessor } from "../types/processor.js";
+import { PipelineProcessor } from "../types/processor.js";
 import { SyncState } from "../types/state-sync.js";
 
-/**
- * Configuration passed to {@link KeyboardEngine} at construction time.
- */
-export interface EngineProps<TComponent> {
-  /** Registered mode names (e.g. `["normal", "insert"]`). */
-  modes?: string[];
-  /** Default mode — must be null (no-mode) or a member of `modes`. */
-  defaultMode?: string;
-  /** Per-instance custom processors injected into the pipeline at init time. */
-  processors?: KeyboardProcessorProps<TComponent>[];
-  /**
-   * Converts a framework-specific key event into normalized key-name strings
-   * for matching. Required so the engine stays framework-agnostic — each host
-   * framework provides its own adapter.
-   *
-   * @example Ink
-   * ```ts
-   * normalizeKeyNames: (input, key) => normalizeKeyNames(input, key as Key)
-   * ```
-   * @example Vue
-   * ```ts
-   * normalizeKeyNames: (input, key) => {
-   *   const e = key as KeyboardEvent
-   *   return [e.key.toLowerCase()]
-   * }
-   * ```
-   */
-  normalizeKeyNames: (input: string, key: unknown) => string[];
-
-  /**
-   * Determines whether a key event should match the wildcard `"*"` binding.
-   *
-   * The engine calls this predicate on every `"*"` match attempt. It should
-   * return `true` when the key is a special key (arrows, return, escape, tab,
-   * backspace, delete, pageup, pagedown, home, end), a modifier key (ctrl,
-   * meta, super, hyper), or a release event — in other words, anything that
-   * is NOT a normal text character.
-   *
-   * Required so the engine stays framework-agnostic — each host framework
-   * provides its own adapter that knows its Key shape.
-   *
-   * @example Ink
-   * ```ts
-   * isNormalChar: (input, key) => isNormalCharacter(input, key, k =>
-   *   k.upArrow || k.downArrow || k.leftArrow || k.rightArrow
-   *   || k.pageDown || k.pageUp || k.home || k.end
-   *   || k.return || k.escape || k.tab || k.backspace || k.delete
-   *   || k.ctrl || k.meta || k.super || k.hyper
-   *   || k.eventType === 'release'
-   * )
-   * ```
-   */
-  isNormalChar: (key: unknown) => boolean;
-
-  /**
-   * Whether the engine automatically handles Tab / Shift+Tab for focus
-   * rotation. Defaults to `false`.
-   *
-   * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
-   * automatically. When `false` or `undefined`, developers must call
-   * `focusNext` / `focusPrev` manually.
-   */
-  autoTab?: boolean;
-}
-
 export default class EngineState<TComponent> {
-  /**
-   * Data input from an external source for recognition by the keyboard engine.
-   */
-  synchronizedData: SyncState<TComponent> = {
-    pagePath: [],
-    layers: [],
-    modalLayers: []
-  }
+	/**
+	 * Data input from an external source for recognition by the keyboard engine.
+	 */
+	synchronizedData: SyncState<TComponent> = {
+		pagePath: [],
+		layers: [],
+		modalLayers: [],
+	};
 
-  /** Set of registered mode names. */
-  modesRef: Set<string>;
-  /** Currently active mode, or null (no-mode). */
-  currentModeRef: string | null;
+	/** Set of registered mode names. */
+	modesRef: Set<string>;
+	/** Currently active mode, or null (no-mode). */
+	currentModeRef: string | null;
 
-  /**
-   * Named boolean conditions used by `when: "conditionId"` in binding options.
-   * Stored separately from modes because conditions are evaluated per-key
-   * (dynamic toggles) while mode is a single global state.
-   */
-  conditions: Map<string, boolean> = new Map();
+	/**
+	 * Named boolean conditions used by `when: "conditionId"` in binding options.
+	 * Stored separately from modes because conditions are evaluated per-key
+	 * (dynamic toggles) while mode is a single global state.
+	 */
+	conditions: Map<string, boolean> = new Map();
 
-  globalKeysRef: ResolvedGlobalKeyEntry[] = [];
-  /**
-   * Registered listeners notified whenever the active focus target changes.
-   * Used by UI components to re-render focus indicators.
-   */
-  focusSubscribersRef: Set<() => void> = new Set<() => void>();
-  /**
-   * Registered sync callbacks from {@link currentScreenHasSequenceWaiting}
-   * and {@link thereGlobalQueueWaiting}. Called after each
-   * {@link processKey} so the host framework can re-render.
-   */
-  pendingSyncs: Set<() => void> = new Set<() => void>();
-  /**
-   * Reference count for wildcard-priority mode.
-   * When > 0, `"*"` bindings fire before exact-key bindings.
-   * Multiple callers can enable independently; the mode disables at 0.
-   */
-  wildcardPriorityCountRef: number = 0;
+	globalKeysRef: ResolvedGlobalKeyEntry[] = [];
+	/**
+	 * Registered listeners notified whenever the active focus target changes.
+	 * Used by UI components to re-render focus indicators.
+	 */
+	focusSubscribersRef: Set<() => void> = new Set<() => void>();
+	/**
+	 * Registered sync callbacks from {@link currentScreenHasSequenceWaiting}
+	 * and {@link thereGlobalQueueWaiting}. Called after each
+	 * {@link processKey} so the host framework can re-render.
+	 */
+	pendingSyncs: Set<() => void> = new Set<() => void>();
+	/**
+	 * Reference count for wildcard-priority mode.
+	 * When > 0, `"*"` bindings fire before exact-key bindings.
+	 * Multiple callers can enable independently; the mode disables at 0.
+	 */
+	wildcardPriorityCountRef: number = 0;
 
-  /** Registered global multi-key sequences. */
-  globalSequencesRef: ResolvedGlobalSequenceEntry[] = [];
+	/** Registered global multi-key sequences. */
+	globalSequencesRef: ResolvedGlobalSequenceEntry[] = [];
 
-  /**
-   * Currently pending global sequence state.
-   * Written directly by the global-sequence processor between consecutive
-   * key presses; must be mutable and shared across pipeline invocations.
-   */
-  globalPendingSeqRef: GlobalPendingSequence | null = null;
+	/**
+	 * Currently pending global sequence state.
+	 * Written directly by the global-sequence processor between consecutive
+	 * key presses; must be mutable and shared across pipeline invocations.
+	 */
+	globalPendingSeqRef: GlobalPendingSequence | null = null;
 
-  /**
-   * Maps actionId → { action, keys }.
-   * The actionId is the map key, NOT stored in the value — if it were, a
-   * stale reference to an old key could leak through typed access.
-   */
-  shortcutOperationsRef: Map<string, { action: () => void; keys?: string[] }> =
-    new Map();
+	/**
+	 * Maps actionId → { action, keys }.
+	 * The actionId is the map key, NOT stored in the value — if it were, a
+	 * stale reference to an old key could leak through typed access.
+	 */
+	shortcutOperationsRef: Map<string, { action: () => void; keys?: string[] }> =
+		new Map();
 
-  /**
-   * Maps sequenceActionId → { action, keys, timeout }.
-   * Same key-not-in-value pattern as shortcutOperationsRef.
-   */
-  sequenceOperationsRef: Map<
-    string,
-    { action: () => void; keys?: string[]; timeout?: number }
-  > = new Map();
+	/**
+	 * Maps sequenceActionId → { action, keys, timeout }.
+	 * Same key-not-in-value pattern as shortcutOperationsRef.
+	 */
+	sequenceOperationsRef: Map<
+		string,
+		{ action: () => void; keys?: string[]; timeout?: number }
+	> = new Map();
 
-  pageLayerEelementsKeyboards: Map<TComponent, PageKeyboardLayer> = new Map()
+	pageLayerEelementsKeyboards: Map<TComponent, PageKeyboardLayer> = new Map();
 
-  /**
-   * Note: This field is used solely to store the layer's keyboard layer data; 
-   * the keys of the nested Map correspond to element IDs.
-   */
-  layersKeyboardMap: Map<string, LayerKeyboardLayer> = new Map();
+	/**
+	 * Note: This field is used solely to store the layer's keyboard layer data;
+	 * the keys of the nested Map correspond to element IDs.
+	 */
+	layersKeyboardMap: Map<string, LayerKeyboardLayer> = new Map();
 
-  /** The active processor pipeline for this engine instance. */
-  _processors: PipelineProcessor<TComponent>[] = [];
+	/** The active processor pipeline for this engine instance. */
+	_processors: PipelineProcessor<TComponent>[] = [];
 
-  /** The host-provided key-name normalizer, wired at construction. */
-  _normalizeKeyNames: (input: string, key: unknown) => string[];
+	/** The host-provided key-name normalizer, wired at construction. */
+	_normalizeKeyNames: (input: string, key: unknown) => string[];
 
-  /** The host-provided normal-character checker, wired at construction. */
-  _isNormalChar: (key: unknown) => boolean;
+	/** The host-provided normal-character checker, wired at construction. */
+	_isNormalChar: (key: unknown) => boolean;
 
-  /**
-   * Indicates which processor is waiting to process the sequence at this point
-   */
-  compositionEngineHandle: boolean = false;
+	/**
+	 * Indicates which processor is waiting to process the sequence at this point
+	 */
+	compositionEngineHandle: boolean = false;
 
-  /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
-  autoTab: boolean;
+	/** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
+	autoTab: boolean;
+	tabKey: string;
 
-  /** The composition engine instance, assigned by KeyboardEngine after construction. */
-  compositionEngine!: CompositionEngine<TComponent>;
+	/** The composition engine instance, assigned by KeyboardEngine after construction. */
+	compositionEngine!: CompositionEngine<TComponent>;
 
-  noActiveProcessor: string[] = []
+	noActiveProcessor: string[] = [];
 
-  constructor(props: EngineProps<TComponent>) {
-    this.modesRef = new Set(props.modes ?? []);
-    this.currentModeRef = props.defaultMode ?? null;
-    this._normalizeKeyNames = props.normalizeKeyNames;
-    this._isNormalChar = props.isNormalChar;
-    this.autoTab = props.autoTab ?? false;
-  }
+	constructor(props: EngineProps<TComponent>) {
+		this.modesRef = new Set(props.modes ?? []);
+		this.currentModeRef = props.defaultMode ?? null;
+		this._normalizeKeyNames = props.normalizeKeyNames;
+		this._isNormalChar = props.isNormalChar;
+		this.tabKey = props.tabKey ?? "tab";
+		this.autoTab = props.autoTab ?? false;
+	}
 }

@@ -122,6 +122,32 @@ export interface EngineProps<TComponent> {
    * `focusNext` / `focusPrev` manually.
    */
   autoTab?: boolean;
+
+  /**
+   * Override the key name used for automatic focus rotation when
+   * {@link autoTab} is `true`.
+   *
+   * The value must be a key name that {@link normalizeKeyNames} can
+   * produce — the engine matches via `eventNames.includes(thisKey)`,
+   * so the string must exactly match a normalized name the adapter emits.
+   *
+   * When omitted, the engine defaults to `"tab"` (and `"shift+tab"`
+   * for reverse rotation). Provide a custom value when your host
+   * framework's key normalizer produces a different name (e.g. `"Tab"`
+   * with capital T, or `"<Tab>"`).
+   *
+   * @example
+   * ```ts
+   * // Ink's normalizeKeyNames emits lowercase "tab", so the default works.
+   * // A framework that normalizes to "Tab" would need:
+   * new KeyboardEngine({
+   *   normalizeKeyNames,
+   *   autoTab: true,
+   *   tabKey: "Tab",
+   * });
+   * ```
+   */
+  tabKey?: string
 }
 
 /**
@@ -879,8 +905,7 @@ export default class KeyboardEngine<TComponent = unknown> {
       globalKeys: this.state.globalKeysRef,
       globalSequences: this.state.globalSequencesRef,
       wildcardFirst: this.state.wildcardPriorityCountRef > 0,
-      layersRef: this.state._layersWrapper,
-      pendingSeqRef: this.state._pendingSeqWrapper,
+      autoTabKey: this.state.tabKey,
       notifyFocusChange: () => this.layers.notifyFocusChange(),
       notifyPendingSyncs: () => this.notifyPendingSyncs(),
       currentMode: this.state.currentModeRef,

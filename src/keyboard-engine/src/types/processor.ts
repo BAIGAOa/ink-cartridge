@@ -44,6 +44,7 @@ export interface PipelineContext<TComponent> {
   /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
   readonly autoTab: boolean;
   readonly noActiveProcessor: string[];
+  readonly autoTabKey: string
 }
 
 /**
