@@ -7,6 +7,9 @@ import {
   BaseBoundKeyEntry,
   KeyHandler,
   BaseSequenceBinding,
+  PageBoundKeyEntry,
+  PageSequenceBinding,
+  PageSequenceOptions,
 } from "../types/binding.js";
 import { ModalMissCallback } from "../types/modal.js";
 import {
@@ -60,7 +63,7 @@ export default class BindingService<TComponent = unknown> {
     const createBoundKeyEntry = (
       keys: string[],
       handler: KeyHandler | string,
-    ): BaseBoundKeyEntry => {
+    ): BaseBoundKeyEntry | PageBoundKeyEntry => {
       if (typeof handler === "string") {
         const entry = this.state.shortcutOperationsRef.get(handler);
         if (!entry) {
@@ -207,7 +210,13 @@ export default class BindingService<TComponent = unknown> {
     entry.when = options?.when;
     entry.mode = options?.mode;
 
-    layer.bindings.push(entry);
+    if ("associatedLayer" in layer) {
+      layer.bindings.push(entry);
+    } else {
+      (entry as PageBoundKeyEntry).stopsWorkingAfterLayerAppearing =
+        options?.stopsWorkingAfterLayerAppearing;
+      layer.bindings.push(entry);
+    }
 
     return finalizeBoundKeyboard(
       layer.bindings,
@@ -315,9 +324,11 @@ export default class BindingService<TComponent = unknown> {
     }
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
-	if ("pendingSequence" in layer) {
-		throw new Error("[keyboard-engine] allowModal() must be called inside a modal component.")
-	}
+    if ("pendingSequence" in layer) {
+      throw new Error(
+        "[keyboard-engine] allowModal() must be called inside a modal component.",
+      );
+    }
 
     const container: KeyRuleContainer = options?.focusId
       ? typeof options.focusId === "string"
@@ -328,8 +339,6 @@ export default class BindingService<TComponent = unknown> {
             options.focusId.group,
           )
       : layer;
-
-	
 
     return pushKeyEntries(container, "allowedKeys", keys, (key) => ({
       key,
@@ -411,17 +420,33 @@ export default class BindingService<TComponent = unknown> {
 
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
-    const binding: BaseSequenceBinding = {
-      keys,
-      handler,
-      timeout: options?.timeout,
-      options,
-      when: options?.when,
-    };
+    let binding: BaseSequenceBinding | PageSequenceBinding;
 
-    const existing = layer.sequences.get(firstKey) || [];
-    existing.push(binding);
-    layer.sequences.set(firstKey, existing);
+    if ("associatedLayer" in layer) {
+      binding = {
+        keys,
+        handler,
+        timeout: options?.timeout,
+        options,
+        when: options?.when,
+      };
+      const existing = layer.sequences.get(firstKey) || [];
+      existing.push(binding);
+      layer.sequences.set(firstKey, existing);
+    } else {
+      // stopsWorkingAfterLayerAppearing is runtime-determined; safe cast.
+      const pageBinding: PageSequenceBinding = {
+        keys,
+        handler,
+        timeout: options?.timeout,
+        options: options as PageSequenceOptions | undefined,
+        when: options?.when,
+      };
+      binding = pageBinding;
+      const existing = layer.sequences.get(firstKey) || [];
+      existing.push(pageBinding);
+      layer.sequences.set(firstKey, existing);
+    }
 
     return () => {
       const arr = layer.sequences.get(firstKey);
@@ -440,23 +465,26 @@ export default class BindingService<TComponent = unknown> {
     const owner = this.layers.getCurrentOwner();
     if (typeof owner !== "string") return () => {};
 
-	const keyboard = this.getKeyboardInCurrentContext(owner, options?.elementId)
-	const isLayer = "associatedLayer" in keyboard
+    const keyboard = this.getKeyboardInCurrentContext(
+      owner,
+      options?.elementId,
+    );
+    const isLayer = "associatedLayer" in keyboard;
 
-	if (isLayer) {
-		keyboard.missListener = {
-			onMiss: cb,
-			onMissOptions: options ?? {}
-		}
-	} else {
-		throw new Error(
-			`
-			[keyboard-engine] useModalMissListener(): It cannot be used outside of a layer. 
-			While you can call this method within a layer, 
+    if (isLayer) {
+      keyboard.missListener = {
+        onMiss: cb,
+        onMissOptions: options ?? {},
+      };
+    } else {
+      throw new Error(
+        `
+			[keyboard-engine] useModalMissListener(): It cannot be used outside of a layer.
+			While you can call this method within a layer,
 			it will not take effect; it only becomes truly active when the modalLayer appears.
-			`
-		)
-	}
+			`,
+      );
+    }
 
     return () => {
       if (keyboard.missListener.onMiss === cb) {

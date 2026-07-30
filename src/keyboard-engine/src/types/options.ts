@@ -120,6 +120,20 @@ export interface BoundKeyboardOptions {
    * ```
    */
   mode?: string;
+
+  /**
+   * If this option is turned on,
+   * this button will not respond when any layer is present
+   * This key takes effect only when there are no layers.
+   * If this option is turned on within a layer, it will not actually take effect
+   * Only if this option is turned on in the page, It will take effect.
+   *
+   * Note: If there is a Page,
+   * but there is no Layer,
+   * and no elementId is passed in,
+   * this option will take effect, and the binding data will be on the current Page
+   */
+  stopsWorkingAfterLayerAppearing?: boolean;
 }
 
 /**
