@@ -4,7 +4,7 @@ import { KeyRule } from "../types/key-rule.js";
 import { ElementKeyboard, LayerKeyboardLayer } from "../types/page-layer.js";
 import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
 import { FocusTarget } from "../types/focus.js";
-import { BoundKeyEntry } from "../types/binding.js";
+import { BaseBoundKeyEntry } from "../types/binding.js";
 import { PipelineContext, PipelineProcessor } from "../types/processor.js";
 
 function passAllowedKeys(
@@ -78,7 +78,7 @@ function isAllowed(
  * the event but whose `when` returns `false`.
  */
 function hasWhenFalseBinding(
-  bindings: BoundKeyEntry[],
+  bindings: BaseBoundKeyEntry[],
   eventNames: string[],
   conditions: Map<string, boolean>,
 ): boolean {
@@ -159,7 +159,7 @@ function invokeMissIfNeeded<TC>(
   }
 
   // handled === false — key was not consumed by handleLayer.
-  let allBinding: BoundKeyEntry[] = Array.from(layer.elementKeyboards).flatMap(
+  let allBinding: BaseBoundKeyEntry[] = Array.from(layer.elementKeyboards).flatMap(
     (each) => each[1].bindings,
   );
 

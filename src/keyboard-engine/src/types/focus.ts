@@ -1,16 +1,7 @@
-import { BoundKeyEntry } from "./binding.js";
+import { BaseBoundKeyEntry, PageBoundKeyEntry } from "./binding.js";
 import { KeyRule } from "./key-rule.js";
 
-/**
- * Keyboard state for a single named focus target on a screen layer.
- *
- * Focus targets allow multiple form controls on the same screen to have
- * independent key bindings. Only the currently active target receives
- * events; inactive targets are skipped.
- */
-export interface FocusTarget {
-  /** Registered key bindings (evaluation order). */
-  bindings: BoundKeyEntry[];
+export interface BaseFocusTarget {
   /** Key rules marked as transparent on this target (pass-through). */
   penetrationKeys: KeyRule[];
   /** Key rules stopped on this target (propagation barrier). */
@@ -22,6 +13,23 @@ export interface FocusTarget {
    * Allowed for the current focus layer
    */
   allowedKeys: KeyRule[];
+}
+
+export interface PageFocusTarget extends BaseFocusTarget{
+  /** Registered key bindings (evaluation order). */
+  bindings: PageBoundKeyEntry[];
+}
+
+/**
+ * Keyboard state for a single named focus target on a screen layer.
+ *
+ * Focus targets allow multiple form controls on the same screen to have
+ * independent key bindings. Only the currently active target receives
+ * events; inactive targets are skipped.
+ */
+export interface FocusTarget extends BaseFocusTarget {
+  /** Registered key bindings (evaluation order). */
+  bindings: BaseBoundKeyEntry[];
 }
 
 export interface FocusSetOptions {

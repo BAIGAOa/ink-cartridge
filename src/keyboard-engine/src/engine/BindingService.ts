@@ -4,9 +4,9 @@ import {
   pushKeyEntries,
 } from "../providers/helpers.js";
 import {
-  BoundKeyEntry,
+  BaseBoundKeyEntry,
   KeyHandler,
-  SequenceBinding,
+  BaseSequenceBinding,
 } from "../types/binding.js";
 import { ModalMissCallback } from "../types/modal.js";
 import {
@@ -60,7 +60,7 @@ export default class BindingService<TComponent = unknown> {
     const createBoundKeyEntry = (
       keys: string[],
       handler: KeyHandler | string,
-    ): BoundKeyEntry => {
+    ): BaseBoundKeyEntry => {
       if (typeof handler === "string") {
         const entry = this.state.shortcutOperationsRef.get(handler);
         if (!entry) {
@@ -411,7 +411,7 @@ export default class BindingService<TComponent = unknown> {
 
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
 
-    const binding: SequenceBinding = {
+    const binding: BaseSequenceBinding = {
       keys,
       handler,
       timeout: options?.timeout,

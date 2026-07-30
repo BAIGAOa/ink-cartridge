@@ -1,4 +1,4 @@
-import { KeyHandler, SequenceBinding } from "./binding.js";
+import { KeyHandler, BaseSequenceBinding } from "./binding.js";
 import { ResolvedGlobalSequenceEntry } from "./entry.js";
 import { SequenceOptions } from "./options.js";
 
@@ -33,12 +33,12 @@ export interface PendingSequence {
   when?: (() => boolean) | string;
   /**
    * When multiple sequences share the same first key (non-exclusive
-   * mode), stores all eligible {@link SequenceBinding} candidates so
+   * mode), stores all eligible {@link BaseSequenceBinding} candidates so
    * that subsequent keys can disambiguate. Set to `undefined` once
    * the pending sequence resolves to a single binding, or in exclusive
    * mode where only the first candidate is kept.
    */
-  candidates?: SequenceBinding[];
+  candidates?: BaseSequenceBinding[];
 }
 
 /**
