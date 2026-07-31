@@ -25,7 +25,7 @@ import { skip } from 'ink-cartridge';
 ## Behavior
 
 - Validates `component` is a direct child of the current screen. Throws otherwise.
-- Clears non-persistent overlays and modals. Persistent overlays and modals survive; keyboard focus is deactivated until returning to the originating screen.
+- Clears non-`crossPage` layers and modal layers. `crossPage` layers and modal layers survive; keyboard focus is deactivated until returning to the originating screen.
 - Merges `template` (from `registerComponent`) with `params`.
 
 ## Best Practice

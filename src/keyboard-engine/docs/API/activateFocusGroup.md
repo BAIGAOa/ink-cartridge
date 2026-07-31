@@ -36,8 +36,8 @@ Does **not** replace an existing active entry. This is the key difference from `
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 const engine = new KeyboardEngine({ autoTab: true });
-engine.sync({ path: ['form'], activeOverlayIds: [], displayedOverlays: [],
-              activeModalId: null, displayedModals: [] });
+engine.sync({ pagePath: ['form'], layers: [],
+    modalLayers: [] });
 
 // Register focus targets across multiple groups
 engine.boundKeyboard('*', handleName,  { focusId: { group: 'field', focusId: 'name' } });

@@ -1,10 +1,13 @@
-import type { PipelineProcessor } from '../types.js';
+import type {
+	PipelineContext,
+	PipelineProcessor,
+} from '../types/processor.js';
 
 /**
  * Create a processor for composition key chains.
  *
  * Two instances are created by {@link PipelineManager} — one for the
- * overlay phase ({@link affectOverlay} = `true`) and one for the screen
+ * layer phase ({@link affectOverlay} = `true`) and one for the page
  * phase ({@link affectOverlay} = `false`). Both read the shared
  * {@link CompositionEngine} instance from {@link PipelineContext.compositionEngine}.
  *
@@ -16,7 +19,7 @@ export function createCompositionProcessor<TComponent>(config: {
 }): PipelineProcessor<TComponent> {
   const { affectOverlay } = config;
   return {
-    process(ctx): boolean {
+    process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) return false
       // Guard: if a global sequence is pending and we are not already
       // handling a composition chain, let the key fall through.

@@ -32,7 +32,7 @@ Every framework integration follows the same pattern:
 const engine = new KeyboardEngine({ normalizeKeyNames })
 
 // 1. Push screen state on every render
-engine.sync({ path, activeOverlayIds, displayedOverlays, activeModalId, displayedModals })
+engine.sync({ pagePath, layers, modalLayers })
 
 // 2. Clean up removed layers after render
 engine.cleanLayers()
@@ -80,11 +80,9 @@ screen.on('keypress', (ch, key) => {
 // Bind keyboard actions at screen level
 function renderMainMenu() {
   engine.sync({
-    path: ['MainMenu' as any],
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: null,
-    displayedModals: [],
+    pagePath: ['MainMenu' as any],
+    layers: [],
+    modalLayers: [],
   })
 
   const unbindNav = engine.boundKeyboard('j', () => moveDown())
@@ -119,11 +117,9 @@ const currentScreen = ref('menu')
 // Sync on every render
 watchEffect(() => {
   engine.sync({
-    path: [currentScreen.value as any],
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: null,
-    displayedModals: [],
+    pagePath: [currentScreen.value as any],
+    layers: [],
+    modalLayers: [],
   })
 })
 
@@ -160,11 +156,9 @@ const engine = new KeyboardEngine({
 // In your game loop:
 function update(screenPath: string[]) {
   engine.sync({
-    path: screenPath as any,
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: null,
-    displayedModals: [],
+    pagePath: screenPath as any,
+    layers: [],
+    modalLayers: [],
   })
 
   const keyCode = getKeyPressed() // your game's input polling
@@ -202,7 +196,7 @@ const engine = new KeyboardEngine({
 })
 
 // In component body:
-engine.sync({ path, activeOverlayIds, displayedOverlays, activeModalId, displayedModals })
+engine.sync({ pagePath, layers, modalLayers })
 useInput((input, key) => engine.processKey(input, key))
 ```
 
@@ -220,13 +214,13 @@ useInput((input, key) => engine.processKey(input, key))
 While a multi-key sequence is in progress, the engine can report its pending state:
 
 - **Global sequences** (registered via `globalSequence()`) use an engine-level pending state. The first matching key starts the pending state; subsequent keys complete or cancel it.
-- **Local sequences** (registered via `boundSequence()`) use each layer's own pending state, scoped to that screen, overlay, or modal.
+- **Local sequences** (registered via `boundSequence()`) use each layer's own pending state, scoped to that screen, layer, or modal layer.
 
 | Method | Scope | Returns |
 |--------|-------|---------|
 | `getGlobalPendingSequence()` | Engine | `GlobalPendingSequence \| null` — full state including remaining keys, timeout, and handler |
 | `thereGlobalQueueWaiting(sync?)` | Engine | `boolean` — lightweight yes/no, equivalent to `getGlobalPendingSequence() !== null`. Optional `sync` callback triggers after each key event so the host framework can re-render. |
-| `currentScreenHasSequenceWaiting(sync?)` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or overlay. Optional `sync` callback triggers after each key event so the host framework can re-render. |
+| `currentScreenHasSequenceWaiting(sync?)` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or layer element. Optional `sync` callback triggers after each key event so the host framework can re-render. |
 
 ### Best Practice
 

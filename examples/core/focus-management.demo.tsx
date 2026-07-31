@@ -136,7 +136,7 @@ function MainScreen() {
 
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>
-          Current focus: {focusCurrent() ?? 'none'}
+          Current focus: {focusCurrent().result?.id ?? 'none'}
         </Text>
       </Box>
 

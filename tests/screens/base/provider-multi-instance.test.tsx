@@ -8,7 +8,8 @@ import {
   skip,
   back,
   gotoScreen,
-  openOverlay,
+  openLayer,
+  clearDispatchers,
 } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { flush } from '../../components/base/_helpers.js';
@@ -25,6 +26,7 @@ ScreenB.displayName = 'ScreenB';
 
 beforeEach(() => {
   clearRegistry();
+  clearDispatchers();
   registerComponent(ScreenA, {});
   registerComponent(ScreenB, {}, { parent: ScreenA });
 });
@@ -121,14 +123,9 @@ describe('navigation error branches', () => {
     );
   });
 
-  it('openOverlay throws when component is not registered', () => {
-    function Unregistered() {
-      return <Text>Bad</Text>;
-    }
-
-    renderProvider();
-    expect(() => openOverlay('bad-id', Unregistered, {})).toThrow(
-      /is not registered.*registerComponent/,
+  it('openLayer throws before provider is mounted', () => {
+    expect(() => openLayer('bad-id', 1)).toThrow(
+      /called before Provider is mounted/,
     );
   });
 });

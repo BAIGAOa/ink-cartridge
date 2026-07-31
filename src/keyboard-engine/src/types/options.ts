@@ -79,7 +79,7 @@ export interface BoundKeyboardOptions {
    * this callback returns `true` at the moment of the key press.
    *
    * When `false`, the binding is skipped — the event continues to the next
-   * binding or layer. This is an AND relationship with `onlyThis` / `focusId`.
+   * binding or layer. This is an AND relationship with `elementId` / `focusId`.
    *
    * Examples:
    * - `when: () => isEditing` — binding only active during editing

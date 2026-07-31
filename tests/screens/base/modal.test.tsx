@@ -1,18 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
-import { Text } from 'ink';
 import React from 'react';
+import { Text } from 'ink';
 import {
   Menu,
   GameLevel,
-  Settings,
-  Notification,
   renderWithCapture,
   setupBaseScreenTests,
   teardownBaseScreenTests,
 } from './_helpers.js';
-import { registerComponent } from '../../../src/screen/registry.js';
-import { openModal } from '../../../src/screen/provider.js';
+import type { ScreenSystemContextValue } from '../../../src/screen/context.js';
 
 beforeEach(() => {
   setupBaseScreenTests();
@@ -23,324 +20,201 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// A minimal component for modal rendering
-function DummyModal() {
-  return React.createElement(Text, null, 'modal');
+function ModalPopup() {
+  return <Text>modal-popup</Text>;
 }
-DummyModal.displayName = 'DummyModal';
 
-describe('openModal', () => {
-  it('opens a modal without affecting navigation path or overlays', () => {
-    registerComponent(DummyModal, {});
+function openModal(
+  ctx: ScreenSystemContextValue,
+  layerId: string,
+  zIndex = 1,
+  options?: { crossPage?: boolean },
+) {
+  ctx.openModalLayer(layerId, zIndex, options);
+  ctx.applyElementToModalLayer(layerId, {
+    elementId: `${layerId}-el`,
+    element: ModalPopup,
+  });
+}
+
+describe('openModalLayer', () => {
+  it('opens a modal layer without affecting navigation or normal layers', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
     const pathBefore = [...ctx.currentPath];
 
     act(() => {
-      ctx.openModal('m1', DummyModal, {});
+      openModal(ctx, 'm1');
     });
 
     const updated = getCapture()!;
     expect(updated.currentPath).toEqual(pathBefore);
-    expect(updated.displayedOverlays.length).toBe(0);
-    expect(updated.modalQueue.length).toBe(1);
-    expect(updated.modalQueue[0].id).toBe('m1');
-    expect(updated.activeModalId).toBe('m1');
+    expect(updated.allLayers.length).toBe(0);
+    expect(updated.allModalLayers.length).toBe(1);
+    expect(updated.allModalLayers[0].layerId).toBe('m1');
+    expect(updated.allModalLayers[0].elements.size).toBe(1);
   });
 
-  it('throws when component is not registered — context version', () => {
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    expect(() => {
-      ctx.openModal('m1', DummyModal, {});
-    }).toThrow(/is not registered/);
-  });
-
-  it('throws when component is not registered — module-level version', () => {
-    expect(() => {
-      openModal('m1', DummyModal, {});
-    }).toThrow(/is not registered/);
-  });
-
-  it('duplicate modal ID leaves state unchanged', () => {
-    registerComponent(DummyModal, {});
+  it('throws when opening a modal layer with a duplicate ID', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
     act(() => {
-      ctx.openModal('dup', DummyModal, {});
+      openModal(ctx, 'dup');
     });
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    expect(getCapture()!.allModalLayers.length).toBe(1);
 
-    // Duplicate-ID check runs in the reducer; state stays unchanged.
-    ctx.openModal('dup', DummyModal, {});
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    ctx.openModalLayer('dup', 2);
+    expect(getCapture()!.allModalLayers.length).toBe(1);
   });
 
-  it('modal ID colliding with existing overlay ID leaves state unchanged', () => {
-    registerComponent(DummyModal, {});
+  it('leaves state unchanged when a modal ID collides with a layer ID', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
     act(() => {
-      ctx.openOverlay('shared-id', Notification, { message: 'test' });
+      ctx.openLayer('shared', 1);
+      ctx.applyElement('shared', { elementId: 'shared-el', element: ModalPopup });
     });
-    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.allLayers.length).toBe(1);
 
-    ctx.openModal('shared-id', DummyModal, {});
-    expect(getCapture()!.modalQueue.length).toBe(0);
-    expect(getCapture()!.displayedOverlays.length).toBe(1);
-  });
-
-  it('default zIndex equals the current modal count', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('a', DummyModal, {}); });
-    act(() => { ctx.openModal('b', DummyModal, {}); });
-    act(() => { ctx.openModal('c', DummyModal, {}); });
-
-    const modals = getCapture()!.modalQueue;
-    expect(modals.length).toBe(3);
-    expect(modals[0].zIndex).toBe(0);
-    expect(modals[1].zIndex).toBe(1);
-    expect(modals[2].zIndex).toBe(2);
-  });
-
-  it('custom zIndex determines which modal is active', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('low', DummyModal, {}, { zIndex: 1 }); });
-    act(() => { ctx.openModal('high', DummyModal, {}, { zIndex: 10 }); });
-
-    expect(getCapture()!.activeModalId).toBe('high');
-    expect(getCapture()!.modalQueue.length).toBe(2);
-  });
-
-  it('renderNow causes background modal to appear in renderedModalEntries', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('bg', DummyModal, {}, { zIndex: 1, renderNow: true }); });
-    act(() => { ctx.openModal('fg', DummyModal, {}, { zIndex: 2 }); });
-
-    const rendered = getCapture()!.renderedModalEntries;
-    expect(rendered.length).toBe(2);
-    expect(rendered.map(e => e.id)).toContain('bg');
-    expect(rendered.map(e => e.id)).toContain('fg');
-  });
-
-  it('renderNow false (default) — only the active modal is rendered', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('bg', DummyModal, {}, { zIndex: 1 }); });
-    act(() => { ctx.openModal('fg', DummyModal, {}, { zIndex: 2 }); });
-
-    const rendered = getCapture()!.renderedModalEntries;
-    expect(rendered.length).toBe(1);
-    expect(rendered[0].id).toBe('fg');
+    ctx.openModalLayer('shared', 2);
+    expect(getCapture()!.allModalLayers.length).toBe(0);
+    expect(getCapture()!.allLayers.length).toBe(1);
   });
 });
 
-describe('closeModal', () => {
-  it('closes a specific modal by ID', () => {
-    registerComponent(DummyModal, {});
+describe('closeModalLayer', () => {
+  it('closes a modal layer by its ID', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.openModal('m1', DummyModal, {}); });
-    act(() => { ctx.openModal('m2', DummyModal, {}); });
-    expect(getCapture()!.modalQueue.length).toBe(2);
+    act(() => {
+      openModal(ctx, 'm1');
+    });
+    expect(getCapture()!.allModalLayers.length).toBe(1);
 
-    act(() => { ctx.closeModal('m1'); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
-    expect(getCapture()!.modalQueue[0].id).toBe('m2');
+    act(() => {
+      ctx.closeModalLayer('m1');
+    });
+
+    expect(getCapture()!.allModalLayers.length).toBe(0);
   });
 
-  it('active switches to next highest zIndex when the active modal is closed', () => {
-    registerComponent(DummyModal, {});
+  it('does nothing when closing an unknown modal layer', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.openModal('low', DummyModal, {}, { zIndex: 1 }); });
-    act(() => { ctx.openModal('high', DummyModal, {}, { zIndex: 10 }); });
-    expect(getCapture()!.activeModalId).toBe('high');
-
-    act(() => { ctx.closeModal('high'); });
-    expect(getCapture()!.activeModalId).toBe('low');
-  });
-
-  it('activeModalId becomes null when the last modal is closed', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('only', DummyModal, {}); });
-    expect(getCapture()!.activeModalId).toBe('only');
-
-    act(() => { ctx.closeModal('only'); });
-    expect(getCapture()!.activeModalId).toBeNull();
-    expect(getCapture()!.modalQueue.length).toBe(0);
-  });
-
-  it('unknown ID leaves state unchanged', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
-
-    ctx.closeModal('nonexistent');
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    act(() => {
+      openModal(ctx, 'm1');
+    });
+    ctx.closeModalLayer('missing');
+    expect(getCapture()!.allModalLayers.length).toBe(1);
   });
 });
 
-describe('closeAllModals', () => {
-  it('closes all open modals at once', () => {
-    registerComponent(DummyModal, {});
+describe('closeAllModalLayer', () => {
+  it('closes all modal layers at once', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.openModal('m1', DummyModal, {}); });
-    act(() => { ctx.openModal('m2', DummyModal, {}); });
-    act(() => { ctx.openModal('m3', DummyModal, {}); });
-    expect(getCapture()!.modalQueue.length).toBe(3);
+    act(() => {
+      openModal(ctx, 'm1');
+      openModal(ctx, 'm2', 2);
+    });
+    expect(getCapture()!.allModalLayers.length).toBe(2);
 
-    act(() => { ctx.closeAllModals(); });
-    expect(getCapture()!.modalQueue.length).toBe(0);
-    expect(getCapture()!.activeModalId).toBeNull();
-  });
+    act(() => {
+      ctx.closeAllModalLayer();
+    });
 
-  it('is a no-op when no modals are open', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    expect(() => {
-      act(() => { ctx.closeAllModals(); });
-    }).not.toThrow();
-    expect(getCapture()!.modalQueue.length).toBe(0);
+    expect(getCapture()!.allModalLayers.length).toBe(0);
   });
 });
 
-describe('modal interactions', () => {
-  it('modal is unaffected by closeAllOverlays', () => {
-    registerComponent(DummyModal, {});
+describe('modal layer ordering', () => {
+  it('sorts modal layers by zIndex', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.openModal('m1', DummyModal, {}); });
-    act(() => { ctx.openOverlay('ovl', Notification, { message: 'test' }); });
+    act(() => {
+      openModal(ctx, 'low', 1);
+      openModal(ctx, 'high', 10);
+    });
 
-    act(() => { ctx.closeAllOverlays(); });
-
-    expect(getCapture()!.displayedOverlays.length).toBe(0);
-    expect(getCapture()!.modalQueue.length).toBe(1);
-  });
-
-  it('navigation via gotoScreen clears all modals', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}); });
-    act(() => { ctx.openModal('m2', DummyModal, {}); });
-    expect(getCapture()!.modalQueue.length).toBe(2);
-
-    act(() => { ctx.skip(GameLevel, { level: 1 }); });
-    expect(getCapture()!.modalQueue.length).toBe(0);
+    expect(getCapture()!.allModalLayers.map((layer) => layer.zIndex)).toEqual([
+      1,
+      10,
+    ]);
   });
 });
 
-describe('persistent modal', () => {
-  it('survives skip navigation', () => {
-    registerComponent(DummyModal, {});
+describe('modal element lifecycle', () => {
+  it('erases and reactivates elements', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    act(() => {
+      openModal(ctx, 'm1');
+    });
+    expect(getCapture()!.allModalLayers[0].elements.size).toBe(1);
 
-    act(() => { ctx.skip(GameLevel, { level: 1 }); });
+    act(() => {
+      ctx.eraseElementInModalLayer('m1', 'm1-el');
+    });
+    expect(getCapture()!.allModalLayers[0].elements.size).toBe(0);
 
-    expect(getCapture()!.modalQueue.length).toBe(1);
-    expect(getCapture()!.modalQueue[0].id).toBe('m1');
+    act(() => {
+      ctx.applyElementToModalLayer('m1', {
+        elementId: 'm1-el',
+        element: ModalPopup,
+      });
+      ctx.deactivateElementInModalLayer('m1', 'm1-el');
+    });
+    expect(getCapture()!.allModalLayers[0].elements.get('m1-el')?.active).toBe(
+      false,
+    );
+
+    act(() => {
+      ctx.activateElementInModalLayer('m1', 'm1-el');
+    });
+    expect(getCapture()!.allModalLayers[0].elements.get('m1-el')?.active).not.toBe(
+      false,
+    );
+  });
+});
+
+describe('cross-page modal layers', () => {
+  it('clears non-crossPage modal layers on navigation', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      openModal(ctx, 'm1');
+    });
+    expect(getCapture()!.allModalLayers.length).toBe(1);
+
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
+
+    expect(getCapture()!.allModalLayers.length).toBe(0);
   });
 
-  it('survives back navigation', () => {
-    registerComponent(DummyModal, {});
+  it('keeps crossPage modal layers after navigation', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
-    act(() => { ctx.skip(GameLevel, { level: 1 }); });
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    act(() => {
+      openModal(ctx, 'm1', 1, { crossPage: true });
+    });
 
-    act(() => { ctx.back(); });
+    act(() => {
+      ctx.skip(GameLevel, { level: 1 });
+    });
 
-    expect(getCapture()!.modalQueue.length).toBe(1);
-    expect(getCapture()!.modalQueue[0].id).toBe('m1');
-  });
-
-  it('survives gotoScreen navigation', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
-
-    act(() => { ctx.gotoScreen(Settings, { theme: 'dark' }); });
-
-    expect(getCapture()!.modalQueue.length).toBe(1);
-    expect(getCapture()!.modalQueue[0].id).toBe('m1');
-  });
-
-  it('becomes inactive (activeModalId is null) after skip navigation', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    expect(getCapture()!.activeModalId).toBe('m1');
-
-    act(() => { ctx.skip(GameLevel, { level: 1 }); });
-
-    expect(getCapture()!.activeModalId).toBeNull();
-  });
-
-  it('can be closed explicitly with closeModal', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    expect(getCapture()!.modalQueue.length).toBe(1);
-
-    act(() => { ctx.closeModal('m1'); });
-
-    expect(getCapture()!.modalQueue.length).toBe(0);
-  });
-
-  it('is cleared by closeAllModals even when persistent', () => {
-    registerComponent(DummyModal, {});
-    const { getCapture } = renderWithCapture(Menu);
-    const ctx = getCapture()!;
-
-    act(() => { ctx.openModal('m1', DummyModal, {}, { persistent: true }); });
-    act(() => { ctx.openModal('m2', DummyModal, {}); });
-    expect(getCapture()!.modalQueue.length).toBe(2);
-
-    act(() => { ctx.closeAllModals(); });
-
-    expect(getCapture()!.modalQueue.length).toBe(0);
+    expect(getCapture()!.allModalLayers.map((layer) => layer.layerId)).toEqual([
+      'm1',
+    ]);
   });
 });

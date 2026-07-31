@@ -1,10 +1,10 @@
 import { isNormalCharacter } from "./isNormalCharacter.js";
 import { checkWhen } from "./checkWhen.js";
 import { KeyRule } from "./types/key-rule.js";
-import { BaseBoundKeyEntry, PageBoundKeyEntry, BaseSequenceBinding } from "./types/binding.js";
-import { ElementKeyboard, PageKeyboardLayer } from "./types/page-layer.js";
+import { BaseBoundKeyEntry, PageBoundKeyEntry } from "./types/binding.js";
+import { PageKeyboardLayer } from "./types/page-layer.js";
 import { defaultTargetsSymbol } from "./types/default-targets-symbol.js";
-import { FocusTarget, PageFocusTarget } from "./types/focus.js";
+import { PageFocusTarget } from "./types/focus.js";
 import { PendingSequence } from "./types/pending-sequence.js";
 import { PipelineContext } from "./types/processor.js";
 
@@ -37,7 +37,7 @@ export function keyMatchesRule(
  * for normal character input (see {@link isNormalCharacter}).
  *
  * A binding fires only when ALL of the following are satisfied (AND relationship):
- *   1. `skipBinding` returns `false` / absent (covers `onlyThis`)
+ *   1. `skipBinding` returns `false` / absent (covers `stopsWorkingAfterLayerAppearing`)
  *   2. `when` returns `true` / absent (covers conditional enablement)
  *   3. Key name matches one in `binding.keys`
  *
@@ -51,18 +51,18 @@ export function keyMatchesRule(
  * @param input         Raw character from the framework's keyboard event.
  * @param key           Full Key descriptor from the framework.
  * @param skipBinding   Optional predicate to skip individual bindings
- *                      (used for `onlyThis` enforcement).
+ *                      (used for `stopsWorkingAfterLayerAppearing` enforcement).
  * @returns `true` if a binding matched and consumed the event.
  */
-export function tryMatchBindings(
-	bindings: PageBoundKeyEntry[],
+export function tryMatchBindings<T extends BaseBoundKeyEntry>(
+	bindings: T[],
 	currentMode: string | null,
 	availableKeys: string[],
 	input: string,
 	key: unknown,
 	conditions: Map<string, boolean>,
 	isNormalChar: (key: unknown) => boolean,
-	skipBinding?: (binding: PageBoundKeyEntry) => boolean,
+	skipBinding?: (binding: T) => boolean,
 ): boolean {
 	if (availableKeys.length === 0) return false;
 
@@ -94,8 +94,8 @@ export function tryMatchBindings(
 /**
  * Built-in Tab / Shift+Tab focus rotation for a given layer.
  *
- * Cycles {@link ScreenKeyboardLayer.currentFocusId} through the layer's
- * {@link ScreenKeyboardLayer.defaultFocusOrder} list (Tab forward, Shift+Tab backward).
+ * Cycles {@link PageKeyboardLayer.currentFocusIds} through the page layer's
+ * {@link PageKeyboardLayer.defaultFocusOrder} list (Tab forward, Shift+Tab backward).
  * Wraps around at both ends.
  *
  * @returns `true` if a tab event was handled and focus was moved.
@@ -204,9 +204,8 @@ export function handleLayer<TC>(
 		(n) => !keyMatchesRule(n, penetrated, ctx.conditions),
 	);
 
-	// onlyThis semantics differ between screens and overlays:
-	// - Screen: skip when any overlay is active (activeOverlayCount > 0)
-	// - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
+	// stopsWorkingAfterLayerAppearing applies only to page bindings:
+	// when any layer or modal layer is present, the page binding is skipped.
 	const shouldSkipOnlyLayer = (b: PageBoundKeyEntry): boolean => {
 		if (!b.stopsWorkingAfterLayerAppearing) return false
 		return  ctx.allLayers.length > 0 || ctx.allModalLayers.length > 0;
@@ -382,7 +381,7 @@ export function handleLayer<TC>(
 				}
 				const candidates = layer.sequences.get(keyName);
 				if (!candidates || candidates.length === 0) continue;
-				// Filter by mode, onlyThis, focusId, and when constraints.
+				// Filter by mode, stopsWorkingAfterLayerAppearing, focusId, and when constraints.
 				const matching = candidates.filter((binding) => {
 					if (binding.options?.mode && binding.options.mode !== ctx.currentMode)
 						return false;

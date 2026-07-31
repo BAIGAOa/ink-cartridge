@@ -177,7 +177,7 @@ export default class BindingService<TComponent = unknown> {
       );
     }
 
-    let layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
+    const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
     if (options?.focusId) {
       const fid = options.focusId;
       const target =

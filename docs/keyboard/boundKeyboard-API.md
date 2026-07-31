@@ -24,7 +24,8 @@ function boundKeyboard(
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `focusId` | `string \| { group: string; focusId: string }` | — | Scope binding to a focus target. Key only fires when this target is the active one for its group. Pass a string for the default group, or `{ group, focusId }` for a named group. See [Focus System](./focus-system-API.md). |
-| `onlyThis` | `boolean` | `false` | Only fire when this layer is the sole active overlay (or no overlays are active). |
+| `elementId` | `string` | — | Bind to a specific element of the current layer. Inside a layer/modal-layer element, `useKeyboard` injects this automatically from `LayerElementContext` / `ModalLayerElementContext`. |
+| `stopsWorkingAfterLayerAppearing` | `boolean` | `false` | Page-level bindings only. When `true`, the binding stops working as soon as any layer or modal layer is active. |
 | `once` | `boolean` | `false` | Auto-unbind after first invocation. |
 | `times` | `number` | — | Fire on every Nth press (e.g. `2` = 2nd, 4th, 6th…). |
 | `observer` | `(count: number) => void` | — | Called on each press with the running count. Only meaningful with `times`. |

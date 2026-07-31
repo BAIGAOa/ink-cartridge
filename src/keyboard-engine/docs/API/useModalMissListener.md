@@ -29,6 +29,7 @@ type ModalMissCallback = (evt: ModalMissEvent) => void;
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `elementId` | `string` | — | Scope the listener to a specific element on the modal layer. |
 | `monitorWhen` | `boolean` | `false` | When `true`, a key matching a binding whose `when()` returns `false` counts as a **miss** (default: counted as handled). |
 | `monitorFocusMismatch` | `boolean` | `false` | When `true`, a key matching a binding on a non-active focus target counts as a **miss** (default: counted as handled). |
 
@@ -38,7 +39,7 @@ An unsubscribe function. Call it to stop receiving miss events.
 
 ## Effect
 
-Sets `ScreenKeyboardLayer.onMiss` and `ScreenKeyboardLayer.onMissOptions` on the current modal layer. The modal processor invokes this callback during its evaluation of each key event.
+Sets `ElementKeyboard.onMiss` and `ElementKeyboard.onMissOptions` on the current modal layer's element. The modal processor invokes this callback during its evaluation of each key event.
 
 ## Usage
 

@@ -39,11 +39,9 @@ const engine = new KeyboardEngine({
 });
 
 engine.sync({
-  path: ['app'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['app'],
+  layers: [],
+    modalLayers: [],
 });
 
 engine.boundKeyboard(['ctrl+c'], () => {
@@ -90,11 +88,9 @@ const engine = new KeyboardEngine({
 });
 
 engine.sync({
-  path: ['editor'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['editor'],
+  layers: [],
+    modalLayers: [],
 });
 
 // Normal mode bindings

@@ -40,7 +40,7 @@ export {
   createCompositionProcessor,
   createGlobalSequenceProcessor,
   createGlobalKeyProcessor,
-  createOverlayProcessor,
+  createLayerProcessor,
   createScreenStackProcessor,
 } from "@cartridge-engine/keyboard-engine";
 

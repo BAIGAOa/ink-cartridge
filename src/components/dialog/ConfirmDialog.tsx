@@ -1,20 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { useKeyboard, useFocusState } from '../../keyboard/hook.js';
+import { ModalLayerElementContext } from '../../screen/ModalLayerElementContext.js';
 import type { ConfirmDialogProps } from './types.js';
 
 /**
  * A modal confirmation dialog with two buttons.
  *
- * Designed to be displayed via {@link openOverlay}:
+ * Designed to be displayed inside a modal layer:
  *
  * ```tsx
- * registerComponent(ConfirmDialog, {});
- * openOverlay('confirm', ConfirmDialog, {
- *   title: 'delete',
- *   message: 'continue?',
- *   onConfirm: () => { deleteItem(); closeOverlay('confirm'); },
- *   onCancel: () => closeOverlay('confirm'),
+ * const { openModalLayer, applyElementToModalLayer } = useScreenSystem();
+ * openModalLayer('confirm', 100);
+ * applyElementToModalLayer('confirm', {
+ *   elementId: 'confirm-dialog',
+ *   element: () => <ConfirmDialog ... />,
  * });
  * ```
  *
@@ -32,8 +32,10 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const { boundKeyboard, focusSet, focusUnregister } = useKeyboard();
-  const confirmFocused = useFocusState('dialog-confirm');
-  const cancelFocused = useFocusState('dialog-cancel');
+  const modalCtx = useContext(ModalLayerElementContext);
+  const elementId = modalCtx?.id;
+  const confirmFocused = useFocusState('dialog-confirm', { element: elementId });
+  const cancelFocused = useFocusState('dialog-cancel', { element: elementId });
 
   // Keep stable refs so the keyboard effect doesn't capture stale callbacks
   const onConfirmRef = useRef(onConfirm);
@@ -43,30 +45,32 @@ export function ConfirmDialog({
 
   useEffect(() => {
     // Esc 在任何按钮上都是取消（屏幕级绑定，不受 focus 影响）
-    const unEsc = boundKeyboard(['escape'], () => onCancelRef.current());
+    const unEsc = boundKeyboard(['escape'], () => onCancelRef.current(), {
+      elementId,
+    });
 
     const unConfirm = boundKeyboard(
       ['return'],
       () => onConfirmRef.current(),
-      { focusId: 'dialog-confirm' },
+      { elementId, focusId: 'dialog-confirm' },
     );
 
     const unCancel = boundKeyboard(
       ['return'],
       () => onCancelRef.current(),
-      { focusId: 'dialog-cancel' },
+      { elementId, focusId: 'dialog-cancel' },
     );
 
-    focusSet('dialog-confirm');
+    focusSet('dialog-confirm', { element: elementId });
 
     return () => {
       unEsc();
       unConfirm();
       unCancel();
-      focusUnregister('dialog-confirm');
-      focusUnregister('dialog-cancel');
+      focusUnregister('dialog-confirm', { element: elementId });
+      focusUnregister('dialog-cancel', { element: elementId });
     };
-  }, [boundKeyboard, focusSet, focusUnregister]);
+  }, [boundKeyboard, elementId, focusSet, focusUnregister]);
 
   return (
     <Box

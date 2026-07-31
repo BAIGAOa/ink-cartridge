@@ -14,7 +14,7 @@ npm install @cartridge-engine/keyboard-engine
 // lib/keyboardStore.ts
 import { writable } from 'svelte/store';
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
-import type { EngineOverlayEntry, EngineModalEntry } from '@cartridge-engine/keyboard-engine';
+import type { KeyboardLayer } from '@cartridge-engine/keyboard-engine';
 
 function createKeyboardEngine() {
   function isSpecialKey(key: unknown): boolean {
@@ -48,11 +48,9 @@ function createKeyboardEngine() {
   });
 
   function sync(state: {
-    path: string[];
-    activeOverlayIds: string[];
-    displayedOverlays: EngineOverlayEntry[];
-    activeModalId: string | null;
-    displayedModals: EngineModalEntry[];
+    pagePath: string[];
+    layers: KeyboardLayer[];
+    modalLayers: KeyboardLayer[];
   }) {
     engine.sync(state);
   }
@@ -77,11 +75,9 @@ export const keyboard = createKeyboardEngine();
 
   onMount(() => {
     keyboard.sync({
-      path: ['app'],
-      activeOverlayIds: [],
-      displayedOverlays: [],
-      activeModalId: null,
-      displayedModals: [],
+      pagePath: ['app'],
+      layers: [],
+    modalLayers: [],
     });
 
     // Bind keyboard shortcuts

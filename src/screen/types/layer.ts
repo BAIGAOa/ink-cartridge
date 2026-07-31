@@ -19,7 +19,7 @@ export type Layer = {
    */
   crossPage: boolean;
   /**
-   * When the z-index values ​​are equal, this field is used to determine the stacking order.
+   * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
 };
@@ -190,7 +190,7 @@ export type ModalLayer = {
    */
   crossPage: boolean;
   /**
-   * When the z-index values ​​are equal, this field is used to determine the stacking order.
+   * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
 };
@@ -335,3 +335,4 @@ export type CloseAllModalLayerAction = {
 };
 
 export type CloseAllModalLayerFn = () => void;
+

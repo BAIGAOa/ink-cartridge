@@ -29,42 +29,13 @@ export type { KeyRuleContainer } from "./providers/helpers.js";
 
 export { default as CompositionEngine } from "./CompositionEngine.js";
 export type { CompositioKey, CompositionContext, ValueGuard, ValueSchema, Flags, CompositionEvent, MappingKeyEvent, MappingKeyEntry } from "./CompositionEngine.js";
+export { defaultTargetsSymbol } from "./types/default-targets-symbol.js";
 
 export { createModalProcessor } from "./processors/modal.js";
 export { createCompositionProcessor } from "./processors/globalComposition.js";
 export { createGlobalSequenceProcessor } from "./processors/globalSequence.js";
 export { createGlobalKeyProcessor } from "./processors/globalKey.js";
-export { createOverlayProcessor } from "./processors/overlay.js";
+export { createLayerProcessor } from "./processors/layer.js";
 export { createScreenStackProcessor } from "./processors/screenStack.js";
 
-export type {
-  MutableRef,
-  EngineOverlayEntry,
-  EngineModalEntry,
-  KeyRule,
-  KeyHandler,
-  BoundKeyboardOptions,
-  BoundKeyEntry,
-  PenetrationOptions,
-  StopOptions,
-  AllowModalOptions,
-  ScreenKeyboardLayer,
-  LayerKind,
-  FocusTarget,
-  GlobalKeyEntry,
-  GlobalSequenceEntry,
-  ShortcutOperationEntry,
-  SequenceOperationEntry,
-  SequenceOptions,
-  SequenceBinding,
-  PendingSequence,
-  ModalMissEvent,
-  ModalMissCallback,
-  ModalMissOptions,
-  ResolvedGlobalKeyEntry,
-  ResolvedGlobalSequenceEntry,
-  GlobalPendingSequence,
-  PipelineContext,
-  PipelineProcessor,
-  KeyboardProcessorProps,
-} from "./types.js";
+export type * from "./types.js";

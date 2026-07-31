@@ -2,7 +2,7 @@ import { createModalProcessor } from "../processors/modal.js";
 import { createCompositionProcessor } from "../processors/globalComposition.js";
 import { createGlobalSequenceProcessor } from "../processors/globalSequence.js";
 import { createGlobalKeyProcessor } from "../processors/globalKey.js";
-import { createOverlayProcessor } from "../processors/overlay.js";
+import { createLayerProcessor } from "../processors/layer.js";
 import { createScreenStackProcessor } from "../processors/screenStack.js";
 import { _insertRelative, BuiltinProcessorId } from "../pipeline/chain.js";
 import EngineState from "./EngineState.js";
@@ -24,7 +24,7 @@ export default class PipelineManager<TComponent> {
 			createCompositionProcessor({ affectOverlay: true }),
 			createGlobalSequenceProcessor({ affectOverlay: true }),
 			createGlobalKeyProcessor({ affectOverlay: true }),
-			createOverlayProcessor(),
+			createLayerProcessor(),
 			createCompositionProcessor({ affectOverlay: false }),
 			createGlobalSequenceProcessor({ affectOverlay: false }),
 			createGlobalKeyProcessor({ affectOverlay: false }),

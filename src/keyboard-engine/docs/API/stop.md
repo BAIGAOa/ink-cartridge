@@ -2,7 +2,7 @@
 
 Prevent keys from propagating beyond the current layer.
 
-A "stop barrier" means: once a key reaches this layer, even if no binding handles it, it does not fall through to layers below. Use this when a screen or overlay wants to own certain keys exclusively.
+A "stop barrier" means: once a key reaches this layer, even if no binding handles it, it does not fall through to layers below. Use this when a layer or page wants to own certain keys exclusively.
 
 ## Signature
 
@@ -21,7 +21,8 @@ stop(keys: string[], options?: StopOptions): () => void
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `focusId` | `string` | — | Scope to a specific focus target. |
+| `elementId` | `string` | — | Scope to a specific element on the current layer. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Scope to a specific focus target. |
 | `stopAction` | `boolean` | `false` | Treat entries in `keys` as shortcut action IDs — resolves to the actual bound keys. |
 | `when` | `(() => boolean) \| string` | — | Only stop when this condition evaluates to `true`. When `false`, the key propagates normally. |
 
@@ -62,5 +63,5 @@ engine.stop(['escape'], {
 
 - **[`penetration`](./penetration.md)** — inverse of `stop`. If a key is both stopped and penetrated on the same layer, penetration takes priority and the key passes through
 - **[`boundKeyboard`](./boundKeyboard.md)** — stopped keys are consumed even if no binding matches them, preventing lower layers from seeing them
-- **[`allowModal`](./allowModal.md)** — `stop` blocks propagation within the screen stack; `allowModal` controls the modal barrier (a different pipeline stage)
+- **[`allowModal`](./allowModal.md)** — `stop` blocks propagation within layers and page layers; `allowModal` controls the modal barrier (a different pipeline stage)
 - **[`defineShortcutAction`](./shortcut-actions.md)** — `stopAction: true` resolves action IDs to keys via `actionKeysMap`

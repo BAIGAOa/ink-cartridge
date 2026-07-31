@@ -1,11 +1,11 @@
 /**
- * Modal Demo — blocking dialog with absolute keyboard priority.
+ * Modal Layer Demo — blocking dialog with absolute keyboard priority.
  *
- * Demonstrates: openModal(), closeModal(), closeAllModals(),
- *               renderNow, persistent, modal zIndex stacking.
+ * Demonstrates: openModalLayer(), applyElementToModalLayer(),
+ *               closeModalLayer(), closeAllModalLayer(), crossPage,
+ *               modal-layer zIndex stacking.
  *
- * Modals use position="absolute" so they float on top of the screen
- * rather than rendering below it, following the devTool pattern.
+ * Modal layers use position="absolute" so they float on top of the screen.
  *
  * Run:
  *   npx tsx examples/core/modal.demo.tsx
@@ -18,9 +18,7 @@ import {
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
-  openModal,
-  closeModal,
-  closeAllModals,
+  useScreenSystem,
   skip,
   back,
   Divider,
@@ -41,49 +39,72 @@ function center(width: number, height: number, cols: number, rows: number) {
 function MainScreen() {
   const [lastAction, setLastAction] = useState('');
   const { boundKeyboard } = useKeyboard();
+  const {
+    openModalLayer,
+    applyElementToModalLayer,
+    closeModalLayer,
+    closeAllModalLayer,
+  } = useScreenSystem();
 
   React.useEffect(() => {
     const unbindD = boundKeyboard(['d'], () => {
-      setLastAction('Opened delete confirmation modal');
-      openModal('confirm-delete', ConfirmDeleteModal, {
-        top: 0, left: 0,
-        itemName: 'readme.txt',
-        onConfirm: () => {
-          setLastAction('Deleted: readme.txt');
-          closeModal('confirm-delete');
-        },
-        onCancel: () => {
-          setLastAction('Delete cancelled');
-          closeModal('confirm-delete');
-        },
+      setLastAction('Opened delete confirmation modal layer');
+      openModalLayer('confirm-delete', 2);
+      applyElementToModalLayer('confirm-delete', {
+        elementId: 'confirm-delete-element',
+        element: () => (
+          <ConfirmDeleteModal
+            itemName="readme.txt"
+            onConfirm={() => {
+              setLastAction('Deleted: readme.txt');
+              closeModalLayer('confirm-delete');
+            }}
+            onCancel={() => {
+              setLastAction('Delete cancelled');
+              closeModalLayer('confirm-delete');
+            }}
+          />
+        ),
       });
     });
     const unbindI = boundKeyboard(['i'], () => {
-      setLastAction('Opened info modal (lower zIndex, renderNow)');
-      openModal('file-info', FileInfoModal, {
-        top: 0, left: 0,
-        fileName: 'readme.txt',
-        fileSize: '12.4 KB',
-      }, { renderNow: true, zIndex: 0 });
+      setLastAction('Opened info modal layer (lower zIndex)');
+      openModalLayer('file-info', 1);
+      applyElementToModalLayer('file-info', {
+        elementId: 'file-info-element',
+        element: () => (
+          <FileInfoModal
+            fileName="readme.txt"
+            fileSize="12.4 KB"
+            onClose={() => closeModalLayer('file-info')}
+          />
+        ),
+      });
     });
     const unbindX = boundKeyboard(['x'], () => {
-      closeAllModals();
-      setLastAction('All modals closed');
+      closeAllModalLayer();
+      setLastAction('All modal layers closed');
     });
     const unbindS = boundKeyboard(['s'], () => {
-      setLastAction('Skipping to Sub screen (non-persistent modals auto-close)');
+      setLastAction('Skipping to Sub screen (non-crossPage modal layers auto-close)');
       skip(SubScreen, {});
     });
     const unbindJ = boundKeyboard(['j'], () => {
-      setLastAction(`j pressed — this only works with no modal active`);
+      setLastAction('j pressed — this only works with no modal layer active');
     });
     return () => { unbindD(); unbindI(); unbindX(); unbindS(); unbindJ(); };
-  }, [boundKeyboard]);
+  }, [
+    applyElementToModalLayer,
+    boundKeyboard,
+    closeAllModalLayer,
+    closeModalLayer,
+    openModalLayer,
+  ]);
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>Modal Demo — File Manager</Text>
-      <Text dimColor>Press d to delete · i for info · x to close all modals · Press q to quit</Text>
+      <Text bold underline>Modal Layer Demo — File Manager</Text>
+      <Text dimColor>Press d to delete · i for info · x to close all modal layers · Press q to quit</Text>
 
       <Box marginTop={1} flexDirection="column">
         <Text>Files:</Text>
@@ -95,15 +116,15 @@ function MainScreen() {
         <Text bold>Last action:</Text>
         {lastAction ? <Text color="green">{lastAction}</Text> : <Text dimColor>(press a key)</Text>}
         <Text dimColor>
-          When a modal is active, the j key is blocked — try pressing j with a modal open!
+          When a modal layer is active, the j key is blocked — try pressing j with a modal open!
         </Text>
       </Box>
 
       <Divider />
       <KeyHint keys={[
-        { key: 'd', desc: 'Delete file (modal)' },
-        { key: 'i', desc: 'File info (renderNow modal)' },
-        { key: 'x', desc: 'Close all modals' },
+        { key: 'd', desc: 'Delete file (modal layer)' },
+        { key: 'i', desc: 'File info (modal layer)' },
+        { key: 'x', desc: 'Close all modal layers' },
         { key: 's', desc: 'Skip to Sub screen' },
         { key: 'j', desc: 'Screen key (blocked when modal open)' },
         { key: 'q', desc: 'Quit' },
@@ -122,8 +143,8 @@ function SubScreen() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>Modal Demo — Sub Screen</Text>
-      <Text dimColor>Non-persistent modals are auto-closed when navigating here.</Text>
+      <Text bold underline>Modal Layer Demo — Sub Screen</Text>
+      <Text dimColor>Non-crossPage modal layers are auto-closed when navigating here.</Text>
       <Box marginTop={1}>
         <Text>Press b to go back.</Text>
       </Box>
@@ -137,14 +158,10 @@ function SubScreen() {
 }
 
 function ConfirmDeleteModal({
-  top: _top,
-  left: _left,
   itemName,
   onConfirm,
   onCancel,
 }: {
-  top: number;
-  left: number;
   itemName: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -184,24 +201,22 @@ function ConfirmDeleteModal({
 }
 
 function FileInfoModal({
-  top: _top,
-  left: _left,
   fileName,
   fileSize,
+  onClose,
 }: {
-  top: number;
-  left: number;
   fileName: string;
   fileSize: string;
+  onClose: () => void;
 }) {
   const { boundKeyboard } = useKeyboard();
   const { columns, rows } = useWindowSize();
   const { top, left } = center(MODAL_W, INFO_H, columns, rows);
 
   React.useEffect(() => {
-    const unbindEsc = boundKeyboard(['escape'], () => closeModal('file-info'));
+    const unbindEsc = boundKeyboard(['escape'], onClose);
     return unbindEsc;
-  }, [boundKeyboard]);
+  }, [boundKeyboard, onClose]);
 
   return (
     <Box
@@ -231,8 +246,6 @@ function FileInfoModal({
 
 registerComponent(MainScreen, {});
 registerComponent(SubScreen, {}, { parent: MainScreen });
-registerComponent(ConfirmDeleteModal, { top: 0, left: 0, itemName: '', onConfirm: () => {}, onCancel: () => {} });
-registerComponent(FileInfoModal, { top: 0, left: 0, fileName: '', fileSize: '' });
 
 function App() {
   const { boundKeyboard } = useKeyboard();

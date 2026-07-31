@@ -28,6 +28,7 @@ import {
   PipelineProcessor,
 } from "./types/processor.js";
 import { KeyHandler } from "./types/binding.js";
+import { FocusSetOptions } from "./types/focus.js";
 import {
   AllowModalOptions,
   BoundKeyboardOptions,
@@ -156,9 +157,9 @@ export interface EngineProps<TComponent> {
  * Owns all mutable keyboard state — bindings, layers, focus targets, global
  * keys, modes, conditions, and the processor pipeline — without depending on
  * any specific UI framework. A host framework (React, Vue, Blessed, etc.)
- * creates an instance, calls {@link sync} on each render to push screen-path
- * and overlay/modal state, and calls {@link processKey} for every keyboard
- * event.
+ * creates an instance, calls {@link sync} on each render to push page-path,
+ * layer, and modal-layer state, and calls {@link processKey} for every
+ * keyboard event.
  *
  * The generic `TComponent` represents the host framework's component type.
  * It defaults to `unknown` so the engine never constrains the host — all
@@ -174,7 +175,11 @@ export interface EngineProps<TComponent> {
  *   normalizeKeyNames,
  * })).current;
  *
- * engine.sync({ path, activeOverlayIds, displayedOverlays, activeModalId, displayedModals });
+ * engine.sync({
+ *   pagePath: ['app'],
+ *   layers: [],
+ *   modalLayers: [],
+ * });
  * useInput((input, key) => engine.processKey(input, key));
  * ```
  */
@@ -362,7 +367,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
-   * Push screen-path and overlay/modal state into the engine.
+   * Push page-path, layer, and modal-layer state into the engine.
    *
    * Call this synchronously on every render (before any keyboard events)
    * so that {@link processKey} reads a fresh snapshot. Cleanup methods
@@ -383,7 +388,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   cleanLayers() {
     this.layers.cleanPages();
   }
-  /** Remove keyboard layers for overlays that have been closed. */
+  /** Remove element keyboards for layers that have been closed. */
   cleanOverlayLayers() {
     this.layers.cleanLayers();
   }
@@ -415,6 +420,23 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
+   * Push a new owner onto the owner stack so that keyboard bindings in
+   * a layer or modal element are attributed to that layer rather than
+   * the current top layer.
+   */
+  pushOwner(owner: TComponent | string) {
+    this.layers.pushOwner(owner);
+  }
+
+  /**
+   * Remove the most recent matching owner from the stack.
+   * Uses `lastIndexOf` so nested owners of the same layer unwind correctly.
+   */
+  popOwner(owner: TComponent | string) {
+    this.layers.popOwner(owner);
+  }
+
+  /**
    * Subscribe to focus changes. Returns an unsubscribe function.
    * Use this in UI frameworks to track when the active focus target moves
    * (e.g. Tab navigation, programmatic focusSet).
@@ -436,8 +458,12 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @throws If the current owner has no layer, the group is not registered,
    *         or the focus target is not found within the group.
    */
-  focusSet(focusId: string, group?: string) {
-    this.layers.focusSet(focusId, group);
+  focusSet(focusId: string, groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      this.layers.focusSet(focusId, groupOrOptions);
+    } else {
+      this.layers.focusSet(focusId, groupOrOptions);
+    }
   }
   /**
    * Cycle to the next focus target within a group (Tab semantics).
@@ -447,16 +473,24 @@ export default class KeyboardEngine<TComponent = unknown> {
    * group's registration order. Only switches the active target — does not
    * activate a group that has no current focus.
    */
-  focusNext(group?: string) {
-    this.layers.focusNext(group);
+  focusNext(groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      this.layers.focusNext(groupOrOptions);
+    } else {
+      this.layers.focusNext(groupOrOptions);
+    }
   }
   /**
    * Cycle to the previous focus target within a group (Shift+Tab semantics).
    *
    * Wraps around. See {@link focusNext} for the `group` parameter behavior.
    */
-  focusPrev(group?: string) {
-    this.layers.focusPrev(group);
+  focusPrev(groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      this.layers.focusPrev(groupOrOptions);
+    } else {
+      this.layers.focusPrev(groupOrOptions);
+    }
   }
   /**
    * Query the currently active focus target for a group.
@@ -468,8 +502,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    *
    * @param group Optional focus group name. Defaults to the default group.
    */
-  focusCurrent(group?: string) {
-    return this.layers.focusCurrent(group);
+  focusCurrent(groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      return this.layers.focusCurrent(groupOrOptions);
+    }
+    return this.layers.focusCurrent(groupOrOptions);
   }
   /**
    * Remove a focus target from the current owner's layer.
@@ -486,8 +523,12 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @param focusId The focus target id to remove.
    * @param group   Optional focus group name. Defaults to the default group.
    */
-  focusUnregister(focusId: string, group?: string) {
-    this.layers.focusUnregister(focusId, group);
+  focusUnregister(focusId: string, groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      this.layers.focusUnregister(focusId, groupOrOptions);
+    } else {
+      this.layers.focusUnregister(focusId, groupOrOptions);
+    }
   }
 
   /**
@@ -509,8 +550,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @returns `true` if the target was activated, `false` if the group already
    *          had an active target or the target/group/layer could not be found.
    */
-  activateFocusGroup(focusId: string, group?: string) {
-    return this.layers.activateFocusGroup(focusId, group);
+  activateFocusGroup(focusId: string, groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      return this.layers.activateFocusGroup(focusId, groupOrOptions);
+    }
+    return this.layers.activateFocusGroup(focusId, groupOrOptions);
   }
 
   /**
@@ -529,8 +573,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @returns `true` if the group was removed from active focus,
    *          `false` if the group was not active or could not be found.
    */
-  kickFocusGroup(group?: string) {
-    return this.layers.kickFocusGroup(group);
+  kickFocusGroup(groupOrOptions?: string | FocusSetOptions) {
+    if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
+      return this.layers.kickFocusGroup(groupOrOptions);
+    }
+    return this.layers.kickFocusGroup(groupOrOptions);
   }
 
   /**
@@ -606,7 +653,7 @@ export default class KeyboardEngine<TComponent = unknown> {
 
   /**
    * Register global key bindings. Global keys fire independently of the
-   * screen stack, subject to `category` whitelist and `affectOverlay` placement.
+   * screen stack, subject to `category` whitelist and `affectLayer` placement.
    *
    * When `operate` is a string, it is resolved to a registered shortcut action.
    * Press-count tracking (`times`/`pressCount`) is initialized for entries with `times`.
@@ -728,12 +775,12 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
-   * Check whether the current screen/overlay layer has an active
-   * pending multi-key sequence (registered via {@link boundSequence}).
+   * Check whether the current owner's layer has an active pending multi-key
+   * sequence (registered via {@link boundSequence}).
    * Unlike {@link thereGlobalQueueWaiting}, this only checks the layer
    * belonging to the current owner.
    *
-   * @throws If there is no current owner (no active screen or overlay).
+   * @throws If there is no current owner (no active page, layer, or modal layer).
    */
   currentScreenHasSequenceWaiting(sync?: () => void): boolean {
     return this.registry.currentScreenHasSequenceWaiting(sync);
@@ -766,7 +813,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   getProcessors(): readonly PipelineProcessor<TComponent>[] {
     return this.pipeline.getProcessors();
   }
-  /** Restore the processor pipeline to the default 7-stage chain. */
+  /** Restore the processor pipeline to the default 9-stage chain. */
   resetProcessors(): void {
     this.pipeline.resetProcessors();
   }
@@ -895,12 +942,24 @@ export default class KeyboardEngine<TComponent = unknown> {
         : null;
     const compositionEngineHandler = this.state.compositionEngineHandle;
     const noActiveProcessor = this.state.noActiveProcessor;
+    const state = this.state;
 
     return {
       input,
       eventNames,
+      pagePath: this.state.synchronizedData.pagePath,
       allLayers: this.state.synchronizedData.layers,
       allModalLayers: this.state.synchronizedData.modalLayers,
+      layersRef: this.state.pageLayerEelementsKeyboards,
+      layerKeyboardRefs: this.state.layersKeyboardMap,
+      pendingSeqRef: {
+        get current(): GlobalPendingSequence | null {
+          return state.globalPendingSeqRef;
+        },
+        set current(value: GlobalPendingSequence | null) {
+          state.globalPendingSeqRef = value;
+        },
+      },
       topComponent,
       globalKeys: this.state.globalKeysRef,
       globalSequences: this.state.globalSequencesRef,

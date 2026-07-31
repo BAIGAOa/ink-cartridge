@@ -46,7 +46,7 @@ A `KeyboardEngine` instance. The instance is designed to be stored in a stable r
 
 Creates the internal state tree:
 
-- **EngineState** — path, overlay/modal IDs, modes, conditions, global keys, global sequences, shortcut/sequence operation registries, owner stack
+- **EngineState** — path, layer/modal-layer IDs, modes, conditions, global keys, global sequences, shortcut/sequence operation registries, owner stack
 - **LayerManager** — keyboard layer creation and cleanup
 - **PipelineManager** — the 9-stage processor chain (constructed from built-in processors + any custom `processors`)
 - **BindingService** — bound keyboard, bound sequence, penetration, stop, allow modal registration
@@ -95,7 +95,7 @@ const engine = new KeyboardEngine({
 
 ## API interactions
 
-- **[`sync`](./sync.md)** — call on every render before processing events, pushes current screen/overlay state into the engine
+- **[`sync`](./sync.md)** — call on every render before processing events, pushes current screen/layer state into the engine
 - **[`processKey`](./processKey.md)** — call for every keyboard event, runs it through the pipeline
 - **[`addProcessor`](./addProcessor.md)** / **[`removeProcessor`](./removeProcessor.md)** — dynamically modify the pipeline after construction
 - **[`setValueSchema`](./composition/setValueSchema.md)** — set or replace value schema at runtime (alternative to the constructor option)

@@ -60,11 +60,9 @@ export function useKeyboardEngine(options?: {
 
   onMounted(() => {
     engine.sync({
-      path: ['app'],
-      activeOverlayIds: [],
-      displayedOverlays: [],
-      activeModalId: null,
-      displayedModals: [],
+      pagePath: ['app'],
+      layers: [],
+    modalLayers: [],
     });
   });
 
@@ -91,11 +89,9 @@ const { engine, sync, processKey } = useKeyboardEngine({
 });
 
 sync({
-  path: ['edit-view'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['edit-view'],
+  layers: [],
+    modalLayers: [],
 });
 
 const onKeyDown = (e: KeyboardEvent) => processKey(e.key || '', e);
@@ -114,7 +110,7 @@ const unbindSave = engine.boundKeyboard(['ctrl+s'], () => {
 </template>
 ```
 
-## Modal Management
+## Modal Layer Management
 
 ```vue
 <script setup lang="ts">
@@ -125,33 +121,31 @@ const { engine, sync, processKey } = useKeyboardEngine();
 const showModal = ref(false);
 const modalId = 'confirm-modal';
 
-function openModal() {
+function openModalLayer() {
   showModal.value = true;
   sync({
-    path: ['app'],
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: modalId,
-    displayedModals: [{ id: modalId }],
+    pagePath: ['app'],
+    layers: [],
+    modalLayers: [
+      { layerId: modalId, elements: ["confirm-modal"], activeElements: ["confirm-modal"] },
+    ],
   });
 
-  // Modal key bindings
+  // Modal-layer key bindings
   engine.boundKeyboard(['y'], () => {
     console.log('Confirmed');
-    closeModal();
+    closeModalLayer();
   });
-  engine.boundKeyboard(['n'], () => closeModal());
+  engine.boundKeyboard(['n'], () => closeModalLayer());
   engine.allowModal(['escape']);
 }
 
-function closeModal() {
+function closeModalLayer() {
   showModal.value = false;
   sync({
-    path: ['app'],
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: null,
-    displayedModals: [],
+    pagePath: ['app'],
+    layers: [],
+    modalLayers: [],
   });
 }
 </script>

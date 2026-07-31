@@ -2,7 +2,7 @@
  * A single global key definition.
  *
  * Global keys fire regardless of the screen stack (subject to
- * `category` whitelist and `affectOverlay` placement).
+ * `category` whitelist and `affectLayer` placement).
  */
 export interface GlobalKeyEntry {
   /**
@@ -29,10 +29,10 @@ export interface GlobalKeyEntry {
   cover?: boolean;
 
   /**
-   * Whether this global key fires before the overlay layer.
+   * Whether this global key fires before the layer broadcast.
    *
-   * - `false` (default): Overlay → global key → screen stack
-   * - `true`:            Global key → overlay → screen stack
+   * - `false` (default): layer broadcast → global key → screen stack
+   * - `true`:            global key → layer broadcast → screen stack
    */
   affectLayer?: boolean;
 
@@ -82,7 +82,7 @@ export interface GlobalKeyEntry {
    *
    * When set, the processor skips this entry unless
    * {@link PipelineContext.currentMode} matches. Checked before `when`,
-   * `affectOverlay`, `category`, and `cover` evaluation. When omitted,
+   * `affectLayer`, `category`, and `cover` evaluation. When omitted,
    * the global key fires in all modes (including no-mode).
    *
    * @example
@@ -132,10 +132,10 @@ export interface GlobalSequenceEntry {
   cover?: boolean;
 
   /**
-   * Whether this global sequence fires before the overlay layer.
+   * Whether this global sequence fires before the layer broadcast.
    *
-   * - `false` (default): overlay → global sequence → … → screen stack
-   * - `true`:            global sequence → overlay → … → screen stack
+   * - `false` (default): layer broadcast → global sequence → … → screen stack
+   * - `true`:            global sequence → layer broadcast → … → screen stack
    */
   affectLayer?: boolean;
 
@@ -181,7 +181,7 @@ export interface GlobalSequenceEntry {
    *
    * When set, the processor skips this entry unless
    * {@link PipelineContext.currentMode} matches. Checked before `when`,
-   * `affectOverlay`, `category`, and `cover` evaluation. When omitted,
+   * `affectLayer`, `category`, and `cover` evaluation. When omitted,
    * the sequence is active in all modes (including no-mode).
    *
    * @example

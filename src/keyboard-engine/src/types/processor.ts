@@ -5,8 +5,11 @@ import {
   ResolvedGlobalSequenceEntry,
 } from "./entry.js";
 import { KeyboardLayer } from "./keyboard-layer.js";
-import { PageKeyboardLayer } from "./page-layer.js";
+import { LayerKeyboardLayer, PageKeyboardLayer } from "./page-layer.js";
 import { GlobalPendingSequence } from "./pending-sequence.js";
+
+/** A mutable reference used to share engine state with pipeline stages. */
+export type MutableRef<T> = { current: T };
 
 /**
  * Snapshot of all mutable state needed to process a single key event
@@ -33,7 +36,9 @@ export interface PipelineContext<TComponent> {
 
   // --- Mutable refs (shared with engine instance) ---
   readonly layersRef: Map<unknown | string, PageKeyboardLayer>;
-  readonly pendingSeqRef: GlobalPendingSequence | null;
+  /** Layer-id → keyboard data for all elements registered on that layer. */
+  readonly layerKeyboardRefs: Map<string, LayerKeyboardLayer>;
+  readonly pendingSeqRef: MutableRef<GlobalPendingSequence | null>;
   readonly notifyFocusChange: () => void;
   readonly notifyPendingSyncs: () => void;
   readonly currentMode: string | null;

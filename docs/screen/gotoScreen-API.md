@@ -14,7 +14,7 @@ function gotoScreen<C extends React.ComponentType<any>>(
 ## Behavior
 
 - Works across branches — target doesn't need to be a direct child or sibling.
-- Clears non-persistent overlays and modals. Persistent overlays and modals survive; keyboard focus is deactivated until returning to the originating screen.
+- Clears non-`crossPage` layers and modal layers. `crossPage` layers and modal layers survive; keyboard focus is deactivated until returning to the originating screen.
 - Merges `template` with `params`.
 
 ## Best Practice

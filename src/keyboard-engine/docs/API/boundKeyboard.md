@@ -30,8 +30,9 @@ boundKeyboard(actionId: string, options?: BoundKeyboardOptions): () => void
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `focusId` | `string` | — | Scope bindings to a named focus target. |
-| `onlyThis` | `boolean` | `false` | Only active when the owning overlay/screen is the stack top. |
+| `elementId` | `string` | — | Bind to a specific element on the current layer or modal layer. |
+| `focusId` | `string \| { group: string; focusId: string }` | — | Scope bindings to a named focus target (optionally inside a focus group). |
+| `stopsWorkingAfterLayerAppearing` | `boolean` | `false` | Page-level bindings only. When any layer is present, the page binding stops responding. This option has no effect inside a layer. |
 | `once` | `boolean` | `false` | Auto-remove after first invocation. Unbind happens before handler runs. |
 | `times` | `number` | — | Presses needed before firing. Counter resets after handler runs. |
 | `observer` | `(remaining: number) => void` | — | Called on each press while counting toward `times`. Requires `times`. |
@@ -46,12 +47,13 @@ An unbind function. Calling it removes the binding from the layer immediately. S
 
 Adds a `BoundKeyEntry` to the current owner's keyboard layer:
 
+- With `elementId` → stored on that element's keyboard data
 - With `focusId` → stored on the named `FocusTarget.bindings` array
-- Without `focusId` → stored on the layer-level `bindings` array
+- Without either → stored on the page layer's `bindings` array, or the element keyboard's `bindings` array inside a layer/modal layer
 
 If a `mode` is specified, the binding is tagged with it. When the active mode doesn't match, the binding is skipped during key matching (as if it doesn't exist).
 
-The binding is evaluated at pipeline stage 8 (screen stack), after global keys and overlay broadcast. Within a layer, focus-target bindings are checked before layer-level bindings.
+Element bindings are evaluated in the layer broadcast stage (stage 4) and the modal stage (stage 0); page-level bindings are evaluated in the screen-stack stage (stage 8), after global keys and layer broadcast. Within a keyboard layer, focus-target bindings are checked before layer-level bindings.
 
 ## Usage
 

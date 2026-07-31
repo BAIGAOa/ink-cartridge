@@ -109,6 +109,11 @@ export interface ElementKeyboard extends BaseKeyboard {
 	/** Registered screen-level key bindings (evaluation order). */
 	bindings: BaseBoundKeyEntry[];
 	/**
+	 * The element id this keyboard data belongs to, used to scope pending
+	 * sequences and cleanup to the exact element.
+	 */
+	elementId: string;
+	/**
 	 * The layer from which this element originates; it can be a pageLayer.
 	 */
 	associatedLayer: string;

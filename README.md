@@ -35,7 +35,7 @@ Ink gives you `useInput` and `render`. Everything else — screen navigation, la
 TWO pillars:
 
 - **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
-- **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modals, overlays, global keys, and the screen stack. Focus system partitions keys within the same layer.
+- **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modal layers, layers, global keys, and the screen stack. Focus system partitions keys within the same layer.
 
 
 ## Quick Start
@@ -46,7 +46,7 @@ import { Box, Text, render } from "ink";
 import {
 	CurrentScreen,
 	KeyboardProvider,
-	ModalContext,
+	ModalLayerElementContext,
 	registerComponent,
 	ScenarioManagementProvider,
 	useKeyboard,
@@ -55,20 +55,30 @@ import {
 
 // ── Home ──
 function Home() {
-	const { skip, openModal } = useScreenSystem();
+	const { skip, openModalLayer, applyElementToModalLayer } = useScreenSystem();
 	const { boundKeyboard } = useKeyboard();
 
 	useEffect(() => {
 		const toProgress = boundKeyboard(["p"], () => skip(ProgressBar, {}));
 		const modals = boundKeyboard(["m"], () => {
-			openModal("low", Modal, {top: 0, left: 80}, { zIndex: 1, renderNow: true });
-			openModal("high", Modal, {top: 4, left: 70}, { zIndex: 2, renderNow: true });
-            openModal("high-high", Modal, {top: 8, left: 60}, { zIndex: 3, renderNow: true });
-            openModal("high-high-high", Modal, {top: 10, left: 55}, { zIndex: 4, renderNow: true });
-            openModal("high-high-high-high", Modal, {top: 12, left: 50}, { zIndex: 5, renderNow: true });
-            openModal("high-high-high-high-high", Modal, {top: 13, left: 45}, { zIndex: 6, renderNow: true });
-            openModal("high-high-high-high-high-high", Modal, {top: 12, left: 40}, { zIndex: 7, renderNow: true });
-            openModal("high-high-high-high-high-high-high", Modal, {top: 11, left: 35}, { zIndex: 8, renderNow: true });
+			const stacked = [
+				["low", 1, 0, 80],
+				["high", 2, 4, 70],
+				["high-high", 3, 8, 60],
+				["high-high-high", 4, 10, 55],
+				["high-high-high-high", 5, 12, 50],
+				["high-high-high-high-high", 6, 13, 45],
+				["high-high-high-high-high-high", 7, 12, 40],
+				["high-high-high-high-high-high-high", 8, 11, 35],
+			] as const;
+
+			for (const [layerId, zIndex, top, left] of stacked) {
+				openModalLayer(layerId, zIndex);
+				applyElementToModalLayer(layerId, {
+					elementId: `${layerId}-modal`,
+					element: () => <Modal top={top} left={left} />,
+				});
+			}
 		});
 		return () => {
 			toProgress();
@@ -123,17 +133,17 @@ registerComponent(ProgressBar, {}, { parent: Home });
 
 
 function Modal({ top, left }: { top: number; left: number }) {
-	const { closeModal } = useScreenSystem();
+	const { closeModalLayer } = useScreenSystem();
 	const { boundKeyboard } = useKeyboard();
-    const modal = useContext(ModalContext)
+	const modalCtx = useContext(ModalLayerElementContext);
 
 	useEffect(() => {
 		return boundKeyboard(["escape"], () => {
-			if (modal) {
-                closeModal(modal.id)
-            }
+			if (modalCtx) {
+				closeModalLayer(modalCtx.modalLayer.layerId);
+			}
 		});
-	}, [boundKeyboard]);
+	}, [boundKeyboard, closeModalLayer, modalCtx]);
 
 	return (
 		<Box
@@ -163,7 +173,6 @@ function Modal({ top, left }: { top: number; left: number }) {
 		</Box>
 	);
 }
-registerComponent(Modal, {top: 0, left:0});
 
 render(
 	<ScenarioManagementProvider defaultScreen={Home} fullScreen>

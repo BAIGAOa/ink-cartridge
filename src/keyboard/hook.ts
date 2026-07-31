@@ -1,26 +1,26 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { LayerElementContext } from "../screen/LayerElementContext.js";
 import { ModalLayerElementContext } from "../screen/ModalLayerElementContext.js";
-import { useScreenSystem } from "../screen/hook.js";
 import type {
+  AllowModalOptions,
+  BoundKeyboardOptions,
+  KeyHandler,
   ModalMissCallback,
   ModalMissOptions,
+  PenetrationOptions,
+  SequenceOptions,
+  StopOptions,
+  FocusSetOptions,
 } from "@cartridge-engine/keyboard-engine";
 
 /**
  * Access the keyboard API from within a React component.
  *
- * Returns `{ boundKeyboard, penetration, stop, globalKeys, ... }`.
- *
- * When called inside an overlay component (wrapped in OverlayContext.Provider),
- * keyboard bindings are automatically isolated to the overlay's own layer,
- * keyed by overlay ID. This enables multiple instances of the same component
- * to coexist as separate overlays with independent keyboard state.
- *
- * When called inside a modal component (wrapped in ModalContext.Provider),
- * the same isolation mechanism applies: bindings are scoped to the modal's
- * own layer, keyed by modal ID.
+ * Bindings are scoped to the current layer element automatically. When this
+ * hook is called inside a layer/modal element, the element's own layer id is
+ * pushed onto the engine owner stack so bindings are attributed to that
+ * layer even when it is not the top layer.
  *
  * Must be used inside a {@link KeyboardProvider}.
  *
@@ -28,97 +28,153 @@ import type {
  */
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
-  const overlayCtx = useContext(LayerElementContext);
+  const layerCtx = useContext(LayerElementContext);
   const modalCtx = useContext(ModalLayerElementContext);
-
-  const overlayId = overlayCtx?.id ?? null;
-  const modalId = modalCtx?.id ?? null;
-  const { currentPath } = useScreenSystem();
-
   if (!ctx) {
     throw new Error(
       "[Ink-Cartridge] useKeyboard() must be called inside a <KeyboardProvider>.",
     );
   }
 
+  const ownerId =
+    layerCtx?.layer.layerId ?? modalCtx?.modalLayer.layerId ?? null;
+  const elementId = layerCtx?.id ?? modalCtx?.id;
   const { _pushOwner, _popOwner } = ctx;
   const ownerPushedRef = useRef(false);
 
   useEffect(() => {
-    if (overlayId) {
-      if (!ownerPushedRef.current) {
-        _pushOwner(overlayId);
-        ownerPushedRef.current = true;
-      }
-      return () => {
-        _popOwner(overlayId);
-        ownerPushedRef.current = false;
-      };
+    if (!ownerId) return;
+    if (!ownerPushedRef.current) {
+      _pushOwner(ownerId);
+      ownerPushedRef.current = true;
     }
-    return;
-  }, [overlayId, _pushOwner, _popOwner]);
+    return () => {
+      _popOwner(ownerId);
+      ownerPushedRef.current = false;
+    };
+  }, [_popOwner, _pushOwner, ownerId]);
 
-  useEffect(() => {
-    if (modalId) {
-      if (!ownerPushedRef.current) {
-        _pushOwner(modalId);
-        ownerPushedRef.current = true;
+  const wrapped = useMemo<KeyboardContextValue>(() => {
+    const withElement = <T extends { elementId?: string }>(
+      options?: T,
+    ): T | undefined => {
+      if (!elementId) return options;
+      if (!options) return { elementId } as T;
+      if (options.elementId) return options;
+      return { ...options, elementId };
+    };
+
+    const withFocusOptions = (
+      groupOrOptions?: string | FocusSetOptions,
+    ): string | FocusSetOptions | undefined => {
+      if (!elementId) return groupOrOptions;
+      if (typeof groupOrOptions === "string") return groupOrOptions;
+      return { ...groupOrOptions, element: groupOrOptions?.element ?? elementId };
+    };
+
+    const boundKeyboard = ((
+      keysOrActionId: string | string[],
+      handlerOrOptions: KeyHandler | string | BoundKeyboardOptions,
+      maybeOptions?: BoundKeyboardOptions,
+    ) => {
+      if (
+        typeof keysOrActionId === "string" &&
+        typeof handlerOrOptions !== "function" &&
+        typeof handlerOrOptions !== "string"
+      ) {
+        return ctx.boundKeyboard(
+          keysOrActionId,
+          withElement(handlerOrOptions),
+        );
       }
-      return () => {
-        _popOwner(modalId);
-        ownerPushedRef.current = false;
-      };
-    }
-    return;
-  }, [modalId, _pushOwner, _popOwner]);
-
-  /**
-   * Render-time owner stack sync for persistent layers.
-   *
-   * When a persistent overlay/modal survives navigation but the user has
-   * navigated to a different screen, the owner must be popped from the
-   * stack IMMEDIATELY (during render) so that sibling screen components'
-   * mount effects see the correct owner when they call boundKeyboard.
-   * Re-push happens when the user navigates back to the origin screen.
-   *
-   * This replaces the previous useEffect-based management which was
-   * subject to sibling ordering: screen components' effects fire before
-   * the persisting layer's effect, causing bindings to leak into the
-   * wrong keyboard layer.
-   */
-  const ownerCtx = modalCtx ?? overlayCtx;
-  const ownerId = ownerCtx?.id ?? null;
-  const originComponent = ownerCtx?.originComponent;
-
-  if (originComponent && ownerId) {
-    const currentTop = currentPath[currentPath.length - 1];
-    if (currentTop === originComponent) {
-      if (!ownerPushedRef.current) {
-        _pushOwner(ownerId);
-        ownerPushedRef.current = true;
+      if (typeof handlerOrOptions === "string") {
+        return ctx.boundKeyboard(
+          keysOrActionId,
+          handlerOrOptions,
+          withElement(maybeOptions),
+        );
       }
-    } else {
-      if (ownerPushedRef.current) {
-        _popOwner(ownerId);
-        ownerPushedRef.current = false;
-      }
-    }
-  }
+      return ctx.boundKeyboard(
+        keysOrActionId,
+        handlerOrOptions as KeyHandler,
+        withElement(maybeOptions),
+      );
+    }) as KeyboardContextValue["boundKeyboard"];
 
-  return ctx;
+    const boundSequence = ((
+      keysOrActionId: string | string[],
+      handlerOrOptions?: KeyHandler | SequenceOptions,
+      maybeOptions?: SequenceOptions,
+    ) => {
+      if (
+        typeof keysOrActionId === "string" &&
+        (typeof handlerOrOptions === "undefined" ||
+          typeof handlerOrOptions === "object")
+      ) {
+        return ctx.boundSequence(
+          keysOrActionId,
+          withElement(handlerOrOptions as SequenceOptions | undefined),
+        );
+      }
+      return ctx.boundSequence(
+        keysOrActionId,
+        handlerOrOptions as KeyHandler,
+        withElement(maybeOptions),
+      );
+    }) as KeyboardContextValue["boundSequence"];
+
+    return {
+      ...ctx,
+      boundKeyboard,
+      penetration: (keys: string[], options?: PenetrationOptions) =>
+        ctx.penetration(keys, withElement(options)),
+      stop: (keys: string[], options?: StopOptions) =>
+        ctx.stop(keys, withElement(options)),
+      allowModal: (keys: string[], options?: AllowModalOptions) =>
+        ctx.allowModal(keys, withElement(options)),
+      boundSequence,
+      useModalMissListener: (
+        cb: ModalMissCallback,
+        options?: ModalMissOptions,
+      ) => ctx.useModalMissListener(cb, withElement(options)),
+      focusSet: (focusId: string, groupOrOptions?: string | FocusSetOptions) =>
+        ctx.focusSet(focusId, withFocusOptions(groupOrOptions)),
+      focusNext: (groupOrOptions?: string | FocusSetOptions) =>
+        ctx.focusNext(withFocusOptions(groupOrOptions)),
+      focusPrev: (groupOrOptions?: string | FocusSetOptions) =>
+        ctx.focusPrev(withFocusOptions(groupOrOptions)),
+      focusCurrent: (groupOrOptions?: string | FocusSetOptions) =>
+        ctx.focusCurrent(withFocusOptions(groupOrOptions)),
+      focusUnregister: (
+        focusId: string,
+        groupOrOptions?: string | FocusSetOptions,
+      ) => ctx.focusUnregister(focusId, withFocusOptions(groupOrOptions)),
+      activateFocusGroup: (
+        focusId: string,
+        groupOrOptions?: string | FocusSetOptions,
+      ) => ctx.activateFocusGroup(focusId, withFocusOptions(groupOrOptions)),
+      kickFocusGroup: (groupOrOptions?: string | FocusSetOptions) =>
+        ctx.kickFocusGroup(withFocusOptions(groupOrOptions)),
+    };
+  }, [ctx, elementId]);
+
+  return wrapped;
 }
 
-export function useFocusState(focusId: string, group?: string): boolean {
+export function useFocusState(
+  focusId: string,
+  groupOrOptions?: string | FocusSetOptions,
+): boolean {
   const { focusCurrent, subscribeFocus } = useKeyboard();
   const [isFocused, setIsFocused] = useState<boolean>(
-    () => focusCurrent(group).result?.id === focusId,
+    () => focusCurrent(groupOrOptions).result?.id === focusId,
   );
 
   useEffect(() => {
     return subscribeFocus(() => {
-      setIsFocused(focusCurrent(group).result?.id === focusId);
+      setIsFocused(focusCurrent(groupOrOptions).result?.id === focusId);
     });
-  }, [focusId, focusCurrent, subscribeFocus, group]);
+  }, [focusId, focusCurrent, subscribeFocus, groupOrOptions]);
 
   return isFocused;
 }
@@ -133,7 +189,10 @@ export function useModalMissListener(
 
   useEffect(() => {
     if (!ctx || !modalId) return;
-    const unsub = ctx.useModalMissListener(cb, options);
+    const unsub = ctx.useModalMissListener(cb, {
+      ...options,
+      elementId: modalId,
+    });
     return unsub;
   }, [ctx, modalId, cb, options]);
 

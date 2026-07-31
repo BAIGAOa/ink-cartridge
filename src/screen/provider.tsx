@@ -437,7 +437,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				elements: new Map(),
 				crossPage: action.options?.crossPage ?? false,
 				// Use the current timestamp as the creation time to ensure no errors occur,
-				// even if the z-index values ​​are identical.
+				// even if the z-index values are identical.
 				createdAt: Date.now(),
 			};
 
@@ -646,7 +646,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				elements: new Map(),
 				crossPage: action.options?.crossPage ?? false,
 				// Use the current timestamp as the creation time to ensure no errors occur,
-				// even if the z-index values ​​are identical.
+				// even if the z-index values are identical.
 				createdAt: Date.now(),
 			};
 
@@ -1144,3 +1144,4 @@ export function ScenarioManagementProvider({
 		</ScreenSystemContext.Provider>
 	);
 }
+

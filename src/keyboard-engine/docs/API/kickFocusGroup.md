@@ -34,8 +34,8 @@ Only the group's active **slot** is removed. The method does not unregister focu
 import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
 
 const engine = new KeyboardEngine({ autoTab: true });
-engine.sync({ path: ['form'], activeOverlayIds: [], displayedOverlays: [],
-              activeModalId: null, displayedModals: [] });
+engine.sync({ pagePath: ['form'], layers: [],
+    modalLayers: [] });
 
 engine.boundKeyboard('*', handleInput, { focusId: { group: 'field', focusId: 'name' } });
 

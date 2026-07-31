@@ -20,8 +20,7 @@ import {
   KeyboardProvider,
   useKeyboard,
   useModalMissListener,
-  openModal,
-  closeModal,
+  useScreenSystem,
   Divider,
   KeyHint,
 } from '../../src/index.js';
@@ -41,11 +40,10 @@ function MainScreen() {
   const [pos, setPos] = useState({ x: 5, y: 5 });
   const [lastAction, setLastAction] = useState('');
   const { boundKeyboard } = useKeyboard();
+  const { openModalLayer, applyElementToModalLayer, closeModalLayer } = useScreenSystem();
   const posRef = useRef(pos);
   posRef.current = pos;
 
-  // Direction keys to move cursor — these should still work through the modal
-  // because the modal calls allowModal for arrow keys.
   React.useEffect(() => {
     const unbinds = [
       boundKeyboard(['up'], () => {
@@ -66,13 +64,18 @@ function MainScreen() {
       }),
       boundKeyboard(['i'], () => {
         setLastAction('Opening info modal...');
-        openModal('info-modal', InfoModal, { top: 0, left: 0 });
+        openModalLayer('info-modal', 10);
+        applyElementToModalLayer('info-modal', {
+          elementId: 'info-modal-element',
+          element: () => (
+            <InfoModal onClose={() => closeModalLayer('info-modal')} />
+          ),
+        });
       }),
     ];
     return () => unbinds.forEach((u) => u());
-  }, [boundKeyboard]);
+  }, [applyElementToModalLayer, boundKeyboard, closeModalLayer, openModalLayer]);
 
-  // Render a 10x4 grid showing cursor position
   const gridRows: React.ReactNode[] = [];
   const gridHeight = 4;
   const gridWidth = 10;
@@ -120,20 +123,18 @@ function MainScreen() {
   );
 }
 
-function InfoModal({ top: _top, left: _left }: { top: number; left: number }) {
+function InfoModal({ onClose }: { onClose: () => void }) {
   const { boundKeyboard, allowModal } = useKeyboard();
   const [missedKeys, setMissedKeys] = useState<string[]>([]);
   const [hasSaved, setHasSaved] = useState(false);
   const { columns, rows } = useWindowSize();
   const { top, left } = center(MODAL_W, MODAL_H, columns, rows);
 
-  // Allow arrow keys and escape to pass through the modal barrier.
   React.useEffect(() => {
     const unallow = allowModal(['escape', 'up', 'down', 'left', 'right']);
     return unallow;
   }, [allowModal]);
 
-  // Bind ctrl+s inside the modal to demonstrate handled keys.
   React.useEffect(() => {
     const unbind = boundKeyboard(['s'], () => {
       setHasSaved(true);
@@ -141,16 +142,11 @@ function InfoModal({ top: _top, left: _left }: { top: number; left: number }) {
     return unbind;
   }, [boundKeyboard, hasSaved]);
 
-  // Close on escape
   React.useEffect(() => {
-    const unbind = boundKeyboard(['escape'], () => {
-      closeModal('info-modal');
-    });
+    const unbind = boundKeyboard(['escape'], onClose);
     return unbind;
-  }, [boundKeyboard]);
+  }, [boundKeyboard, onClose]);
 
-  // Listen for unhandled keys inside the modal.
-  // monitorWhen: true means when()-rejected bindings count as misses.
   useModalMissListener((evt: ModalMissEvent) => {
     if (evt.miss) {
       const keyName = evt.eventNames[0] || evt.input;
@@ -200,7 +196,6 @@ function InfoModal({ top: _top, left: _left }: { top: number; left: number }) {
 }
 
 registerComponent(MainScreen, {});
-registerComponent(InfoModal, { top: 0, left: 0 });
 
 function App() {
   const { boundKeyboard } = useKeyboard();

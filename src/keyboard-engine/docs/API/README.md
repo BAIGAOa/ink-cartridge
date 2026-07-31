@@ -67,8 +67,8 @@ A bullet list of **how this API interacts with other APIs.** Each entry:
 - Explains the interaction: ordering constraints, mutual exclusion, side effects, shared state
 
 ```markdown
-- **[`sync`](./sync.md)** — must be called before `processKey` on each render, otherwise the pipeline sees stale screen/overlay state.
-- **[`boundKeyboard`](./boundKeyboard.md)** — key bindings registered via `boundKeyboard` on the current screen are matched at pipeline stage 8, so they only fire if no higher-priority stage consumed the event.
+- **[`sync`](./sync.md)** — must be called before `processKey` on each render, otherwise the pipeline sees stale screen/layer state.
+- **[`boundKeyboard`](./boundKeyboard.md)** — element bindings are matched in the modal/layer stages, while page bindings are matched at pipeline stage 8, so they only fire if no higher-priority stage consumed the event.
 ```
 
 If an API has no interactions, write "None." — don't omit the section.

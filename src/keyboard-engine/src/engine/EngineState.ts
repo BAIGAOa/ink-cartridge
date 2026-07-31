@@ -19,6 +19,12 @@ export default class EngineState<TComponent> {
 		modalLayers: [],
 	};
 
+	/**
+	 * Owners (layer/modal ids) pushed by mounted layer elements so bindings
+	 * are attributed to the element's own layer instead of the top layer.
+	 */
+	ownerStackRef: (TComponent | string)[] = [];
+
 	/** Set of registered mode names. */
 	modesRef: Set<string>;
 	/** Currently active mode, or null (no-mode). */

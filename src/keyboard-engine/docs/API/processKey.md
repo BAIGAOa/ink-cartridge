@@ -25,12 +25,12 @@ processKey(input: string, key: unknown): boolean
 
 For each call:
 
-1. **Builds** a snapshot context via [`buildPipelineContext`](./buildPipelineContext.md) — captures current path, overlays, modals, global keys, layers, mode, conditions, composition engine state. All reads are synchronous to produce a frozen-in-time view.
+1. **Builds** a snapshot context via [`buildPipelineContext`](./buildPipelineContext.md) — captures current path, layers, modal layers, global keys, mode, conditions, composition engine state. All reads are synchronous to produce a frozen-in-time view.
 2. **Runs** each processor in the pipeline array (`_processors`) in order:
    ```
-   modal → composition (affectOverlay:true) → global sequence (ao:true) →
-   global keys (ao:true) → overlay broadcast → composition (ao:false) →
-   global sequence (ao:false) → global keys (ao:false) → screen stack
+   modal → composition (affectOverlay:true) → global sequence (affectLayer:true) →
+   global keys (affectLayer:true) → layer broadcast → composition (affectOverlay:false) →
+   global sequence (affectLayer:false) → global keys (affectLayer:false) → screen stack
    ```
 3. **Stops** at the first processor that returns `true` (event consumed).
 4. **Notifies** pending sync callbacks — callers of [`thereGlobalQueueWaiting`](./thereGlobalQueueWaiting.md) and [`currentScreenHasSequenceWaiting`](./currentScreenHasSequenceWaiting.md) that passed a `sync` function get notified so the host framework can re-render.

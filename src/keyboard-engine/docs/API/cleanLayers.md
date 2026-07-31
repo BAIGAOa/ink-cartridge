@@ -1,6 +1,6 @@
 # cleanLayers / cleanOverlayLayers / cleanModalLayers
 
-Remove keyboard layers for screens, overlays, and modals that have left the component tree.
+Remove keyboard data for pages, layers, and modal layers that have left the component tree.
 
 These three methods are the "cleanup side" of the [`sync`](./sync.md) / `processKey` lifecycle. Where `sync` pushes new state into the engine, these methods remove old state. They are designed to be called in a **post-render effect** (e.g. `useEffect` in React) so they can compare the current state against what was pushed by the most recent `sync`.
 
@@ -30,25 +30,23 @@ Iterates over all keyboard layers in `layersRef`. For each layer:
 
 ### cleanOverlayLayers
 
-Same pattern as `cleanLayers`, but checks against `displayedOverlays`. Only cleans up layers belonging to overlay owners that are no longer displayed.
+Same pattern as `cleanLayers`, but checks against `layers`. Only cleans up element keyboards belonging to layer owners that are no longer displayed.
 
 ### cleanModalLayers
 
-Same pattern, checks against `displayedModals`. Only cleans up layers belonging to modal owners that are no longer displayed.
+Same pattern, checks against `modalLayers`. Only cleans up element keyboards belonging to modal-layer owners that are no longer displayed.
 
 ## Usage
 
 ```ts
 // Called in a post-render effect so the comparison sees the synced state
 engine.sync({
-  path: currentPath,
-  activeOverlayIds,
-  displayedOverlays,
-  activeModalId,
-  displayedModals,
+  pagePath: currentPath,
+  layers,
+    modalLayers,
 });
 
-// Post-render — remove layers for detached screens/overlays/modals
+// Post-render — remove keyboard data for detached pages/layers/modal layers
 engine.cleanLayers();
 engine.cleanOverlayLayers();
 engine.cleanModalLayers();
@@ -59,8 +57,8 @@ In React (via `KeyboardProvider`):
 ```ts
 // These three effects run after every render:
 useEffect(() => { engine.cleanLayers(); }, [currentPath, engine]);
-useEffect(() => { engine.cleanOverlayLayers(); }, [displayedOverlays, engine]);
-useEffect(() => { engine.cleanModalLayers(); }, [displayedModals, engine]);
+useEffect(() => { engine.cleanOverlayLayers(); }, [allLayers, engine]);
+useEffect(() => { engine.cleanModalLayers(); }, [allModalLayers, engine]);
 ```
 
 ## API interactions

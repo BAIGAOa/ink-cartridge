@@ -1,9 +1,6 @@
-import type {
-  PipelineContext,
-  PipelineProcessor,
-  ResolvedGlobalSequenceEntry,
-  GlobalPendingSequence,
-} from '../types.js';
+import type { PipelineContext, PipelineProcessor } from '../types/processor.js';
+import type { ResolvedGlobalSequenceEntry } from '../types/entry.js';
+import type { GlobalPendingSequence } from '../types/pending-sequence.js';
 import { checkWhen } from '../checkWhen.js';
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
@@ -16,7 +13,7 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
  * the first key matches.
  *
  * @param entries        Candidate global sequence entries.
- * @param affectOverlay  Which group to filter (true = overlay-phase, false = screen-phase).
+ * @param affectOverlay  Which group to filter (true = layer phase, false = page phase).
  * @param ctx            Full pipeline context.
  * @returns true when a new pending sequence was started (event consumed).
  */
@@ -32,12 +29,12 @@ function tryStartGlobalSequence<TComponent>(
   const matching: ResolvedGlobalSequenceEntry[] = [];
 
   for (const entry of entries) {
-    if ((entry.affectOverlay ?? false) !== affectOverlay) continue;
+    if ((entry.affectLayer ?? false) !== affectOverlay) continue;
     if (entry.mode && entry.mode !== ctx.currentMode) continue;
 
     if (!checkWhen(entry.when, ctx.conditions)) continue
 
-    if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay) continue;
+    if (affectOverlay && ctx.allLayers.length === 0 && !entry.executeWhenNoOverlay) continue;
     if (!ctx.topComponent) continue;
 
     const cat = entry.category;
@@ -51,17 +48,22 @@ function tryStartGlobalSequence<TComponent>(
       const firstKey = entry.keys[0];
       if (affectOverlay) {
         let anyOverlayHasOverride = false;
-        for (const overlay of ctx.activeOverlays) {
-          const overlayLayer = ctx.layersRef.current.get(overlay.id);
-          if (overlayLayer?.sequences.has(firstKey)) {
-            anyOverlayHasOverride = true;
-            break;
+        for (const layerState of ctx.allLayers) {
+          const keyboardLayer = ctx.layerKeyboardRefs.get(layerState.layerId);
+          if (!keyboardLayer) continue;
+          for (const elementId of layerState.activeElements) {
+            const element = keyboardLayer.elementKeyboards.get(elementId);
+            if (element?.sequences.has(firstKey)) {
+              anyOverlayHasOverride = true;
+              break;
+            }
           }
+          if (anyOverlayHasOverride) break;
         }
         if (anyOverlayHasOverride) continue;
       } else {
         if (ctx.topComponent) {
-          const topLayer = ctx.layersRef.current.get(ctx.topComponent);
+          const topLayer = ctx.layersRef.get(ctx.topComponent);
           if (topLayer?.sequences.has(firstKey)) continue;
         }
       }
@@ -128,12 +130,12 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
 
   // Only process the pending sequence in the stage that matches its
   // affectOverlay group — otherwise a pending sequence started in
-  // stage ④ (affectOverlay: false) would have its continuation
-  // consumed by stage ① (affectOverlay: true), bypassing the
-  // overlay layer.
+  // stage 6 (affectOverlay: false) would have its continuation
+  // consumed by stage 2 (affectOverlay: true), bypassing the
+  // layer broadcast.
   if (pending.affectOverlay !== affectOverlay) return false;
 
-  if (pending.affectOverlay && ctx.activeCount === 0 && !pending.executeWhenNoOverlay) {
+  if (pending.affectOverlay && ctx.allLayers.length === 0 && !pending.executeWhenNoOverlay) {
     clearTimeout(pending.timer);
     ctx.pendingSeqRef.current = null;
     return false;

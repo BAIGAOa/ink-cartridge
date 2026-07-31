@@ -1,10 +1,10 @@
 /**
- * Overlay Demo — floating dialog layers with independent keyboard context.
+ * Layer Demo — floating layer elements with independent keyboard context.
  *
- * Demonstrates: openOverlay(), closeOverlay(), activateOverlay(),
- *               deactivateOverlay(), boundKeyboard({ onlyThis: true }).
+ * Demonstrates: openLayer(), applyElement(), closeLayer(),
+ *               activateElement(), deactivateElement().
  *
- * Overlays use position="absolute" so they float on top of the screen.
+ * Layers use position="absolute" so they float on top of the screen.
  *
  * Run:
  *   npx tsx examples/core/overlay.demo.tsx
@@ -17,27 +17,35 @@ import {
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
+  useScreenSystem,
   TextInput,
-  openOverlay,
-  closeOverlay,
   Divider,
   KeyHint,
 } from '../../src/index.js';
+
 function MainScreen() {
   const [count, setCount] = useState(50);
   const [lastAction, setLastAction] = useState('');
 
   const { boundKeyboard } = useKeyboard();
+  const { openLayer, applyElement, closeLayer } = useScreenSystem();
 
   React.useEffect(() => {
     const unbindO = boundKeyboard(['o'], () => {
-      setLastAction('Opened edit overlay');
-      openOverlay('edit-counter', EditOverlay, {
-        value: count,
-        onConfirm: (newVal: number) => {
-          setCount(newVal);
-          setLastAction(`Counter updated: ${count} → ${newVal}`);
-        },
+      setLastAction('Opened edit layer');
+      openLayer('edit-counter', 10);
+      applyElement('edit-counter', {
+        elementId: 'edit-counter-element',
+        element: () => (
+          <EditOverlay
+            value={count}
+            onConfirm={(newVal: number) => {
+              setCount(newVal);
+              setLastAction(`Counter updated: ${count} → ${newVal}`);
+            }}
+            onClose={() => closeLayer('edit-counter')}
+          />
+        ),
       });
     });
     const unbindI = boundKeyboard(['i'], () => {
@@ -45,12 +53,12 @@ function MainScreen() {
       setLastAction(`Incremented to ${count + 1}`);
     });
     return () => { unbindO(); unbindI(); };
-  }, [boundKeyboard, count]);
+  }, [applyElement, boundKeyboard, closeLayer, count, openLayer]);
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>Overlay Demo — Counter with Edit Overlay</Text>
-      <Text dimColor>Press o to edit counter via overlay · Press i to increment · Press q to quit</Text>
+      <Text bold underline>Layer Demo — Counter with Edit Layer</Text>
+      <Text dimColor>Press o to edit counter via layer · Press i to increment · Press q to quit</Text>
 
       <Box marginTop={1} flexDirection="column">
         <Text>Counter value: <Text color="green" bold>{count}</Text></Text>
@@ -59,7 +67,7 @@ function MainScreen() {
 
       <Divider />
       <KeyHint keys={[
-        { key: 'o', desc: 'Open edit overlay' },
+        { key: 'o', desc: 'Open edit layer' },
         { key: 'i', desc: 'Increment counter' },
         { key: 'q', desc: 'Quit' },
       ]} />
@@ -70,32 +78,28 @@ function MainScreen() {
 function EditOverlay({
   value,
   onConfirm,
+  onClose,
 }: {
   value: number;
   onConfirm: (v: number) => void;
+  onClose: () => void;
 }) {
   const { boundKeyboard } = useKeyboard();
-  // toLocaleString('fullwide') avoids scientific notation for large numbers
-  // (e.g. 5e+268 → "5000...") so the digit-only regex keeps working.
   const [editValue, setEditValue] = useState(
     value.toLocaleString('fullwide', { useGrouping: false }),
   );
   const [noNum, setNoNum] = useState(false);
 
-  // Confirm on Enter — use boundKeyboard for the submit action.
-  // Escape cancels and closes the overlay.
   React.useEffect(() => {
-    const unbindEsc = boundKeyboard(['escape'], () => {
-      closeOverlay('edit-counter');
-    }, { onlyThis: true });
+    const unbindEsc = boundKeyboard(['escape'], onClose);
     return unbindEsc;
-  }, [boundKeyboard]);
+  }, [boundKeyboard, onClose]);
 
   const handleSubmit = () => {
     const parsed = Number(editValue);
     if (!isNaN(parsed)) {
       onConfirm(parsed);
-      closeOverlay('edit-counter');
+      onClose();
     }
   };
 
@@ -121,7 +125,6 @@ function EditOverlay({
           focusId="edit-counter-input"
           value={editValue}
           onChange={(val) => {
-            // Only allow digits — non-numeric chars never appear.
             if (val === '' || /^\d+$/.test(val)) {
               setNoNum(false);
               setEditValue(val);
@@ -148,7 +151,6 @@ function EditOverlay({
 }
 
 registerComponent(MainScreen, {});
-registerComponent(EditOverlay, { value: 0, onConfirm: () => {} });
 
 function App() {
   const { boundKeyboard } = useKeyboard();

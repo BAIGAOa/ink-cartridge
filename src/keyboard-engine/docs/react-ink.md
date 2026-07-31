@@ -56,29 +56,30 @@ function LoginForm() {
 }
 ```
 
-## Modal with allowModal
+## Modal Layer with allowModal
 
 ```tsx
 function HelpModal() {
   const { boundKeyboard, allowModal } = useKeyboard();
+  const { closeModalLayer } = useScreenSystem();
 
   useEffect(() => {
-    // Let Escape pass through to a global handler that closes the modal
+    // Let Escape pass through to a global handler that closes the modal layer
     return allowModal(['escape']);
   }, []);
 
   useEffect(() => {
-    return boundKeyboard(['q'], () => closeModal());
+    return boundKeyboard(['q'], () => closeModalLayer('help-modal'));
   }, []);
 
   return <Text>Press Escape or Q to close</Text>;
 }
 ```
 
-## Overlays
+## Layer Elements
 
 ```tsx
-function NotificationOverlay() {
+function NotificationElement() {
   const { boundKeyboard, penetration } = useKeyboard();
 
   useEffect(() => {
@@ -94,6 +95,8 @@ function NotificationOverlay() {
   return <Text>Press D to dismiss, X passes through</Text>;
 }
 ```
+
+Layer elements are rendered by `openLayer` + `applyElement` from `useScreenSystem`. `useKeyboard` reads `LayerElementContext` automatically and scopes bindings, penetration, stop, and focus methods to the current element.
 
 ## Composition Engine
 

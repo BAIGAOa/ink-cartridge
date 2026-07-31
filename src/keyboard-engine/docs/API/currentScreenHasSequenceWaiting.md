@@ -2,7 +2,7 @@
 
 Check whether the current owner's layer has an active pending multi-key sequence (registered via [`boundSequence`](./boundSequence.md)).
 
-Unlike [`thereGlobalQueueWaiting`](./thereGlobalQueueWaiting.md) which checks global sequences, this only checks the layer belonging to the current owner — i.e. the screen or overlay that owns the active keyboard layer. Use this to show sequence-progress hints (like Vim's pending key display).
+Unlike [`thereGlobalQueueWaiting`](./thereGlobalQueueWaiting.md) which checks global sequences, this only checks the layer belonging to the current owner — i.e. the page, layer, or modal layer that owns the active keyboard data. Use this to show sequence-progress hints (like Vim's pending key display).
 
 ## Signature
 
@@ -41,7 +41,7 @@ function useLocalPendingState() {
 
 ## Throws
 
-- `[ink-cartridge]` if there is no current owner (no active screen or overlay)
+- `[ink-cartridge]` if there is no current owner (no active page, layer, or modal layer)
 
 ## API interactions
 

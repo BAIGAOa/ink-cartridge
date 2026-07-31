@@ -47,7 +47,7 @@ None. This is a pure function — it reads the input arrays and produces a new a
 ```ts
 import { _insertRelative } from '@cartridge-engine/keyboard-engine';
 
-const basePipeline = [modalProcessor, overlayProcessor, screenStackProcessor];
+const basePipeline = [modalProcessor, layerProcessor, screenStackProcessor];
 
 const customPipeline = _insertRelative(basePipeline, [
   { processor: auditLogger, index: 0 },
@@ -63,7 +63,7 @@ type BuiltinProcessorId =
   | "composition-overlay"
   | "global-sequence-overlay"
   | "global-key-overlay"
-  | "overlay"
+  | "layer"
   | "composition-screen"
   | "global-sequence-screen"
   | "global-key-screen"

@@ -2,7 +2,7 @@
 
 ## Why
 
-Terminal apps have no router, no `<Link>`, no page stack. The screen system provides tree-based navigation — screens form a parent-child tree, and navigation functions (`skip`, `back`, `gotoScreen`) walk that tree. Overlays and modals float above the stack independently.
+Terminal apps have no router, no `<Link>`, no page stack. The screen system provides tree-based navigation — screens form a parent-child tree, and navigation functions (`skip`, `back`, `gotoScreen`) walk that tree. Layers and modal layers float above the stack independently.
 
 ## Architecture
 
@@ -19,16 +19,16 @@ ScenarioManagementProvider
         ▼
 useScreenSystem()  ── returns state + all navigation functions
         │
-CurrentScreen      ── renders current screen → overlays → modals
+CurrentScreen      ── renders current screen → layers → modal layers
 ```
 
 Navigation rules:
 - `skip(Child)` — only to a direct child of the current screen
 - `back(n?)` — up `n` levels toward root
 - `gotoScreen(Target)` — jump across branches via lowest common ancestor
-- All navigation clears non-persistent overlays and modals. Use `persistent: true` on overlay/modal to preserve them across navigation.
+- All navigation clears non-`crossPage` layers and modal layers. Use `crossPage: true` when opening a layer or modal layer to preserve it across navigation.
 
-Overlays and modals share a common ID namespace. An overlay is a floating panel that can coexist with other overlays. A modal is exclusive — only the highest-zIndex modal receives keyboard input.
+Layers and modal layers share a common ID namespace. A layer is a floating panel that can contain multiple elements and coexist with other layers. A modal layer is exclusive — only the highest-`zIndex` modal layer receives keyboard input.
 
 ## API Index
 
@@ -36,14 +36,14 @@ Overlays and modals share a common ID namespace. An overlay is a floating panel 
 |-----|---------|
 | [registerComponent](./registerComponent-API.md) | Register a screen in the navigation tree |
 | [ScenarioManagementProvider](./ScenarioManagementProvider-API.md) | Root provider — holds navigation state |
-| [CurrentScreen](./CurrentScreen-API.md) | Renders the active screen + overlays + modals |
+| [CurrentScreen](./CurrentScreen-API.md) | Renders the active screen + layers + modal layers |
 | [useScreenSystem](./useScreenSystem-API.md) | Hook — access all navigation functions |
 | [skip](./skip-API.md) | Navigate to a child screen |
 | [back](./back-API.md) | Navigate up to parent |
 | [gotoScreen](./gotoScreen-API.md) | Jump across branches via LCA |
-| [Overlay system](./overlay-API.md) | openOverlay / closeOverlay / closeAllOverlays / activateOverlay / deactivateOverlay |
-| [Modal system](./modal-API.md) | openModal / closeModal / closeAllModals |
-| [ModalContext](./ModalContext-API.md) | Context for per-instance modal ID |
+| [Layer system](./overlay-API.md) | openLayer / applyElement / closeLayer / closeAllLayer / activateElement / deactivateElement |
+| [Modal layer system](./modal-API.md) | openModalLayer / applyElementToModalLayer / closeModalLayer / closeAllModalLayer |
+| [ModalLayerElementContext](./ModalLayerElementContext-API.md) | Context for a modal-layer element |
 | `clearDispatchers()` | Test utility — clears stale dispatch references between test runs |
 
 ## Advanced

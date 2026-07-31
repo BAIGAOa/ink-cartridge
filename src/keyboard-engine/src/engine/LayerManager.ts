@@ -181,6 +181,7 @@ export default class LayerManager<TComponent = unknown> {
         defaultTargets: new Map(),
         actionKeysMap: new Map(),
         sequences: new Map(),
+        elementId,
         associatedLayer: ownerOrLayer,
         allowedKeys: [],
         missListener: {
@@ -205,7 +206,32 @@ export default class LayerManager<TComponent = unknown> {
     return data.pagePath[data.pagePath.length - 1];
   }
 
+  /**
+   * Push a new owner onto the stack so bindings inside a layer/modal element
+   * are attributed to that element's layer even when it is not the top layer.
+   */
+  pushOwner(owner: TComponent | string) {
+    this.state.ownerStackRef = [...this.state.ownerStackRef, owner];
+  }
+
+  /**
+   * Remove the most recent matching owner from the stack.
+   */
+  popOwner(owner: TComponent | string) {
+    const stack = this.state.ownerStackRef;
+    const idx = stack.lastIndexOf(owner);
+    if (idx !== -1) {
+      this.state.ownerStackRef = [
+        ...stack.slice(0, idx),
+        ...stack.slice(idx + 1),
+      ];
+    }
+  }
+
   getCurrentOwner(): TComponent | string | null {
+    const stack = this.state.ownerStackRef;
+    if (stack.length > 0) return stack[stack.length - 1];
+
     const data = this.state.synchronizedData;
     if (data.modalLayers.length > 0) {
       return data.modalLayers[data.modalLayers.length - 1].layerId;
@@ -224,7 +250,10 @@ export default class LayerManager<TComponent = unknown> {
   clearPendingSequence(layer: PageKeyboardLayer | ElementKeyboard) {
     if ("associatedLayer" in layer) {
       const from = this.state.layersKeyboardMap.get(layer.associatedLayer);
-      if (from?.pendingSequence.pendingSequence) {
+      if (
+        from?.pendingSequence.pendingSequence &&
+        from.pendingSequence.fromElementId === layer.elementId
+      ) {
         const timer = from.pendingSequence.pendingSequence.timer;
         clearTimeout(timer);
         from.pendingSequence = {

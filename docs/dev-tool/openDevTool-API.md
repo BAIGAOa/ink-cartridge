@@ -1,6 +1,6 @@
 # openDevTool
 
-Open the development panel as a **persistent** modal — it survives screen navigation so you can inspect state while moving between screens. Uses `renderNow: true` internally so it stays visible when sub-panels (e.g. global keys detail) are opened on top. Keyboard focus is automatically suspended when navigating away and restored on return. **Safe to call when already open** (no-op).
+Open the development panel as a **crossPage** modal layer — it survives screen navigation so you can inspect state while moving between screens. All modal layers stay rendered; only the highest-`zIndex` modal layer receives keyboard input. Keyboard focus is automatically suspended when navigating away and restored on return. **Safe to call when already open** (no-op).
 
 ## Signature
 
@@ -16,7 +16,7 @@ function openDevTool(props: DevProps): void
 | `left` | `number` | Horizontal position in columns. |
 | `zindex` | `number` | Modal zIndex (optional). |
 | `allowKeys` | `string[]` | Keys allowed to pass through the modal to layers below (optional). |
-| `persistent` | `boolean` | Whether the dev tool survives screen navigation. Defaults to `true`. |
+| `crossPage` | `boolean` | Whether the dev tool survives screen navigation. Defaults to `true`. |
 
 Safe to call when the dev tool is already open — duplicate modal IDs are treated as a no-op.
 

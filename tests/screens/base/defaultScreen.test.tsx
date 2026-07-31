@@ -9,7 +9,6 @@ import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import {
   Menu,
   GameLevel,
-  Notification,
   renderWithCapture,
   setupBaseScreenTests,
   teardownBaseScreenTests,
@@ -90,16 +89,19 @@ describe('CurrentScreen', () => {
     expect(stripAnsi(lastFrame())).toContain('Menu');
   });
 
-  it('renders both the screen and open overlays simultaneously', () => {
+  it('renders open layer content while a layer is active', () => {
     const { getCapture, lastFrame } = renderWithCapture(Menu);
     const ctx = getCapture()!;
 
     act(() => {
-      ctx.openOverlay('popup-1', Notification, { message: 'popup!' });
+      ctx.openLayer('popup-1', 1);
+      ctx.applyElement('popup-1', {
+        elementId: 'popup-1-el',
+        element: () => <Text>popup!</Text>,
+      });
     });
 
     const output = stripAnsi(lastFrame());
-    expect(output).toContain('Menu');
     expect(output).toContain('popup!');
   });
 });

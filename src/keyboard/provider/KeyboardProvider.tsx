@@ -8,6 +8,7 @@ import React, {
 import { useInput } from "ink";
 import { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 import type {
+  KeyboardLayer,
   KeyboardProcessorProps,
   ValueSchema,
 } from "@cartridge-engine/keyboard-engine";
@@ -15,6 +16,22 @@ import { clearShortcutOperations } from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
 import { useScreenSystem } from "../../screen/hook.js";
 import { isInkSpecialKey, normalizeKeyNames } from "../keyNormalizer.js";
+import type {
+  Layer,
+  ModalLayer,
+} from "../../screen/types/layer.js";
+
+function toKeyboardLayerState(
+  layers: Array<Layer | ModalLayer>,
+): KeyboardLayer[] {
+  return layers.map((layer) => ({
+    layerId: layer.layerId,
+    elements: Array.from(layer.elements.keys()),
+    activeElements: Array.from(layer.elements.entries())
+      .filter(([, element]) => element.active !== false)
+      .map(([id]) => id),
+  }));
+}
 
 export interface KeyboardProviderProps {
   children: ReactNode;
@@ -89,10 +106,8 @@ export function KeyboardProvider({
 }: KeyboardProviderProps) {
   const {
     currentPath,
-    activeOverlayIds,
-    displayedOverlays,
-    activeModalId,
-    displayedModals,
+    allLayers,
+    allModalLayers,
   } = useScreenSystem();
 
   const engineRef = useRef<KeyboardEngine | null>(null);
@@ -110,11 +125,9 @@ export function KeyboardProvider({
   const engine = engineRef.current;
 
   engine.sync({
-    path: currentPath,
-    activeOverlayIds,
-    displayedOverlays: displayedOverlays.map((o) => ({ id: o.id })),
-    activeModalId,
-    displayedModals: displayedModals.map((m) => ({ id: m.id })),
+    pagePath: currentPath,
+    layers: toKeyboardLayerState(allLayers),
+    modalLayers: toKeyboardLayerState(allModalLayers),
   });
 
   useEffect(() => {
@@ -122,10 +135,10 @@ export function KeyboardProvider({
   }, [currentPath, engine]);
   useEffect(() => {
     engine.cleanOverlayLayers();
-  }, [displayedOverlays, engine]);
+  }, [allLayers, engine]);
   useEffect(() => {
     engine.cleanModalLayers();
-  }, [displayedModals, engine]);
+  }, [allModalLayers, engine]);
 
   const value: KeyboardContextValue = useMemo(
     () => ({

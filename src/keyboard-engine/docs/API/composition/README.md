@@ -20,7 +20,7 @@ interface CompositioKey<TComponet = unknown, TValue = unknown> {
   execute?: (ctx: CompositionContext<TValue>) => CompositionContext<TValue> | null;
   timeout?: number;         // Per-key timeout override (default: engine's defaultTimeout)
   exclusive?: boolean;      // Silently consume mismatched keys while pending
-  affectOverlay?: boolean;  // Fire in the overlay phase or screen phase
+  affectOverlay?: boolean;  // Fire in the layer phase (true) or page phase (false)
   when?: (() => boolean) | string;
   mode?: string;
   category?: TComponet[] | "*";
@@ -43,8 +43,8 @@ Key 3 pressed (flag: "action", needs: ["times"])
 ## Pipeline placement
 
 Composition sits at two pipeline stages:
-- **Stage 1** — `affectOverlay: true` entries (fire before overlays)
-- **Stage 5** — `affectOverlay: false` entries (fire after overlays, before screens)
+- **Stage 1** — `affectOverlay: true` entries (layer phase, before layer broadcast)
+- **Stage 5** — `affectOverlay: false` entries (page phase, after layer broadcast, before screen stack)
 
 Entry resolution uses `needs` matching: when a pending chain exists, only keys whose `needs` include `lastFlag` are eligible. When no chain is pending, only keys with `optional: true` or empty `needs` can start a chain.
 

@@ -31,20 +31,22 @@ A `PipelineContext` snapshot object with these fields:
 | `topComponent` | `unknown \| null` | The top screen component, or `null` if the path is empty. |
 | `globalKeys` | `ResolvedGlobalKeyEntry[]` | Copy of registered global keys. |
 | `globalSequences` | `ResolvedGlobalSequenceEntry[]` | Copy of registered global sequences. |
-| `activeOverlays` | `EngineOverlayEntry[]` | Overlays currently receiving events. |
-| `activeCount` | `number` | Number of active overlays. |
 | `wildcardFirst` | `boolean` | Whether wildcard-priority mode is active. |
-| `screenPath` | `unknown[]` | Copy of the current screen path. |
-| `activeModalId` | `string \| null` | Active modal ID, or `null`. |
+| `pagePath` | `unknown[]` | Copy of the current screen path. |
+| `allLayers` | `KeyboardLayer[]` | All open layers. |
+| `allModalLayers` | `KeyboardLayer[]` | All open modal layers. |
 | `layersRef` | `MutableRef` | Reference to the layers map (shared, mutable). |
+| `layerKeyboardRefs` | `Map<string, LayerKeyboardLayer>` | Reference to per-layer element keyboard maps. |
 | `pendingSeqRef` | `MutableRef` | Reference to the global pending sequence (shared, mutable). |
 | `notifyFocusChange` | `() => void` | Callback to notify focus subscribers. |
 | `notifyPendingSyncs` | `() => void` | Callback to notify pending-sync subscribers. |
-| `anyOverlayConsumed` | `boolean` | Overlay coordination flag (mutable per pipeline run). |
 | `currentMode` | `string \| null` | Active mode. |
 | `conditions` | `Map<string, boolean>` | Condition map (shared, mutable). |
 | `compositionEngineHandler` | `boolean` | Whether composition engine has a pending chain. |
 | `compositionEngine` | `CompositionEngine` | The shared composition engine instance. |
+| `autoTab` | `boolean` | Whether automatic Tab focus rotation is enabled. |
+| `autoTabKey` | `string` | Normalized key name used for automatic Tab rotation. |
+| `noActiveProcessor` | `string[]` | IDs of temporarily disabled built-in processors. |
 
 ## Effect
 
@@ -57,7 +59,6 @@ Pure read operation — does not mutate engine state. The returned snapshot incl
 const ctx = engine.buildPipelineContext('a', { name: 'a', ctrl: false });
 const handled = myProcessor.process(ctx);
 assert(handled === true);
-assert(ctx.anyOverlayConsumed === false);
 ```
 
 ## API interactions
