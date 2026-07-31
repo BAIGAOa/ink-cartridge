@@ -3,7 +3,7 @@ import {
   collectElementFocusTargets,
   handlerElement,
   handleTabNavigation,
-} from "../../../src/LayerParser.js";
+} from "../../../src/elementParser.js";
 import { defaultTargetsSymbol } from "../../../src/types/default-targets-symbol.js";
 import {
   makeBinding,
@@ -15,7 +15,7 @@ import {
   makeSequenceBinding,
 } from "../../_helpers/factories.js";
 
-describe("LayerParser tab navigation", () => {
+describe("elementParser tab navigation", () => {
   it("cycles default focus forward and backward", () => {
     const element = makeElementKeyboard("e1", "L", {
       defaultFocusOrder: ["one", "two"],
@@ -37,7 +37,7 @@ describe("LayerParser tab navigation", () => {
   });
 });
 
-describe("LayerParser handlerElement", () => {
+describe("elementParser handlerElement", () => {
   it("collects active focus targets", () => {
     const element = makeElementKeyboard("e1", "L", {
       defaultTargets: new Map([["one", makeFocusTarget()]]),

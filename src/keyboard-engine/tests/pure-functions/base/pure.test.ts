@@ -8,7 +8,7 @@ import {
   keyMatchesRule,
   tryMatchBindings,
 } from "../../../src/layerHandler.js";
-import { handlerElement } from "../../../src/LayerParser.js";
+import { handlerElement } from "../../../src/elementParser.js";
 import {
   defaultTargetsSymbol,
 } from "../../../src/types/default-targets-symbol.js";
@@ -631,7 +631,7 @@ describe("handleLayer", () => {
   });
 });
 
-describe("LayerParser handlerElement", () => {
+describe("elementParser handlerElement", () => {
   it("fires element bindings and sequences", () => {
     const handler = vi.fn();
     const seqHandler = vi.fn();
