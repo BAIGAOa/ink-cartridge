@@ -926,7 +926,7 @@ export default class CompositionEngine<TComponent = unknown> {
 			if (entry.mode && entry.mode !== ctx.currentMode) return false;
 			if (!ctx.topComponent) return false;
 
-			if (affectOverlay && ctx.activeCount === 0 && !entry.executeWhenNoOverlay)
+			if (affectOverlay && ctx.allLayers.length === 0 && !entry.executeWhenNoOverlay)
 				return false;
 
 			const cat = entry.category;
@@ -1203,8 +1203,8 @@ export default class CompositionEngine<TComponent = unknown> {
 		affectOverlay: boolean,
 	): boolean {
 		if (!this.mappingPendingEntry) return false;
-		// Phase guard — a pending started in the overlay phase must not be
-		// advanced by the screen-phase processor (and vice versa). Mirrors
+		// Phase guard — a pending started in the layer phase must not be
+		// advanced by the page-phase processor (and vice versa). Mirrors
 		// processPending / globalSequence pending handling.
 		if (this.mappingPendingEntry.affectOverlay !== affectOverlay) return false;
 

@@ -1,72 +1,77 @@
-# Overlay System
+# Layer System
 
-Floating panels rendered above the current screen. Multiple overlays can be active simultaneously — they receive keyboard events in parallel (broadcast semantics).
+Floating panels rendered above the current screen. A layer can contain multiple elements; all active elements in a layer receive keyboard events (broadcast semantics). Multiple layers stack by `zIndex`, and the top layer consumes a key before lower layers.
 
 ## API
 
-### openOverlay
+### openLayer
 
 ```ts
-function openOverlay<C extends React.ComponentType<any>>(
-  id: string,
-  component: C,
-  params: React.ComponentProps<C>,
-  options?: OpenOverlayOptions
-): void
+function openLayer(layerId: string, zIndex: number, options?: LayerOptions): void
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `activate` | `boolean` | `true` | Whether the overlay is immediately active (receives keyboard). |
-| `zIndex` | `number` | `overlays.length` | Stacking order. |
-| `persistent` | `boolean` | `false` | When `true`, the overlay survives screen navigation (skip/back/gotoScreen). Non-persistent overlays are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
+| `crossPage` | `boolean` | `false` | When `true`, the layer survives screen navigation (skip/back/gotoScreen). Non-`crossPage` layers are cleared on navigation. |
 
-If `id` collides with an existing overlay or modal, this is a no-op — the existing overlay is left unchanged.
+If `layerId` collides with an existing layer or modal layer, the reducer leaves state unchanged.
 
-### closeOverlay
+### applyElement
 
 ```ts
-function closeOverlay(id: string): void
+function applyElement(targetLayerId: string, layerElement: LayerElement): void
 ```
 
-If no overlay with that ID exists, this is a no-op — safe to call even when the overlay may have already been closed.
-
-### closeAllOverlays
+`LayerElement` shape:
 
 ```ts
-function closeAllOverlays(): void
+type LayerElement = {
+  elementId: string;
+  element: React.ComponentType;
+  active?: boolean;
+};
 ```
 
-Closes all overlays, including persistent ones.
+`active` defaults to `true`. Deactivated elements stay mounted but are removed from keyboard dispatch.
 
-### activateOverlay / deactivateOverlay
+### closeLayer / eraseElement / closeAllLayer
 
 ```ts
-function activateOverlay(id: string): void
-function deactivateOverlay(id: string): void
+function closeLayer(targetLayerId: string): void
+function eraseElement(targetLayerId: string, targetElementId: string): void
+function closeAllLayer(): void
 ```
 
-Active overlays receive keyboard events (stage 3 of the pipeline). Inactive overlays are still rendered but don't receive input.
+### activateElement / deactivateElement
 
-Throws if no overlay with the given ID exists.
+```ts
+function activateElement(targetLayerId: string, targetElementId: string): void
+function deactivateElement(targetLayerId: string, targetElementId: string): void
+```
+
+Active layer elements receive keyboard events. Inactive elements remain rendered but do not receive input.
 
 ## Best Practice
 
-Toggle an overlay on/off with a single key:
+Toggle a layer on/off with a single key:
 
 ```tsx
 function Menu() {
-  const { openOverlay, closeOverlay } = useScreenSystem();
+  const { openLayer, applyElement, closeLayer } = useScreenSystem();
   const { boundKeyboard } = useKeyboard();
   const openRef = useRef(false);
 
   useEffect(() => {
     return boundKeyboard(['s'], () => {
       if (openRef.current) {
-        closeOverlay('console');
+        closeLayer('console');
         openRef.current = false;
       } else {
-        openOverlay('console', Console, {}, { activate: false });
+        openLayer('console', 10);
+        applyElement('console', {
+          elementId: 'console-element',
+          element: ConsolePanel,
+        });
         openRef.current = true;
       }
     });

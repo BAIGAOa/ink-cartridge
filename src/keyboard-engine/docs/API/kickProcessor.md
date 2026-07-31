@@ -40,12 +40,12 @@ Neither method changes the `_processors` array — [`getProcessors`](./addProces
 |----|-------|
 | `modal` | Modal barrier |
 | `composition-overlay` | Composition chains (affectOverlay: true) |
-| `global-sequence-overlay` | Global sequences (affectOverlay: true) |
-| `global-key-overlay` | Global keys (affectOverlay: true) |
-| `overlay` | Overlay broadcast |
+| `global-sequence-overlay` | Global sequences (affectLayer: true) |
+| `global-key-overlay` | Global keys (affectLayer: true) |
+| `layer` | Layer broadcast |
 | `composition-screen` | Composition chains (affectOverlay: false) |
-| `global-sequence-screen` | Global sequences (affectOverlay: false) |
-| `global-key-screen` | Global keys (affectOverlay: false) |
+| `global-sequence-screen` | Global sequences (affectLayer: false) |
+| `global-key-screen` | Global keys (affectLayer: false) |
 | `screen-stack` | Screen stack (top-to-bottom) |
 
 ## Usage
@@ -58,11 +58,9 @@ const engine = new KeyboardEngine({
 });
 
 engine.sync({
-  path: ['screen'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['screen'],
+  layers: [],
+    modalLayers: [],
 });
 const handler = vi.fn();
 engine.boundKeyboard(['x'], handler);

@@ -9,6 +9,8 @@ import { CurrentScreen } from '../../../src/screen/current-screen.js';
 import { KeyboardProvider } from '../../../src/keyboard/provider.js';
 import { useKeyboard } from '../../../src/keyboard/hook.js';
 import { useScreenSystem } from '../../../src/screen/hook.js';
+import { KeyboardContext } from '../../../src/keyboard/context.js';
+import { ModalLayerElementContext } from '../../../src/screen/ModalLayerElementContext.js';
 import { ConfirmDialog } from '../../../src/components/dialog/ConfirmDialog.js';
 
 const KEYS = {
@@ -31,18 +33,20 @@ function renderDialog(props: {
   const onCancel = props.onCancel ?? vi.fn();
   const kbRef: { current: ReturnType<typeof useKeyboard> | null } = { current: null };
 
+  function DialogElement() {
+    return React.createElement(ConfirmDialog, props);
+  }
+  DialogElement.displayName = 'DialogElement';
+
   function HostScreen() {
     const kb = useKeyboard();
-    const { openOverlay: showOverlay } = useScreenSystem();
+    const { openModalLayer, applyElementToModalLayer } = useScreenSystem();
     useEffect(() => {
       kbRef.current = kb;
-      showOverlay('confirm-dialog', ConfirmDialog, {
-        title: props.title,
-        message: props.message,
-        confirmLabel: props.confirmLabel,
-        cancelLabel: props.cancelLabel,
-        onConfirm,
-        onCancel,
+      openModalLayer('confirm-dialog', 100);
+      applyElementToModalLayer('confirm-dialog', {
+        elementId: 'confirm-el',
+        element: DialogElement,
       });
     }, []);
     return React.createElement(Text, null, 'Host');
@@ -51,12 +55,6 @@ function renderDialog(props: {
 
   clearRegistry();
   registerComponent(HostScreen, {});
-  registerComponent(ConfirmDialog, {
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    onCancel: () => {},
-  });
 
   const { lastFrame, stdin, unmount } = render(
     React.createElement(
@@ -77,6 +75,47 @@ function renderDialog(props: {
   };
 }
 
+function renderDialogDirect(props: {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const mockKeyboard = {
+    boundKeyboard: () => () => {},
+    focusSet: () => {},
+    focusUnregister: () => {},
+    focusCurrent: () => ({ noFound: true }),
+    subscribeFocus: () => () => {},
+    _pushOwner: () => {},
+    _popOwner: () => {},
+  } as unknown as ReturnType<typeof useKeyboard>;
+  const modalLayer = {
+    layerId: 'confirm-dialog',
+    zIndex: 100,
+    elements: new Map(),
+    crossPage: false,
+    createdAt: 0,
+  };
+
+  const { lastFrame, unmount } = render(
+    <KeyboardContext.Provider value={mockKeyboard}>
+      <ModalLayerElementContext.Provider
+        value={{ id: 'confirm-el', modalLayer }}
+      >
+        <ConfirmDialog {...props} />
+      </ModalLayerElementContext.Provider>
+    </KeyboardContext.Provider>,
+  );
+
+  return {
+    lastFrameClean: () => stripAnsi(lastFrame()),
+    unmount,
+  };
+}
+
 beforeEach(() => {
   clearRegistry();
 });
@@ -93,14 +132,12 @@ describe('ConfirmDialog', () => {
   }
 
   it('renders title, message and two buttons', async () => {
-    const { lastFrameClean } = renderDialog({
+    const { lastFrameClean } = renderDialogDirect({
       title: 'Test Title',
       message: 'Test Message',
       onConfirm: () => {},
       onCancel: () => {},
     });
-
-    await settle();
 
     const output = lastFrameClean();
     expect(output).toContain('Test Title');
@@ -110,7 +147,7 @@ describe('ConfirmDialog', () => {
   });
 
   it('custom button labels', async () => {
-    const { lastFrameClean } = renderDialog({
+    const { lastFrameClean } = renderDialogDirect({
       title: 'Delete',
       message: 'Sure?',
       confirmLabel: 'Delete',
@@ -118,8 +155,6 @@ describe('ConfirmDialog', () => {
       onConfirm: () => {},
       onCancel: () => {},
     });
-
-    await settle();
 
     const output = lastFrameClean();
     expect(output).toContain('Delete');
@@ -176,7 +211,7 @@ describe('ConfirmDialog', () => {
 
     await settle();
 
-    kbRef.current!.focusSet('dialog-cancel');
+    kbRef.current!.focusSet('dialog-cancel', { element: 'confirm-el' });
     await flush();
 
     await press(stdin, KEYS.enter);

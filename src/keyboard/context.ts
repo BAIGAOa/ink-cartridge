@@ -15,18 +15,21 @@ import type {
   ResolvedGlobalKeyEntry,
   ResolvedGlobalSequenceEntry,
   GlobalPendingSequence,
-  ScreenKeyboardLayer,
+  PageKeyboardLayer,
+  ElementKeyboard,
+  LayerKeyboardLayer,
   PipelineProcessor,
   CompositioKey,
   CompositionContext,
   ValueSchema,
   Flags,
+  FocusSetOptions,
   CompositionEvent,
   MappingKeyEvent,
   MappingKeyEntry,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
-import { defaultTargetsSymbol } from "../keyboard-engine/dist/types.js";
+import { defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
 
 export type LayerOwner = unknown | string;
 
@@ -71,42 +74,29 @@ export interface KeyboardContextValue {
 
   currentScreenHasSequenceWaiting: (sync?: () => void) => boolean;
 
-  focusUnregister: (focusId: string, group?: string) => void;
+  focusUnregister: (
+    focusId: string,
+    groupOrOptions?: string | FocusSetOptions,
+  ) => void;
 
-  focusSet: (focusId: string, group?: string) => void;
+  focusSet: (
+    focusId: string,
+    groupOrOptions?: string | FocusSetOptions,
+  ) => void;
 
-  focusNext: (group?: string) => void;
+  focusNext: (groupOrOptions?: string | FocusSetOptions) => void;
 
-  focusPrev: (group?: string) => void;
+  focusPrev: (groupOrOptions?: string | FocusSetOptions) => void;
 
-  focusCurrent: (group?: string) =>
-    | {
-        noOwner: boolean;
-        noLayer?: undefined;
-        noFound?: undefined;
-        result?: undefined;
-      }
-    | {
-        noLayer: boolean;
-        noOwner?: undefined;
-        noFound?: undefined;
-        result?: undefined;
-      }
-    | {
-        noFound: boolean;
-        noOwner?: undefined;
-        noLayer?: undefined;
-        result?: undefined;
-      }
-    | {
-        result: {
-          id: string;
-          fromGroup: string | typeof defaultTargetsSymbol;
-        };
-        noOwner?: undefined;
-        noLayer?: undefined;
-        noFound?: undefined;
-      };
+  focusCurrent: (groupOrOptions?: string | FocusSetOptions) => {
+    noOwner?: boolean;
+    noLayer?: boolean;
+    noFound?: boolean;
+    result?: {
+      id: string;
+      fromGroup: string | typeof defaultTargetsSymbol;
+    };
+  };
 
   subscribeFocus: (listener: () => void) => () => void;
 
@@ -148,7 +138,9 @@ export interface KeyboardContextValue {
     options?: ModalMissOptions,
   ) => () => void;
 
-  readLayer: (owner: LayerOwner) => ScreenKeyboardLayer | undefined;
+  readLayer: (
+    owner: LayerOwner,
+  ) => PageKeyboardLayer | ElementKeyboard | LayerKeyboardLayer | undefined;
 
   getCurrentMode: () => string | null;
 
@@ -215,8 +207,11 @@ export interface KeyboardContextValue {
   subscribeMapping: (fn: () => void) => () => void;
   getLastMappingEvent: () => MappingKeyEvent | null;
 
-  activateFocusGroup: (focusId: string, group?: string) => boolean;
-  kickFocusGroup: (group?: string) => boolean;
+  activateFocusGroup: (
+    focusId: string,
+    groupOrOptions?: string | FocusSetOptions,
+  ) => boolean;
+  kickFocusGroup: (groupOrOptions?: string | FocusSetOptions) => boolean;
 
   kickProcessor: (id: BuiltinProcessorId) => boolean;
   activeProcessor: (id: BuiltinProcessorId) => boolean;

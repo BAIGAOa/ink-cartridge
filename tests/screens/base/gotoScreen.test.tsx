@@ -6,11 +6,12 @@ import {
   GameLevel,
   Combat,
   Settings,
-  Notification,
   renderWithCapture,
   setupBaseScreenTests,
   teardownBaseScreenTests,
 } from './_helpers.js';
+import React from 'react';
+import { Text } from 'ink';
 
 beforeEach(() => {
   setupBaseScreenTests();
@@ -79,15 +80,19 @@ describe('gotoScreen', () => {
       ctx.skip(GameLevel, { level: 1 });
     });
     act(() => {
-      ctx.openOverlay('n1', Notification, { message: 'z' });
+      ctx.openLayer('n1', 1);
+      ctx.applyElement('n1', {
+        elementId: 'n1-el',
+        element: () => <Text>popup</Text>,
+      });
     });
-    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.allLayers.length).toBe(1);
 
     act(() => {
       ctx.gotoScreen(Settings, { theme: 'dark' });
     });
 
-    expect(getCapture()!.displayedOverlays.length).toBe(0);
+    expect(getCapture()!.allLayers.length).toBe(0);
   });
 
   it('clears all open modals when navigating via gotoScreen', () => {
@@ -95,16 +100,20 @@ describe('gotoScreen', () => {
     const ctx = getCapture()!;
 
     act(() => {
-      ctx.openModal('m1', Notification, { message: 'modal' });
+      ctx.openModalLayer('m1', 1);
+      ctx.applyElementToModalLayer('m1', {
+        elementId: 'm1-el',
+        element: () => <Text>modal</Text>,
+      });
     });
-    expect(getCapture()!.modalQueue.length).toBe(1);
+    expect(getCapture()!.allModalLayers.length).toBe(1);
 
     act(() => {
       ctx.gotoScreen(Settings, { theme: 'dark' });
     });
 
     const updated = getCapture()!;
-    expect(updated.modalQueue.length).toBe(0);
+    expect(updated.allModalLayers.length).toBe(0);
   });
 
   it('throws when called at module level without a mounted Provider', () => {

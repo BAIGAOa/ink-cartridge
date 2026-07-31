@@ -10,7 +10,7 @@ All helpers are exported from `@cartridge-engine/keyboard-engine`.
 function finalizeBoundKeyboard(
   bindingsArray: BoundKeyEntry[],
   actionKeysMap: Map<string, string[]>,
-  layer: ScreenKeyboardLayer,
+  layer: PageKeyboardLayer | ElementKeyboard,
   entry: BoundKeyEntry,
   handler: KeyHandler | string,
   keys: string[],
@@ -44,7 +44,7 @@ Used by `allowModal`, `penetration`, and `stop` internally.
 
 ```ts
 function cleanupGlobalKeyOverrides(
-  layer: ScreenKeyboardLayer,
+  layer: PageKeyboardLayer | ElementKeyboard,
   keys: string[],
 ): void
 ```
@@ -61,7 +61,7 @@ interface KeyRuleContainer {
 }
 ```
 
-Interface shared by `ScreenKeyboardLayer` and `FocusTarget` — any object that holds `allowedKeys`, `penetrationKeys`, and `stoppedKeys` as `KeyRule` arrays.
+Interface shared by page/element keyboards and `FocusTarget` — any object that holds `allowedKeys`, `penetrationKeys`, and `stoppedKeys` as `KeyRule` arrays.
 
 ## setIfAbsent
 

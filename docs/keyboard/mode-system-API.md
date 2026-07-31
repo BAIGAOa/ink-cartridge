@@ -97,7 +97,7 @@ Every key-binding entry accepts `{ mode }`:
 Within each matching stage, `mode` is checked **before** `when`. The full evaluation order is:
 
 ```
-mode → onlyThis → focusId → when → keyMatch
+mode → stopsWorkingAfterLayerAppearing → focusId → when → keyMatch
 ```
 
 ---

@@ -1,13 +1,16 @@
-import type { PipelineContext, PipelineProcessor } from '../types.js';
+import type {
+	PipelineContext,
+	PipelineProcessor,
+} from '../types/processor.js';
 import { handleLayer } from '../layerHandler.js';
 
 /**
  * Create a processor for the screen stack stage.
  *
- * Only runs when no overlay consumed the event (`anyOverlayConsumed`
- * is false). Iterates the screen path from top to bottom, offering
- * the event to each layer via {@link handleLayer}. The first layer
- * that returns `true` stops the iteration.
+ * Only runs when no layer consumed the event. Iterates the page path from
+ * top to bottom, offering the event to each page layer via
+ * {@link handleLayer}. The first page that returns `true` stops the
+ * iteration.
  *
  * @returns A PipelineProcessor for the screen stack stage.
  */
@@ -15,24 +18,13 @@ export function createScreenStackProcessor<TComponent>(): PipelineProcessor<TCom
   return {
     process(ctx: PipelineContext<TComponent>): boolean {
       if (ctx.noActiveProcessor.includes(this.id)) return false
-      if (ctx.anyOverlayConsumed) return false;
 
-      const path = ctx.screenPath;
+      const path = ctx.pagePath;
       for (let i = path.length - 1; i >= 0; i--) {
         const comp = path[i];
-        const layer = ctx.layersRef.current.get(comp);
+        const layer = ctx.layersRef.get(comp);
         if (!layer) continue;
-        const isTop = i === path.length - 1;
-        if (handleLayer(
-          layer, ctx.eventNames, ctx.input, ctx.key,
-          isTop, ctx.notifyFocusChange, ctx.activeCount,
-          false, ctx.wildcardFirst,
-          ctx.currentMode,
-          ctx.conditions,
-          ctx.isNormalChar,
-          ctx.notifyPendingSyncs,
-          ctx.autoTab
-        )) break;
+        if (handleLayer(ctx, layer, i === path.length - 1)) break;
       }
       return false;
     },

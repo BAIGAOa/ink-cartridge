@@ -1,14 +1,12 @@
-import {
-	type ScreenKeyboardLayer,
-	type BoundKeyEntry,
-	type PendingSequence,
-	type KeyRule,
-	defaultTargetsSymbol,
-	FocusTarget,
-	SequenceBinding,
-} from "./types.js";
 import { isNormalCharacter } from "./isNormalCharacter.js";
 import { checkWhen } from "./checkWhen.js";
+import { KeyRule } from "./types/key-rule.js";
+import { BaseBoundKeyEntry, PageBoundKeyEntry } from "./types/binding.js";
+import { PageKeyboardLayer } from "./types/page-layer.js";
+import { defaultTargetsSymbol } from "./types/default-targets-symbol.js";
+import { PageFocusTarget } from "./types/focus.js";
+import { PendingSequence } from "./types/pending-sequence.js";
+import { PipelineContext } from "./types/processor.js";
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
 
@@ -39,7 +37,7 @@ export function keyMatchesRule(
  * for normal character input (see {@link isNormalCharacter}).
  *
  * A binding fires only when ALL of the following are satisfied (AND relationship):
- *   1. `skipBinding` returns `false` / absent (covers `onlyThis`)
+ *   1. `skipBinding` returns `false` / absent (covers `stopsWorkingAfterLayerAppearing`)
  *   2. `when` returns `true` / absent (covers conditional enablement)
  *   3. Key name matches one in `binding.keys`
  *
@@ -53,18 +51,18 @@ export function keyMatchesRule(
  * @param input         Raw character from the framework's keyboard event.
  * @param key           Full Key descriptor from the framework.
  * @param skipBinding   Optional predicate to skip individual bindings
- *                      (used for `onlyThis` enforcement).
+ *                      (used for `stopsWorkingAfterLayerAppearing` enforcement).
  * @returns `true` if a binding matched and consumed the event.
  */
-export function tryMatchBindings(
-	bindings: BoundKeyEntry[],
+export function tryMatchBindings<T extends BaseBoundKeyEntry>(
+	bindings: T[],
 	currentMode: string | null,
 	availableKeys: string[],
 	input: string,
 	key: unknown,
 	conditions: Map<string, boolean>,
 	isNormalChar: (key: unknown) => boolean,
-	skipBinding?: (binding: BoundKeyEntry) => boolean,
+	skipBinding?: (binding: T) => boolean,
 ): boolean {
 	if (availableKeys.length === 0) return false;
 
@@ -96,14 +94,14 @@ export function tryMatchBindings(
 /**
  * Built-in Tab / Shift+Tab focus rotation for a given layer.
  *
- * Cycles {@link ScreenKeyboardLayer.currentFocusId} through the layer's
- * {@link ScreenKeyboardLayer.defaultFocusOrder} list (Tab forward, Shift+Tab backward).
+ * Cycles {@link PageKeyboardLayer.currentFocusIds} through the page layer's
+ * {@link PageKeyboardLayer.defaultFocusOrder} list (Tab forward, Shift+Tab backward).
  * Wraps around at both ends.
  *
  * @returns `true` if a tab event was handled and focus was moved.
  */
 export function handleTabNavigation(
-	layer: ScreenKeyboardLayer,
+	layer: PageKeyboardLayer,
 	eventNames: string[],
 	shift: boolean,
 	notifyFocusChange: () => void,
@@ -149,14 +147,14 @@ export function handleTabNavigation(
 	return true;
 }
 
-function conductFocusGroups(
+export function conductFocusGroups(
 	ids: {
 		id: string;
 		fromGroup: string | typeof defaultTargetsSymbol;
 	}[],
-	layer: ScreenKeyboardLayer,
+	layer: PageKeyboardLayer,
 ) {
-	const allFocusTargets: FocusTarget[] = [];
+	const allFocusTargets: PageFocusTarget[] = [];
 
 	for (const each of ids) {
 		if (each.fromGroup === defaultTargetsSymbol) {
@@ -185,54 +183,41 @@ function conductFocusGroups(
  *
  * @returns true if the event was consumed by this layer.
  */
-export function handleLayer(
-	layer: ScreenKeyboardLayer,
-	eventNames: string[],
-	input: string,
-	key: unknown,
+export function handleLayer<TC>(
+	ctx: PipelineContext<TC>,
+	layer: PageKeyboardLayer,
 	isTop: boolean,
-	notifyFocusChange: () => void,
-	activeOverlayCount: number,
-	isOverlay: boolean,
-	wildcardFirst: boolean,
-	currentMode: string | null,
-	conditions: Map<string, boolean>,
-	isNormalChar: (key: unknown) => boolean,
-	notifyPendingSyncs?: () => void,
-	autoTab?: boolean,
 ): boolean {
 	// Auto Tab navigation: only when the developer explicitly opts in via
 	// autoTab: true. Otherwise Tab/Shift+Tab passes through to normal
 	// bindings so developers can bind them to custom handlers.
-	const shift = eventNames.some((n) => n.startsWith("shift+"));
+	const shift = ctx.eventNames.some((n) => n.startsWith("shift+"));
 	if (
-		autoTab &&
+		ctx.autoTab &&
 		isTop &&
-		handleTabNavigation(layer, eventNames, shift, notifyFocusChange)
+		handleTabNavigation(layer, ctx.eventNames, shift, ctx.notifyFocusChange)
 	)
 		return true;
 
 	const penetrated = layer.penetrationKeys;
-	const available = eventNames.filter(
-		(n) => !keyMatchesRule(n, penetrated, conditions),
+	const available = ctx.eventNames.filter(
+		(n) => !keyMatchesRule(n, penetrated, ctx.conditions),
 	);
 
-	// onlyThis semantics differ between screens and overlays:
-	// - Screen: skip when any overlay is active (activeOverlayCount > 0)
-	// - Overlay: skip only when multiple overlays compete (activeOverlayCount > 1)
-	const shouldSkipOnlyThis = (b: BoundKeyEntry): boolean => {
-		if (!b.onlyThis) return false;
-		if (isOverlay) return activeOverlayCount > 1;
-		return activeOverlayCount > 0;
+	// stopsWorkingAfterLayerAppearing applies only to page bindings:
+	// when any layer or modal layer is present, the page binding is skipped.
+	const shouldSkipOnlyLayer = (b: PageBoundKeyEntry): boolean => {
+		if (!b.stopsWorkingAfterLayerAppearing) return false
+		return  ctx.allLayers.length > 0 || ctx.allModalLayers.length > 0;
 	};
 
 	// Wildcard priority pre-check: when enabled, wildcard `*` bindings
 	// are evaluated before sequences, exact matches, and everything else.
 	// Only normal characters are affected — special keys fall through.
-	if (isTop && wildcardFirst && available.length > 0) {
+	if (isTop && ctx.wildcardFirst && available.length > 0) {
 		// Check focus-target wildcard first
 		if (layer.currentFocusIds.length > 0) {
-			const allFocusTargets: FocusTarget[] = conductFocusGroups(
+			const allFocusTargets = conductFocusGroups(
 				layer.currentFocusIds,
 				layer,
 			);
@@ -242,20 +227,20 @@ export function handleLayer(
 					allFocusTargets.flatMap((each) => each.penetrationKeys),
 				);
 				const fAvailable = available.filter(
-					(n) => !keyMatchesRule(n, [...allFPenetrated], conditions),
+					(n) => !keyMatchesRule(n, [...allFPenetrated], ctx.conditions),
 				);
 				if (fAvailable.length > 0) {
 					const allFBindings = new Set(
 						allFocusTargets.flatMap((each) => each.bindings),
 					);
 					const wb = [...allFBindings].find((b) => b.keys.includes("*"));
-					if (wb && isNormalCharacter(input, key, isNormalChar)) {
-						if (wb.mode && wb.mode !== currentMode) {
+					if (wb && isNormalCharacter(ctx.input, ctx.key, ctx.isNormalChar)) {
+						if (wb.mode && wb.mode !== ctx.currentMode) {
 							/* skip */
-						} else if (!checkWhen(wb.when, conditions)) {
+						} else if (!checkWhen(wb.when, ctx.conditions)) {
 							/* skip */
-						} else if (!shouldSkipOnlyThis(wb)) {
-							wb.handler(input, key);
+						} else if (!shouldSkipOnlyLayer(wb)) {
+							wb.handler(ctx.input, ctx.key);
 							return true;
 						}
 					}
@@ -264,13 +249,13 @@ export function handleLayer(
 		}
 		// Check screen-level wildcard
 		const wb = layer.bindings.find((b) => b.keys.includes("*"));
-		if (wb && isNormalCharacter(input, key, isNormalChar)) {
-			if (wb.mode && wb.mode !== currentMode) {
+		if (wb && isNormalCharacter(ctx.input, ctx.key, ctx.isNormalChar)) {
+			if (wb.mode && wb.mode !== ctx.currentMode) {
 				/* skip */
-			} else if (!checkWhen(wb.when, conditions)) {
+			} else if (!checkWhen(wb.when, ctx.conditions)) {
 				/* skip */
-			} else if (!shouldSkipOnlyThis(wb)) {
-				wb.handler(input, key);
+			} else if (!shouldSkipOnlyLayer(wb)) {
+				wb.handler(ctx.input, ctx.key);
 				return true;
 			}
 		}
@@ -285,7 +270,7 @@ export function handleLayer(
 		if (pending !== null) {
 			// If the when condition changed to false mid-sequence, cancel
 			// the pending sequence and let the key fall through to normal processing.
-			if (!checkWhen(pending.when, conditions)) {
+			if (!checkWhen(pending.when, ctx.conditions)) {
 				clearTimeout(pending.timer);
 				layer.pendingSequence = null;
 				// Fall through to normal bindings — do NOT return true.
@@ -306,14 +291,14 @@ export function handleLayer(
 					}
 					if (pending.nextIndex === pending.sequences.length) {
 						// Full sequence matched — fire handler.
-						pending.handler(input, key);
+						pending.handler(ctx.input, ctx.key);
 						layer.pendingSequence = null;
 					} else {
 						// Still waiting for more keys — restart the timeout.
 						pending.timer = setTimeout(() => {
 							if (layer.pendingSequence === pending)
 								layer.pendingSequence = null;
-							notifyPendingSyncs?.();
+							ctx.notifyPendingSyncs?.();
 						}, pending.timeout);
 					}
 					return true;
@@ -353,12 +338,12 @@ export function handleLayer(
 									stillPossible.length === 1 ? undefined : stillPossible,
 							};
 							if (newSeq.nextIndex === newSeq.sequences.length) {
-								chosen.handler(input, key);
+								chosen.handler(ctx.input, ctx.key);
 							} else {
 								newSeq.timer = setTimeout(() => {
 									if (layer.pendingSequence === newSeq)
 										layer.pendingSequence = null;
-									notifyPendingSyncs?.();
+									ctx.notifyPendingSyncs?.();
 								}, timeout);
 							}
 							layer.pendingSequence = newSeq;
@@ -388,7 +373,7 @@ export function handleLayer(
 				// Detect modifiers from normalized event names rather than reading
 				// (key as any).ctrl / (key as any).meta. This keeps the engine
 				// framework-agnostic.
-				const hasCtrlOrMeta = eventNames.some(
+				const hasCtrlOrMeta = ctx.eventNames.some(
 					(n) => n.startsWith("ctrl+") || n.startsWith("meta+"),
 				);
 				if (hasCtrlOrMeta && !keyName.includes("+")) {
@@ -396,14 +381,13 @@ export function handleLayer(
 				}
 				const candidates = layer.sequences.get(keyName);
 				if (!candidates || candidates.length === 0) continue;
-				// Filter by mode, onlyThis, focusId, and when constraints.
-				const matching: SequenceBinding[] = candidates.filter((binding) => {
-					if (binding.options?.mode && binding.options.mode !== currentMode)
+				// Filter by mode, stopsWorkingAfterLayerAppearing, focusId, and when constraints.
+				const matching = candidates.filter((binding) => {
+					if (binding.options?.mode && binding.options.mode !== ctx.currentMode)
 						return false;
 
-					if (binding.options?.onlyThis) {
-						if (isOverlay) return activeOverlayCount <= 1;
-						else return activeOverlayCount === 0;
+					if (binding.options?.stopsWorkingAfterLayerAppearing) {
+						return ctx.allLayers.length === 0 && ctx.allModalLayers.length === 0;
 					}
 
 					if (binding.options?.focusId) {
@@ -425,7 +409,7 @@ export function handleLayer(
 						}
 					}
 
-					if (!checkWhen(binding.when, conditions)) return false;
+					if (!checkWhen(binding.when, ctx.conditions)) return false;
 					return true;
 				});
 				if (matching.length === 0) continue;
@@ -456,7 +440,7 @@ export function handleLayer(
 				};
 				const timer = setTimeout(() => {
 					if (layer.pendingSequence === newSeq) layer.pendingSequence = null;
-					notifyPendingSyncs?.();
+					ctx.notifyPendingSyncs?.();
 				}, timeout);
 				newSeq.timer = timer;
 				layer.pendingSequence = newSeq;
@@ -466,7 +450,7 @@ export function handleLayer(
 	}
 
 	if (isTop && layer.currentFocusIds.length > 0) {
-		const allFt: FocusTarget[] = conductFocusGroups(
+		const allFt = conductFocusGroups(
 			layer.currentFocusIds,
 			layer,
 		);
@@ -495,24 +479,24 @@ export function handleLayer(
 			];
 
 			const fAvailable = available.filter(
-				(n) => !keyMatchesRule(n, allPenetrated, conditions),
+				(n) => !keyMatchesRule(n, allPenetrated, ctx.conditions),
 			);
 
 			if (
 				tryMatchBindings(
 					allBinding,
-					currentMode,
+					ctx.currentMode,
 					fAvailable,
-					input,
-					key,
-					conditions,
-					isNormalChar,
-					shouldSkipOnlyThis,
+					ctx.input,
+					ctx.key,
+					ctx.conditions,
+					ctx.isNormalChar,
+					shouldSkipOnlyLayer,
 				)
 			)
 				return true;
 
-			if (eventNames.some((n) => keyMatchesRule(n, allStopped, conditions))) {
+			if (ctx.eventNames.some((n) => keyMatchesRule(n, allStopped, ctx.conditions))) {
 				return true;
 			}
 		}
@@ -521,20 +505,20 @@ export function handleLayer(
 	if (
 		tryMatchBindings(
 			layer.bindings,
-			currentMode,
+			ctx.currentMode,
 			available,
-			input,
-			key,
-			conditions,
-			isNormalChar,
-			shouldSkipOnlyThis,
+			ctx.input,
+			ctx.key,
+			ctx.conditions,
+			ctx.isNormalChar,
+			shouldSkipOnlyLayer,
 		)
 	)
 		return true;
 
 	if (
 		isTop &&
-		eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys, conditions))
+		ctx.eventNames.some((n) => keyMatchesRule(n, layer.stoppedKeys, ctx.conditions))
 	) {
 		return true;
 	}

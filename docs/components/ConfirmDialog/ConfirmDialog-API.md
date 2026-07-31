@@ -23,13 +23,21 @@ Confirmation dialog with two focusable buttons. Escape cancels from anywhere (sc
 
 ## Best Practice
 
-Designed for the overlay system:
+Designed for the modal-layer system:
 
 ```tsx
-openOverlay('confirm', ConfirmDialog, {
-  title: 'Delete file?',
-  message: 'This cannot be undone.',
-  onConfirm: () => { deleteFile(); closeOverlay('confirm'); },
-  onCancel: () => closeOverlay('confirm'),
+const { openModalLayer, applyElementToModalLayer, closeModalLayer } = useScreenSystem();
+
+openModalLayer('confirm', 100);
+applyElementToModalLayer('confirm', {
+  elementId: 'confirm-dialog',
+  element: () => (
+    <ConfirmDialog
+      title="Delete file?"
+      message="This cannot be undone."
+      onConfirm={() => { deleteFile(); closeModalLayer('confirm'); }}
+      onCancel={() => closeModalLayer('confirm')}
+    />
+  ),
 });
 ```

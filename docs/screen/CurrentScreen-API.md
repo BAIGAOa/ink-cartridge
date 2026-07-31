@@ -1,6 +1,6 @@
 # CurrentScreen
 
-Renders the active screen, then all open overlays, then all rendered modals. This is the single point where screen content appears.
+Renders the active screen, then all open layers, then all open modal layers. This is the single point where screen content appears.
 
 ## Signature
 
@@ -12,9 +12,9 @@ No props. Reads state from `ScreenSystemContext`.
 
 ## Rendering Order
 
-1. Current screen element (top of `path`)
-2. Overlays — sorted by zIndex ascending, each wrapped in `OverlayContext.Provider`
-3. Modals — sorted by zIndex ascending, each wrapped in `ModalContext.Provider`
+1. Current screen element (top of `pagePath`)
+2. Layers — sorted by zIndex ascending, each element wrapped in `LayerElementContext.Provider`
+3. Modal layers — sorted by zIndex ascending, each element wrapped in `ModalLayerElementContext.Provider`
 
 ## Best Practice
 

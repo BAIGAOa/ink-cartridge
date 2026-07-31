@@ -46,7 +46,7 @@ function checkGlobalKey(
   entry: GlobalKeyEntry,
   eventNames: string[],
   topComponent: unknown | null,
-  layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>>,
+  layersRef: Map<unknown | string, PageKeyboardLayer>,
 ): boolean
 ```
 
@@ -81,14 +81,14 @@ Check whether a normalized key name is covered by a list of key rules (penetrati
 
 ```ts
 function tryMatchBindings(
-  bindings: BoundKeyEntry[],
+  bindings: BaseBoundKeyEntry[],
   currentMode: string | null,
   availableKeys: string[],
   input: string,
   key: unknown,
   conditions: Map<string, boolean>,
   isNormalChar: (key: unknown) => boolean,
-  skipBinding?: (binding: BoundKeyEntry) => boolean,
+  skipBinding?: (binding: BaseBoundKeyEntry) => boolean,
 ): boolean
 ```
 
@@ -108,7 +108,7 @@ if (tryMatchBindings(layer.bindings, currentMode, eventNames, input, key, condit
 
 ```ts
 function handleTabNavigation(
-  layer: ScreenKeyboardLayer,
+  layer: PageKeyboardLayer,
   eventNames: string[],
   shift: boolean,
   notifyFocusChange: () => void,
@@ -121,20 +121,9 @@ Built-in Tab / Shift+Tab focus cycling. Moves the active focus target forward (T
 
 ```ts
 function handleLayer(
-  layer: ScreenKeyboardLayer,
-  eventNames: string[],
-  input: string,
-  key: unknown,
+  ctx: PipelineContext,
+  layer: PageKeyboardLayer,
   isTop: boolean,
-  notifyFocusChange: () => void,
-  activeOverlayCount: number,
-  isOverlay: boolean,
-  wildcardFirst: boolean,
-  currentMode: string | null,
-  conditions: Map<string, boolean>,
-  isNormalChar: (key: unknown) => boolean,
-  notifyPendingSyncs?: () => void,
-  autoTab?: boolean,
 ): boolean
 ```
 

@@ -70,12 +70,13 @@ const unsub = engine.subscribeFocus(() => {
 
 ## Effect
 
-Focus state is stored on each `ScreenKeyboardLayer`:
-- `focusTargets: Map<string, FocusTarget>` — named targets with independent bindings
+Focus state is stored on each page keyboard layer or element keyboard:
+- `focusTargets: Map<string, { map: Map<string, FocusTarget>; order: string[] }>` — named focus groups with independent bindings
+- `defaultTargets: Map<string, FocusTarget>` — the default focus group
 - `defaultFocusOrder: string[]` — registration order (drives Tab/Shift+Tab cycling)
 - `currentFocusIds: { id: string; fromGroup: string | typeof defaultTargetsSymbol }[]` — the active targets per group
 
-During key matching (pipeline stage 8), the active focus target's bindings are checked first. Only if no match is found do layer-level bindings get evaluated.
+During key matching (layer broadcast and screen-stack stages), the active focus target's bindings are checked first. Only if no match is found do layer-level bindings get evaluated.
 
 ## Usage
 

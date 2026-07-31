@@ -2,62 +2,90 @@
 
 ## Module-Level Navigation
 
-All navigation functions work outside React components — without `useScreenSystem`. They dispatch through a shared `_dispatchers` Set:
+Navigation and layer/modal-layer functions work outside React components — without `useScreenSystem`. They dispatch through a shared `_dispatchers` Set:
 
 ```ts
-import { skip, back, gotoScreen, openOverlay, openModal } from 'ink-cartridge';
+import {
+  skip,
+  back,
+  gotoScreen,
+  openLayer,
+  applyElement,
+  openModalLayer,
+  applyElementToModalLayer,
+} from 'ink-cartridge';
 
 // Called from anywhere (event handlers, callbacks, tests)
 skip(Settings, {});
 back(2);
 gotoScreen(Menu, {});
+openLayer('notification', 10);
+applyElement('notification', { elementId: 'notification-element', element: NotificationBar });
 ```
 
 The functions throw if no `ScenarioManagementProvider` is mounted.
 
-## Overlay as Notification
+## Layer as Notification
 
-Use an overlay with `activate: false` for a passive notification that doesn't steal keyboard focus:
+Use `active: false` in a `LayerElement` for a passive notification that doesn't steal keyboard focus:
 
 ```tsx
-openOverlay('notification', NotificationBar, { text: 'Saved!' }, { activate: false });
-// Dismissed by the notification component itself or via closeOverlay('notification')
+openLayer('notification', 10);
+applyElement('notification', {
+  elementId: 'notification-element',
+  element: NotificationBar,
+  active: false,
+});
+// Dismissed by the notification component itself or via closeLayer('notification')
 ```
 
-## Persistent Overlays & Modals
+## Cross-Page Layers & Modal Layers
 
-Use `persistent: true` to keep an overlay or modal across screen navigation — e.g. a global search panel, music player, or notification that should remain visible regardless of which screen is active.
-
-Navigation clears keyboard focus while away; it is automatically restored when returning to the originating screen.
+Use `crossPage: true` to keep a layer or modal layer across screen navigation — e.g. a global search panel, music player, or notification that should remain visible regardless of which screen is active.
 
 ```tsx
-// Open a persistent search overlay
-openOverlay('global-search', SearchPanel, {}, { persistent: true });
+// Open a cross-page search layer
+openLayer('global-search', 10, { crossPage: true });
+applyElement('global-search', {
+  elementId: 'search-element',
+  element: SearchPanel,
+});
 
-// Navigate to search results — overlay stays rendered, keyboard deactivated
+// Navigate to search results — layer stays rendered, keyboard deactivated
 skip(SearchResults, { query: 'hello' });
 
-// Navigate back — overlay's keyboard is automatically restored
+// Navigate back — layer's keyboard is automatically restored
 back();
 ```
 
-Persistent modals work the same way:
+Cross-page modal layers work the same way:
 
 ```tsx
-openModal('player', MusicPlayer, {}, { persistent: true });
+openModalLayer('player', 100, { crossPage: true });
+applyElementToModalLayer('player', {
+  elementId: 'player-element',
+  element: MusicPlayer,
+});
 ```
 
-Explicit close functions (`closeOverlay`, `closeModal`, `closeAllOverlays`, `closeAllModals`) always clear persistent entries — persistence only applies to navigation-triggered clearing.
+Explicit close functions (`closeLayer`, `closeModalLayer`, `closeAllLayer`, `closeAllModalLayer`) always clear `crossPage` entries — persistence only applies to navigation-triggered clearing.
 
-## Modal with renderNow
+## Multiple Modal Layers
 
-Use `renderNow: true` to keep a non-active modal visible (e.g. a background modal stack):
+All modal layers render, but only the highest-`zIndex` modal layer receives keyboard input:
 
 ```tsx
-openModal('settings', SettingsModal, {}, { zIndex: 1, renderNow: true });
-openModal('confirm', ConfirmModal, {}, { zIndex: 2 });
-// Both modals render, but only ConfirmModal receives keyboard. When closed, SettingsModal activates
-// and already has keyboard focus.
+openModalLayer('settings', 1);
+applyElementToModalLayer('settings', {
+  elementId: 'settings-element',
+  element: SettingsModal,
+});
+openModalLayer('confirm', 2);
+applyElementToModalLayer('confirm', {
+  elementId: 'confirm-element',
+  element: ConfirmModal,
+});
+// Both modal layers render, but only ConfirmModal receives keyboard.
 ```
 
 ## onlyAttribute for Param Updates

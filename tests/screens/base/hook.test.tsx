@@ -15,28 +15,27 @@ function stripAnsi(str: string | undefined): string {
 const noop = () => {};
 
 const mockContextValue: ScreenSystemContextValue = {
-  currentScreen: <Text>hello</Text>,
-  currentOverlays: [],
-  currentModals: [],
+  pageLayer: <Text>hello</Text>,
   currentPath: [],
+  allLayers: [],
+  allModalLayers: [],
   skip: noop,
   back: noop,
   gotoScreen: noop,
-  openOverlay: noop,
-  closeOverlay: noop,
-  closeAllOverlays: noop,
-  activateOverlay: noop,
-  deactivateOverlay: noop,
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  displayedModals: [],
-  renderedModalEntries: [],
-  activeModalId: null,
-  activeModal: null,
-  modalQueue: [],
-  openModal: noop,
-  closeModal: noop,
-  closeAllModals: noop,
+  openLayer: noop,
+  applyElement: noop,
+  closeLayer: noop,
+  eraseElement: noop,
+  closeAllLayer: noop,
+  activateElement: noop,
+  deactivateElement: noop,
+  openModalLayer: noop,
+  applyElementToModalLayer: noop,
+  closeModalLayer: noop,
+  eraseElementInModalLayer: noop,
+  closeAllModalLayer: noop,
+  activateElementInModalLayer: noop,
+  deactivateElementInModalLayer: noop,
 };
 
 describe('useScreenSystem', () => {
@@ -64,7 +63,7 @@ describe('useScreenSystem', () => {
     );
 
     expect(captured).toBe(mockContextValue);
-    expect(captured?.currentScreen).toBe(mockContextValue.currentScreen);
+    expect(captured?.pageLayer).toBe(mockContextValue.pageLayer);
   });
 
   it('returns nothing when called outside a Provider', () => {

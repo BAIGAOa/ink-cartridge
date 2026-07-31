@@ -1,11 +1,11 @@
 /**
  * Global Keys Demo — app-wide keyboard shortcuts with category, cover, and when.
  *
- * Demonstrates: globalKeys() with cover, affectOverlay, category, when, times, observer.
+ * Demonstrates: globalKeys() with cover, affectLayer, category, when, times, observer.
  *
  * Key concepts:
  *   - cover: false → screen can override the global key locally
- *   - affectOverlay: true → fires before overlays (higher priority)
+ *   - affectLayer: true → fires before layers (higher priority)
  *   - category → whitelist which screens can use this global key
  *   - when → conditionally fires the global key
  *   - times → require multiple presses (with observer feedback)
@@ -135,13 +135,13 @@ function App() {
         operate: () => process.exit(0),
         cover: false, // screens CAN override this global key
         category: '*', // works on all screens
-        affectOverlay: false,
+        affectLayer: false,
       },
       {
         key: 'f1',
         operate: () => setHelpShown((prev) => !prev),
         category: [HomeScreen], // only works when HomeScreen is the top screen
-        affectOverlay: false,
+        affectLayer: false,
       },
       {
         // Demonstrate times + observer: press M 3 times to toggle mute
@@ -154,7 +154,7 @@ function App() {
           setMutePresses(remaining);
         },
         category: '*',
-        affectOverlay: false,
+        affectLayer: false,
       },
     ], { mode: 'replace' });
     return () => globalKeys([], { mode: 'replace' });

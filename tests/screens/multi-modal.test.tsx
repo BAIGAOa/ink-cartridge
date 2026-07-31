@@ -112,8 +112,10 @@ describe('multi-modal keyboard integration', () => {
       const modalB = createModal('ModalB', { x: vi.fn(), z: vi.fn() });
 
       const { stdin } = renderMultiModalApp(MainScreen, (_kb, sc) => {
-        sc.openModal('A', modalA.Component, {}, { zIndex: 1 });
-        sc.openModal('B', modalB.Component, {}, { zIndex: 2 });
+        sc.openModalLayer('A', 1);
+        sc.applyElementToModalLayer('A', { elementId: 'A-el', element: modalA.Component });
+        sc.openModalLayer('B', 2);
+        sc.applyElementToModalLayer('B', { elementId: 'B-el', element: modalB.Component });
       });
       await flush();
 
@@ -133,9 +135,11 @@ describe('multi-modal keyboard integration', () => {
       const modalB = createModal('ModalB', { x: vi.fn() });
 
       const { stdin } = renderMultiModalApp(MainScreen, (_kb, sc) => {
-        sc.openModal('A', modalA.Component, {}, { zIndex: 1 });
-        sc.openModal('B', modalB.Component, {}, { zIndex: 2 });
-        sc.closeModal('B');
+        sc.openModalLayer('A', 1);
+        sc.applyElementToModalLayer('A', { elementId: 'A-el', element: modalA.Component });
+        sc.openModalLayer('B', 2);
+        sc.applyElementToModalLayer('B', { elementId: 'B-el', element: modalB.Component });
+        sc.closeModalLayer('B');
       });
       await flush();
 
@@ -164,7 +168,8 @@ describe('multi-modal keyboard integration', () => {
       });
 
       const { stdin } = renderMultiModalApp(ScreenWithKey, (_kb, sc) => {
-        sc.openModal('B', modalB.Component, {}, { zIndex: 1 });
+        sc.openModalLayer('B', 1);
+        sc.applyElementToModalLayer('B', { elementId: 'B-el', element: modalB.Component });
       });
       await flush();
 
@@ -191,8 +196,10 @@ describe('multi-modal keyboard integration', () => {
       const modalB = createModal('ModalB', { z: vi.fn() });
 
       const { stdin } = renderMultiModalApp(ScreenWithKey, (_kb, sc) => {
-        sc.openModal('A', modalA.Component, {}, { zIndex: 1 });
-        sc.openModal('B', modalB.Component, {}, { zIndex: 2 });
+        sc.openModalLayer('A', 1);
+        sc.applyElementToModalLayer('A', { elementId: 'A-el', element: modalA.Component });
+        sc.openModalLayer('B', 2);
+        sc.applyElementToModalLayer('B', { elementId: 'B-el', element: modalB.Component });
       });
       await flush();
 
@@ -225,7 +232,8 @@ describe('multi-modal keyboard integration', () => {
       registerComponent(ModalWithFocus, {});
 
       const { stdin } = renderMultiModalApp(ScreenWithKey, (_kb, sc) => {
-        sc.openModal('M', ModalWithFocus, {});
+        sc.openModalLayer('M', 1);
+        sc.applyElementToModalLayer('M', { elementId: 'M-el', element: ModalWithFocus });
       });
       await flush();
       await flush();
@@ -269,8 +277,10 @@ describe('multi-modal keyboard integration', () => {
       registerComponent(ModalB, {});
 
       const { stdin } = renderMultiModalApp(MainScreen, (_kb, sc) => {
-        sc.openModal('A', ModalA, {}, { zIndex: 1 });
-        sc.openModal('B', ModalB, {}, { zIndex: 2 });
+        sc.openModalLayer('A', 1);
+        sc.applyElementToModalLayer('A', { elementId: 'A-el', element: ModalA });
+        sc.openModalLayer('B', 2);
+        sc.applyElementToModalLayer('B', { elementId: 'B-el', element: ModalB });
       });
       await flush();
       await flush();
@@ -281,3 +291,4 @@ describe('multi-modal keyboard integration', () => {
     });
   });
 });
+

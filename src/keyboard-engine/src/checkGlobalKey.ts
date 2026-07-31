@@ -1,8 +1,5 @@
-import type {
-  GlobalKeyEntry,
-  ScreenKeyboardLayer,
-  MutableRef,
-} from './types.js';
+import type { GlobalKeyEntry } from "./types/entry.js";
+import type { PageKeyboardLayer } from "./types/page-layer.js";
 
 /**
  * Check whether a global key entry should fire for the current event.
@@ -13,14 +10,14 @@ import type {
  * @param entry        The global key entry to evaluate.
  * @param eventNames   Normalized key names from the current event.
  * @param topComponent The topmost screen component, or null.
- * @param layersRef    Mutable ref to all keyboard layers.
+ * @param layersRef    Map of all page keyboard layers.
  * @returns true if the global key matches and is not overridden.
  */
 export function checkGlobalKey(
   entry: GlobalKeyEntry,
   eventNames: string[],
   topComponent: unknown | null,
-  layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>>,
+  layersRef: Map<unknown | string, PageKeyboardLayer>,
 ): boolean {
   const keyNames = Array.isArray(entry.key) ? entry.key : [entry.key];
   if (!keyNames.some((k) => eventNames.includes(k))) return false;
@@ -35,23 +32,19 @@ export function checkGlobalKey(
     if (!cat.includes(topComponent)) return false;
   }
 
-  const topLayer = layersRef.current.get(topComponent);
+  const topLayer = layersRef.get(topComponent);
 
-  // Global Key rules (affectOverlay + cover):
+  // Global Key rules (affectLayer + cover):
   //
-  // When an Overlay is active:
-  // - [true,  true] : Affects Overlay, can be overridden only by Overlay
-  // - [true,  false]: Affects Overlay, cannot be overridden by anyone
-  // - [false, true] : Does NOT affect Overlay; works on Screen Stack, can be overridden by Screen Stack
-  // - [false, false]: Does NOT affect Overlay; works on Screen Stack, cannot be overridden by Screen Stack
+  // Layer phase (affectLayer = true):
+  // - [true,  true] : Affects layers, can be overridden only by layer elements
+  // - [true,  false]: Affects layers, cannot be overridden by anyone
+  // - [false, true] : Does NOT affect layers; works on the page stack, can be overridden by the page
+  // - [false, false]: Does NOT affect layers; works on the page stack, cannot be overridden by the page
   //
-  // When NO Overlay is active (default):
-  // - affectOverlay = true  → Key becomes inactive
-  // - affectOverlay = false → Key remains active on Screen Stack (override rules as above)
-  //
-  // Option executeWhenNoOverlay (only if affectOverlay = true):
-  // Keeps the key active on Screen Stack even without an Overlay, while preserving the original cover rule.
-  if (topLayer && !entry.affectOverlay && (entry.cover ?? true)) {
+  // Option executeWhenNoOverlay (only for affectLayer = true):
+  // Keeps the key active even when no layer is open, while preserving the original cover rule.
+  if (topLayer && !entry.affectLayer && (entry.cover ?? true)) {
     if (keyNames.some((k) => topLayer.globalKeyOverrides.has(k))) return false;
   }
 

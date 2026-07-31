@@ -42,7 +42,7 @@ let onLogUpdate: (() => void) | null = null;
  * processor has a chance to consume them. Returns false to pass
  * events through to the rest of the pipeline.
  */
-const debugProcessor: PipelineProcessor = {
+const debugProcessor: PipelineProcessor<React.ComponentType<any>> = {
   id: 'debug-logger',
   process(ctx) {
     nextId += 1;

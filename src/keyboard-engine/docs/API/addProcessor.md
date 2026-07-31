@@ -35,12 +35,12 @@ The default pipeline has 9 processors in this order:
 |-------|----|-------|
 | 0 | `modal` | Modal barrier |
 | 1 | `composition-overlay` | Composition chains (affectOverlay: true) |
-| 2 | `global-sequence-overlay` | Global sequences (affectOverlay: true) |
-| 3 | `global-key-overlay` | Global keys (affectOverlay: true) |
-| 4 | `overlay` | Overlay broadcast |
+| 2 | `global-sequence-overlay` | Global sequences (affectLayer: true) |
+| 3 | `global-key-overlay` | Global keys (affectLayer: true) |
+| 4 | `layer` | Layer broadcast |
 | 5 | `composition-screen` | Composition chains (affectOverlay: false) |
-| 6 | `global-sequence-screen` | Global sequences (affectOverlay: false) |
-| 7 | `global-key-screen` | Global keys (affectOverlay: false) |
+| 6 | `global-sequence-screen` | Global sequences (affectLayer: false) |
+| 7 | `global-key-screen` | Global keys (affectLayer: false) |
 | 8 | `screen-stack` | Screen stack (top-to-bottom) |
 
 ## PipelineProcessor interface
@@ -83,8 +83,8 @@ engine.addProcessor({
   },
 }, { before: 'modal' });
 
-// Run after overlay stage
-engine.addProcessor(myAuditProcessor, { after: 'overlay' });
+// Run after layer stage
+engine.addProcessor(myAuditProcessor, { after: 'layer' });
 ```
 
 ## Throws

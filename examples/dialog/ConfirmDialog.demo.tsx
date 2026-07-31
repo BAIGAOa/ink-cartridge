@@ -8,12 +8,11 @@ import {
   ConfirmDialog,
   useScreenSystem,
   useKeyboard,
-  closeOverlay,
 } from '../../src/index.js';
 
 function MainScreen() {
   const { boundKeyboard, globalKeys } = useKeyboard();
-  const { openOverlay: showOverlay } = useScreenSystem();
+  const { openModalLayer, applyElementToModalLayer, closeModalLayer } = useScreenSystem();
   const [dirty, setDirty] = useState(true);
 
   useEffect(() => {
@@ -22,13 +21,19 @@ function MainScreen() {
         key: 'escape',
         operate: () => {
           if (dirty) {
-            showOverlay('confirm-dialog', ConfirmDialog, {
-              title: 'Discard changes',
-              message: 'You have unsaved changes. Are you sure you want to quit?',
-              confirmLabel: 'Discard and quit',
-              cancelLabel: 'Keep editing',
-              onConfirm: () => process.exit(0),
-              onCancel: () => closeOverlay('confirm-dialog'),
+            openModalLayer('confirm-dialog', 100);
+            applyElementToModalLayer('confirm-dialog', {
+              elementId: 'confirm-dialog-element',
+              element: () => (
+                <ConfirmDialog
+                  title="Discard changes"
+                  message="You have unsaved changes. Are you sure you want to quit?"
+                  confirmLabel="Discard and quit"
+                  cancelLabel="Keep editing"
+                  onConfirm={() => process.exit(0)}
+                  onCancel={() => closeModalLayer('confirm-dialog')}
+                />
+              ),
             });
           } else {
             process.exit(0);
@@ -44,7 +49,7 @@ function MainScreen() {
     return () => {
       unbindS();
     };
-  }, [dirty]);
+  }, [applyElementToModalLayer, boundKeyboard, closeModalLayer, dirty, globalKeys, openModalLayer]);
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -60,12 +65,6 @@ function MainScreen() {
 }
 
 registerComponent(MainScreen, {});
-registerComponent(ConfirmDialog, {
-  title: '',
-  message: '',
-  onConfirm: () => {},
-  onCancel: () => {},
-});
 
 render(
   <ScenarioManagementProvider defaultScreen={MainScreen}>

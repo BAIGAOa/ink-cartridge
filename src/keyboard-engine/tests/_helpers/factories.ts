@@ -1,315 +1,228 @@
+import KeyboardEngine from "../../src/KeyboardEngine.js";
 import type {
-  ScreenKeyboardLayer,
-  BoundKeyEntry,
-  GlobalKeyEntry,
-  GlobalSequenceEntry,
-  ResolvedGlobalKeyEntry,
-  ResolvedGlobalSequenceEntry,
-  PipelineContext,
-  PendingSequence,
-  SequenceBinding,
+  BaseBoundKeyEntry,
+  BaseSequenceBinding,
+  PageBoundKeyEntry,
+  PageSequenceBinding,
+} from "../../src/types/binding.js";
+import type {
   FocusTarget,
-  MutableRef,
+  PageFocusTarget,
+} from "../../src/types/focus.js";
+import type { KeyRule } from "../../src/types/key-rule.js";
+import type { KeyboardLayer } from "../../src/types/keyboard-layer.js";
+import type {
+  ElementKeyboard,
+  LayerKeyboardLayer,
+  PageKeyboardLayer,
+} from "../../src/types/page-layer.js";
+import type {
   GlobalPendingSequence,
-  EngineOverlayEntry,
-  ShortcutOperationEntry,
-  SequenceOperationEntry,
-  KeyboardProcessorProps,
-} from '../../src/types.js';
-import KeyboardEngine from '../../src/KeyboardEngine.js';
+  PendingSequence,
+} from "../../src/types/pending-sequence.js";
+import type { PipelineContext } from "../../src/types/processor.js";
 
-/**
- * Create a KeyboardEngine instance with a minimal normalizeKeyNames adapter.
- * input is used directly as the normalized key name (when non-empty).
- */
 export function createEngine(
-  modes?: string[],
-  defaultMode?: string,
-  autoTab?: boolean,
+  options: {
+    modes?: string[];
+    defaultMode?: string;
+    autoTab?: boolean;
+    tabKey?: string;
+    isNormalChar?: (key: unknown) => boolean;
+    normalizeKeyNames?: (input: string) => string[];
+  } = {},
 ): KeyboardEngine {
   return new KeyboardEngine({
-    modes,
-    defaultMode,
-    normalizeKeyNames: (input: string, _key: unknown) =>
-      input ? [input] : [],
-    isNormalChar: () => false,
-    autoTab,
+    modes: options.modes,
+    defaultMode: options.defaultMode,
+    autoTab: options.autoTab,
+    tabKey: options.tabKey,
+    normalizeKeyNames:
+      options.normalizeKeyNames ??
+      ((input: string) => (input ? [input] : [])),
+    isNormalChar: options.isNormalChar ?? (() => false),
   });
 }
 
-/**
- * Create a KeyboardEngine with custom processors injected at construction time.
- */
-export function createEngineWithProcessors(
-  processors: KeyboardProcessorProps<unknown>[],
-  modes?: string[],
-  defaultMode?: string,
-): KeyboardEngine {
-  return new KeyboardEngine({
-    modes,
-    defaultMode,
-    normalizeKeyNames: (input: string, _key: unknown) =>
-      input ? [input] : [],
-    isNormalChar: () => false,
-    processors,
-  });
-}
-
-/**
- * Create a KeyboardEngine with a configurable normalizeKeyNames for testing
- * modifier keys, multi-key events, etc.
- */
-export function createEngineWithKeys(
-  keyMap: Record<string, string[]>,
-  modes?: string[],
-  defaultMode?: string,
-  autoTab?: boolean,
-): KeyboardEngine {
-  return new KeyboardEngine({
-    modes,
-    defaultMode,
-    normalizeKeyNames: (input: string, _key: unknown) =>
-      keyMap[input] ?? (input ? [input] : []),
-    isNormalChar: () => false,
-    autoTab,
-  });
-}
-
-/**
- * Construct a fake ScreenKeyboardLayer with sensible defaults.
- * All mutable collections (Maps, Sets, arrays) are fresh instances.
- */
-export function fakeLayer(
-  overrides: Partial<ScreenKeyboardLayer> = {},
-): ScreenKeyboardLayer {
+export function makePageLayer(
+  overrides: Partial<PageKeyboardLayer> = {},
+): PageKeyboardLayer {
   return {
-    kind: 'screen',
     bindings: [],
     penetrationKeys: [],
     stoppedKeys: [],
-    allowedKeys: [],
     globalKeyOverrides: new Set(),
+    actionKeysMap: new Map(),
     focusTargets: new Map(),
     defaultTargets: new Map(),
     defaultFocusOrder: [],
     currentFocusIds: [],
-    actionKeysMap: new Map(),
     sequences: new Map(),
     pendingSequence: null,
     ...overrides,
   };
 }
 
-/**
- * Create a BoundKeyEntry with defaults.
- */
-export function makeEntry(
+export function makeElementKeyboard(
+  elementId: string,
+  layerId = "layer-1",
+  overrides: Partial<ElementKeyboard> = {},
+): ElementKeyboard {
+  return {
+    bindings: [],
+    elementId,
+    associatedLayer: layerId,
+    penetrationKeys: [],
+    stoppedKeys: [],
+    globalKeyOverrides: new Set(),
+    actionKeysMap: new Map(),
+    allowedKeys: [],
+    missListener: { onMiss: null, onMissOptions: null },
+    focusTargets: new Map(),
+    defaultTargets: new Map(),
+    defaultFocusOrder: [],
+    currentFocusIds: [],
+    sequences: new Map(),
+    ...overrides,
+  };
+}
+
+export function makeLayerKeyboard(
+  layerId: string,
+  elements: Record<string, ElementKeyboard> = {},
+): LayerKeyboardLayer {
+  return {
+    layerId,
+    pendingSequence: { fromElementId: null, pendingSequence: null },
+    elementKeyboards: new Map(Object.entries(elements)),
+  };
+}
+
+export function makeSyncLayer(
+  layerId: string,
+  activeElements: string[],
+): KeyboardLayer {
+  return { layerId, elements: activeElements, activeElements };
+}
+
+export function makeContext(
+  overrides: Partial<PipelineContext<unknown>> = {},
+): PipelineContext<unknown> {
+  return {
+    input: "x",
+    key: {},
+    eventNames: ["x"],
+    isNormalChar: () => false,
+    topComponent: null,
+    globalKeys: [],
+    globalSequences: [],
+    wildcardFirst: false,
+    pagePath: [],
+    allLayers: [],
+    allModalLayers: [],
+    layersRef: new Map(),
+    layerKeyboardRefs: new Map(),
+    pendingSeqRef: { current: null as GlobalPendingSequence | null },
+    notifyFocusChange: () => {},
+    notifyPendingSyncs: () => {},
+    currentMode: null,
+    conditions: new Map(),
+    compositionEngineHandler: false,
+    compositionEngine:
+      undefined as unknown as PipelineContext<unknown>["compositionEngine"],
+    autoTab: false,
+    noActiveProcessor: [],
+    autoTabKey: "tab",
+    ...overrides,
+  };
+}
+
+export function makeBinding(
   keys: string[],
-  handler?: (input: string, key: unknown) => void,
-  overrides?: Partial<BoundKeyEntry>,
-): BoundKeyEntry {
+  handler: (input: string, key: unknown) => void = () => {},
+  overrides: Partial<BaseBoundKeyEntry> = {},
+): BaseBoundKeyEntry {
+  return { keys, handler, ...overrides };
+}
+
+export function makePageBinding(
+  keys: string[],
+  handler: (input: string, key: unknown) => void = () => {},
+  overrides: Partial<PageBoundKeyEntry> = {},
+): PageBoundKeyEntry {
   return {
     keys,
-    handler: handler ?? (() => {}),
-    onlyThis: false,
-    owner: 'test',
+    handler,
+    stopsWorkingAfterLayerAppearing: false,
     ...overrides,
   };
 }
 
-/**
- * Create a GlobalKeyEntry with defaults.
- */
-export function makeGlobalKeyEntry(
-  overrides?: Partial<GlobalKeyEntry>,
-): GlobalKeyEntry {
+export function makeSequenceBinding(
+  keys: string[],
+  handler: (input: string, key: unknown) => void = () => {},
+  overrides: Partial<BaseSequenceBinding> = {},
+): BaseSequenceBinding {
+  return { keys, handler, ...overrides };
+}
+
+export function makePageSequenceBinding(
+  keys: string[],
+  handler: (input: string, key: unknown) => void = () => {},
+  overrides: Partial<PageSequenceBinding> = {},
+): PageSequenceBinding {
   return {
-    key: 'x',
-    operate: () => {},
+    keys,
+    handler,
+    options: { stopsWorkingAfterLayerAppearing: false },
     ...overrides,
   };
 }
 
-/**
- * Create a GlobalSequenceEntry with defaults.
- */
-export function makeGlobalSequenceEntry(
-  overrides?: Partial<GlobalSequenceEntry>,
-): GlobalSequenceEntry {
-  return {
-    keys: ['a', 'b'],
-    operate: () => {},
-    ...overrides,
-  };
+export function makeKeyRule(
+  key: string,
+  when?: (() => boolean) | string,
+): KeyRule {
+  return when === undefined ? { key } : { key, when };
 }
 
-/**
- * Create a ResolvedGlobalKeyEntry from a GlobalKeyEntry.
- */
-export function resolveGlobalKey(entry: GlobalKeyEntry): ResolvedGlobalKeyEntry {
-  const operate =
-    typeof entry.operate === 'string' ? () => {} : entry.operate;
-  const result: ResolvedGlobalKeyEntry = {
-    key: entry.key,
-    operate,
-    cover: entry.cover,
-    affectOverlay: entry.affectOverlay,
-    category: entry.category,
-    times: entry.times,
-    observer: entry.observer,
-    executeWhenNoOverlay: entry.executeWhenNoOverlay,
-    when: entry.when,
-    mode: entry.mode,
-  };
-  if (entry.times !== undefined) {
-    result.pressCount = 0;
-  }
-  return result;
-}
-
-/**
- * Create a ResolvedGlobalSequenceEntry from a GlobalSequenceEntry.
- */
-export function resolveGlobalSequence(
-  entry: GlobalSequenceEntry,
-): ResolvedGlobalSequenceEntry {
-  const operate =
-    typeof entry.operate === 'string' ? () => {} : entry.operate;
-  return {
-    keys: entry.keys,
-    operate,
-    cover: entry.cover,
-    affectOverlay: entry.affectOverlay,
-    category: entry.category,
-    timeout: entry.timeout,
-    exclusive: entry.exclusive,
-    when: entry.when,
-    executeWhenNoOverlay: entry.executeWhenNoOverlay,
-    mode: entry.mode,
-  };
-}
-
-/**
- * Create a FocusTarget with defaults.
- */
-export function fakeFocusTarget(
-  overrides?: Partial<FocusTarget>,
+export function makeFocusTarget(
+  overrides: Partial<FocusTarget> = {},
 ): FocusTarget {
   return {
     bindings: [],
     penetrationKeys: [],
     stoppedKeys: [],
-    allowedKeys: [],
     actionKeysMap: new Map(),
+    allowedKeys: [],
     ...overrides,
   };
 }
 
-/**
- * Create a SequenceBinding with defaults.
- */
-export function makeSequenceBinding(
-  keys: string[],
-  handler?: (input: string, key: unknown) => void,
-  overrides?: Partial<SequenceBinding>,
-): SequenceBinding {
+export function makePageFocusTarget(
+  overrides: Partial<PageFocusTarget> = {},
+): PageFocusTarget {
   return {
-    keys,
-    handler: handler ?? (() => {}),
+    bindings: [],
+    penetrationKeys: [],
+    stoppedKeys: [],
+    actionKeysMap: new Map(),
+    allowedKeys: [],
     ...overrides,
   };
 }
 
-/**
- * Create a minimal PipelineContext for processor unit tests.
- */
-export function createContext(
-  overrides: Partial<PipelineContext<unknown>> = {},
-): PipelineContext<unknown> {
-  const layersRef: MutableRef<Map<unknown | string, ScreenKeyboardLayer>> = {
-    current: new Map(),
-  };
-  const pendingSeqRef: MutableRef<GlobalPendingSequence | null> = {
-    current: null,
-  };
-
-  return {
-    input: 'x',
-    key: {},
-    eventNames: ['x'],
-    topComponent: null,
-    globalKeys: [],
-    globalSequences: [],
-    activeOverlays: [],
-    activeCount: 0,
-    wildcardFirst: false,
-    screenPath: [],
-    activeModalId: null,
-    layersRef,
-    pendingSeqRef,
-    notifyFocusChange: () => {},
-    notifyPendingSyncs: () => {},
-    anyOverlayConsumed: false,
-    currentMode: null,
-    conditions: new Map(),
-    isNormalChar: () => false,
-    compositionEngineHandler: false,
-    compositionEngine: undefined as unknown as PipelineContext<unknown>['compositionEngine'],
-    autoTab: false,
-    noActiveProcessor: [],
-    ...overrides,
-  } as PipelineContext<unknown>;
-}
-
-/**
- * Create a minimal PendingSequence for testing handleLayer sequence logic.
- */
 export function makePendingSequence(
   sequences: string[],
-  handler?: (input: string, key: unknown) => void,
-  overrides?: Partial<PendingSequence>,
+  handler: (input: string, key: unknown) => void = () => {},
+  overrides: Partial<PendingSequence> = {},
 ): PendingSequence {
   return {
     sequences,
     nextIndex: 1,
-    handler: handler ?? (() => {}),
+    handler,
     timer: undefined as unknown as NodeJS.Timeout,
     timeout: 500,
     ...overrides,
   };
-}
-
-/**
- * Create a ShortcutOperationEntry.
- */
-export function makeShortcutOp(
-  actionId: string,
-  overrides?: Partial<ShortcutOperationEntry>,
-): ShortcutOperationEntry {
-  return {
-    actionId,
-    action: () => {},
-    ...overrides,
-  };
-}
-
-/**
- * Create a SequenceOperationEntry.
- */
-export function makeSequenceOp(
-  sequenceActionId: string,
-  overrides?: Partial<SequenceOperationEntry>,
-): SequenceOperationEntry {
-  return {
-    sequenceActionId,
-    action: () => {},
-    ...overrides,
-  };
-}
-
-/**
- * Create an EngineOverlayEntry.
- */
-export function makeOverlayEntry(id: string): EngineOverlayEntry {
-  return { id };
 }

@@ -2,8 +2,8 @@
 
 Framework-agnostic keyboard event engine for terminal UIs.
 
-[![test](https://img.shields.io/badge/tests-572%20passed-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
-[![coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
+[![test](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
+[![coverage](https://img.shields.io/badge/coverage-90.49%25-branches-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
 [![npm version](https://img.shields.io/npm/v/@cartridge-engine/keyboard-engine.svg)](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
 
 Powered by [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — a React Ink component kit for building terminal UIs.
@@ -55,7 +55,11 @@ const engine = new KeyboardEngine({
 });
 
 // Sync state on every render
-engine.sync({ path, activeOverlayIds, displayedOverlays, activeModalId, displayedModals });
+engine.sync({
+  pagePath: ['app'],
+  layers: [],
+  modalLayers: [],
+});
 
 // Handle key events
 useInput((input, key) => engine.processKey(input, key));
@@ -68,18 +72,34 @@ Key events flow through each processor in priority order. The first processor th
 | Priority | Stage | Processor ID | Description |
 |----------|-------|-------------|-------------|
 | 0 (highest) | Modal intercept | `modal` | Active modal layer; blocks all lower events unless allowed |
-| 1 | Composition (overlay) | `composition-overlay` | Flag-preposition composition chains with `affectOverlay: true` |
-| 2 | Global Sequence (overlay) | `global-sequence-overlay` | Global multi-key sequences with `affectOverlay: true` |
-| 3 | Global Key (overlay) | `global-key-overlay` | Global single keys with `affectOverlay: true` |
-| 4 | Overlay broadcast | `overlay` | All active overlays receive the event (non-blocking) |
-| 5 | Composition (screen) | `composition-screen` | Flag-preposition composition chains with `affectOverlay: false` |
-| 6 | Global Sequence (screen) | `global-sequence-screen` | Global multi-key sequences with `affectOverlay: false` |
-| 7 | Global Key (screen) | `global-key-screen` | Global single keys with `affectOverlay: false` |
+| 1 | Composition (layer phase) | `composition-overlay` | Flag-preposition composition chains with `affectOverlay: true` |
+| 2 | Global Sequence (layer phase) | `global-sequence-overlay` | Global multi-key sequences with `affectLayer: true` |
+| 3 | Global Key (layer phase) | `global-key-overlay` | Global single keys with `affectLayer: true` |
+| 4 | Layer broadcast | `layer` | All active elements on each layer receive the event (broadcast) |
+| 5 | Composition (page phase) | `composition-screen` | Flag-preposition composition chains with `affectOverlay: false` |
+| 6 | Global Sequence (page phase) | `global-sequence-screen` | Global multi-key sequences with `affectLayer: false` |
+| 7 | Global Key (page phase) | `global-key-screen` | Global single keys with `affectLayer: false` |
 | 8 (lowest) | Screen stack | `screen-stack` | Screen stack top-to-bottom; stops on first consumer |
 
 ### Layer System
 
-Every screen component, overlay, and modal has its own keyboard layer (`ScreenKeyboardLayer`) containing:
+The host framework pushes three kinds of state into the engine with `sync()`:
+
+- `pagePath` — the screen stack, from root to the current screen
+- `layers` — element layers displayed above the current screen
+- `modalLayers` — modal layers, which always take keyboard priority over layers and pages
+
+Each `KeyboardLayer` declares:
+
+```ts
+interface KeyboardLayer {
+  layerId: string;          // Unique layer ID
+  elements: string[];       // Element IDs rendered on this layer
+  activeElements: string[]; // Elements that currently receive keyboard events
+}
+```
+
+Every registered element owns an `ElementKeyboard` containing:
 
 - **bindings** — registered key bindings
 - **penetrationKeys** — keys marked as transparent (pass through to lower layers)
@@ -108,16 +128,22 @@ This creates a grammar-based key dispatch model: keys declare their identity and
 
 ```ts
 interface CompositioKey<TComponent = unknown, TValue = unknown> {
-  key: string;                  // Trigger key name (e.g. "a", "ctrl+x")
-  flag: string;                 // What this key declares itself as
-  needs: string[];              // Required preceding flag(s)
-  optional?: boolean;           // Can this key start a combination?
-  category?: TComponent[] | "*";
-  affectOverlay?: boolean;
-  timeout?: number;             // Max ms between keys in the combination
-  exclusive?: boolean;          // Silently consume mismatched keys mid-sequence
-  executeWhenNoOverlay?: boolean;
+  key: string;                   // Trigger key name (e.g. "a", "ctrl+x")
+  flags: { need: string; become: string }[]; // Dependent flag table
+  needs: string[];               // Required preceding flag(s)
+  alternativeFlag: string;       // Default flag for this key
+  optional?: boolean;            // Can this key start a combination?
+  timeout?: number;              // Max ms between keys in the combination
+  exclusive?: boolean;           // Silently consume mismatched keys mid-sequence
   execute?: (ctx: CompositionContext<TValue>) => CompositionContext<TValue> | null;
+  when?: (() => boolean) | string;
+  mode?: string;
+  category?: TComponent[] | "*";
+  affectOverlay?: boolean;       // Layer phase (true) or page phase (false)
+  executeWhenNoOverlay?: boolean;
+  KeyReleaseWhenChainInterrupted?: boolean;
+  undoAction?: undo<TValue>;
+  isEndKey?: string[];
 }
 
 interface CompositionContext<T = unknown> {
@@ -175,12 +201,20 @@ Pushes host-framework state into the engine. Call on every render.
 
 ```ts
 engine.sync({
-  path: TComponent[],
-  activeOverlayIds: string[],
-  displayedOverlays: EngineOverlayEntry[],
-  activeModalId: string | null,
-  displayedModals: EngineModalEntry[],
+  pagePath: TComponent[],
+  layers: KeyboardLayer[],
+  modalLayers: KeyboardLayer[],
 });
+```
+
+`KeyboardLayer` is exported from `@cartridge-engine/keyboard-engine`:
+
+```ts
+interface KeyboardLayer {
+  layerId: string;
+  elements: string[];
+  activeElements: string[];
+}
 ```
 
 ### `engine.processKey(input, key)`
@@ -209,7 +243,7 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | `getGlobalSequences()` | Get a shallow copy of all registered global sequence entries |
 | `getGlobalPendingSequence()` | Get the full pending global sequence state, or null |
 | `thereGlobalQueueWaiting(sync?)` | Check whether a global sequence is pending (boolean). Optional `sync` callback notifies the host framework to re-render after each key event. |
-| `currentScreenHasSequenceWaiting(sync?)` | Check whether the current layer has a pending sequence (boolean). Optional `sync` callback notifies the host framework to re-render after each key event. |
+| `currentScreenHasSequenceWaiting(sync?)` | Check whether the current owner's layer has a pending sequence (boolean). Optional `sync` callback notifies the host framework to re-render after each key event. |
 
 #### Focus Management
 
@@ -273,11 +307,11 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 | Method | Description |
 |--------|-------------|
 | `readLayer(owner)` | Read-only layer lookup |
-| `pushOwner(owner)` | Push an owner onto the stack (for overlay/modal binding attribution) |
+| `pushOwner(owner)` | Push an owner onto the stack (for layer/modal-layer binding attribution) |
 | `popOwner(owner)` | Remove the most recent matching owner from the stack |
 | `cleanLayers()` | Remove layers for screens no longer in the path |
-| `cleanOverlayLayers()` | Remove layers for closed overlays |
-| `cleanModalLayers()` | Remove layers for closed modals |
+| `cleanOverlayLayers()` | Remove element keyboards for layers no longer displayed |
+| `cleanModalLayers()` | Remove element keyboards for modal layers no longer displayed |
 
 #### Misc
 
@@ -310,13 +344,13 @@ Access the underlying `CompositionEngine` instance directly via the `composition
 While a multi-key sequence is in progress, the engine can report its pending state:
 
 - **Global sequences** (registered via `globalSequence()`) use an engine-level pending state. The first matching key starts the pending state; subsequent keys complete or cancel it.
-- **Local sequences** (registered via `boundSequence()`) use each layer's own pending state, scoped to that screen, overlay, or modal.
+- **Local sequences** (registered via `boundSequence()`) use each layer's own pending state, scoped to the current page, layer, or modal layer.
 
 | Method | Scope | Returns |
 |--------|-------|---------|
 | `getGlobalPendingSequence()` | Engine | `GlobalPendingSequence \| null` — full state including remaining keys, timeout, and handler |
 | `thereGlobalQueueWaiting(sync?)` | Engine | `boolean` — lightweight yes/no, equivalent to `getGlobalPendingSequence() !== null`. Optional `sync` callback triggers after each key event so the host framework can re-render. |
-| `currentScreenHasSequenceWaiting(sync?)` | Current layer | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if called outside a screen or overlay. Optional `sync` callback triggers after each key event so the host framework can re-render. |
+| `currentScreenHasSequenceWaiting(sync?)` | Current owner | `boolean` — `true` if the current owner's layer has a pending `boundSequence`. Throws if there is no current owner. Optional `sync` callback triggers after each key event so the host framework can re-render. |
 
 #### Best Practice
 
@@ -424,11 +458,9 @@ const { engine, sync, processKey } = useKeyboardEngine({
 });
 
 sync({
-  path: ['my-screen'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['my-screen'],
+  layers: [],
+  modalLayers: [],
 });
 
 const onKeyDown = (e: KeyboardEvent) => processKey(e.key, e);
@@ -467,11 +499,9 @@ function createKeyboardEngine() {
   const mode = writable<string | null>(engine.getCurrentMode());
 
   engine.sync({
-    path: ['app'],
-    activeOverlayIds: [],
-    displayedOverlays: [],
-    activeModalId: null,
-    displayedModals: [],
+    pagePath: ['app'],
+    layers: [],
+    modalLayers: [],
   });
 
   return { engine, mode };
@@ -523,11 +553,9 @@ const engine = new KeyboardEngine({
 });
 
 engine.sync({
-  path: ['app'],
-  activeOverlayIds: [],
-  displayedOverlays: [],
-  activeModalId: null,
-  displayedModals: [],
+  pagePath: ['app'],
+  layers: [],
+  modalLayers: [],
 });
 
 engine.boundKeyboard(['ctrl+c'], () => {
@@ -554,31 +582,31 @@ process.stdin.on('keypress', (_input, key) => {
           └──────┬────────┘    allowModal() can release keys
                  ▼
           ┌──────────────┐
-          │ ② Composition │ ← affectOverlay: true
+          │ ② Composition │ ← affectOverlay: true (layer phase)
           └──────┬────────┘    Flag-preposition chains
                  ▼
           ┌──────────────┐
-          │ ③ GlobalSeq   │ ← affectOverlay: true
+          │ ③ GlobalSeq   │ ← affectLayer: true (layer phase)
           └──────┬────────┘
                  ▼
           ┌──────────────┐
-          │ ④ GlobalKey   │ ← affectOverlay: true
+          │ ④ GlobalKey   │ ← affectLayer: true (layer phase)
           └──────┬────────┘
                  ▼
           ┌──────────────┐
-          │ ⑤ Overlay     │ ← Broadcast to all active overlays
+          │ ⑤ Layer       │ ← Broadcast to all active layer elements
           └──────┬────────┘
                  ▼
           ┌──────────────┐
-          │ ⑥ Composition │ ← affectOverlay: false
+          │ ⑥ Composition │ ← affectOverlay: false (page phase)
           └──────┬────────┘    Flag-preposition chains
                  ▼
           ┌──────────────┐
-          │ ⑦ GlobalSeq   │ ← affectOverlay: false
+          │ ⑦ GlobalSeq   │ ← affectLayer: false (page phase)
           └──────┬────────┘
                  ▼
           ┌──────────────┐
-          │ ⑧ GlobalKey   │ ← affectOverlay: false
+          │ ⑧ GlobalKey   │ ← affectLayer: false (page phase)
           └──────┬────────┘
                  ▼
           ┌──────────────┐

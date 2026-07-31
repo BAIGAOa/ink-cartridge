@@ -1,4 +1,7 @@
-import type { KeyboardProcessorProps, PipelineProcessor } from "../types.js";
+import type {
+	KeyboardProcessorProps,
+	PipelineProcessor,
+} from "../types/processor.js";
 
 /** Known IDs of the 9 built-in pipeline processors. */
 export type BuiltinProcessorId =
@@ -6,7 +9,7 @@ export type BuiltinProcessorId =
   | "composition-overlay"
   | "global-sequence-overlay"
   | "global-key-overlay"
-  | "overlay"
+  | "layer"
   | "composition-screen"
   | "global-sequence-screen"
   | "global-key-screen"

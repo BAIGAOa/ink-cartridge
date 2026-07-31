@@ -123,7 +123,7 @@ function App() {
       operate: () => process.exit(0),
       when: 'appReady',
       category: '*',
-      affectOverlay: false,
+      affectLayer: false,
     }], { mode: 'replace' });
     return () => globalKeys([], { mode: 'replace' });
   }, [globalKeys, addCondition]);

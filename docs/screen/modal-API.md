@@ -1,63 +1,88 @@
-# Modal System
+# Modal Layer System
 
-Modal dialogs that block all keyboard input to screens and overlays. Only one modal is active at a time (the one with the highest zIndex).
+Modal layers block all keyboard input to screens and normal layers. Only one modal layer is active at a time — the one with the highest `zIndex`.
 
 ## API
 
-### openModal
+### openModalLayer
 
 ```ts
-function openModal<C extends React.ComponentType<any>>(
-  id: string,
-  component: C,
-  params: React.ComponentProps<C>,
-  options?: OpenModalOptions
+function openModalLayer(
+  layerId: string,
+  zIndex: number,
+  options?: ModalLayerOptions,
 ): void
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `zIndex` | `number` | `modals.length` | Stacking order — highest zIndex is active. |
-| `renderNow` | `boolean` | `false` | When `true`, renders even when not the active modal. |
-| `persistent` | `boolean` | `false` | When `true`, the modal survives screen navigation (skip/back/gotoScreen). Non-persistent modals are cleared on navigation. Keyboard focus is automatically restored when navigating back to the originating screen and deactivated when navigating away. |
+| `crossPage` | `boolean` | `false` | When `true`, the modal layer survives screen navigation (skip/back/gotoScreen). Non-`crossPage` modal layers are cleared on navigation. |
 
-If `id` collides with an existing overlay or modal, this is a no-op — the existing modal is left unchanged.
+If `layerId` collides with an existing layer or modal layer, the reducer leaves state unchanged.
 
-### closeModal
+### applyElementToModalLayer
 
 ```ts
-function closeModal(id: string): void
+function applyElementToModalLayer(
+  targetModalLayerId: string,
+  modalLayerElement: LayerElement,
+): void
 ```
 
-If no modal with that ID exists, this is a no-op — safe to call even when the modal may have already been closed. The next-highest-zIndex modal becomes active.
-
-### closeAllModals
+`LayerElement` uses the same shape as normal layers:
 
 ```ts
-function closeAllModals(): void
+type LayerElement = {
+  elementId: string;
+  element: React.ComponentType;
+  active?: boolean;
+};
 ```
 
-Closes all modals, including persistent ones.
+### closeModalLayer / eraseElementInModalLayer / closeAllModalLayer
 
-## Modal vs Overlay
+```ts
+function closeModalLayer(targetModalLayerId: string): void
+function eraseElementInModalLayer(targetModalLayerId: string, targetElementId: string): void
+function closeAllModalLayer(): void
+```
 
-| | Overlay | Modal |
+### activateElementInModalLayer / deactivateElementInModalLayer
+
+```ts
+function activateElementInModalLayer(
+  targetModalLayerId: string,
+  targetElementId: string,
+): void
+function deactivateElementInModalLayer(
+  targetModalLayerId: string,
+  targetElementId: string,
+): void
+```
+
+## Modal Layer vs Normal Layer
+
+| | Normal layer | Modal layer |
 |---|---|---|
-| Keyboard | Broadcast to all active | Exclusive — only the active modal receives input |
-| Activation | Multiple can be active | Single active (highest zIndex) |
-| Context | `OverlayContext` | `ModalContext` |
-| ID namespace | Shared with modals | Shared with overlays |
+| Keyboard | Broadcast to all active elements | Exclusive — only the active modal layer receives input |
+| Activation | Multiple elements can be active | Single active layer (highest zIndex) |
+| Context | `LayerElementContext` | `ModalLayerElementContext` |
+| ID namespace | Shared with modal layers | Shared with normal layers |
 
 ## Best Practice
 
 ```tsx
 function Menu() {
-  const { openModal } = useScreenSystem();
+  const { openModalLayer, applyElementToModalLayer } = useScreenSystem();
   const { boundSequence } = useKeyboard();
 
   useEffect(() => {
     return boundSequence(['d', 'c'], () => {
-      openModal('console', ConsoleModal, {});
+      openModalLayer('console', 100);
+      applyElementToModalLayer('console', {
+        elementId: 'console-modal',
+        element: ConsoleModal,
+      });
     });
   }, []);
 }

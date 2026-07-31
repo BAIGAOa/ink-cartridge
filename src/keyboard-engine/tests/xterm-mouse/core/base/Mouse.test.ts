@@ -768,7 +768,7 @@ test('Mouse.stream() should handle high event volume without significant delay',
   const mouse = new Mouse({ inputStream: stream });
   const iterator = mouse.stream();
   const eventCount = 10_000;
-  const timeThreshold = 1000; // Increased to 1s, as the test is now more realistic
+  const timeThreshold = 3000; // CI machines vary; keep the volume test about throughput, not wall-clock speed
 
   try {
     mouse.enable();

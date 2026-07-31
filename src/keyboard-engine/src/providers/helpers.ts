@@ -1,10 +1,15 @@
-import {
-  BoundKeyEntry,
+import type {
+  BaseBoundKeyEntry,
   KeyHandler,
-  BoundKeyboardOptions,
-  KeyRule,
-  ScreenKeyboardLayer,
-} from '../types.js';
+} from '../types/binding.js';
+import type { BoundKeyboardOptions } from '../types/options.js';
+import type { KeyRule } from '../types/key-rule.js';
+import type {
+  ElementKeyboard,
+  PageKeyboardLayer,
+} from '../types/page-layer.js';
+
+type KeyboardLayerWithBindings = PageKeyboardLayer | ElementKeyboard;
 
 /**
  * Remove keys from {@link ScreenKeyboardLayer.globalKeyOverrides} when no
@@ -12,7 +17,7 @@ import {
  * Keeps the override set consistent after unbind operations.
  */
 export function cleanupGlobalKeyOverrides(
-  layer: ScreenKeyboardLayer,
+  layer: KeyboardLayerWithBindings,
   keys: string[],
 ): void {
   for (const k of keys) {
@@ -70,9 +75,9 @@ export function removeKeysFromActionMap(
  * as {@link KeyRule} arrays.
  */
 export interface KeyRuleContainer {
-  allowedKeys: KeyRule[];
   penetrationKeys: KeyRule[];
   stoppedKeys: KeyRule[];
+  allowedKeys?: KeyRule[]
 }
 
 /**
@@ -92,11 +97,20 @@ export interface KeyRuleContainer {
  */
 export function pushKeyEntries(
   container: KeyRuleContainer,
-  property: 'allowedKeys' | 'penetrationKeys' | 'stoppedKeys',
+  property: 'penetrationKeys' | 'stoppedKeys' | "allowedKeys",
   keys: string[],
   createEntry: (key: string) => KeyRule,
 ): () => void {
-  const array = container[property];
+  const array = container[property] ?? [];
+  if (container[property] === undefined) {
+    if (property === 'allowedKeys') {
+      container.allowedKeys = array;
+    } else if (property === 'penetrationKeys') {
+      container.penetrationKeys = array;
+    } else {
+      container.stoppedKeys = array;
+    }
+  }
   const added: string[] = [];
   for (const k of keys) {
     if (!array.some((r) => r.key === k)) {
@@ -105,9 +119,14 @@ export function pushKeyEntries(
     }
   }
   return () => {
-    container[property] = array.filter(
-      (r) => !added.includes(r.key),
-    );
+    const filtered = array.filter((r) => !added.includes(r.key));
+    if (property === 'allowedKeys') {
+      container.allowedKeys = filtered;
+    } else if (property === 'penetrationKeys') {
+      container.penetrationKeys = filtered;
+    } else {
+      container.stoppedKeys = filtered;
+    }
   };
 }
 
@@ -214,10 +233,10 @@ export function clearShortcutOperations(): void {
  * @returns              An unbind function that reverses the registration.
  */
 export function finalizeBoundKeyboard(
-  bindingsArray: BoundKeyEntry[],
+  bindingsArray: BaseBoundKeyEntry[],
   actionKeysMap: Map<string, string[]>,
-  layer: ScreenKeyboardLayer,
-  entry: BoundKeyEntry,
+  layer: KeyboardLayerWithBindings,
+  entry: BaseBoundKeyEntry,
   handler: KeyHandler | string,
   keys: string[],
   options?: BoundKeyboardOptions,

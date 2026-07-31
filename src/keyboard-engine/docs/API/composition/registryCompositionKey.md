@@ -25,17 +25,18 @@ registryCompositionKey(entry: CompositioKey<TComponet>): void
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `key` | `string` | **yes** | Trigger key name. |
-| `flag` | `string` | **yes** | What this key is — consumed by the next key's `needs`. |
+| `flags` | `{ need: string; become: string }[]` | **yes** | Dependent flag table — `chooseFlag` picks the matching `become` based on the preceding key's `lastFlag`. |
+| `alternativeFlag` | `string` | **yes** | Default flag for this key, used when no flag-table entry matches. |
 | `needs` | `string[]` | **yes** | Which preceding flags this key depends on. |
 | `optional` | `boolean` | no | Can start a chain without a preceding flag (head key). |
 | `execute` | `(ctx) => ctx \| null` | no | Transform the composition context. Return `null` to abort. |
 | `timeout` | `number` | no | Per-key timeout override. Falls back to engine's `defaultTimeout`. |
 | `exclusive` | `boolean` | no | Silently consume mismatched keys while pending. |
-| `affectOverlay` | `boolean` | no | Fire in the overlay phase (`true`) or screen phase (`false`). |
+| `affectOverlay` | `boolean` | no | Fire in the layer phase (`true`) or page phase (`false`). |
 | `when` | `(() => boolean) \| string` | no | Condition gating. |
 | `mode` | `string` | no | Restrict to a specific mode. |
-| `category` | `TComponet[] \| "*"` | no | Screen whitelist. |
-| `executeWhenNoOverlay` | `boolean` | no | Fire with `affectOverlay: true` even when no overlay is active. |
+| `category` | `TComponet[] \| "*"` | no | Top-component whitelist. |
+| `executeWhenNoOverlay` | `boolean` | no | Fire with `affectOverlay: true` even when no layer is active. |
 | `KeyReleaseWhenChainInterrupted` | `boolean` | no | When `true` and the chain breaks (validation fail / execute returns null), swallow the key instead of releasing it to lower pipeline stages. |
 
 ## Returns

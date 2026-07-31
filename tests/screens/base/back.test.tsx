@@ -5,11 +5,12 @@ import {
   Menu,
   GameLevel,
   Combat,
-  Notification,
   renderWithCapture,
   setupBaseScreenTests,
   teardownBaseScreenTests,
 } from './_helpers.js';
+import React from 'react';
+import { Text } from 'ink';
 
 beforeEach(() => {
   setupBaseScreenTests();
@@ -160,15 +161,19 @@ describe('back', () => {
       ctx.skip(GameLevel, { level: 1 });
     });
     act(() => {
-      ctx.openOverlay('n1', Notification, { message: 'y' });
+      ctx.openLayer('n1', 1);
+      ctx.applyElement('n1', {
+        elementId: 'n1-el',
+        element: () => <Text>popup</Text>,
+      });
     });
-    expect(getCapture()!.displayedOverlays.length).toBe(1);
+    expect(getCapture()!.allLayers.length).toBe(1);
 
     act(() => {
       ctx.back();
     });
 
-    expect(getCapture()!.displayedOverlays.length).toBe(0);
+    expect(getCapture()!.allLayers.length).toBe(0);
   });
 
   it('throws when called at module level without a mounted Provider', () => {

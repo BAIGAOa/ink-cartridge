@@ -1,8 +1,8 @@
 # globalKeys / getGlobalKeys
 
-Register global key bindings that fire regardless of the screen stack.
+Register global key bindings that fire regardless of the current screen.
 
-Unlike [`boundKeyboard`](./boundKeyboard.md) which is scoped to a specific screen or overlay layer, global keys are evaluated at pipeline stages 3 and 7 — above and below the overlay layer, depending on `affectOverlay`.
+Unlike [`boundKeyboard`](./boundKeyboard.md) which is scoped to a specific screen or layer element, global keys are evaluated at pipeline stages 3 and 7 — above and below the layer stage, depending on `affectLayer`.
 
 Use global keys for application-wide shortcuts (quit, toggle dev tools, switch language) that should work on every screen.
 
@@ -28,13 +28,13 @@ getGlobalKeys(): ResolvedGlobalKeyEntry[]
 |-------|------|---------|-------------|
 | `key` | `string \| string[]` | **required** | Normalized key name(s). |
 | `operate` | `(() => void) \| string` | **required** | Callback or registered action ID. |
-| `cover` | `boolean` | `true` | When `false`, screens cannot override this key via `boundKeyboard`. |
-| `affectOverlay` | `boolean` | `false` | When `true`, fires before the overlay stage instead of after. |
+| `cover` | `boolean` | `true` | When `false`, screens and layer elements cannot override this key via `boundKeyboard`. |
+| `affectLayer` | `boolean` | `false` | When `true`, fires before the layer stage instead of after. |
 | `category` | `unknown[] \| "*"` | `"*"` | Whitelist of screen components where this key is active. `"*"` = all screens. |
 | `times` | `number` | — | Presses needed before firing. Must be ≥ 1. |
 | `observer` | `(remaining: number) => void` | — | Called on each press toward `times`. Requires `times`. |
 | `when` | `(() => boolean) \| string` | — | Condition gating. |
-| `executeWhenNoOverlay` | `boolean` | `false` | When `affectOverlay: true`, still fire even with no overlay active. |
+| `executeWhenNoOverlay` | `boolean` | `false` | When `affectLayer: true`, still fire even with no layer active. |
 | `mode` | `string` | — | Restrict to a specific mode. |
 
 ## Returns

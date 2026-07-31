@@ -1,6 +1,6 @@
 # globalSequence / getGlobalSequences / getGlobalPendingSequence
 
-Register global multi-key sequences that fire regardless of the screen stack.
+Register global multi-key sequences that fire regardless of the current screen.
 
 Global sequences fire at pipeline stages 2 and 6 — just above global keys. They have higher priority than single-key global bindings and should be used for application-wide key chords (like Vim-style `g g` to scroll to top).
 
@@ -27,13 +27,13 @@ getGlobalPendingSequence(): GlobalPendingSequence | null
 |-------|------|---------|-------------|
 | `keys` | `string[]` | **required** | Ordered key names (≥ 2). |
 | `operate` | `(() => void) \| string` | **required** | Callback or registered sequence action ID. |
-| `cover` | `boolean` | `true` | When `false`, screens cannot override via `boundSequence`. |
-| `affectOverlay` | `boolean` | `false` | When `true`, fires before the overlay stage. |
+| `cover` | `boolean` | `true` | When `false`, screens and layer elements cannot override via `boundSequence`. |
+| `affectLayer` | `boolean` | `false` | When `true`, fires before the layer stage. |
 | `category` | `unknown[] \| "*"` | `"*"` | Whitelist of screens. |
 | `timeout` | `number` | `500` | Max ms between key presses. |
 | `exclusive` | `boolean` | `false` | When `true`, mismatched keys are silently consumed. |
 | `when` | `(() => boolean) \| string` | — | Condition gating. |
-| `executeWhenNoOverlay` | `boolean` | `false` | Fire with `affectOverlay: true` even when no overlay is active. |
+| `executeWhenNoOverlay` | `boolean` | `false` | Fire with `affectLayer: true` even when no layer is active. |
 | `mode` | `string` | — | Restrict to a specific mode. |
 
 ## Returns
