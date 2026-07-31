@@ -1,5 +1,13 @@
 # blots-editor
 
+## 0.0.6
+
+### Patch Changes
+
+- 5f880ba: Disruptive Refactoring: Completely transforming the keyboard and screen systems into layer-based systems.
+- Updated dependencies [5f880ba]
+  - ink-cartridge@5.0.0
+
 ## 0.0.5
 
 ### Patch Changes

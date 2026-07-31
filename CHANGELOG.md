@@ -1,5 +1,16 @@
 # ink-cartridge
 
+## 5.0.0
+
+### Major Changes
+
+- 5f880ba: Disruptive Refactoring: Completely transforming the keyboard and screen systems into layer-based systems.
+
+### Patch Changes
+
+- Updated dependencies [5f880ba]
+  - @cartridge-engine/keyboard-engine@2.0.0
+
 ## 4.4.2
 
 ### Patch Changes
