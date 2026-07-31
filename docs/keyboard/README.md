@@ -2,7 +2,7 @@
 
 ## Why
 
-Terminal UIs have no DOM events — no `onClick`, no event bubbling, no `z-index`. Ink gives you one primitive: `useInput(input, key)`. The keyboard system builds a layered event engine on top, letting every screen, overlay, and modal manage its own shortcuts independently while a predictable priority chain resolves conflicts.
+Terminal UIs have no DOM events — no `onClick`, no event bubbling, no `z-index`. Ink gives you one primitive: `useInput(input, key)`. The keyboard system builds a layered event engine on top, letting every screen, layer element, and modal layer manage its own shortcuts independently while a predictable priority chain resolves conflicts.
 
 The rule: **each layer minds its own keys; the chain decides who wins.**
 
@@ -21,16 +21,16 @@ KeyboardEngine — framework-agnostic state machine
 9-stage Pipeline (highest to lowest priority):
   0. Modal               (consumes everything except allowed keys)
   1. Composition         (affectOverlay: true —  flag/needs key chains)
-  2. GlobalSequence      (affectOverlay: true)
-  3. GlobalKeys          (affectOverlay: true)
-  4. Overlay broadcast   (all active overlays receive in parallel)
+  2. GlobalSequence      (affectLayer: true)
+  3. GlobalKeys          (affectLayer: true)
+  4. Layer broadcast     (all active layer elements receive in parallel)
   5. Composition         (affectOverlay: false)
-  6. GlobalSequence      (affectOverlay: false)
-  7. GlobalKeys          (affectOverlay: false)
+  6. GlobalSequence      (affectLayer: false)
+  7. GlobalKeys          (affectLayer: false)
   8. Screen stack        (top-to-bottom, first match wins)
 ```
 
-Each stage is an independent processor. The first to return `true` consumes the event. The only exception is stage 4 (overlay broadcast), which always returns `false` to let the chain continue.
+Each stage is an independent processor. The first to return `true` consumes the event. The only exception is stage 4 (layer broadcast), which always returns `false` to let the chain continue.
 
 The engine is framework-agnostic — any UI framework can drive it via `sync()` + `processKey()`. See [KeyboardEngine](./KeyboardEngine-API.md) for integration examples with Blessed, Vue, and other frameworks.
 

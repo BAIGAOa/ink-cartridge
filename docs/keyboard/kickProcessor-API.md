@@ -2,7 +2,7 @@
 
 Disable and re-enable individual built-in pipeline processors at runtime.
 
-Each built-in processor (modal, overlay, global keys, etc.) can be independently suppressed with `kickProcessor` and later restored with `activeProcessor`. This is lighter than `removeProcessor` — the processor stays in the pipeline but its `process()` method returns `false` immediately, as if the stage didn't exist.
+Each built-in processor (modal, layer broadcast, global keys, etc.) can be independently suppressed with `kickProcessor` and later restored with `activeProcessor`. This is lighter than `removeProcessor` — the processor stays in the pipeline but its `process()` method returns `false` immediately, as if the stage didn't exist.
 
 This is **per-instance** — each `KeyboardProvider` manages its own disabled list. Kicking processors in one provider does not affect others in the same process.
 
@@ -35,12 +35,12 @@ function activeProcessor(id: BuiltinProcessorId): boolean
 |----|-------|
 | `modal` | Modal barrier |
 | `composition-overlay` | Composition chains (affectOverlay: true) |
-| `global-sequence-overlay` | Global sequences (affectOverlay: true) |
-| `global-key-overlay` | Global keys (affectOverlay: true) |
-| `overlay` | Overlay broadcast |
+| `global-sequence-overlay` | Global sequences (affectLayer: true) |
+| `global-key-overlay` | Global keys (affectLayer: true) |
+| `layer` | Layer broadcast |
 | `composition-screen` | Composition chains (affectOverlay: false) |
-| `global-sequence-screen` | Global sequences (affectOverlay: false) |
-| `global-key-screen` | Global keys (affectOverlay: false) |
+| `global-sequence-screen` | Global sequences (affectLayer: false) |
+| `global-key-screen` | Global keys (affectLayer: false) |
 | `screen-stack` | Screen stack (top-to-bottom) |
 
 ## Examples
@@ -87,18 +87,18 @@ function Editor() {
 }
 ```
 
-### Conditionally disable overlay broadcast
+### Conditionally disable layer broadcast
 
 ```tsx
 function Dashboard() {
   const { kickProcessor, activeProcessor } = useKeyboard();
 
-  function disableOverlays() {
-    kickProcessor('overlay');
+  function disableLayers() {
+    kickProcessor('layer');
   }
 
-  function enableOverlays() {
-    activeProcessor('overlay');
+  function enableLayers() {
+    activeProcessor('layer');
   }
 }
 ```

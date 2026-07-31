@@ -1,6 +1,6 @@
 # currentScreenHasSequenceWaiting
 
-Check whether the current screen or overlay layer has a pending multi-key sequence (registered via `boundSequence`). Returns `true` when the first key was matched and the engine is waiting for subsequent keys on the current owner's layer.
+Check whether the current screen or layer element has a pending multi-key sequence (registered via `boundSequence`). Returns `true` when the first key was matched and the engine is waiting for subsequent keys on the current owner's layer.
 
 Unlike `thereGlobalQueueWaiting`, this only checks the local layer — global sequences are ignored.
 
@@ -33,7 +33,7 @@ When omitted, the method behaves as before — a one-shot read of the current va
 
 | Condition | Error |
 |-----------|-------|
-| Called outside a screen or overlay | `[Ink-Cartridge] currentScreenHasSequenceWaiting() must be called inside a screen component or overlay. There is currently no active screen.` |
+| Called outside a screen or layer element | `[Ink-Cartridge] currentScreenHasSequenceWaiting() must be called inside a screen component or overlay. There is currently no active screen.` |
 
 ## Returns
 

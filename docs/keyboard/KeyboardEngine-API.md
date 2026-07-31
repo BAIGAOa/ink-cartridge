@@ -206,7 +206,7 @@ useInput((input, key) => engine.processKey(input, key))
 |--------|-------------|
 | `sync(state)` | Every render, before key events |
 | `cleanLayers()` | Post-render, when screen path changes |
-| `cleanOverlayLayers()` | Post-render, when overlays change |
+| `cleanOverlayLayers()` | Post-render, when layers change |
 | `cleanModalLayers()` | Post-render, when modals change |
 
 ## Sequence State Queries

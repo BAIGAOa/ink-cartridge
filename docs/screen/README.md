@@ -41,7 +41,7 @@ Layers and modal layers share a common ID namespace. A layer is a floating panel
 | [skip](./skip-API.md) | Navigate to a child screen |
 | [back](./back-API.md) | Navigate up to parent |
 | [gotoScreen](./gotoScreen-API.md) | Jump across branches via LCA |
-| [Layer system](./overlay-API.md) | openLayer / applyElement / closeLayer / closeAllLayer / activateElement / deactivateElement |
+| [Layer system](./layer-API.md) | openLayer / applyElement / closeLayer / closeAllLayer / activateElement / deactivateElement |
 | [Modal layer system](./modal-API.md) | openModalLayer / applyElementToModalLayer / closeModalLayer / closeAllModalLayer |
 | [ModalLayerElementContext](./ModalLayerElementContext-API.md) | Context for a modal-layer element |
 | `clearDispatchers()` | Test utility — clears stale dispatch references between test runs |

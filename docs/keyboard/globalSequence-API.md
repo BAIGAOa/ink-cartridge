@@ -20,11 +20,11 @@ No return value. To remove all global sequences registered by this component, ca
 | `keys` | `string[]` | **required** | Ordered key names (minimum 2). |
 | `operate` | `() => void \| string` | **required** | Callback, or a sequence action name. |
 | `category` | `ComponentType[] \| "*"` | `"*"` | Screen whitelist. |
-| `affectOverlay` | `boolean` | `false` | Pipeline stage: stage 1 (`true`) or stage 4 (`false`). |
+| `affectLayer` | `boolean` | `false` | Pipeline stage: stage 2 (`true`) or stage 6 (`false`). |
 | `cover` | `boolean` | `true` | `false` = screens cannot override via `boundSequence`. |
 | `timeout` | `number` | `500` | Milliseconds before a partial sequence resets. |
 | `exclusive` | `boolean` | `false` | `true` = mismatched key consumed silently. |
-| `executeWhenNoOverlay` | `boolean` | `false` | Fire even when no overlay is active (for `affectOverlay: true`). |
+| `executeWhenNoOverlay` | `boolean` | `false` | Fire even when no layer is active (for `affectLayer: true`). |
 | `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. See [Mode System](./mode-system-API.md). |
 
