@@ -46,7 +46,7 @@ engine.composition.removeMapping(firstKey: string): boolean;
 | `affectOverlay` | `boolean` | `false` | Which pipeline phase this mapping belongs to. |
 | `mode` | `string` | — | Mode filter. |
 | `category` | `unknown[] \| "*"` | — | Screen category whitelist. |
-| `executeWhenNoOverlay` | `boolean` | — | For `affectOverlay: true`, allow firing when no overlay is active. |
+| `executeWhenNoOverlay` | `boolean` | — | For `affectOverlay: true`, allow firing when no layer is active. |
 
 ### removeMappingKey
 
@@ -99,7 +99,7 @@ If any step in the `target` chain fails (composition key not found, `execute` re
 
 ### Phase guard (`affectOverlay`)
 
-A mapping started in the overlay phase is not advanced by the screen-phase processor, and vice versa. This mirrors the phase guard on composition pending and global sequences.
+A mapping started in the layer phase is not advanced by the page-phase processor, and vice versa. This mirrors the phase guard on composition pending and global sequences.
 
 ### Priority
 

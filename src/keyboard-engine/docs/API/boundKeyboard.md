@@ -45,7 +45,7 @@ An unbind function. Calling it removes the binding from the layer immediately. S
 
 ## Effect
 
-Adds a `BoundKeyEntry` to the current owner's keyboard layer:
+Adds a `BaseBoundKeyEntry` to the current owner's keyboard layer:
 
 - With `elementId` → stored on that element's keyboard data
 - With `focusId` → stored on the named `FocusTarget.bindings` array

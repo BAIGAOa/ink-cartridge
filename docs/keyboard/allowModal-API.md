@@ -1,6 +1,6 @@
 # allowModal
 
-Let specific keys pass through the modal barrier. By default, a modal consumes every key event — nothing reaches screens or overlays below. This creates exceptions.
+Let specific keys pass through the modal barrier. By default, a modal layer consumes every key event — nothing reaches screens or layers below. This creates exceptions.
 
 ## Signature
 
@@ -24,16 +24,16 @@ function allowModal(
 
 ## Best Practice
 
-Let the dev-tool toggle key pass through the modal so it can be closed from outside:
+Let a toggle key pass through the modal so it can be dismissed from outside:
 
 ```tsx
-function DevModal() {
+function SettingsModal() {
   const { allowModal } = useKeyboard();
 
   useEffect(() => {
-    return allowModal(['ctrl+d']);
+    return allowModal(['escape']);
   }, []);
 
-  return <Text>Dev Panel</Text>;
+  return <Text>Settings</Text>;
 }
 ```

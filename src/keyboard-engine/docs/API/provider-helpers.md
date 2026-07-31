@@ -8,10 +8,10 @@ All helpers are exported from `@cartridge-engine/keyboard-engine`.
 
 ```ts
 function finalizeBoundKeyboard(
-  bindingsArray: BoundKeyEntry[],
+  bindingsArray: BaseBoundKeyEntry[],
   actionKeysMap: Map<string, string[]>,
   layer: PageKeyboardLayer | ElementKeyboard,
-  entry: BoundKeyEntry,
+  entry: BaseBoundKeyEntry,
   handler: KeyHandler | string,
   keys: string[],
   options?: BoundKeyboardOptions,

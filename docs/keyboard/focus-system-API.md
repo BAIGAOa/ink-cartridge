@@ -54,7 +54,7 @@ function focusCurrent(group?: string):
 
 Query the currently active focus target for a group. Returns a discriminated union so callers can distinguish the empty cases without guessing:
 
-- `{ noOwner: true }` — no screen/overlay is mounted (no current owner).
+- `{ noOwner: true }` — no screen/layer element is mounted (no current owner).
 - `{ noLayer: true }` — an owner exists but no keyboard layer has been created for it yet.
 - `{ noFound: true }` — the group exists but has no active focus target.
 - `{ result: { id, fromGroup } }` — the active focus target id and the group it belongs to.

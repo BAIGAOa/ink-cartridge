@@ -20,10 +20,10 @@ No return value. To remove all global keys registered by this component, call `g
 | `key` | `string \| string[]` | **required** | Key name(s). Same format as `boundKeyboard` (`"ctrl+s"`, `"f1"`, etc.). |
 | `operate` | `() => void \| string` | **required** | Callback, or a shortcut action name. |
 | `category` | `ComponentType[] \| "*"` | `"*"` | `"*"` = all screens. `[]` = disabled. `[Menu]` = only when top of stack is Menu. |
-| `affectOverlay` | `boolean` | `false` | `true` = fires before overlays (pipeline stage 2). `false` = after overlays (stage 5). |
+| `affectLayer` | `boolean` | `false` | `true` = fires before layers (pipeline stage 2). `false` = after layers (stage 7). |
 | `cover` | `boolean` | `true` | `false` = screens cannot override this key with `boundKeyboard`. |
 | `times` | `number` | — | Fire on every Nth press. Counter is per-entry, never auto-resets. |
-| `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no overlay is open. |
+| `executeWhenNoOverlay` | `boolean` | `false` | For `affectLayer: true` entries: also fire when no layer is active. |
 | `when` | `(() => boolean) \| string` | — | Conditional. Accepts a function or a registered condition ID. |
 | `mode` | `string` | — | Restrict to a specific mode. See [Mode System](./mode-system-API.md). |
 

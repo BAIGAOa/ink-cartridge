@@ -35,12 +35,12 @@ The default pipeline has 9 processors in this order:
 |-------|----|-------|
 | 0 | `modal` | Modal — consumes everything except allowed keys |
 | 1 | `composition-overlay` | Composition stage (affectOverlay: true) |
-| 2 | `global-sequence-overlay` | Global sequences (affectOverlay: true) |
-| 3 | `global-key-overlay` | Global keys (affectOverlay: true) |
-| 4 | `overlay` | Overlay broadcast — always returns `false` |
+| 2 | `global-sequence-overlay` | Global sequences (affectLayer: true) |
+| 3 | `global-key-overlay` | Global keys (affectLayer: true) |
+| 4 | `layer` | Layer broadcast — always returns `false` |
 | 5 | `composition-screen` | Composition stage (affectOverlay: false) |
-| 6 | `global-sequence-screen` | Global sequences (affectOverlay: false) |
-| 7 | `global-key-screen` | Global keys (affectOverlay: false) |
+| 6 | `global-sequence-screen` | Global sequences (affectLayer: false) |
+| 7 | `global-key-screen` | Global keys (affectLayer: false) |
 | 8 | `screen-stack` | Screen stack (top-to-bottom) |
 
 Use these IDs in `before`/`after` to position your custom processor relative to any built-in stage.
@@ -109,8 +109,8 @@ addProcessor({
 ### Insert after a built-in stage
 
 ```tsx
-// Run custom logic right after the overlay stage processes a key
-addProcessor(myProcessor, { after: 'overlay' });
+// Run custom logic right after the layer stage processes a key
+addProcessor(myProcessor, { after: 'layer' });
 ```
 
 ## Notes

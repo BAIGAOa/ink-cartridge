@@ -19,7 +19,7 @@ User presses:  3    s    w
               └─────────────────────────┘
 
 Pipeline position: modal → composition-overlay → global-seq-overlay → ...
-                       → overlay → composition-screen → global-seq-screen → ...
+                       → layer → composition-screen → global-seq-screen → ...
 ```
 
 Composition processors sit at positions 1 and 5 in the 9-stage pipeline, above global sequence keys.
@@ -79,8 +79,8 @@ Each registered key is a `CompositioKey` object:
 | `execute` | `(ctx) => ctx \| null` | — | Transform or action function. Receives the accumulated context, returns the new context. Return `null` to abort the chain. |
 | `exclusive` | `boolean` | `false` | When `true` mid-sequence and a key doesn't match `needs`, the key is silently consumed (timeout keeps running). When `false`, the key falls through to later processors. |
 | `category` | `ComponentType[] \| "*"` | `"*"` | Restrict to specific screens. `[]` = disabled. |
-| `affectOverlay` | `boolean` | `false` | `true` = fires in the overlay phase (position 1). `false` = screen phase (position 5). |
-| `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no overlay is open. |
+| `affectOverlay` | `boolean` | `false` | `true` = fires in the layer phase (position 1). `false` = page phase (position 5). |
+| `executeWhenNoOverlay` | `boolean` | `false` | For `affectOverlay: true` entries: also fire when no layer is active. |
 | `timeout` | `number` | `400` | Milliseconds before a partial sequence resets. |
 | `undoAction` | `(ctx) => ctx \| null` | `(ctx) => ctx` | Reverse action for this key. Called during `undo()` in reverse order. Receives the context as it was AFTER this key executed. Return `null` to stop the undo chain. Defaults to identity pass-through. |
 | `KeyReleaseWhenChainInterrupted` | `boolean` | — | When `execute` returns `null` or guard validation fails, swallow the key instead of letting it fall through. |

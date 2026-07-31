@@ -10,7 +10,7 @@ function useKeyboard(): KeyboardContextValue
 
 ## Returns
 
-An object with all keyboard methods for the current layer (screen, overlay, or modal — detected automatically from the component's position in the tree).
+An object with all keyboard methods for the current layer (screen, layer element, or modal layer — detected automatically from the component's position in the tree).
 
 ## Best Practice
 

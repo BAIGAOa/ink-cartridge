@@ -35,11 +35,11 @@ Plus all options from [`BoundKeyboardOptions`](./boundKeyboard.md): `elementId`,
 
 ## Returns
 
-An unbind function. Removes the `SequenceBinding` from the layer's `sequences` map. If a sequence is currently pending, calling unbind does not cancel it — use [`abortComposition`](./composition/abortComposition.md) if you need to cancel a running sequence.
+An unbind function. Removes the `BaseSequenceBinding` from the layer's `sequences` map. If a sequence is currently pending, calling unbind does not cancel it — use [`abortComposition`](./composition/abortComposition.md) if you need to cancel a running sequence.
 
 ## Effect
 
-Adds a `SequenceBinding` to the current page layer's or element's `sequences` map, keyed by the first key in the sequence. When that key is pressed and no other sequence is already pending on this layer, a `PendingSequence` is created:
+Adds a `BaseSequenceBinding` to the current page layer's or element's `sequences` map, keyed by the first key in the sequence. When that key is pressed and no other sequence is already pending on this layer, a `PendingSequence` is created:
 
 - A timer is started with `timeout` ms
 - `nextIndex` is set to 1 (waiting for the second key)
