@@ -22,6 +22,11 @@ export type Layer = {
    * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
+
+  /**
+   * no-c
+   */
+  automaticTakeoverKeyboard: boolean;
 };
 
 export type LayerOptions = {
@@ -30,6 +35,11 @@ export type LayerOptions = {
    * the layer is automatically cleared; a toggle is provided here to prevent this automatic clearing.
    */
   crossPage?: boolean;
+
+  /**
+   * no-c
+   */
+  automaticTakeoverKeyboard?: boolean;
 };
 
 export type OpenLayerAction = {
@@ -193,6 +203,11 @@ export type ModalLayer = {
    * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
+
+  /**
+   * no-c
+   */
+  automaticTakeoverKeyboard: boolean;
 };
 
 export type ModalLayerOptions = {
@@ -201,6 +216,11 @@ export type ModalLayerOptions = {
    * the layer is automatically cleared; a toggle is provided here to prevent this automatic clearing.
    */
   crossPage?: boolean;
+
+  /**
+   * no-c
+   */
+  automaticTakeoverKeyboard?: boolean;
 };
 
 export type OpenModalLayerAction = {
@@ -335,4 +355,3 @@ export type CloseAllModalLayerAction = {
 };
 
 export type CloseAllModalLayerFn = () => void;
-

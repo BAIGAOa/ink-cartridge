@@ -19,13 +19,8 @@ import { LayerElementContext } from "./LayerElementContext.js";
  * Architecturally symmetric between overlays and modals.
  */
 export function CurrentScreen(): React.ReactNode {
-  const {
-    pageLayer,
-    fullScreen,
-    allLayers,
-    allModalLayers,
-    currentPath,
-  } = useScreenSystem();
+  const { pageLayer, fullScreen, allLayers, allModalLayers, currentPath } =
+    useScreenSystem();
   const { rows } = useWindowSize();
 
   const layers = allLayers.map((layer) => {
@@ -51,6 +46,7 @@ export function CurrentScreen(): React.ReactNode {
               id: layerElement.elementId,
               layer: layer,
               hostPage: hostPage,
+              auto: layer.automaticTakeoverKeyboard,
             };
 
             return (
@@ -89,6 +85,7 @@ export function CurrentScreen(): React.ReactNode {
               id: layerElement.elementId,
               modalLayer: modalLayer,
               hostPage: hostPage,
+              auto: modalLayer.automaticTakeoverKeyboard,
             };
 
             return (
