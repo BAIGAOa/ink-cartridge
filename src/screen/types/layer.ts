@@ -24,7 +24,11 @@ export type Layer = {
   createdAt: number;
 
   /**
-   * no-c
+   * Whether the layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
 };
@@ -37,7 +41,11 @@ export type LayerOptions = {
   crossPage?: boolean;
 
   /**
-   * no-c
+   * Whether the layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard?: boolean;
 };
@@ -205,7 +213,11 @@ export type ModalLayer = {
   createdAt: number;
 
   /**
-   * no-c
+   * Whether the modal layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
 };
@@ -218,7 +230,11 @@ export type ModalLayerOptions = {
   crossPage?: boolean;
 
   /**
-   * no-c
+   * Whether the modal layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard?: boolean;
 };
