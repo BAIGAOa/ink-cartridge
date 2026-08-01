@@ -22,6 +22,15 @@ export type Layer = {
    * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
+
+  /**
+   * Whether the layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent layer does not intercept keys on other pages.
+   */
+  automaticTakeoverKeyboard: boolean;
 };
 
 export type LayerOptions = {
@@ -30,6 +39,15 @@ export type LayerOptions = {
    * the layer is automatically cleared; a toggle is provided here to prevent this automatic clearing.
    */
   crossPage?: boolean;
+
+  /**
+   * Whether the layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent layer does not intercept keys on other pages.
+   */
+  automaticTakeoverKeyboard?: boolean;
 };
 
 export type OpenLayerAction = {
@@ -193,6 +211,15 @@ export type ModalLayer = {
    * When the z-index values are equal, this field is used to determine the stacking order.
    */
   createdAt: number;
+
+  /**
+   * Whether the modal layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
+   */
+  automaticTakeoverKeyboard: boolean;
 };
 
 export type ModalLayerOptions = {
@@ -201,6 +228,15 @@ export type ModalLayerOptions = {
    * the layer is automatically cleared; a toggle is provided here to prevent this automatic clearing.
    */
   crossPage?: boolean;
+
+  /**
+   * Whether the modal layer automatically takes over keyboard events.
+   * When enabled, the layer's keyboard bindings are active only while its
+   * host page is the current page; navigating away pops the keyboard owner
+   * and returning to the host page pushes it again. Typically used together
+   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
+   */
+  automaticTakeoverKeyboard?: boolean;
 };
 
 export type OpenModalLayerAction = {
@@ -335,4 +371,3 @@ export type CloseAllModalLayerAction = {
 };
 
 export type CloseAllModalLayerFn = () => void;
-
