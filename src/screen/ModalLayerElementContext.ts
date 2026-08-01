@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import React, { createContext } from 'react';
 import { ModalLayer } from './types/layer.js';
 
 
@@ -9,4 +9,8 @@ export const ModalLayerElementContext = createContext<{
      * This field indicates which layer this Element belongs to.
      */
     modalLayer: ModalLayer;
+    /**
+     * Host page of the current layer
+     */
+    hostPage: React.ComponentType<any> | null;
 } | null>(null);

@@ -24,6 +24,7 @@ export function CurrentScreen(): React.ReactNode {
     fullScreen,
     allLayers,
     allModalLayers,
+    currentPath,
   } = useScreenSystem();
   const { rows } = useWindowSize();
 
@@ -40,9 +41,16 @@ export function CurrentScreen(): React.ReactNode {
         {Array.from(layer.elements)
           .map((each) => each[1])
           .map((layerElement) => {
+            let hostPage: React.ComponentType<any> | null = null;
+
+            if (currentPath.length > 0) {
+              hostPage = currentPath[currentPath.length - 1];
+            }
+
             const contextValue = {
               id: layerElement.elementId,
               layer: layer,
+              hostPage: hostPage,
             };
 
             return (
@@ -71,9 +79,16 @@ export function CurrentScreen(): React.ReactNode {
         {Array.from(modalLayer.elements)
           .map((each) => each[1])
           .map((layerElement) => {
+            let hostPage: React.ComponentType<any> | null = null;
+
+            if (currentPath.length > 0) {
+              hostPage = currentPath[currentPath.length - 1];
+            }
+
             const contextValue = {
               id: layerElement.elementId,
               modalLayer: modalLayer,
+              hostPage: hostPage,
             };
 
             return (

@@ -103,7 +103,7 @@ function renderDialogDirect(props: {
   const { lastFrame, unmount } = render(
     <KeyboardContext.Provider value={mockKeyboard}>
       <ModalLayerElementContext.Provider
-        value={{ id: 'confirm-el', modalLayer }}
+        value={{ id: 'confirm-el', modalLayer, hostPage: null }}
       >
         <ConfirmDialog {...props} />
       </ModalLayerElementContext.Provider>
