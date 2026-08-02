@@ -23,14 +23,31 @@ import type {
 
 function toKeyboardLayerState(
   layers: Array<Layer | ModalLayer>,
+  currentPath?: React.ComponentType<any>[],
 ): KeyboardLayer[] {
-  return layers.map((layer) => ({
-    layerId: layer.layerId,
-    elements: Array.from(layer.elements.keys()),
-    activeElements: Array.from(layer.elements.entries())
-      .filter(([, element]) => element.active !== false)
-      .map(([id]) => id),
-  }));
+  return layers.map((layer) => {
+    const hostPage = (layer as any).hostPage as React.ComponentType<any> | undefined;
+    const auto = (layer as any).automaticTakeoverKeyboard as boolean | undefined;
+    // When auto takeover is enabled and we're not on the host page,
+    // exclude all elements from activeElements so the layer's bindings
+    // are dormant until returning to the host page.
+    const awayFromHost =
+      auto &&
+      hostPage &&
+      currentPath &&
+      currentPath.length > 0 &&
+      currentPath[currentPath.length - 1] !== hostPage;
+
+    return {
+      layerId: layer.layerId,
+      elements: Array.from(layer.elements.keys()),
+      activeElements: awayFromHost
+        ? []
+        : Array.from(layer.elements.entries())
+            .filter(([, element]) => element.active !== false)
+            .map(([id]) => id),
+    };
+  });
 }
 
 export interface KeyboardProviderProps {
@@ -126,8 +143,8 @@ export function KeyboardProvider({
 
   engine.sync({
     pagePath: currentPath,
-    layers: toKeyboardLayerState(allLayers),
-    modalLayers: toKeyboardLayerState(allModalLayers),
+    layers: toKeyboardLayerState(allLayers, currentPath),
+    modalLayers: toKeyboardLayerState(allModalLayers, currentPath),
   });
 
   useEffect(() => {

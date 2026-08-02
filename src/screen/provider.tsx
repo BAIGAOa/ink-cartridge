@@ -443,6 +443,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         createdAt: Date.now(),
         automaticTakeoverKeyboard:
           action.options?.automaticTakeoverKeyboard ?? false,
+        hostPage: state.path[state.path.length - 1] ?? null,
       };
 
       const newLayers = sortLayers([...state.allLayers, newLayer]);
@@ -654,6 +655,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
         createdAt: Date.now(),
         automaticTakeoverKeyboard:
           action.options?.automaticTakeoverKeyboard ?? false,
+        hostPage: state.path[state.path.length - 1] ?? null,
       };
 
       const newModalLayers = sortLayers([
