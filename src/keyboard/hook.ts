@@ -13,7 +13,6 @@ import type {
   StopOptions,
   FocusSetOptions,
 } from "@cartridge-engine/keyboard-engine";
-import { ScreenSystemContext } from "../screen/context.js";
 
 /**
  * Access the keyboard API from within a React component.
@@ -159,31 +158,6 @@ export function useKeyboard(): KeyboardContextValue {
     };
   }, [ctx, elementId]);
 
-  // We do the following during rendering
-  // This avoids React's useEffect timing issues and confusion.
-  // Read the raw context instead of useScreenSystem() so useKeyboard keeps
-  // working outside a ScenarioManagementProvider (e.g. isolated components).
-  const screenContext = useContext(ScreenSystemContext);
-  const hostPage = layerCtx?.hostPage;
-  const auto = layerCtx?.auto ?? false;
-  if (auto && ownerId) {
-    const currentPage =
-      screenContext?.currentPath[screenContext.currentPath.length - 1];
-    if (hostPage && currentPage) {
-      if (hostPage === currentPage) {
-        _pushOwner(ownerId);
-      } else {
-        _popOwner(ownerId);
-      }
-    } else if (process.env.NODE_ENV !== "production") {
-      // This is a boundary case,
-      // in which the application has no page, resulting in no host screen
-      console.warn(`
-    				[ink-cartridge] There are currently no Pages, but you have at least one crossPage layer turned on
-    				The layer ID is ${ownerId}. To resolve this warning, you need to register a new Page or turn off crossPage mode.
-    			`);
-    }
-  }
   // TODO: Write unit tests,
   // documentation,
   // and use cases for smart cross-page layers,

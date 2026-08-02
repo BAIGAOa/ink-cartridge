@@ -31,6 +31,7 @@ export type Layer = {
    * with `crossPage` so a persistent layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
+  hostPage: React.ComponentType<any> | null;
 };
 
 export type LayerOptions = {
@@ -220,6 +221,7 @@ export type ModalLayer = {
    * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
+  hostPage: React.ComponentType<any> | null;
 };
 
 export type ModalLayerOptions = {

@@ -19,7 +19,7 @@ import { LayerElementContext } from "./LayerElementContext.js";
  * Architecturally symmetric between overlays and modals.
  */
 export function CurrentScreen(): React.ReactNode {
-  const { pageLayer, fullScreen, allLayers, allModalLayers, currentPath } =
+  const { pageLayer, fullScreen, allLayers, allModalLayers } =
     useScreenSystem();
   const { rows } = useWindowSize();
 
@@ -36,16 +36,10 @@ export function CurrentScreen(): React.ReactNode {
         {Array.from(layer.elements)
           .map((each) => each[1])
           .map((layerElement) => {
-            let hostPage: React.ComponentType<any> | null = null;
-
-            if (currentPath.length > 0) {
-              hostPage = currentPath[currentPath.length - 1];
-            }
-
             const contextValue = {
               id: layerElement.elementId,
               layer: layer,
-              hostPage: hostPage,
+              hostPage: layer.hostPage,
               auto: layer.automaticTakeoverKeyboard,
             };
 
@@ -75,16 +69,10 @@ export function CurrentScreen(): React.ReactNode {
         {Array.from(modalLayer.elements)
           .map((each) => each[1])
           .map((layerElement) => {
-            let hostPage: React.ComponentType<any> | null = null;
-
-            if (currentPath.length > 0) {
-              hostPage = currentPath[currentPath.length - 1];
-            }
-
             const contextValue = {
               id: layerElement.elementId,
               modalLayer: modalLayer,
-              hostPage: hostPage,
+              hostPage: modalLayer.hostPage,
               auto: modalLayer.automaticTakeoverKeyboard,
             };
 
