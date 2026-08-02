@@ -14,7 +14,6 @@ import type {
   FocusSetOptions,
 } from "@cartridge-engine/keyboard-engine";
 
-
 /**
  * Access the keyboard API from within a React component.
  *

@@ -31,10 +31,6 @@ export type Layer = {
    * with `crossPage` so a persistent layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
-  /**
-   * The page on which this layer was opened (captured at openLayer time).
-   * Used by automaticTakeoverKeyboard to determine when to push/pop the owner.
-   */
   hostPage: React.ComponentType<any> | null;
 };
 
@@ -225,10 +221,6 @@ export type ModalLayer = {
    * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
-  /**
-   * The page on which this modal layer was opened (captured at openModalLayer time).
-   * Used by automaticTakeoverKeyboard to determine when to push/pop the owner.
-   */
   hostPage: React.ComponentType<any> | null;
 };
 
