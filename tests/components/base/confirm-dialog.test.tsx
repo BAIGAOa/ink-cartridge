@@ -99,6 +99,7 @@ function renderDialogDirect(props: {
     crossPage: false,
     createdAt: 0,
     automaticTakeoverKeyboard: false,
+    hostPage: null,
   };
 
   const { lastFrame, unmount } = render(
