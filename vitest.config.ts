@@ -1,20 +1,16 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: "node",
     globals: true,
     testTimeout: 15_000,
     coverage: {
       exclude: [
-        '**/dist/**',
-        'tests/**/_helpers.*',
-        'tests/**/_helpers/**',
-        'src/**/index.ts',
-        // Dev-tool inspectors need full keyboard-layer state to render detail
-        // cards — cost/benefit of mocking that state isn't worth it for
-        // non-production debugging UIs.
-        'src/dev/**',
+        "**/dist/**",
+        "tests/**/_helpers.*",
+        "tests/**/_helpers/**",
+        "src/**/index.ts",
       ],
       thresholds: {
         lines: 90,
@@ -26,13 +22,12 @@ export default defineConfig({
     projects: [
       {
         test: {
-          name: 'ink-cartridge',
-          include: ['tests/**/*.test.{ts,tsx}'],
+          name: "ink-cartridge",
+          include: ["tests/**/*.test.{ts,tsx}"],
         },
       },
-      './src/keyboard-engine',
-      './packages/editor',
-
+      "./src/keyboard-engine",
+      "./packages/editor",
     ],
   },
 });
