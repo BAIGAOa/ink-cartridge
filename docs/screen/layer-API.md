@@ -14,7 +14,7 @@ function openLayer(layerId: string, zIndex: number, options?: LayerOptions): voi
 |--------|------|---------|-------------|
 | `crossPage` | `boolean` | `false` | When `true`, the layer survives screen navigation (skip/back/gotoScreen). Non-`crossPage` layers are cleared on navigation. |
 
-If `layerId` collides with an existing layer or modal layer, the reducer leaves state unchanged.
+If `layerId` is already registered as a layer, the call is a **no-op** — state is unchanged and a `[ink-cartridge]` warning is printed in development. This protects against rapid repeated opens (e.g. a key binding that re-fires while the layer is still open). An ID already used by a *modal layer* still throws: layers and modal layers share one ID namespace, so a cross-namespace collision is a real bug.
 
 ### applyElement
 
@@ -34,6 +34,8 @@ type LayerElement = {
 
 `active` defaults to `true`. Deactivated elements stay mounted but are removed from keyboard dispatch.
 
+Applying an `elementId` that is already applied on the target layer is a no-op with a development warning (same rapid-reopen protection as `openLayer`). Applying to a layer that is not registered still throws.
+
 ### closeLayer / eraseElement / closeAllLayer
 
 ```ts
@@ -41,6 +43,8 @@ function closeLayer(targetLayerId: string): void
 function eraseElement(targetLayerId: string, targetElementId: string): void
 function closeAllLayer(): void
 ```
+
+`closeLayer` on a layer that is not registered and `eraseElement` on an element ID that is not applied are no-ops with development warnings — duplicate closes/erases from rapid key presses are ignored. `eraseElement` on an unregistered layer still throws.
 
 ### activateElement / deactivateElement
 

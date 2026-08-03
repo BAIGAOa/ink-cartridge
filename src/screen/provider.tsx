@@ -29,6 +29,16 @@ import { ScreenState } from "./types/state.js";
 const _dispatchers = new Set<React.Dispatch<ScreenAction>>();
 
 /**
+ * Dev-only console warning. Reducer diagnostics are no-ops in production
+ * builds; the duplicate open/close no-op itself must not be silenced.
+ */
+function warnInDev(message: string): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(message);
+  }
+}
+
+/**
  * Clear all registered provider dispatchers.
  * Intended for test cleanup — prevents stale dispatch references
  * from leaking between test runs when providers are not properly
@@ -416,12 +426,16 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     }
 
     case "openLayer": {
+      // A key handler can re-fire before the layer it opened has mounted
+      // (its keyboard bindings register in a later effect), or a repeated
+      // key can bubble back to the host page while the layer is still open.
+      // Re-opening an existing ID is a user race, not a bug — treat it as a
+      // no-op instead of crashing the app from inside a reducer.
       if (state.allLayers.some((each) => each.layerId === action.layerId)) {
-        throw new Error(
-          `
-          [ink-cartridge] The ID of the layer you wish to register has already been registered; the duplicate ID is ${action.layerId}.
-          `,
+        warnInDev(
+          `[ink-cartridge] openLayer("${action.layerId}") ignored: the ID is already registered. Duplicate opens are no-ops; close the layer first to reopen it.`,
         );
+        return state;
       }
       if (
         state.allModalLayers.some((each) => each.layerId === action.layerId)
@@ -475,13 +489,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const targetLayer = state.allLayers[targetLayerIndex];
 
+      // Part of the same key-mash race as openLayer: the re-fired handler
+      // re-applies the element right after the duplicate open is ignored.
       if (targetLayer.elements.has(action.layerElement.elementId)) {
-        throw new Error(
-          `
-          [in-cartridge] The element ID ${action.layerElement.elementId} you are applying has already been used on target layer ${targetLayer.layerId};
-          try using a new one or deleting the old one.
-          `,
+        warnInDev(
+          `[ink-cartridge] applyElement("${action.layerElement.elementId}" on "${targetLayer.layerId}") ignored: the element ID is already applied. Duplicate applies are no-ops; erase the element first to re-apply it.`,
         );
+        return state;
       }
 
       const newElements = new Map(targetLayer.elements);
@@ -503,12 +517,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       const targetLayerIndex = state.allLayers.findIndex(
         (each) => each.layerId === action.targetLayerId,
       );
+      // Mirror of the openLayer race: a second close dispatched before the
+      // layer's binding cleanup ran would otherwise throw mid-render.
       if (targetLayerIndex === -1) {
-        throw new Error(
-          `
-          [ink-cartridge] The layer ${action.targetLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
-          `,
+        warnInDev(
+          `[ink-cartridge] closeLayer("${action.targetLayerId}") ignored: no layer with this ID is registered. Duplicate closes are no-ops.`,
         );
+        return state;
       }
 
       const remainingLayers = state.allLayers.filter(
@@ -537,10 +552,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const targetLayer = state.allLayers[targetLayerIndex];
 
+      // Mirror of the applyElement race: a second erase dispatched before
+      // the element's binding cleanup ran must not crash the app.
       if (!targetLayer.elements.has(action.targetElementId)) {
-        throw new Error(
-          `[ink-cartridge] The target element ${action.targetElementId} does not exist in layer ${action.targetLayerId}; you may have mistyped the string, or the corresponding element was never registered.`,
+        warnInDev(
+          `[ink-cartridge] eraseElement("${action.targetElementId}" from "${action.targetLayerId}") ignored: no element with this ID is applied. Duplicate erases are no-ops.`,
         );
+        return state;
       }
 
       const newElements = new Map(targetLayer.elements);
@@ -628,14 +646,15 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
     }
 
     case "openModalLayer": {
+      // Same user-race no-op as openLayer: a repeated key can re-open an
+      // existing modal layer before its bindings are live.
       if (
         state.allModalLayers.some((each) => each.layerId === action.layerId)
       ) {
-        throw new Error(
-          `
-          [ink-cartridge] The ID of the modal layer you wish to register has already been registered; the duplicate ID is ${action.layerId}.
-          `,
+        warnInDev(
+          `[ink-cartridge] openModalLayer("${action.layerId}") ignored: the ID is already registered. Duplicate opens are no-ops; close the modal layer first to reopen it.`,
         );
+        return state;
       }
       if (state.allLayers.some((each) => each.layerId === action.layerId)) {
         throw new Error(
@@ -690,13 +709,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const targetModalLayer = state.allModalLayers[targetModalLayerIndex];
 
+      // Mirror of the applyElement no-op for the same key-mash race.
       if (targetModalLayer.elements.has(action.modalLayerElement.elementId)) {
-        throw new Error(
-          `
-          [ink-cartridge] The element ID ${action.modalLayerElement.elementId} you are applying has already been used on target modal layer ${targetModalLayer.layerId};
-          try using a new one or deleting the old one.
-          `,
+        warnInDev(
+          `[ink-cartridge] applyElementToModalLayer("${action.modalLayerElement.elementId}" on "${targetModalLayer.layerId}") ignored: the element ID is already applied. Duplicate applies are no-ops; erase the element first to re-apply it.`,
         );
+        return state;
       }
 
       const newElements = new Map(targetModalLayer.elements);
@@ -721,12 +739,13 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
       const targetModalLayerIndex = state.allModalLayers.findIndex(
         (each) => each.layerId === action.targetModalLayerId,
       );
+      // Mirror of the closeLayer race: a second close before the modal
+      // layer's binding cleanup ran is a no-op, not an error.
       if (targetModalLayerIndex === -1) {
-        throw new Error(
-          `
-          [ink-cartridge] The modal layer ${action.targetModalLayerId} you want to delete is not registered; you might have made a typo, or it was never registered at all.
-          `,
+        warnInDev(
+          `[ink-cartridge] closeModalLayer("${action.targetModalLayerId}") ignored: no modal layer with this ID is registered. Duplicate closes are no-ops.`,
         );
+        return state;
       }
 
       const remainingModalLayers = state.allModalLayers.filter(
@@ -755,10 +774,12 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 
       const targetModalLayer = state.allModalLayers[targetModalLayerIndex];
 
+      // Mirror of the eraseElement no-op for the same key-mash race.
       if (!targetModalLayer.elements.has(action.targetElementId)) {
-        throw new Error(
-          `[ink-cartridge] The target element ${action.targetElementId} does not exist in modal layer ${action.targetModalLayerId}; you may have mistyped the string, or the corresponding element was never registered.`,
+        warnInDev(
+          `[ink-cartridge] eraseElementInModalLayer("${action.targetElementId}" from "${action.targetModalLayerId}") ignored: no element with this ID is applied. Duplicate erases are no-ops.`,
         );
+        return state;
       }
 
       const newElements = new Map(targetModalLayer.elements);
