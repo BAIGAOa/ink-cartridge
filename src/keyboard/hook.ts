@@ -158,13 +158,6 @@ export function useKeyboard(): KeyboardContextValue {
     };
   }, [ctx, elementId]);
 
-  // TODO: Write unit tests,
-  // documentation,
-  // and use cases for smart cross-page layers,
-  // while I write my own application to see the results.
-  // Most important: Don't forget to delete this comment!
-  // @Time: 2026-8-02
-
   return wrapped;
 }
 
