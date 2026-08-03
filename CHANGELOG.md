@@ -1,5 +1,11 @@
 # ink-cartridge
 
+## 5.0.1
+
+### Patch Changes
+
+- 5bf60e2: feat: Intelligent persistence of model layers and layers, optimization of ordinary layers to avoid error crash
+
 ## 5.0.0
 
 ### Major Changes
