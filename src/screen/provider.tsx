@@ -306,12 +306,12 @@ function buildPathFrom(
  * Pure reducer for {@link ScreenState}.
  *
  * Handles all navigation actions: skip (down), back (up), gotoScreen
- * (cross-branch), openOverlay, closeOverlay, closeAllOverlays,
- * activateOverlay, and deactivateOverlay.
+ * (cross-branch), openLayer/closeLayer/applyElement/eraseElement,
+ * openModalLayer/closeModalLayer/applyElementToModalLayer/eraseElementInModalLayer,
+ * activate/deactive element variants, and closeAllLayer/closeAllModalLayer.
  *
- * Navigation actions filter out non-persistent overlays/modals and
- * recalculate active IDs based on whether the origin screen of each
- * persistent entry is at the top of the new path.
+ * Navigation actions filter out non-persistent layers and modal layers
+ * (crossPage: false) and recalculate active state for persistent entries.
  */
 function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   switch (action.type) {

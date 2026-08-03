@@ -12,11 +12,16 @@ Project conventions for AI coding agents working on `ink-cartridge` — a React 
 ## Commands
 
 ```bash
-npm run build        # tsc
-npm run watch        # tsc --watch
-npm test             # vitest run
-npm run test:watch   # vitest --watch
-npm run clean        # rm -rf dist
+npm run build          # builds keyboard-engine workspace, then tsc
+npm run watch          # tsc --watch
+npm test               # vitest run
+npm run test:watch     # vitest --watch
+npm run test:coverage  # vitest run --coverage
+npm run lint           # eslint src/
+npm run lint:fix       # eslint --fix src/
+npm run lint:quick     # eslint src/ --quiet --cache
+npm run demo:dev       # tsx examples/dev/dev.tsx
+npm run clean          # rm -rf dist
 ```
 
 ## Done
@@ -28,26 +33,26 @@ A task is not complete until:
 
 ## Architecture
 
-**Screen System** (`src/screen/`) — Tree-based navigation via `registerComponent(Component, template, { parent })`. Navigation: `skip()` (down), `back()` (up, `levels` param), `gotoScreen()` (jump via LCA), `openOverlay()` / `closeOverlay()` (floating dialogs). All nav functions work as React hooks AND module-level imports (`_dispatchers` Set). `ScenarioManagementProvider` wraps the app; `CurrentScreen` renders the active screen.
+**Screen System** (`src/screen/`) — Tree-based navigation via `registerComponent(Component, template, { parent })`. Navigation: `skip()` (down), `back()` (up, `levels` param), `gotoScreen()` (jump via LCA). Layer system: `openLayer()` / `closeLayer()` (ordinary layers) and `openModalLayer()` / `closeModalLayer()` (modal layers with keyboard takeover), each with `applyElement()` / `eraseElement()`, `activateElement()` / `deactivateElement()`, and `closeAllLayer()` / `closeAllModalLayer()` variants. All nav and layer functions work as React hooks AND module-level imports (`_dispatchers` Set). `ScenarioManagementProvider` wraps the app; `CurrentScreen` renders the active screen.
 
-**Keyboard System** (`src/keyboard/`) — Framework-agnostic keyboard engine (`KeyboardEngine` class) with React adapter (`KeyboardProvider`). Layered key bindings via 7-stage pipeline: Modal → GlobalSequence (ao:true) → GlobalKeys (ao:true) → Overlay broadcast → GlobalSequence (ao:false) → GlobalKeys (ao:false) → Screen stack (top→bottom). Mechanisms: `boundKeyboard()` (per-screen), `penetration()` (pass-through), `stop()` (propagation barrier), `globalKeys()`. Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling. Shortcut/sequence actions, modal modes, named conditions, custom processors (`addProcessor`/`removeProcessor` per-instance via `useKeyboard()`). `KeyboardEngine` is exported for non-React frameworks (Vue, Svelte, etc.).
+**Keyboard System** (`src/keyboard/`) — Framework-agnostic keyboard engine (`KeyboardEngine` class) with React adapter (`KeyboardProvider`). Layered key bindings via 9-stage pipeline (highest to lowest priority): Modal → Composition (affectLayer:true) → GlobalSequence (affectLayer:true) → GlobalKeys (affectLayer:true) → Layer broadcast → Composition (affectLayer:false) → GlobalSequence (affectLayer:false) → GlobalKeys (affectLayer:false) → Screen stack (top→bottom). Each stage is an independent processor; the first to return `true` consumes the event (except Layer broadcast, which always returns `false`). Mechanisms: `boundKeyboard()` (per-screen), `penetration()` (pass-through), `stop()` (propagation barrier), `globalKeys()`, `globalSequence()`, `boundSequence()`. Composition engine for flag/needs key chains, mapping key (vim-style remap). Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling, `focusSet`/`focusNext`/`focusPrev`/`focusCurrent`, named focus groups (`activateFocusGroup`/`kickFocusGroup`). Shortcut/sequence actions, modal modes (`allowModal`/`useModalMissListener`), named conditions, custom processors (`addProcessor`/`removeProcessor`/`kickProcessor`/`activeProcessor` per-instance via `useKeyboard()`). `KeyboardEngine` is exported for non-React frameworks (Vue, Svelte, etc.).
 
-**Component Library** (`src/components/`) — 14 components, each in own folder. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit.
+**Component Library** (`src/components/`) — 17 components (Badge, ConfirmDialog, Divider, Fold, Field, Form, KeyHint, MultiSelectInput, NumberInput, ProgressBar, SearchBar, SearchInput, SelectInput, SelectRow, Spinner, Tabs, TextInput), each in own folder. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit.
 
 **Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), Dev Tool (`docs/dev-tool.md`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType`).
 
 ### ink-blots vs examples
 
-- `ink-blots/` — multi-system stress-test TUI apps. "Does SelectInput work inside an overlay with a modal open and a global sequence pending?" Each app's README logs bugs found.
+- `ink-blots/` — multi-system stress-test TUI apps. "Does SelectInput work inside a layer with a modal layer open and a global sequence pending?" Each app's README logs bugs found.
 - `examples/` — single-API demos. "Here's how SelectInput works."
 
 ## Watch out for
 
 - `penetration()` means **pass-through**, NOT "block". Makes keys transparent to lower layers. (Formerly `blockedKey`.)
 - `KeyboardProvider` MUST nest inside `ScenarioManagementProvider`. Reversed silently breaks keyboard.
-- `_dispatch` is set in `useEffect` — unavailable during `componentDidCatch`. Error boundaries calling `openOverlay()` will find `_dispatch` is null.
+- `_dispatch` is set in `useEffect` — unavailable during `componentDidCatch`. Error boundaries calling layer/modal functions will find `_dispatch` is null.
 - `clearShortcutOperations` is a no-op at module level — keyboard state is per-instance via `KeyboardEngine`.
-- Overlay auto-closes on `skip`/`back`/`gotoScreen` (handled in reducer).
+- Non-persistent layers and modal layers (`crossPage: false`) are removed on `skip`/`back`/`gotoScreen` (handled in reducer).
 - `useRef<<T>` in TSX is parsed as JSX — must be `useRef<T>` (single `<`).
 - Escape key (`\x1b`) is unreliable with `ink-testing-library`'s `stdin.write`.
 
@@ -132,5 +137,5 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## CI/CD
 
-- GitHub CI: `npm ci` → `npm run build` → `npm test` on Node 22 & 24 for pushes/PRs to `main` and tags.
+- GitHub CI: `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main` and tags.
 - On GitHub release publish: idempotency check → `npm publish --access public`.
