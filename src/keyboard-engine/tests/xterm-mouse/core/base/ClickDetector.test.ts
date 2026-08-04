@@ -288,4 +288,233 @@ describe('ClickDetector', () => {
       expect(emitClickMock).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('degraded mode (press-only terminals, e.g. VS Code built-in)', () => {
+    // After several buttons are pressed simultaneously, some terminals stop
+    // sending `release` events entirely. The detector must fall back to
+    // treating presses as clicks so onClick keeps working.
+    test('consecutive presses with no release synthesize a click from the third press', async () => {
+      // Simulates: double-press (2 presses) then a click reported as press-only.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 84, y: 7, button: 'right', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 84, y: 7, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      await new Promise<void>((resolve) =>
+        setImmediate(() => {
+          // Third press — crosses the storm threshold (3), degrades, synthesizes a click.
+          clickDetector.processEvent(
+            createMouseEvent({ x: 90, y: 9, button: 'left', action: 'press' }),
+            emitClickMock as (event: MouseEvent) => void,
+          );
+          setImmediate(() => resolve());
+        }),
+      );
+
+      expect(emitClickMock).toHaveBeenCalledTimes(1);
+      expect(emitClickMock).toHaveBeenCalledWith(
+        expect.objectContaining({ x: 90, y: 9, button: 'left', action: 'click' }),
+      );
+    });
+
+    test('deduplicates multiple presses at the same position in degraded mode', async () => {
+      // Enter degraded mode.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'right', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      await new Promise<void>((resolve) =>
+        setImmediate(() => {
+          clickDetector.processEvent(
+            createMouseEvent({ x: 10, y: 10, button: 'left', action: 'press' }),
+            emitClickMock as (event: MouseEvent) => void,
+          );
+          setImmediate(() => resolve());
+        }),
+      );
+
+      // One terminal click is reported as two button presses at the same spot.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 10, y: 10, button: 'right', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      // Moving to a new position is a new click.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 15, y: 10, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+
+      await new Promise<void>((resolve) => setImmediate(() => resolve()));
+
+      // 1 (threshold crossing) + 1 (new position) — the same-spot press was deduped.
+      expect(emitClickMock).toHaveBeenCalledTimes(2);
+      expect(emitClickMock.mock.calls[1][0]).toMatchObject({ x: 15, y: 10, action: 'click' });
+    });
+
+    test('a release event restores normal press+release behavior', async () => {
+      // Enter degraded mode via a press storm…
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      await new Promise<void>((resolve) => setImmediate(() => resolve()));
+      expect(emitClickMock).toHaveBeenCalledTimes(1);
+
+      // …then a release arrives (terminal recovered): the storm resets and a
+      // normal click is synthesized on the next press+release.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'release' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 5, y: 5, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 5, y: 5, button: 'left', action: 'release' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      await new Promise<void>((resolve) => setImmediate(() => resolve()));
+
+      expect(emitClickMock).toHaveBeenCalledTimes(2); // degraded click + recovered click
+    });
+
+    test('presses spread beyond the storm window do not trigger degraded mode', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        // Each press is > 500ms apart (default window) — not a storm.
+        for (let i = 0; i < 6; i++) {
+          clickDetector.processEvent(
+            createMouseEvent({ x: 1 + i, y: 1, button: 'left', action: 'press' }),
+            emitClickMock as (event: MouseEvent) => void,
+          );
+          vi.advanceTimersByTime(600);
+        }
+        await new Promise<void>((resolve) => setImmediate(() => resolve()));
+
+        // No degraded clicks synthesized.
+        expect(emitClickMock).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('presses within the storm window trigger degraded mode', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        // Three presses, each 100ms apart — well inside the 500ms window.
+        clickDetector.processEvent(
+          createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        vi.advanceTimersByTime(100);
+        clickDetector.processEvent(
+          createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        vi.advanceTimersByTime(100);
+        clickDetector.processEvent(
+          createMouseEvent({ x: 2, y: 2, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        await new Promise<void>((resolve) => setImmediate(() => resolve()));
+
+        expect(emitClickMock).toHaveBeenCalledTimes(1);
+        expect(emitClickMock).toHaveBeenCalledWith(
+          expect.objectContaining({ x: 2, y: 2, action: 'click' }),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('a fresh click at the same spot after the dedup window is a new click', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      try {
+        // Enter degraded mode: third press synthesizes a click at (10,10).
+        clickDetector.processEvent(
+          createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        clickDetector.processEvent(
+          createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        clickDetector.processEvent(
+          createMouseEvent({ x: 10, y: 10, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        await new Promise<void>((resolve) => setImmediate(() => resolve()));
+        expect(emitClickMock).toHaveBeenCalledTimes(1);
+
+        // Same spot within the dedup window — same click, deduped.
+        clickDetector.processEvent(
+          createMouseEvent({ x: 10, y: 10, button: 'right', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        await new Promise<void>((resolve) => setImmediate(() => resolve()));
+        expect(emitClickMock).toHaveBeenCalledTimes(1);
+
+        // After the window (default 300ms), a press at the same spot is a NEW click.
+        vi.advanceTimersByTime(400);
+        clickDetector.processEvent(
+          createMouseEvent({ x: 10, y: 10, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+        await new Promise<void>((resolve) => setImmediate(() => resolve()));
+
+        expect(emitClickMock).toHaveBeenCalledTimes(2);
+        expect(emitClickMock.mock.calls[1][0]).toMatchObject({ x: 10, y: 10, action: 'click' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('respects a custom pressStormThreshold', async () => {
+      clickDetector = new ClickDetector({ pressStormThreshold: 5 });
+
+      // 3 presses: below the custom threshold of 5 — no degraded clicks.
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      clickDetector.processEvent(
+        createMouseEvent({ x: 1, y: 1, button: 'left', action: 'press' }),
+        emitClickMock as (event: MouseEvent) => void,
+      );
+      await new Promise<void>((resolve) => setImmediate(() => resolve()));
+      expect(emitClickMock).not.toHaveBeenCalled();
+    });
+
+    test('pressStormThreshold: Infinity disables degraded mode entirely', () => {
+      clickDetector = new ClickDetector({ pressStormThreshold: Infinity });
+
+      for (let i = 0; i < 10; i++) {
+        clickDetector.processEvent(
+          createMouseEvent({ x: i, y: 1, button: 'left', action: 'press' }),
+          emitClickMock as (event: MouseEvent) => void,
+        );
+      }
+      expect(emitClickMock).not.toHaveBeenCalled();
+    });
+  });
 });

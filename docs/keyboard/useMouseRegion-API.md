@@ -55,6 +55,26 @@ return <Box ref={boxRef}>…</Box>;
 
 Same as keyboard events: **modal layers → regular layers → root regions**, first hit wins. Within a layer, later-registered regions win; `priority` overrides registration order (needed because React mounts children before parents — without it a button would register *before* its panel and lose overlap resolution).
 
+## Terminal compatibility
+
+Click detection depends on the terminal reporting mouse events correctly (press → release → synthesized click). Most terminals (Windows Terminal, PowerShell, iTerm2, …) do.
+
+**VS Code's built-in terminal** (xterm.js) can stop reporting `release` events after multiple buttons are pressed simultaneously — afterwards it only sends `press`, so clicks would never be synthesized. The engine detects this "press storm" (consecutive presses with no release, arriving within a short time window) and **degrades to press-is-click mode**: each press at a new position fires `onClick` (same-position duplicate presses are deduplicated, since one terminal click may be reported as several button presses). Any `release` event restores normal behavior.
+
+The storm detection is deliberately guarded so a well-behaved terminal rarely enters degraded mode:
+
+- The `pressStormWindowMs` time window means only presses arriving **close together** count toward the storm — a slow, deliberate multi-button press never does.
+- A well-behaved terminal can still (rarely) trip it by pressing **three buttons quickly** (left+middle+right). The cost is at most one extra `onClick` and a transient degraded state until the next release. To eliminate even that, set `pressStormThreshold: Infinity` (disables degraded mode entirely; the VS Code fallback then no longer works).
+
+All knobs are configurable on the underlying `Mouse` instance via `KeyboardProvider mouseOptions`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `pressStormThreshold` | `3` | Consecutive presses with no release that trigger degraded mode. `Infinity` disables it. |
+| `pressStormWindowMs` | `500` | How long presses may span while still counting toward the storm. A press after this window restarts the count. `Infinity` removes the time limit. |
+| `degradedDedupDistance` | `1` | In degraded mode, presses within this many cells of the last synthesized click are treated as the same click. |
+| `degradedDedupWindowMs` | `300` | In degraded mode, how long a synthesized click's position stays deduplicated — a press at the same spot after this window is a new click. |
+
 ## Related
 
 - [KeyboardProvider](./KeyboardProvider-API.md) — the `mouse` prop enables the xterm-mouse event feed
