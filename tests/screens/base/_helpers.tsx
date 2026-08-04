@@ -33,6 +33,10 @@ export function Notification({ message }: { message: string }) {
   return <Text>{message}</Text>;
 }
 
+export async function flush(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 10));
+}
+
 export function renderWithCapture(defaultScreen: React.ComponentType<any>) {
   const captureRef: { current: ScreenSystemContextValue | null } = {
     current: null,
