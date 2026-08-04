@@ -19,18 +19,21 @@ If `layerId` is already registered as a layer, the call is a **no-op** — state
 ### applyElement
 
 ```ts
-function applyElement(targetLayerId: string, layerElement: LayerElement): void
+function applyElement<C extends React.ComponentType>(targetLayerId: string, layerElement: LayerElementInput<C>): void
 ```
 
-`LayerElement` shape:
+`LayerElementInput<C>` shape:
 
 ```ts
-type LayerElement = {
+type LayerElementInput<C> = {
   elementId: string;
-  element: React.ComponentType;
+  element: C;
   active?: boolean;
+  props?: React.ComponentProps<C>;  // type-checked against the element's own props
 };
 ```
+
+`props` is passed to the element when it is rendered (`<element {...props} />`) and is **type-checked** against the element component's prop type — the same type-safety pattern `skip()` uses for `params`. Elements that need no props can omit it.
 
 `active` defaults to `true`. Deactivated elements stay mounted but are removed from keyboard dispatch.
 

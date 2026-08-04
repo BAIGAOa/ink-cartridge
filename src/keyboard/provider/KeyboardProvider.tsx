@@ -12,7 +12,11 @@ import type {
   KeyboardProcessorProps,
   ValueSchema,
 } from "@cartridge-engine/keyboard-engine";
-import { clearShortcutOperations } from "@cartridge-engine/keyboard-engine";
+import {
+  clearShortcutOperations,
+  Mouse,
+  type XtermMouseEvent,
+} from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
 import { useScreenSystem } from "../../screen/hook.js";
 import { isInkSpecialKey, normalizeKeyNames } from "../keyNormalizer.js";
@@ -120,6 +124,7 @@ export function KeyboardProvider({
   defaultMode,
   valueSchema,
   autoTab,
+  mouse,
 }: KeyboardProviderProps) {
   const {
     currentPath,
@@ -156,6 +161,44 @@ export function KeyboardProvider({
   useEffect(() => {
     engine.cleanModalLayers();
   }, [allModalLayers, engine]);
+
+  // Mouse event feed: when `mouse` is enabled, listen with xterm-mouse and
+  // push events into the engine's mouse region hit-testing.
+  useEffect(() => {
+    if (!mouse) return;
+    if (!Mouse.isSupported()) {
+      console.warn(
+        "[ink-cartridge] Mouse tracking requires a TTY input stream — mouse events disabled.",
+      );
+      return;
+    }
+    const mouseInstance = new Mouse();
+    try {
+      mouseInstance.enable();
+    } catch (err) {
+      console.warn(
+        "[ink-cartridge] Failed to enable mouse tracking:",
+        err instanceof Error ? err.message : err,
+      );
+      return;
+    }
+    const handle = (event: XtermMouseEvent): void => {
+      engine.processMouseEvent(event);
+    };
+    mouseInstance.on("click", handle);
+    mouseInstance.on("move", handle);
+    mouseInstance.on("press", handle);
+    mouseInstance.on("drag", handle);
+    mouseInstance.on("release", handle);
+    return () => {
+      mouseInstance.off("click", handle);
+      mouseInstance.off("move", handle);
+      mouseInstance.off("press", handle);
+      mouseInstance.off("drag", handle);
+      mouseInstance.off("release", handle);
+      mouseInstance.destroy();
+    };
+  }, [mouse, engine]);
 
   const value: KeyboardContextValue = useMemo(
     () => ({
@@ -230,6 +273,9 @@ export function KeyboardProvider({
       kickFocusGroup: engine.kickFocusGroup.bind(engine),
       kickProcessor: engine.kickProcessor.bind(engine),
       activeProcessor: engine.activeProcessor.bind(engine),
+      registerMouseRegion: engine.registerMouseRegion.bind(engine),
+      unregisterMouseRegion: engine.unregisterMouseRegion.bind(engine),
+      getHoveredMouseRegion: engine.getHoveredMouseRegion.bind(engine),
     }),
     [engine],
   );

@@ -14,6 +14,23 @@ Powered by [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — a React
 
 The engine has **zero framework dependencies** — just provide a `normalizeKeyNames` adapter and it works with any host framework (React, Vue, Svelte, raw Node.js, etc.).
 
+## Mouse Support (fork of `xterm-mouse`)
+
+`src/xterm-mouse/` is a **fork of the npm package [`xterm-mouse`](https://www.npmjs.com/package/xterm-mouse)** (MIT), refactored from a monolithic `Mouse` class into a facade composed of focused services (`TTYController`, `MouseEventManager`, `EventStreamFactory`, `MouseConvenienceMethods`, `ClickDetector`, `PositionTracker`). `core/Mouse.original.ts` preserves the original upstream implementation for reference.
+
+The engine integrates mouse events via three methods:
+
+| Method | Description |
+|--------|-------------|
+| `processMouseEvent(event)` | Hit-test a mouse event against registered regions; drives hover transitions and drag capture |
+| `registerMouseRegion(entry)` | Register a region (`layerId` + `elementId` + 1-based terminal rect + callbacks) |
+| `unregisterMouseRegion(layerId, elementId)` | Remove a registered region |
+| `getHoveredMouseRegion()` | Current hover target (`{ layerId, elementId }` or `null`) |
+
+Hit priority follows keyboard semantics: **modal layers → regular layers → root regions**, later registration wins within a layer; `priority` in a region entry overrides registration order (used for child controls like buttons).
+
+In the React adapter, `<KeyboardProvider mouse>` wires xterm-mouse to the engine automatically and `useMouseRegion` measures an Ink `<Box>` and registers it.
+
 ## Installation
 
 ```bash

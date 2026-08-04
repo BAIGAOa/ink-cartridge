@@ -38,4 +38,18 @@ export { createGlobalKeyProcessor } from "./processors/globalKey.js";
 export { createLayerProcessor } from "./processors/layer.js";
 export { createScreenStackProcessor } from "./processors/screenStack.js";
 
+export { Mouse, MouseError } from "./xterm-mouse/index.js";
+export type {
+  MouseEvent as XtermMouseEvent,
+  MouseEventAction,
+  MouseOptions,
+  ReadableStreamWithEncoding,
+} from "./xterm-mouse/index.js";
+export type {
+  MouseRegionEntry,
+  MouseRegionCallbacks,
+  MouseRegionRect,
+} from "./types/mouse-region.js";
+export { ROOT_MOUSE_LAYER_ID } from "./engine/MouseRegionService.js";
+
 export type * from "./types.js";

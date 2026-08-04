@@ -3,6 +3,7 @@ import LayerManager from "./engine/LayerManager.js";
 import PipelineManager from "./engine/PipelineManager.js";
 import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
+import MouseRegionService from "./engine/MouseRegionService.js";
 import CompositionEngine, {
   CompositioKey,
   ValueSchema,
@@ -13,6 +14,8 @@ import CompositionEngine, {
 } from "./CompositionEngine.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
 import { SyncState } from "./types/state-sync.js";
+import { MouseRegionEntry } from "./types/mouse-region.js";
+import type { MouseEvent as XtermMouseEvent } from "./xterm-mouse/types/index.js";
 import {
   GlobalKeyEntry,
   GlobalSequenceEntry,
@@ -189,6 +192,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   private pipeline: PipelineManager<TComponent>;
   private bindings: BindingService<TComponent>;
   private registry: OperationRegistry<TComponent>;
+  private mouseRegions: MouseRegionService;
 
   /**
    * @param props - Engine configuration.
@@ -201,6 +205,7 @@ export default class KeyboardEngine<TComponent = unknown> {
     this.pipeline = new PipelineManager(this.state, props.processors);
     this.bindings = new BindingService(this.state, this.layers);
     this.registry = new OperationRegistry(this.state, this.layers);
+    this.mouseRegions = new MouseRegionService();
     this.state.compositionEngine = new CompositionEngine(
       this.state,
       props.defaultTimeout,
@@ -1016,6 +1021,50 @@ export default class KeyboardEngine<TComponent = unknown> {
    */
   kickProcessor(id: BuiltinProcessorId) {
     return this.pipeline.kickProcessor(id);
+  }
+
+  /**
+   * Register a mouse region for hit-testing.
+   *
+   * The region's `layerId`/`elementId` must match ids in the synced state so
+   * hit priority follows the same modal > layer > root order as keyboard
+   * events. `rect` must be in 1-based terminal coordinates.
+   *
+   * @returns An unregister function.
+   */
+  registerMouseRegion(entry: MouseRegionEntry): () => void {
+    return this.mouseRegions.register(entry);
+  }
+
+  /**
+   * Remove a mouse region by layerId + elementId (idempotent).
+   * Needed for unmount cleanup when a region may have been re-registered
+   * multiple times via {@link registerMouseRegion}.
+   */
+  unregisterMouseRegion(layerId: string, elementId: string): void {
+    this.mouseRegions.unregister(layerId, elementId);
+  }
+
+  /**
+   * Process a mouse event through the mouse region hit-testing.
+   *
+   * `move` events drive hover transitions (`onEnter`/`onLeave`); `click`
+   * events fire `onClick`. Other actions are not dispatched yet.
+   *
+   * @param event - A mouse event from the host framework's mouse adapter.
+   * @returns `true` if the event hit a registered region, `false` otherwise.
+   */
+  processMouseEvent(event: XtermMouseEvent): boolean {
+    return this.mouseRegions.process(
+      event,
+      this.state.synchronizedData.layers,
+      this.state.synchronizedData.modalLayers,
+    );
+  }
+
+  /** @returns The currently hovered mouse region, or null. */
+  getHoveredMouseRegion(): { layerId: string; elementId: string } | null {
+    return this.mouseRegions.getHovered();
   }
 
   /**

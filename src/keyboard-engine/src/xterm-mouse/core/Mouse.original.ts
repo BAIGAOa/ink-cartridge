@@ -1,3 +1,12 @@
+/**
+ * Original upstream implementation of the `xterm-mouse` npm package (MIT).
+ *
+ * Kept verbatim for reference. The active implementation lives in
+ * `core/Mouse.ts` (facade) + the service classes in this directory —
+ * see `src/xterm-mouse/` for the fork's structure.
+ *
+ * Upstream: https://www.npmjs.com/package/xterm-mouse
+ */
 import { EventEmitter } from 'node:events';
 import { parseMouseEvents } from '../parser/ansiParser.js';
 import { ANSI_CODES } from '../parser/constants.js';

@@ -48,7 +48,7 @@ export function CurrentScreen(): React.ReactNode {
                 value={contextValue}
                 key={layerElement.elementId}
               >
-                <layerElement.element />
+                <layerElement.element {...layerElement.props} />
               </LayerElementContext.Provider>
             );
           })}
@@ -81,7 +81,7 @@ export function CurrentScreen(): React.ReactNode {
                 value={contextValue}
                 key={layerElement.elementId}
               >
-                <layerElement.element />
+                <layerElement.element {...layerElement.props} />
               </ModalLayerElementContext.Provider>
             );
           })}
