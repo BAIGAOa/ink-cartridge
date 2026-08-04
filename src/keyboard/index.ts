@@ -1,4 +1,5 @@
 export { KeyboardProvider } from "./provider/KeyboardProvider.js";
+export { KeyboardContext } from "./context.js";
 export {
   useKeyboard,
   useFocusState,

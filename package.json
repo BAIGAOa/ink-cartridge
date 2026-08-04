@@ -24,15 +24,15 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w @cartridge-engine/badge -w @cartridge-engine/confirm-dialog -w @cartridge-engine/divider -w @cartridge-engine/fold -w @cartridge-engine/form -w @cartridge-engine/key-hint -w @cartridge-engine/number-input -w @cartridge-engine/progress-bar -w @cartridge-engine/text-input -w @cartridge-engine/search-bar -w @cartridge-engine/search-input -w @cartridge-engine/select -w @cartridge-engine/spinner -w @cartridge-engine/tabs",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "npx vitest run --coverage",
-        "lint": "eslint src/",
-        "lint:fix": "eslint --fix src/",
-        "lint:quick": "eslint src/ --quiet --cache",
+        "lint": "eslint src/ packages/",
+        "lint:fix": "eslint --fix src/ packages/",
+        "lint:quick": "eslint src/ packages/ --quiet --cache",
         "demo:dev": "tsx examples/dev/dev.tsx"
     },
     "keywords": [

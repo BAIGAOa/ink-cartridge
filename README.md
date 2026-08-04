@@ -227,10 +227,24 @@ For the standalone keyboard engine (framework-agnostic):
 npm install @cartridge-engine/keyboard-engine
 ```
 
+Components are published as individual packages — install only what you need:
+
+```bash
+npm install @cartridge-engine/select @cartridge-engine/text-input @cartridge-engine/form
+```
+
+| Package | Exports |
+|---------|---------|
+| `@cartridge-engine/select` | SelectInput, SelectRow, MultiSelectInput |
+| `@cartridge-engine/text-input` | TextInput, UncontrolledTextInput |
+| `@cartridge-engine/form` | Form, Field, useFormContext |
+| `@cartridge-engine/confirm-dialog` | ConfirmDialog |
+| `@cartridge-engine/badge`, `divider`, `fold`, `key-hint`, `number-input`, `progress-bar`, `search-bar`, `search-input`, `spinner`, `tabs` | matching component |
+
 
 ## Documentation
 
-- [ink-cartridge API docs](docs/) — keyboard, screen, event, components, theme, language, dev-tool, cli
+- [ink-cartridge API docs](docs/) — keyboard, screen, event, theme, language, dev-tool, cli
 - [keyboard-engine API docs](src/keyboard-engine/docs/API/) — standalone engine APIs (framework-agnostic)
 
 ## For AI

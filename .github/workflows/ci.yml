@@ -25,5 +25,19 @@ jobs:
       - run: npx tsc --project tests/tsconfig.json --noEmit
       - run: npx tsc --project src/keyboard-engine/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/editor/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/badge/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/confirm-dialog/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/divider/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/fold/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/form/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/key-hint/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/number-input/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/progress-bar/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/search-bar/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/search-input/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/select/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/spinner/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/tabs/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/text-input/tests/tsconfig.json --noEmit
 
       - run: npx vitest run --coverage

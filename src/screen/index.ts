@@ -1,4 +1,4 @@
-export { registerComponent } from "./registry.js";
+export { registerComponent, clearRegistry } from "./registry.js";
 export {
   ScenarioManagementProvider,
   skip,

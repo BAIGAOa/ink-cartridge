@@ -16,8 +16,8 @@ import {
   Divider,
   KeyHint,
 } from '../../src/index.js';
-import type { Validator } from '../../src/components/form/types.js';
-import type { Item } from '../../src/components/select/types.js';
+import type { Validator } from '@cartridge-engine/form';
+import type { Item } from '@cartridge-engine/select';
 
 // ── Validators ────────────────────────────────────────────
 

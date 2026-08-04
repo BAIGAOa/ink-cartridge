@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { render, Box, Text } from 'ink';
-import { ProgressBar } from '../../src/components/progress-bar/ProgressBar.js';
-import { Divider } from '../../src/components/divider/Divider.js';
+import { ProgressBar } from '@cartridge-engine/progress-bar';
+import { Divider } from '@cartridge-engine/divider';
 
 function Demo() {
   const [pct, setPct] = useState(0);

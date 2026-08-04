@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Divider } from '../../src/components/divider/Divider.js';
+import { Divider } from '@cartridge-engine/divider';
 
 function Demo() {
   return (

@@ -12,14 +12,14 @@ Project conventions for AI coding agents working on `ink-cartridge` — a React 
 ## Commands
 
 ```bash
-npm run build          # builds keyboard-engine workspace, then tsc
-npm run watch          # tsc --watch
-npm test               # vitest run
+npm run build          # keyboard-engine → core (tsc) → 14 component packages (explicit order)
+npm run watch          # tsc --watch (core only); per-package watch: npm run watch -w @cartridge-engine/<pkg>
+npm test               # vitest run (all workspace projects)
 npm run test:watch     # vitest --watch
 npm run test:coverage  # vitest run --coverage
-npm run lint           # eslint src/
-npm run lint:fix       # eslint --fix src/
-npm run lint:quick     # eslint src/ --quiet --cache
+npm run lint           # eslint src/ packages/
+npm run lint:fix       # eslint --fix src/ packages/
+npm run lint:quick     # eslint src/ packages/ --quiet --cache
 npm run demo:dev       # tsx examples/dev/dev.tsx
 npm run clean          # rm -rf dist
 ```
@@ -37,7 +37,7 @@ A task is not complete until:
 
 **Keyboard System** (`src/keyboard/`) — Framework-agnostic keyboard engine (`KeyboardEngine` class) with React adapter (`KeyboardProvider`). Layered key bindings via 9-stage pipeline (highest to lowest priority): Modal → Composition (affectLayer:true) → GlobalSequence (affectLayer:true) → GlobalKeys (affectLayer:true) → Layer broadcast → Composition (affectLayer:false) → GlobalSequence (affectLayer:false) → GlobalKeys (affectLayer:false) → Screen stack (top→bottom). Each stage is an independent processor; the first to return `true` consumes the event (except Layer broadcast, which always returns `false`). Mechanisms: `boundKeyboard()` (per-screen), `penetration()` (pass-through), `stop()` (propagation barrier), `globalKeys()`, `globalSequence()`, `boundSequence()`. Composition engine for flag/needs key chains, mapping key (vim-style remap). Focus: `useFocusState(focusId)`, Tab/Shift+Tab cycling, `focusSet`/`focusNext`/`focusPrev`/`focusCurrent`, named focus groups (`activateFocusGroup`/`kickFocusGroup`). Shortcut/sequence actions, modal modes (`allowModal`/`useModalMissListener`), named conditions, custom processors (`addProcessor`/`removeProcessor`/`kickProcessor`/`activeProcessor` per-instance via `useKeyboard()`). `KeyboardEngine` is exported for non-React frameworks (Vue, Svelte, etc.).
 
-**Component Library** (`src/components/`) — 17 components (Badge, ConfirmDialog, Divider, Fold, Field, Form, KeyHint, MultiSelectInput, NumberInput, ProgressBar, SearchBar, SearchInput, SelectInput, SelectRow, Spinner, Tabs, TextInput), each in own folder. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit.
+**Component Library** (`packages/`) — 14 `@cartridge-engine/*` packages (badge, confirm-dialog, divider, fold, form, key-hint, number-input, progress-bar, search-bar, search-input, select, spinner, tabs, text-input), each with own `src/`, `tests/`, `package.json`, `vitest.config.ts`, `README.md`. `select` bundles SelectInput + SelectRow + MultiSelectInput + shared tools. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit. Components depend on the core via `peerDependencies` (`ink-cartridge`, `ink`, `react`); `search-bar` additionally depends on `@cartridge-engine/text-input`. When adding a package: add it to the root `build` script (before dependents) and to `vitest.config.ts` `projects` and CI's tsc checks.
 
 **Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), Dev Tool (`docs/dev-tool.md`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType`).
 
@@ -93,20 +93,23 @@ Explain **why**, not what. No decorative separators. See `docs-agents/comment-co
 
 ## Testing
 
-New tests go in `tests/` (NOT `src/__tests__/` — migration in progress). Environment is `node` (configured in `vitest.config.ts`).
+Core system tests go in `tests/` (NOT `src/__tests__/`). Component tests live inside each package (`packages/<pkg>/tests/`). Environment is `node` (configured in `vitest.config.ts`).
 
 ```
-tests/<subsystem>/
-├── base/              # basic logic tests
-│   ├── _helpers.tsx   # shared utilities
+tests/<subsystem>/            # core: screens, keyboard, theme, language, event
+├── base/                     # basic logic tests
+│   ├── _helpers.tsx          # shared utilities
 │   └── *.test.ts(x)
-└── *.test.tsx         # complex / special-case tests
+└── *.test.tsx                # complex / special-case tests
+
+packages/<pkg>/tests/base/    # per-package tests (own _helpers.tsx copy)
 ```
 
 - Black-box, concise, precise, non-redundant.
-- Must compile (`tsc` passes under `tests/tsconfig.json`).
+- Must compile (`tsc` passes under `tests/tsconfig.json` and each `packages/<pkg>/tests/tsconfig.json`).
 - `clearRegistry()` in `beforeEach`; `clearDispatchers()` for module-level isolation.
 - `ink-testing-library`: synchronous `render()`, effects need `flush()` (50ms), `stdin.write()` wrapped in `act()`.
+- Package tests import same-package sources relatively (`../../src/...`), cross-package/core by package name (`@cartridge-engine/...`, `ink-cartridge`).
 
 See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agents/test-patterns.md` for examples.
 
@@ -130,12 +133,12 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 | File | Trigger |
 |------|---------|
 | `agents/rules/testing.md` | `tests/**/*` |
-| `agents/rules/components.md` | `src/components/**` |
+| `agents/rules/components.md` | `packages/*/src/**` |
 | `agents/rules/public-api.md` | `src/index.ts` |
 | `agents/rules/examples.md` | `examples/**/*` |
 | `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `docs/**/*`, `*.md` |
 
 ## CI/CD
 
-- GitHub CI: `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main` and tags.
+- GitHub CI: `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/, all 14 package tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main` and tags.
 - On GitHub release publish: idempotency check → `npm publish --access public`.

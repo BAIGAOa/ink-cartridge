@@ -65,7 +65,7 @@ If tsc reports any type errors, **must** fix them and re-run until clean.
 ```tsx
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { ComponentName } from '../../src/components/<name>/ComponentName.js';
+import { ComponentName } from '@cartridge-engine/<name>';
 
 function Demo() {
   return (
@@ -92,9 +92,9 @@ import {
   CurrentScreen,
   KeyboardProvider,
 } from '../../src/index.js';
-import { ComponentName } from '../../src/components/<name>/ComponentName.js';
-import { Divider } from '../../src/components/divider/Divider.js';
-import { KeyHint } from '../../src/components/key-hint/KeyHint.js';
+import { ComponentName } from '@cartridge-engine/<name>';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 
 function Demo() {
   const [value, setValue] = useState(/* default */);

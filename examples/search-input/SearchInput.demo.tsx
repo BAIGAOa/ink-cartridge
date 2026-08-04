@@ -6,9 +6,9 @@ import {
   CurrentScreen,
   KeyboardProvider,
 } from '../../src/index.js';
-import { SearchInput } from '../../src/components/search-input/SearchInput.js';
-import { Divider } from '../../src/components/divider/Divider.js';
-import { KeyHint } from '../../src/components/key-hint/KeyHint.js';
+import { SearchInput } from '@cartridge-engine/search-input';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 
 function Demo() {
   const [query, setQuery] = useState('');

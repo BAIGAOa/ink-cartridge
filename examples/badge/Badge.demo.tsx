@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Badge } from '../../src/components/badge/Badge.js';
+import { Badge } from '@cartridge-engine/badge';
 
 function Demo() {
   return (

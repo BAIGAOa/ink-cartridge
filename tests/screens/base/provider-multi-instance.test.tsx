@@ -12,7 +12,7 @@ import {
   clearDispatchers,
 } from '../../../src/screen/provider.js';
 import { CurrentScreen } from '../../../src/screen/current-screen.js';
-import { flush } from '../../components/base/_helpers.js';
+import { flush } from './_helpers.js';
 
 function ScreenA() {
   return <Text>A</Text>;

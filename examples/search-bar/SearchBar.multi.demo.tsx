@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import SearchBar from "../../src/components/search-bar/SearchBar.js";
-import type { SearchBarItem } from "../../src/components/search-bar/search-bar-types.js";
+import SearchBar from '@cartridge-engine/search-bar';
+import type { SearchBarItem } from '@cartridge-engine/search-bar';
 import { render, Box, Text } from "ink";
 import {
   registerComponent,

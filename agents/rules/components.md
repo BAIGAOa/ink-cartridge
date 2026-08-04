@@ -1,7 +1,7 @@
 ---
 name: components
-description: Coding conventions for components under src/components/ — JSX, focusId, lifecycle, and patterns
-paths: ["src/components/**"]
+description: Coding conventions for components under packages/*/src/ — JSX, focusId, lifecycle, and patterns
+paths: ["packages/*/src/**"]
 ---
 
 ## JSX
