@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, Box, Text } from 'ink';
-import { Spinner } from '../../src/components/spinner/Spinner.js';
-import { Divider } from '../../src/components/divider/Divider.js';
+import { Spinner } from '@cartridge-engine/spinner';
+import { Divider } from '@cartridge-engine/divider';
 
 function Demo() {
   return (

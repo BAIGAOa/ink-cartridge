@@ -12,7 +12,7 @@ const hooksRules = reactHooks.configs.recommended.rules;
 export default tseslint.config(
   // ── Global ignores ───────────────────────────────────────────
   {
-    ignores: ['dist/**', 'node_modules/**', 'src/keyboard-engine/dist/**'],
+    ignores: ['dist/**', 'node_modules/**', 'src/keyboard-engine/dist/**', 'packages/*/dist/**'],
   },
 
   // ── Base recommended rulesets ─────────────────────────────────
@@ -21,7 +21,7 @@ export default tseslint.config(
 
   // ── Main source files ─────────────────────────────────────────
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/*/src/**/*.{ts,tsx}'],
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooks,
@@ -91,6 +91,7 @@ export default tseslint.config(
 
       'src/dev/**/*.{ts,tsx}',
       'src/keyboard-engine/tests/**/*.ts',
+      'packages/*/tests/**/*.{ts,tsx}',
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

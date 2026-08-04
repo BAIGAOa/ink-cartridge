@@ -6,9 +6,9 @@ import {
   CurrentScreen,
   KeyboardProvider,
 } from '../../src/index.js';
-import { NumberInput } from '../../src/components/number-input/NumberInput.js';
-import { Divider } from '../../src/components/divider/Divider.js';
-import { KeyHint } from '../../src/components/key-hint/KeyHint.js';
+import { NumberInput } from '@cartridge-engine/number-input';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 
 function Demo() {
   const [age, setAge] = useState(25);
