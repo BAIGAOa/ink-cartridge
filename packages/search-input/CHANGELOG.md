@@ -1,5 +1,11 @@
 # @cartridge-engine/search-input
 
+## 1.0.2
+
+### Patch Changes
+
+- 6d89224: fix: Fix dependency not declared issue
+
 ## 1.0.1
 
 ### Patch Changes
