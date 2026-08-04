@@ -1,5 +1,13 @@
 # ink-cartridge
 
+## 5.1.1
+
+### Patch Changes
+
+- cd29d4d: chore: Make the component monorepo
+- Updated dependencies [cd29d4d]
+  - @cartridge-engine/keyboard-engine@2.1.1
+
 ## 5.1.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@cartridge-engine/progress-bar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Text input with focus management",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,12 +11,21 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
   },
-  "keywords": ["ink", "react", "tui", "cli", "terminal"],
+  "keywords": [
+    "ink",
+    "react",
+    "tui",
+    "cli",
+    "terminal"
+  ],
   "author": "BAIGAO",
   "license": "MIT",
   "engines": {

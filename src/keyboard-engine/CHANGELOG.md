@@ -1,5 +1,11 @@
 # @cartridge-engine/keyboard-engine
 
+## 2.1.1
+
+### Patch Changes
+
+- cd29d4d: chore: Make the component monorepo
+
 ## 2.1.0
 
 ### Minor Changes
