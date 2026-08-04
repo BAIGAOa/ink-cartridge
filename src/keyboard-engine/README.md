@@ -16,7 +16,7 @@ The engine has **zero framework dependencies** — just provide a `normalizeKeyN
 
 ## Mouse Support (fork of `xterm-mouse`)
 
-`src/xterm-mouse/` is a **fork of the npm package [`xterm-mouse`](https://www.npmjs.com/package/xterm-mouse)** (MIT), refactored from a monolithic `Mouse` class into a facade composed of focused services (`TTYController`, `MouseEventManager`, `EventStreamFactory`, `MouseConvenienceMethods`, `ClickDetector`, `PositionTracker`). `core/Mouse.original.ts` preserves the original upstream implementation for reference.
+`src/xterm-mouse/` is a **fork of the npm package [`xterm-mouse`](https://www.npmjs.com/package/xterm-mouse)** (MIT). The upstream library is already modular — a `Mouse` facade over focused services (`TTYController`, `MouseEventManager`, `EventStreamFactory`, `MouseConvenienceMethods`, `ClickDetector`, `PositionTracker`). We fixed a number of bugs in the fork (see CHANGELOG / PRs) and integrated it into the keyboard engine. `core/Mouse.original.ts` preserves the original upstream implementation for reference.
 
 The engine integrates mouse events via three methods:
 
