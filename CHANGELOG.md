@@ -1,5 +1,16 @@
 # ink-cartridge
 
+## 5.1.0
+
+### Minor Changes
+
+- faf1002: Features: Supports basic mouse bindings.
+
+### Patch Changes
+
+- Updated dependencies [faf1002]
+  - @cartridge-engine/keyboard-engine@2.1.0
+
 ## 5.0.1
 
 ### Patch Changes
