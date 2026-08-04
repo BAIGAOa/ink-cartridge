@@ -15,6 +15,7 @@ import type {
 import {
   clearShortcutOperations,
   Mouse,
+  type MouseOptions,
   type XtermMouseEvent,
 } from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
@@ -115,6 +116,13 @@ export interface KeyboardProviderProps {
    * the system will automatically listen for mouse events.
    */
   mouse?: boolean;
+
+  /**
+   * Options passed to the internal xterm-mouse `Mouse` instance when `mouse`
+   * is enabled. See `MouseOptions` (e.g. `clickDistanceThreshold`,
+   * `pressStormThreshold`, `degradedDedupDistance`).
+   */
+  mouseOptions?: MouseOptions;
 }
 
 export function KeyboardProvider({
@@ -125,6 +133,7 @@ export function KeyboardProvider({
   valueSchema,
   autoTab,
   mouse,
+  mouseOptions,
 }: KeyboardProviderProps) {
   const {
     currentPath,
@@ -172,7 +181,7 @@ export function KeyboardProvider({
       );
       return;
     }
-    const mouseInstance = new Mouse();
+    const mouseInstance = new Mouse(mouseOptions);
     try {
       mouseInstance.enable();
     } catch (err) {
@@ -198,7 +207,7 @@ export function KeyboardProvider({
       mouseInstance.off("release", handle);
       mouseInstance.destroy();
     };
-  }, [mouse, engine]);
+  }, [mouse, engine, mouseOptions]);
 
   const value: KeyboardContextValue = useMemo(
     () => ({

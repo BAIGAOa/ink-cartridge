@@ -409,4 +409,67 @@ describe('MouseRegionService', () => {
       expect(rootHit).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('multi-button (simultaneous left + right)', () => {
+    // Reproduces the reported bug: after pressing LEFT+RIGHT together,
+    // subsequent clicks allegedly stop firing while hover still works.
+    const setup = () => {
+      const onClick = vi.fn();
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        elementId: 'a',
+        rect: RECT,
+        callbacks: { onClick },
+      });
+      return onClick;
+    };
+
+    test('interleaved presses + releases followed by a click still fire onClick', () => {
+      const onClick = setup();
+      // Both buttons pressed inside the region, released, then a click.
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []); // left
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []); // right
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []); // left
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []); // right
+      svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), [], []); // synthesized
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    test('a press outside the region between the presses does not break the click', () => {
+      const onClick = setup();
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []); // left inside
+      svc.process(makeEvent({ action: 'press', x: 50, y: 50 }), [], []); // right outside
+      svc.process(makeEvent({ action: 'release', x: 50, y: 50 }), [], []); // right released
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []); // left released
+      svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), [], []); // synthesized
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    test('drag events during the double-press do not suppress the follow-up click', () => {
+      const onClick = setup();
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []); // left
+      svc.process(makeEvent({ action: 'drag', x: 2, y: 2 }), [], []); // terminal reports motion
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []); // right
+      svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), [], []); // synthesized
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    test('a full normal click after the double-press sequence still works', () => {
+      const onClick = setup();
+      // Double-press sequence (both buttons, released).
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []);
+      // A normal click afterwards.
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'release', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), [], []);
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+  });
 });

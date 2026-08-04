@@ -31,6 +31,8 @@ Hit priority follows keyboard semantics: **modal layers → regular layers → r
 
 In the React adapter, `<KeyboardProvider mouse>` wires xterm-mouse to the engine automatically and `useMouseRegion` measures an Ink `<Box>` and registers it.
 
+**Terminal note:** click detection needs correct `release` reporting. VS Code's built-in terminal can stop sending releases after simultaneous multi-button presses; the `ClickDetector` then degrades to press-is-click mode (configurable via `MouseOptions.pressStormThreshold` / `degradedDedupDistance`). Windows Terminal / PowerShell report events correctly.
+
 ## Installation
 
 ```bash
