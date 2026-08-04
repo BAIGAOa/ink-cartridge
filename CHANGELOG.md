@@ -1,5 +1,13 @@
 # ink-cartridge
 
+## 5.1.2
+
+### Patch Changes
+
+- ac36212: fix: Fixed an issue in the VS Code integrated terminal where rapidly pressing the left and right mouse buttons consecutively would prevent subsequent clicks from working correctly (implemented a fallback strategy).
+- Updated dependencies [ac36212]
+  - @cartridge-engine/keyboard-engine@2.1.2
+
 ## 5.1.1
 
 ### Patch Changes
