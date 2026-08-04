@@ -56,4 +56,4 @@ export type {
   DeactivateElementInModalLayerFn,
   DeactivateElementInModalLayerAction,
 } from "./types/layer.js";
-export type { LayerElement } from "./types/element.js";
+export type { LayerElement, LayerElementInput } from "./types/element.js";

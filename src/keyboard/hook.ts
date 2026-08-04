@@ -1,4 +1,5 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
+import { measureElement, type DOMElement } from "ink";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { LayerElementContext } from "../screen/LayerElementContext.js";
 import { ModalLayerElementContext } from "../screen/ModalLayerElementContext.js";
@@ -12,7 +13,10 @@ import type {
   SequenceOptions,
   StopOptions,
   FocusSetOptions,
+  MouseRegionCallbacks,
+  MouseRegionRect,
 } from "@cartridge-engine/keyboard-engine";
+import { ROOT_MOUSE_LAYER_ID } from "@cartridge-engine/keyboard-engine";
 
 /**
  * Access the keyboard API from within a React component.
@@ -197,4 +201,96 @@ export function useModalMissListener(
   }, [ctx, modalId, cb, options]);
 
   return () => {};
+}
+
+/**
+ * Convert an Ink DOM element's measured layout metrics into the 1-based
+ * terminal coordinate space used by mouse events.
+ *
+ * Assumes the live region starts at the terminal top-left (no viewport
+ * offset) — true for full-screen apps. If content can be scrolled or offset,
+ * the caller must account for the viewport position.
+ */
+function measureRegion(node: DOMElement): MouseRegionRect {
+  const m = measureElement(node);
+  return { x: m.x + 1, y: m.y + 1, width: m.width, height: m.height };
+}
+
+/**
+ * Register an Ink element as a mouse region.
+ *
+ * Attach the returned ref to a `<Box>`. The engine hit-tests xterm-mouse
+ * events against the element's measured rectangle and fires the callbacks:
+ * `onClick` for clicks, `onEnter`/`onLeave` for hover transitions.
+ *
+ * The region is attributed to the surrounding layer/modal element
+ * automatically (same scoping as {@link useKeyboard}); outside any layer it
+ * registers on the shared root layer, hit-tested last.
+ *
+ * The rect is re-measured and re-registered after every render, so layout
+ * changes (resize, content growth) stay in sync with the engine.
+ *
+ * Must be used inside a {@link KeyboardProvider} with `mouse` enabled.
+ *
+ * @param callbacks - Region callbacks (kept fresh across renders).
+ * @param options   - Optional explicit layerId/elementId overrides and
+ *                    hit-test `priority` (higher wins on overlap; defaults 0).
+ * @returns A ref to attach to the Ink `<Box>` to track.
+ *
+ * @example
+ * ```tsx
+ * const boxRef = useMouseRegion({
+ *   onClick: (event, rect) => {
+ *     const col = event.x - rect.x - 1; // local cell column (1-cell border)
+ *     console.log(`Clicked cell ${col} at ${event.x},${event.y}`);
+ *   },
+ *   onEnter: () => setIsHovered(true),
+ *   onLeave: () => setIsHovered(false),
+ * });
+ * return <Box ref={boxRef}>…</Box>;
+ * ```
+ */
+export function useMouseRegion(
+  callbacks: MouseRegionCallbacks,
+  options?: { layerId?: string; elementId?: string; priority?: number },
+): RefObject<DOMElement | null> {
+  const ctx = useContext(KeyboardContext);
+  const layerCtx = useContext(LayerElementContext);
+  const modalCtx = useContext(ModalLayerElementContext);
+  const ref = useRef<DOMElement | null>(null);
+  const autoId = useId();
+
+  const layerId =
+    options?.layerId ??
+    layerCtx?.layer.layerId ??
+    modalCtx?.modalLayer.layerId ??
+    ROOT_MOUSE_LAYER_ID;
+  const elementId =
+    options?.elementId ?? layerCtx?.id ?? modalCtx?.id ?? `mouse:${autoId}`;
+
+  // No dependency array: re-register (overwrite) after every render so the
+  // engine always holds the latest rect and the latest callback closures.
+  // Overwriting preserves registration order and does NOT touch hover/drag
+  // state — essential so a dragging window can re-render mid-drag.
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !ctx) return;
+    ctx.registerMouseRegion({
+      layerId,
+      elementId,
+      rect: measureRegion(node),
+      callbacks,
+      priority: options?.priority,
+    });
+  });
+
+  // Separate unmount cleanup: only runs when the component truly unmounts
+  // (or layerId/elementId change), never on plain re-renders.
+  useEffect(() => {
+    return () => {
+      ctx?.unregisterMouseRegion(layerId, elementId);
+    };
+  }, [ctx, layerId, elementId]);
+
+  return ref;
 }

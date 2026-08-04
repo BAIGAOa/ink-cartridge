@@ -1,5 +1,10 @@
 export { KeyboardProvider } from "./provider/KeyboardProvider.js";
-export { useKeyboard, useFocusState, useModalMissListener } from "./hook.js";
+export {
+  useKeyboard,
+  useFocusState,
+  useModalMissListener,
+  useMouseRegion,
+} from "./hook.js";
 
 import { isNormalCharacter as engineIsNormalCharacter } from "@cartridge-engine/keyboard-engine";
 import { isInkSpecialKey } from "./keyNormalizer.js";
@@ -78,6 +83,8 @@ export type {
   Flags,
   MappingKeyEvent,
   MappingKeyEntry,
+  MouseRegionCallbacks,
+  MouseRegionRect,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { KeyboardProviderProps } from "./provider/KeyboardProvider.js";

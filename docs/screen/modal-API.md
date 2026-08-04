@@ -23,19 +23,20 @@ If `layerId` is already registered as a modal layer, the call is a **no-op** —
 ### applyElementToModalLayer
 
 ```ts
-function applyElementToModalLayer(
+function applyElementToModalLayer<C extends React.ComponentType>(
   targetModalLayerId: string,
-  modalLayerElement: LayerElement,
+  modalLayerElement: LayerElementInput<C>,
 ): void
 ```
 
-`LayerElement` uses the same shape as normal layers:
+`LayerElementInput<C>` uses the same shape as normal layers, including type-checked `props` passed to the rendered element:
 
 ```ts
-type LayerElement = {
+type LayerElementInput<C> = {
   elementId: string;
-  element: React.ComponentType;
+  element: C;
   active?: boolean;
+  props?: React.ComponentProps<C>;
 };
 ```
 

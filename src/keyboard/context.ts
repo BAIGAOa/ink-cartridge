@@ -27,6 +27,7 @@ import type {
   CompositionEvent,
   MappingKeyEvent,
   MappingKeyEntry,
+  MouseRegionEntry,
 } from "@cartridge-engine/keyboard-engine";
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 import { defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
@@ -215,6 +216,10 @@ export interface KeyboardContextValue {
 
   kickProcessor: (id: BuiltinProcessorId) => boolean;
   activeProcessor: (id: BuiltinProcessorId) => boolean;
+
+  registerMouseRegion: (entry: MouseRegionEntry) => () => void;
+  unregisterMouseRegion: (layerId: string, elementId: string) => void;
+  getHoveredMouseRegion: () => { layerId: string; elementId: string } | null;
 }
 
 /**

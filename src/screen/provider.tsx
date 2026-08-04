@@ -24,6 +24,7 @@ import {
   OpenModalLayerFn,
 } from "./types/layer.js";
 import { LayerElement } from "./types/element.js";
+import { LayerElementInput } from "./types/element.js";
 import { ScreenState } from "./types/state.js";
 
 const _dispatchers = new Set<React.Dispatch<ScreenAction>>();
@@ -55,6 +56,22 @@ function getDispatch(): React.Dispatch<ScreenAction> {
     );
   }
   return [..._dispatchers][_dispatchers.size - 1];
+}
+
+/**
+ * Narrow a type-safe `LayerElementInput<C>` (props typed as `ComponentProps<C>`)
+ * to the stored `LayerElement` shape (props as a plain record). The call-site
+ * type safety mirrors `skip()`'s `params`; storage stays framework-agnostic.
+ */
+function toStoredLayerElement<C extends React.ComponentType<any>>(
+  input: LayerElementInput<C>,
+): LayerElement {
+  return {
+    elementId: input.elementId,
+    element: input.element,
+    active: input.active,
+    props: input.props as Record<string, unknown> | undefined,
+  };
 }
 
 function sortLayers<T extends Layer | ModalLayer>(layers: T[]): T[] {
@@ -131,12 +148,19 @@ export function openLayer(
 
 /**
  * Apply an element to a registered layer.
+ *
+ * `props` is type-checked against the element component's own prop type —
+ * the same type-safety pattern `skip()` uses for `params`.
  */
-export function applyElement(
+export function applyElement<C extends React.ComponentType<any>>(
   targetLayerId: string,
-  layerElement: LayerElement,
+  layerElement: LayerElementInput<C>,
 ): void {
-  getDispatch()({ type: "applyElement", targetLayerId, layerElement });
+  getDispatch()({
+    type: "applyElement",
+    targetLayerId,
+    layerElement: toStoredLayerElement(layerElement),
+  });
 }
 
 /**
@@ -171,14 +195,14 @@ export function openModalLayer(
   getDispatch()({ type: "openModalLayer", layerId, zIndex, options });
 }
 
-export function applyElementToModalLayer(
+export function applyElementToModalLayer<C extends React.ComponentType<any>>(
   targetModalLayerId: string,
-  modalLayerElement: LayerElement,
+  modalLayerElement: LayerElementInput<C>,
 ): void {
   getDispatch()({
     type: "applyElementToModalLayer",
     targetModalLayerId,
-    modalLayerElement,
+    modalLayerElement: toStoredLayerElement(modalLayerElement),
   });
 }
 
@@ -996,8 +1020,12 @@ export function ScenarioManagementProvider({
   );
 
   const applyElementInContext: ApplyElementFn = useMemo(
-    () => (targetLayerId: string, layerElement: LayerElement) => {
-      dispatch({ type: "applyElement", targetLayerId, layerElement });
+    () => (targetLayerId: string, layerElement: LayerElementInput<any>) => {
+      dispatch({
+        type: "applyElement",
+        targetLayerId,
+        layerElement: toStoredLayerElement(layerElement),
+      });
     },
     [],
   );
@@ -1050,11 +1078,11 @@ export function ScenarioManagementProvider({
   );
 
   const applyElementToModalLayerInContext: ApplyElementToModalLayerFn = useMemo(
-    () => (targetModalLayerId: string, modalLayerElement: LayerElement) => {
+    () => (targetModalLayerId: string, modalLayerElement: LayerElementInput<any>) => {
       dispatch({
         type: "applyElementToModalLayer",
         targetModalLayerId,
-        modalLayerElement,
+        modalLayerElement: toStoredLayerElement(modalLayerElement),
       });
     },
     [],

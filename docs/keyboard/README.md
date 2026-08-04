@@ -66,7 +66,28 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [Condition System](./condition-system-API.md) | Named runtime conditions: `addCondition` / `setCondition` / `removeCondition` |
 | [thereGlobalQueueWaiting](./thereGlobalQueueWaiting-API.md) | Check whether a global sequence is pending (optional `sync` for reactive re-render) |
 | [currentScreenHasSequenceWaiting](./currentScreenHasSequenceWaiting-API.md) | Check whether the current layer has a pending sequence (optional `sync` for reactive re-render) |
+| [useMouseRegion](./useMouseRegion-API.md) | Register an Ink `<Box>` as a mouse region (click / hover / drag) |
 
 ## Advanced
 
 See [advanced.md](./advanced.md)
+
+## Mouse (useMouseRegion)
+
+Terminal mouse support is built on the `xterm-mouse` fork inside `@cartridge-engine/keyboard-engine`. Enable it with the `mouse` prop on [KeyboardProvider](./KeyboardProvider-API.md), then mark any `<Box>` with [`useMouseRegion`](./useMouseRegion-API.md):
+
+```tsx
+<KeyboardProvider mouse>
+  <CurrentScreen />
+</KeyboardProvider>
+
+// in a component:
+const ref = useMouseRegion({
+  onClick: (event, rect) => doSomething(event.x, event.y),
+  onEnter: () => setHovered(true),
+  onLeave: () => setHovered(false),
+});
+<Box ref={ref}>…</Box>
+```
+
+Hit-testing follows the same priority as keyboard events — **modal layers → regular layers → root regions**, first hit wins; child controls can win over their container via the `priority` option. Drag is supported through the `onDragStart` / `onDragMove` / `onDragEnd` capture lifecycle (press locks the target; a plain click fires no drag callbacks).

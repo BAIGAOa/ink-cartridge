@@ -36,6 +36,7 @@ TWO pillars:
 
 - **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
 - **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modal layers, layers, global keys, and the screen stack. Focus system partitions keys within the same layer.
+- **Mouse regions** — Enable `mouse` on `KeyboardProvider` and mark any `<Box>` with `useMouseRegion` to make it clickable, hoverable, and draggable. The engine hit-tests xterm-mouse events against measured element rectangles, following the same modal > layer > root priority as keyboard events.
 
 
 ## Quick Start
@@ -50,6 +51,7 @@ import {
 	registerComponent,
 	ScenarioManagementProvider,
 	useKeyboard,
+	useMouseRegion,
 	useScreenSystem,
 } from "ink-cartridge";
 
@@ -91,6 +93,7 @@ function Home() {
 			<Text bold>🏠 Home</Text>
 			<Text>Press P to open Progress Bar</Text>
 			<Text>Press M to open stacked modals</Text>
+			<Text>Click Cancel on any modal to close it</Text>
 		</Box>
 	);
 }
@@ -136,47 +139,69 @@ function Modal({ top, left }: { top: number; left: number }) {
 	const { closeModalLayer } = useScreenSystem();
 	const { boundKeyboard } = useKeyboard();
 	const modalCtx = useContext(ModalLayerElementContext);
+	const layerId = modalCtx?.modalLayer.layerId;
 
 	useEffect(() => {
-		return boundKeyboard(["escape"], () => {
-			if (modalCtx) {
-				closeModalLayer(modalCtx.modalLayer.layerId);
-			}
-		});
-	}, [boundKeyboard, closeModalLayer, modalCtx]);
+		if (!layerId) return;
+		return boundKeyboard(["escape"], () => closeModalLayer(layerId));
+	}, [boundKeyboard, closeModalLayer, layerId]);
 
 	return (
 		<Box
 			position="absolute"
 			top={top}
 			left={left}
+			width={46}
 			borderStyle="round"
 			borderColor="yellow"
 			padding={1}
 			backgroundColor="black"
+			flexDirection="column"
 		>
 			<Text bold color="yellow">
-				{"┌──────────────────────────────────────────┐\n" +
-				 "│ ⚠  cartridge.exe — Application Error  X  │\n" +
-				 "├──────────────────────────────────────────┤\n" +
-				 "│                                          │\n" +
-				 "│  Unhandled exception has occurred in     │\n" +
-				 "│  your application.                       │\n" +
-				 "│                                          │\n" +
-				 "│  NullReferenceException:                 │\n" +
-				 "│  Object reference not set to an          │\n" +
-				 "│  instance of an object.                  │\n" +
-				 "│                                          │\n" +
-				 "│                        [  OK  ]  [Cancel]│\n" +
-				 "└──────────────────────────────────────────┘"}
+				⚠ cartridge.exe — Application Error
 			</Text>
+			<Text color="yellow">  Unhandled exception has occurred in your application.</Text>
+			<Text color="yellow">  </Text>
+			<Text color="yellow">  NullReferenceException:</Text>
+			<Text color="yellow">  Object reference not set to an instance of an object.</Text>
+			<Box flexDirection="row" justifyContent="flex-end" marginTop={1}>
+				{/* Click-to-close button: a child region with a higher priority
+				    wins over the modal body, so only the button reacts. */}
+				<ModalButton
+					label="Cancel"
+					onPress={() => {
+						if (layerId) closeModalLayer(layerId);
+					}}
+				/>
+			</Box>
+			<Text dimColor>Esc closes · click Cancel to close</Text>
+		</Box>
+	);
+}
+
+// A small clickable control. `priority: 1` makes it win over any region that
+// contains it (the modal body would be a priority-0 region).
+function ModalButton({ label, onPress }: { label: string; onPress: () => void }) {
+	const [hovered, setHovered] = useState(false);
+	const ref = useMouseRegion(
+		{
+			onClick: onPress,
+			onEnter: () => setHovered(true),
+			onLeave: () => setHovered(false),
+		},
+		{ priority: 1 },
+	);
+	return (
+		<Box borderStyle="round" borderColor={hovered ? "green" : "gray"} marginLeft={1} ref={ref}>
+			<Text>{label}</Text>
 		</Box>
 	);
 }
 
 render(
 	<ScenarioManagementProvider defaultScreen={Home} fullScreen>
-		<KeyboardProvider>
+		<KeyboardProvider mouse>
 			<CurrentScreen />
 		</KeyboardProvider>
 	</ScenarioManagementProvider>
@@ -187,7 +212,7 @@ render(
 <div align="center">
 <img src="static/quickstart-keyboard.gif" width="2040" alt="Progress bar — ← → adjusts, color transitions red→yellow→green" />
 
-<img src="static/quickstart-modal.gif" width="2040" alt="Modal stacking — zIndex sorting, absolute positioning" />
+<img src="static/quickstart-mouse.gif" width="2040" alt="Mouse controls — clicking Cancel closes a stacked modal, Esc works too" />
 </div>
 
 ## Installation

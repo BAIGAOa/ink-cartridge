@@ -1,4 +1,6 @@
 import { LayerElement } from "./element.js";
+import { LayerElementInput } from "./element.js";
+import { ComponentType } from "react";
 
 export type Layer = {
   /**
@@ -104,9 +106,9 @@ export type ApplyElementAction = {
   layerElement: LayerElement;
 };
 /** Applies an element to a registered layer. */
-export type ApplyElementFn = (
+export type ApplyElementFn = <C extends ComponentType<any>>(
   targetLayerId: string,
-  layerElement: LayerElement,
+  layerElement: LayerElementInput<C>,
 ) => void;
 
 export type CloseLayerAction = {
@@ -296,9 +298,9 @@ export type ApplyElementToModalLayerAction = {
 };
 
 /** Applies an element to a registered layer. */
-export type ApplyElementToModalLayerFn = (
+export type ApplyElementToModalLayerFn = <C extends ComponentType<any>>(
   targetModalLayerId: string,
-  modalLayerElement: LayerElement,
+  modalLayerElement: LayerElementInput<C>,
 ) => void;
 
 export type CloseModalLayerAction = {

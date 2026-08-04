@@ -79,7 +79,7 @@ export type {
   MappingKeyEvent,
   MappingKeyEntry,
 } from "./keyboard/index.js";
-export { useFocusState, useModalMissListener } from "./keyboard/index.js";
+export { useFocusState, useModalMissListener, useMouseRegion } from "./keyboard/index.js";
 
 
 // Components — SelectInput

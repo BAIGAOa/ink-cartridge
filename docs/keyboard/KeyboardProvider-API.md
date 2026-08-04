@@ -7,7 +7,7 @@ Internally creates a [KeyboardEngine](./KeyboardEngine-API.md) instance and wire
 ## Signature
 
 ```tsx
-function KeyboardProvider({ children, modes, defaultMode, processors, valueSchema, autoTab }: KeyboardProviderProps): JSX.Element
+function KeyboardProvider({ children, modes, defaultMode, processors, valueSchema, autoTab, mouse }: KeyboardProviderProps): JSX.Element
 ```
 
 ## Parameters
@@ -20,6 +20,7 @@ function KeyboardProvider({ children, modes, defaultMode, processors, valueSchem
 | `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
 | `valueSchema` | `ValueSchema` | (Optional) Composition value validation schema |
 | `autoTab` | `boolean` | (Optional) When `true`, the engine intercepts Tab/Shift+Tab to cycle focus automatically. Defaults to `false` — bind Tab manually when disabled. |
+| `mouse` | `boolean` | (Optional) When `true`, listens for terminal mouse events via the `xterm-mouse` fork and feeds them into the engine's mouse region hit-testing. Requires a TTY input stream. See [useMouseRegion](./useMouseRegion-API.md). |
 
 ### `processors` prop
 

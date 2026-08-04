@@ -39,6 +39,17 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | wildcard | enableWildcardPriority + * binding for text capture mode | `npx tsx examples/core/wildcard.demo.tsx` |
 | layer-system | Layer A/B z-index order, layer broadcast, bubbling, penetration, stop, modal barrier | `npx tsx examples/layer-system/LayerSystem.demo.tsx` |
 
+## Mouse demos
+
+Mouse support is built on the `xterm-mouse` fork shipped inside `@cartridge-engine/keyboard-engine`. The React adapter (`KeyboardProvider mouse` + `useMouseRegion`) registers measured element rectangles with the engine, which hit-tests xterm-mouse events against them.
+
+| Demo | Description | Command |
+|------|-------------|---------|
+| mouse-hit-test | Click hit-testing against an 8x8 Ink box via `useMouseRegion` | `npx tsx examples/xterm-mouse/MouseHitTest.demo.tsx` |
+| mouse-layer-stack | Mouse hit priority across stacked layers (layer beats page, root fallback); `applyElement` with typed props | `npx tsx examples/xterm-mouse/MouseLayerStack.demo.tsx` |
+| mouse-controls | Clickable `[x]`/`[OK]` buttons on a panel (child regions win via `priority`) | `npx tsx examples/xterm-mouse/MouseControls.demo.tsx` |
+| mouse-drag | Drag a window via the press→drag→release capture lifecycle | `npx tsx examples/xterm-mouse/MouseDrag.demo.tsx` |
+
 ## Component demos
 
 | Component | Demo | Command |
