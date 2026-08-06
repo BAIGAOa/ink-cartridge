@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Box, render } from "ink";
 import React from "react";
 import { InformationBar } from "./view/information-bar.js";
