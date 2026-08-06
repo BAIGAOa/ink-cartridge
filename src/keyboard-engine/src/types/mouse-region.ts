@@ -28,6 +28,11 @@ export type MouseRegionRect = {
 export type MouseRegionCallbacks = {
   /** Fired when a click event hits the region. */
   onClick?: (event: XtermMouseEvent, region: MouseRegionRect) => void;
+  /**
+   * Fired when a wheel event hits the region. `event.button` narrows to
+   * `'wheel-up' | 'wheel-down' | 'wheel-left' | 'wheel-right'`.
+   */
+  onWheel?: (event: XtermMouseEvent, region: MouseRegionRect) => void;
   /** Fired when the mouse starts hovering the region (move event hit). */
   onEnter?: (event: XtermMouseEvent, region: MouseRegionRect) => void;
   /** Fired when the mouse leaves the region (previous hover target). */

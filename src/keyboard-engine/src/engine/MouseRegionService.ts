@@ -104,6 +104,7 @@ export default class MouseRegionService {
    *
    * - `move` events drive hover transitions (enter/leave).
    * - `click` events fire `onClick` (hit-test only).
+   * - `wheel` events fire `onWheel` (hit-test only, same priority chain).
    * - `press`/`drag`/`release` drive the drag lifecycle: a press inside a
    *   region arms a drag capture; the first `drag` event promotes it and
    *   fires `onDragStart`/`onDragMove`; `release` fires `onDragEnd` (only if
@@ -122,6 +123,9 @@ export default class MouseRegionService {
     }
     if (event.action === "click") {
       return this.processClick(event, layers, modalLayers);
+    }
+    if (event.action === "wheel") {
+      return this.processWheel(event, layers, modalLayers);
     }
     if (event.action === "press") {
       return this.processPress(event, layers, modalLayers);
@@ -145,6 +149,23 @@ export default class MouseRegionService {
       const region = this.getRegion(hit.layerId, hit.elementId);
       if (region) {
         region.callbacks.onClick?.(event, region.rect);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /** Fire `onWheel` on the hit region — same hit-test chain as clicks. */
+  private processWheel(
+    event: XtermMouseEvent,
+    layers: KeyboardLayer[],
+    modalLayers: KeyboardLayer[],
+  ): boolean {
+    const hit = this.hitTest(event.x, event.y, layers, modalLayers);
+    if (hit) {
+      const region = this.getRegion(hit.layerId, hit.elementId);
+      if (region) {
+        region.callbacks.onWheel?.(event, region.rect);
       }
       return true;
     }
