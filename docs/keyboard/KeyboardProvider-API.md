@@ -20,7 +20,7 @@ function KeyboardProvider({ children, modes, defaultMode, processors, valueSchem
 | `processors` | `KeyboardProcessorProps[]` | (Optional) Per-instance custom processors to inject into the pipeline |
 | `valueSchema` | `ValueSchema` | (Optional) Composition value validation schema |
 | `autoTab` | `boolean` | (Optional) When `true`, the engine intercepts Tab/Shift+Tab to cycle focus automatically. Defaults to `false` — bind Tab manually when disabled. |
-| `mouse` | `boolean` | (Optional) When `true`, listens for terminal mouse events via the `xterm-mouse` fork and feeds them into the engine's mouse region hit-testing. Requires a TTY input stream. See [useMouseRegion](./useMouseRegion-API.md). |
+| `mouse` | `boolean` | (Optional) When `true`, listens for terminal mouse events via the `xterm-mouse` fork and feeds them into the engine's mouse region hit-testing. Requires a TTY input stream. Mouse escape sequences are filtered out of the keyboard stream automatically, so they never reach `useInput` handlers as text. See [useMouseRegion](./useMouseRegion-API.md). |
 | `mouseOptions` | `MouseOptions` | (Optional) Options for the internal `Mouse` instance — e.g. `clickDistanceThreshold`, `pressStormThreshold`/`pressStormWindowMs` (VS Code terminal press-only fallback), `degradedDedupDistance`/`degradedDedupWindowMs`. |
 
 ### `processors` prop
