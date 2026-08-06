@@ -1,13 +1,13 @@
 import { Box, render } from "ink";
 import React from "react";
-import { InformationBar } from "./core/view/information-bar.js";
+import { InformationBar } from "./view/information-bar.js";
 import {
   CurrentScreen,
   KeyboardProvider,
   registerComponent,
   ScenarioManagementProvider,
 } from "ink-cartridge";
-import { Editor } from "./core/view/editor.js";
+import { Editor } from "./view/editor.js";
 
 function App() {
   return (
@@ -26,7 +26,7 @@ registerComponent(App, {});
 
 render(
   <ScenarioManagementProvider defaultScreen={App} fullScreen>
-    <KeyboardProvider autoTab={false}>
+    <KeyboardProvider autoTab={false} mouse>
       <CurrentScreen />
     </KeyboardProvider>
   </ScenarioManagementProvider>,

@@ -211,6 +211,28 @@ function StatusBar() {
 }
 ```
 
+## Mouse Support
+
+Enable the `mouse` prop on `KeyboardProvider` to listen for terminal mouse events. Mark any `<Box>` with `useMouseRegion` to receive click, wheel, hover, and drag callbacks:
+
+```tsx
+<KeyboardProvider mouse>
+  <CurrentScreen />
+</KeyboardProvider>
+
+// in a component:
+const boxRef = useMouseRegion({
+  onClick: (event, rect) => handleClick(event, rect),
+  onWheel: (event) => {
+    if (event.button === 'wheel-up') scrollUp();
+    if (event.button === 'wheel-down') scrollDown();
+  },
+});
+<Box ref={boxRef}>…</Box>
+```
+
+Mouse escape sequences are filtered out of the keyboard stream automatically, so they never reach `useInput` handlers as text. See [useMouseRegion](../../../docs/keyboard/useMouseRegion-API.md) for the full API.
+
 ## See Also
 
 - [ink-cartridge on GitHub](https://github.com/BAIGAOa/ink-cartridge)

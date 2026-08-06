@@ -19,6 +19,7 @@ import {
   type XtermMouseEvent,
 } from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
+import { MouseReportFilter } from "../mouse-report-filter.js";
 import { useScreenSystem } from "../../screen/hook.js";
 import { isInkSpecialKey, normalizeKeyNames } from "../keyNormalizer.js";
 import type {
@@ -195,12 +196,14 @@ export function KeyboardProvider({
       engine.processMouseEvent(event);
     };
     mouseInstance.on("click", handle);
+    mouseInstance.on("wheel", handle);
     mouseInstance.on("move", handle);
     mouseInstance.on("press", handle);
     mouseInstance.on("drag", handle);
     mouseInstance.on("release", handle);
     return () => {
       mouseInstance.off("click", handle);
+      mouseInstance.off("wheel", handle);
       mouseInstance.off("move", handle);
       mouseInstance.off("press", handle);
       mouseInstance.off("drag", handle);
@@ -289,7 +292,18 @@ export function KeyboardProvider({
     [engine],
   );
 
+  // When mouse tracking is on, Ink still receives the same raw bytes as the
+  // mouse parser. Mouse reports must never reach the keyboard pipeline —
+  // otherwise SGR sequences get typed into the app as garbage text.
+  const mouseReportFilterRef = useRef<MouseReportFilter | null>(null);
+  if (mouse && !mouseReportFilterRef.current) {
+    mouseReportFilterRef.current = new MouseReportFilter();
+  }
+
   useInput((input, key) => {
+    if (mouseReportFilterRef.current?.consume(input)) {
+      return;
+    }
     engine.processKey(input, key);
   });
 

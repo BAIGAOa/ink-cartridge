@@ -18,6 +18,7 @@ function useMouseRegion(
 | Param | Type | Description |
 |-------|------|-------------|
 | `callbacks.onClick` | `(event, region) => void` | Fired when a click hits the region |
+| `callbacks.onWheel` | `(event, region) => void` | Fired when a wheel event hits the region; `event.button` is `'wheel-up'`/`'wheel-down'`/`'wheel-left'`/`'wheel-right'` |
 | `callbacks.onEnter` | `(event, region) => void` | Fired when the mouse starts hovering the region |
 | `callbacks.onLeave` | `(event) => void` | Fired when the mouse leaves the region |
 | `callbacks.onDragStart` | `(event, region) => void` | Fired on the first `drag` event after a press inside the region (a press became a real drag) |

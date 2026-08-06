@@ -1049,7 +1049,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Process a mouse event through the mouse region hit-testing.
    *
    * `move` events drive hover transitions (`onEnter`/`onLeave`); `click`
-   * events fire `onClick`. Other actions are not dispatched yet.
+   * events fire `onClick`; `wheel` events fire `onWheel`.
    *
    * @param event - A mouse event from the host framework's mouse adapter.
    * @returns `true` if the event hit a registered region, `false` otherwise.

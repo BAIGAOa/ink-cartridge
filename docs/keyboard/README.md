@@ -66,7 +66,7 @@ The engine is framework-agnostic — any UI framework can drive it via `sync()` 
 | [Condition System](./condition-system-API.md) | Named runtime conditions: `addCondition` / `setCondition` / `removeCondition` |
 | [thereGlobalQueueWaiting](./thereGlobalQueueWaiting-API.md) | Check whether a global sequence is pending (optional `sync` for reactive re-render) |
 | [currentScreenHasSequenceWaiting](./currentScreenHasSequenceWaiting-API.md) | Check whether the current layer has a pending sequence (optional `sync` for reactive re-render) |
-| [useMouseRegion](./useMouseRegion-API.md) | Register an Ink `<Box>` as a mouse region (click / hover / drag) |
+| [useMouseRegion](./useMouseRegion-API.md) | Register an Ink `<Box>` as a mouse region (click / wheel / hover / drag) |
 
 ## Advanced
 
@@ -90,4 +90,4 @@ const ref = useMouseRegion({
 <Box ref={ref}>…</Box>
 ```
 
-Hit-testing follows the same priority as keyboard events — **modal layers → regular layers → root regions**, first hit wins; child controls can win over their container via the `priority` option. Drag is supported through the `onDragStart` / `onDragMove` / `onDragEnd` capture lifecycle (press locks the target; a plain click fires no drag callbacks).
+Hit-testing follows the same priority as keyboard events — **modal layers → regular layers → root regions**, first hit wins; child controls can win over their container via the `priority` option. Drag is supported through the `onDragStart` / `onDragMove` / `onDragEnd` capture lifecycle (press locks the target; a plain click fires no drag callbacks). Wheel events fire `onWheel` through the same hit-test chain, and mouse escape sequences are filtered out of the keyboard stream automatically — they never leak into `useInput` handlers as text.

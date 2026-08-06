@@ -58,6 +58,74 @@ describe('MouseRegionService', () => {
       expect(onClick.mock.calls[0][1]).toEqual(RECT);
     });
 
+    test('fires onWheel when a wheel event hits the region and returns true', () => {
+      const onWheel = vi.fn();
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        elementId: 'a',
+        rect: RECT,
+        callbacks: { onWheel },
+      });
+
+      const consumed = svc.process(
+        makeEvent({ action: 'wheel', button: 'wheel-down', x: 2, y: 2 }),
+        [],
+        [],
+      );
+
+      expect(consumed).toBe(true);
+      expect(onWheel).toHaveBeenCalledTimes(1);
+      expect(onWheel.mock.calls[0][0]).toMatchObject({
+        button: 'wheel-down',
+        x: 2,
+        y: 2,
+      });
+      expect(onWheel.mock.calls[0][1]).toEqual(RECT);
+    });
+
+    test('returns false when the wheel event is outside every region', () => {
+      const onWheel = vi.fn();
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        elementId: 'a',
+        rect: RECT,
+        callbacks: { onWheel },
+      });
+
+      const consumed = svc.process(
+        makeEvent({ action: 'wheel', x: 10, y: 10 }),
+        [],
+        [],
+      );
+
+      expect(consumed).toBe(false);
+      expect(onWheel).not.toHaveBeenCalled();
+    });
+
+    test('wheel respects modal > layer > root hit priority', () => {
+      const modalWheel = vi.fn();
+      const layerWheel = vi.fn();
+      svc.register({
+        layerId: 'modal-1',
+        elementId: 'm1',
+        rect: RECT,
+        callbacks: { onWheel: modalWheel },
+      });
+      svc.register({
+        layerId: 'layer-1',
+        elementId: 'l1',
+        rect: RECT,
+        callbacks: { onWheel: layerWheel },
+      });
+
+      const layers = [makeLayer('layer-1', ['l1'])];
+      const modalLayers = [makeLayer('modal-1', ['m1'])];
+      svc.process(makeEvent({ action: 'wheel', x: 2, y: 2 }), layers, modalLayers);
+
+      expect(modalWheel).toHaveBeenCalledTimes(1);
+      expect(layerWheel).not.toHaveBeenCalled();
+    });
+
     test('returns false when the click is outside every region', () => {
       const onClick = vi.fn();
       svc.register({

@@ -270,6 +270,38 @@ engine.setValueSchema({
 });
 ```
 
+## Mouse regions
+
+Register rectangular regions and feed mouse events (including wheel) into the engine for hit-testing:
+
+```ts
+import { KeyboardEngine, Mouse } from '@cartridge-engine/keyboard-engine';
+
+const engine = new KeyboardEngine({ ... });
+
+// Rect coordinates are 1-based terminal columns/rows
+engine.registerMouseRegion({
+  layerId: 'app',
+  elementId: 'main',
+  rect: { x: 1, y: 1, width: 80, height: 24 },
+  callbacks: {
+    onClick: (event) => console.log(`click at ${event.x},${event.y}`),
+    onWheel: (event) => {
+      if (event.button === 'wheel-up') scrollUp();
+      if (event.button === 'wheel-down') scrollDown();
+    },
+  },
+});
+
+// Parse raw stdin bytes into mouse events and feed them into the engine
+const mouse = new Mouse();
+mouse.enable();
+mouse.on('click', (event) => engine.processMouseEvent(event));
+mouse.on('wheel', (event) => engine.processMouseEvent(event));
+```
+
+The `Mouse` helper (from the same package) parses xterm-mouse escape sequences from stdin. See [API/mouse-region.md](./API/mouse-region.md) for the full engine-level API.
+
 ## See Also
 
 - [@cartridge-engine/keyboard-engine on npm](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
