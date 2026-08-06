@@ -221,7 +221,8 @@ function measureRegion(node: DOMElement): MouseRegionRect {
  *
  * Attach the returned ref to a `<Box>`. The engine hit-tests xterm-mouse
  * events against the element's measured rectangle and fires the callbacks:
- * `onClick` for clicks, `onEnter`/`onLeave` for hover transitions.
+ * `onClick` for clicks, `onWheel` for wheel events, `onEnter`/`onLeave` for
+ * hover transitions.
  *
  * The region is attributed to the surrounding layer/modal element
  * automatically (same scoping as {@link useKeyboard}); outside any layer it
