@@ -1,0 +1,15 @@
+{
+  "menu.edit": "编辑模式",
+  "menu.settings": "设置",
+  "menu.other": "其他",
+  "menu.quit": "退出",
+  "settings.title": "设置",
+  "settings.language": "语言",
+  "settings.language.en": "英文",
+  "settings.language.zh": "中文",
+  "settings.back": "返回",
+  "editor.mode.insert": "插入",
+  "editor.mode.normal": "普通",
+  "command.prompt": "命令",
+  "command.unknown": "未知命令：{cmd}"
+}

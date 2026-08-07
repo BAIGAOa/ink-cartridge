@@ -1,12 +1,20 @@
 import { Box, Text, useBoxMetrics, useCursor } from "ink";
-import { useKeyboard, useMouseRegion } from "ink-cartridge";
-import React, { useEffect, useRef, useState } from "react";
+import {
+	applyElementToModalLayer,
+	openModalLayer,
+	useI18n,
+	useKeyboard,
+	useMouseRegion,
+} from "ink-cartridge";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EditorController } from "../core/editor-controller.js";
 import { clickToPosition } from "./click-mapping.js";
+import { CommandBar } from "./command-bar.js";
+import { InformationBar } from "./information-bar.js";
 
 export type EditorContext = {
-	onChance: () => void;
-	value: string;
+	onChance?: () => void;
+	value?: string;
 	lineNumberRightSpacing?: number;
 	cursorOffset?: number;
 	cursorHeightOffset?: number;
@@ -14,13 +22,13 @@ export type EditorContext = {
 };
 
 /**
- * Main editor view: renders line numbers + text and routes every keystroke
- * to the controller as a named command. Rendering diffs via the controller's
- * change notifications; the controller lives in a ref so its state survives
- * re-renders (same pattern the old TextCalculation used).
+ * Main editor view: renders the status bar + line numbers + text, routes
+ * every keystroke to the controller as a named command, and splits
+ * bindings by mode — insert keeps the classic editing keys, normal gets
+ * hjkl + arrow-key movement and the `:` command bar.
  */
 export function Editor({
-	value: initialText,
+	value: initialText = "",
 	lineNumberRightSpacing = 1,
 	cursorOffset = 0,
 	cursorHeightOffset = 2,
@@ -40,52 +48,115 @@ export function Editor({
 	}, [controller]);
 
 	const { setCursorPosition } = useCursor();
-	const { boundKeyboard, enableWildcardPriority } = useKeyboard();
+	const {
+		boundKeyboard,
+		enableWildcardPriority,
+		getCurrentMode,
+		registryCompositionKey,
+		removeCompositionKey,
+		setMode,
+	} = useKeyboard();
+	const { t } = useI18n();
+
+	// The engine keeps modes in a ref (no React notification), so we mirror
+	// switches locally to keep the status bar live.
+	const [mode, setLocalMode] = useState<string | null>(() => getCurrentMode());
+	const switchMode = useCallback(
+		(next: string | null) => {
+			setMode(next);
+			setLocalMode(next);
+		},
+		[setMode],
+	);
+
+	const openCommandBar = useCallback(() => {
+		openModalLayer("command", 100);
+		applyElementToModalLayer("command", {
+			elementId: "command-input",
+			element: CommandBar,
+		});
+	}, []);
 
 	useEffect(() => {
 		const removeWildcard = enableWildcardPriority();
 		const unbinds: (() => void)[] = [];
+		const bind = (
+			keys: string[],
+			handler: (input: string) => void,
+			options: { mode?: string } = {},
+		) => {
+			unbinds.push(boundKeyboard(keys, handler, options));
+		};
 
-		unbinds.push(
-			boundKeyboard(["*"], (input) =>
-				controller.execute("editor.insertText", { text: input })
-			)
+		// insert mode: classic editing
+		bind(
+			["*"],
+			(input) => controller.execute("editor.insertText", { text: input }),
+			{ mode: "insert" },
 		);
-		unbinds.push(
-			boundKeyboard(["return"], () => controller.execute("editor.splitLine"))
-		);
-		unbinds.push(
-			boundKeyboard(["right"], () => controller.execute("cursor.moveRight"))
-		);
-		unbinds.push(
-			boundKeyboard(["left"], () => controller.execute("cursor.moveLeft"))
-		);
-		// backspace deletes before the cursor; delete removes after it —
-		// the old prototype treated both as backspace.
-		unbinds.push(
-			boundKeyboard(["backspace"], () => controller.execute("editor.deleteBefore"))
-		);
-		unbinds.push(
-			boundKeyboard(["delete"], () => controller.execute("editor.deleteAfter"))
-		);
-		unbinds.push(
-			boundKeyboard(["up"], () => controller.execute("cursor.moveUp"))
-		);
-		unbinds.push(
-			boundKeyboard(["down"], () => controller.execute("cursor.moveDown"))
-		);
-		unbinds.push(
-			boundKeyboard(["tab"], () => controller.execute("editor.indent"))
-		);
-		unbinds.push(
-			boundKeyboard(["shift+tab"], () => controller.execute("editor.outdent"))
-		);
+		bind(["return"], () => controller.execute("editor.splitLine"), { mode: "insert" });
+		bind(["right"], () => controller.execute("cursor.moveRight"), { mode: "insert" });
+		bind(["left"], () => controller.execute("cursor.moveLeft"), { mode: "insert" });
+		// backspace deletes before the cursor; delete removes after it.
+		bind(["backspace"], () => controller.execute("editor.deleteBefore"), {
+			mode: "insert",
+		});
+		bind(["delete"], () => controller.execute("editor.deleteAfter"), { mode: "insert" });
+		bind(["up"], () => controller.execute("cursor.moveUp"), { mode: "insert" });
+		bind(["down"], () => controller.execute("cursor.moveDown"), { mode: "insert" });
+		bind(["tab"], () => controller.execute("editor.indent"), { mode: "insert" });
+		bind(["shift+tab"], () => controller.execute("editor.outdent"), { mode: "insert" });
+		bind(["escape"], () => switchMode("normal"), { mode: "insert" });
+
+		// normal mode: movement + command bar
+		bind(["h", "left"], () => controller.execute("cursor.moveLeft"), { mode: "normal" });
+		bind(["j"], () => controller.execute("cursor.moveDown"), { mode: "normal" });
+		bind(["down"], () => controller.execute("cursor.moveDown"), { mode: "normal" });
+		bind(["k", "up"], () => controller.execute("cursor.moveUp"), { mode: "normal" });
+		bind(["l", "right"], () => controller.execute("cursor.moveRight"), { mode: "normal" });
+		bind(["w"], () => controller.execute("cursor.wordForward"), { mode: "normal" });
+		bind(["b"], () => controller.execute("cursor.wordBackward"), { mode: "normal" });
+		bind(["0"], () => controller.execute("cursor.lineStart"), { mode: "normal" });
+		bind(["$"], () => controller.execute("cursor.lineEnd"), { mode: "normal" });
+		// `gg` via the composition engine: the first `g` arms the chain, the
+		// second fires documentStart. `mode` keeps typing `g` in insert mode
+		// untouched, since composition runs ahead of the `*` wildcard.
+		registryCompositionKey({
+			key: "g",
+			flags: [],
+			alternativeFlag: "goto",
+			needs: ["goto"],
+			optional: true,
+			mode: "normal",
+			execute: (ctx) => {
+				if (ctx.lastFlag === "goto") {
+					controller.execute("cursor.documentStart");
+					return null;
+				}
+				// head press: let the engine fill the flag from alternativeFlag
+				return { ...ctx, lastFlag: null };
+			},
+		});
+		unbinds.push(() => removeCompositionKey("g"));
+		// Ink marks "G" as shift+g, so the normalized key name is "shift+G".
+		bind(["shift+G"], () => controller.execute("cursor.documentEnd"), { mode: "normal" });
+		bind(["i"], () => switchMode("insert"), { mode: "normal" });
+		bind([":"], () => openCommandBar(), { mode: "normal" });
 
 		return () => {
 			removeWildcard();
 			unbinds.forEach((fn) => fn());
 		};
-	}, [boundKeyboard, enableWildcardPriority, controller]);
+	}, [
+		boundKeyboard,
+		controller,
+		enableWildcardPriority,
+		getCurrentMode,
+		openCommandBar,
+		registryCompositionKey,
+		removeCompositionKey,
+		switchMode,
+	]);
 
 	const ref = useRef(null);
 	const { height } = useBoxMetrics(ref);
@@ -102,9 +173,8 @@ export function Editor({
 
 	setCursorPosition({ x: cursorX, y: cursorY });
 
-	// Mouse: clicks position the cursor; the wheel scrolls one line at a time.
-	// The callbacks close over this render's metrics, and useMouseRegion keeps
-	// them fresh, so scrollTop/gutter always match what the user sees.
+	// Mouse: clicks position the cursor in any mode; the wheel scrolls one
+	// line at a time. The callbacks close over this render's metrics.
 	const mouseRef = useMouseRegion({
 		onClick: (event, rect) => {
 			const target = clickToPosition(
@@ -112,7 +182,7 @@ export function Editor({
 				rect,
 				lineNumberWidth + lineNumberRightSpacing,
 				doc.scrollTop,
-				doc.lineCount
+				doc.lineCount,
 			);
 			controller.execute("cursor.setPosition", {
 				line: target.line,
@@ -128,24 +198,33 @@ export function Editor({
 		},
 	});
 
+	const modeText =
+		mode === "normal" ? t("editor.mode.normal") : t("editor.mode.insert");
+
 	return (
-		<Box ref={mouseRef} height="100%" width="100%" backgroundColor="#1e1e1e">
-			<Box ref={ref} height="100%" width="100%" flexDirection="column">
-				{visibleLines.map((each, i) => {
-					const lineNumber = visibleStart + i;
-					return (
-						<Box key={lineNumber} flexDirection="row">
-							<Box
-								width={lineNumberWidth}
-								justifyContent="flex-end"
-								marginRight={lineNumberRightSpacing}
-							>
-								<Text bold={cursor.line === lineNumber}>{lineNumber}</Text>
+		<Box flexDirection="column" height="100%" width="100%">
+			<InformationBar
+				mode={modeText}
+				cursor={{ line: cursor.line, column: cursor.visual }}
+			/>
+			<Box ref={mouseRef} flexGrow={1} width="100%" backgroundColor="#1e1e1e">
+				<Box ref={ref} height="100%" width="100%" flexDirection="column">
+					{visibleLines.map((each, i) => {
+						const lineNumber = visibleStart + i;
+						return (
+							<Box key={lineNumber} flexDirection="row">
+								<Box
+									width={lineNumberWidth}
+									justifyContent="flex-end"
+									marginRight={lineNumberRightSpacing}
+								>
+									<Text bold={cursor.line === lineNumber}>{lineNumber}</Text>
+								</Box>
+								<Text>{each}</Text>
 							</Box>
-							<Text>{each}</Text>
-						</Box>
-					);
-				})}
+						);
+					})}
+				</Box>
 			</Box>
 		</Box>
 	);

@@ -1,34 +1,37 @@
 #!/usr/bin/env node
-import { Box, render } from "ink";
+import { render } from "ink";
 import React from "react";
-import { InformationBar } from "./view/information-bar.js";
 import {
   CurrentScreen,
   KeyboardProvider,
+  LanguageProvider,
   registerComponent,
   ScenarioManagementProvider,
 } from "ink-cartridge";
+import { resources } from "./i18n-resources.js";
+import { MainMenu } from "./view/main-menu.js";
 import { Editor } from "./view/editor.js";
+import { Settings } from "./view/settings.js";
 
-function App() {
-  return (
-    <Box flexDirection="column" height="100%" width="100%">
-      <Box flexGrow={1}>
-        <InformationBar mode="NONE" />
-      </Box>
-      <Box height="100%" width="100%">
-        <Editor value="你好" onChance={() => {}} />
-      </Box>
-    </Box>
-  );
-}
-
-registerComponent(App, {});
+registerComponent(MainMenu, {});
+registerComponent(Editor, {}, { parent: MainMenu });
+registerComponent(Settings, {}, { parent: MainMenu });
 
 render(
-  <ScenarioManagementProvider defaultScreen={App} fullScreen>
-    <KeyboardProvider autoTab={false} mouse>
-      <CurrentScreen />
-    </KeyboardProvider>
+  <ScenarioManagementProvider defaultScreen={MainMenu} fullScreen>
+    <LanguageProvider
+      resources={resources}
+      defaultLanguage="en"
+      fallbackLanguage="en"
+    >
+      <KeyboardProvider
+        autoTab={false}
+        mouse
+        modes={["insert", "normal"]}
+        defaultMode="insert"
+      >
+        <CurrentScreen />
+      </KeyboardProvider>
+    </LanguageProvider>
   </ScenarioManagementProvider>,
 );

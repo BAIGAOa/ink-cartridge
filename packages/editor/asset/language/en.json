@@ -1,0 +1,15 @@
+{
+  "menu.edit": "Edit Mode",
+  "menu.settings": "Settings",
+  "menu.other": "Other",
+  "menu.quit": "Quit",
+  "settings.title": "Settings",
+  "settings.language": "Language",
+  "settings.language.en": "English",
+  "settings.language.zh": "中文",
+  "settings.back": "Back",
+  "editor.mode.insert": "INSERT",
+  "editor.mode.normal": "NORMAL",
+  "command.prompt": "Command",
+  "command.unknown": "Unknown command: {cmd}"
+}
