@@ -1,10 +1,10 @@
-import { Box, Text } from "ink";
+import { Box, Text, useWindowSize } from "ink";
 import { useI18n, useKeyboard, useMouseRegion } from "ink-cartridge";
 import React, { useEffect, useState } from "react";
 import { Editor } from "./editor.js";
 import { Settings } from "./settings.js";
 import { gotoScreen } from "ink-cartridge";
-import { LOGO_GRAY, LOGO_WHITE } from "./logo.js";
+import { getLogo } from "./logo.js";
 
 type MenuButtonProps = {
 	label: string;
@@ -42,6 +42,11 @@ function MenuButton({ label, shortcut, disabled, onClick }: MenuButtonProps) {
 export function MainMenu() {
 	const { t } = useI18n();
 	const { boundKeyboard } = useKeyboard();
+	// The wide logo needs ≈100 columns; below that the words stack vertically.
+	// On short screens `getLogo` also shrinks the font so buttons stay visible.
+	const { columns, rows } = useWindowSize();
+	const narrow = columns < 104;
+	const logo = getLogo(columns, rows);
 
 	useEffect(() => {
 		const unbinds = [
@@ -60,15 +65,14 @@ export function MainMenu() {
 			width="100%"
 			height="100%"
 		>
-			<Box flexDirection="column" gap={1} marginBottom={6}>
-				{LOGO_WHITE.map((line, i) => (
-					<Box key={i} flexDirection="row">
-						<Text color="white">{line} </Text>
-						<Text color="gray">{LOGO_GRAY[i]}</Text>
-					</Box>
-				))}
+			<Box flexDirection="column" marginBottom={narrow ? 2 : 6}>
+				<Text>{logo}</Text>
 			</Box>
-			<Box flexDirection="row" gap={6}>
+			<Box
+				flexDirection={narrow ? "column" : "row"}
+				gap={narrow ? 1 : 6}
+				alignItems="center"
+			>
 				<MenuButton
 					label={t("menu.edit")}
 					shortcut="e"

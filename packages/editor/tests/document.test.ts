@@ -165,4 +165,150 @@ describe("Document", () => {
 			expect(doc.getLineNumberWidth()).toBe(2);
 		});
 	});
+
+	describe("soft wrap", () => {
+		it("splits a long line into width-bounded segments", () => {
+			const doc = new Document("abcdefghij");
+			doc.setWrapWidth(3);
+			expect(doc.visualLineCount).toBe(4);
+			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 3, first: true });
+			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 3, end: 6, first: false });
+			expect(doc.visualLineAt(3)).toEqual({ line: 0, start: 9, end: 10, first: false });
+			expect(doc.visualLineAt(4)).toBeNull();
+		});
+
+		it("treats an empty line as a single empty visual line", () => {
+			const doc = new Document("a\n\nb");
+			doc.setWrapWidth(3);
+			expect(doc.visualLineCount).toBe(3);
+			expect(doc.visualLineAt(1)).toEqual({ line: 1, start: 0, end: 0, first: true });
+		});
+
+		it("never splits a wide character across segments", () => {
+			const doc = new Document("你你你你你"); // 10 cells wide
+			doc.setWrapWidth(3); // each 你 is 2 cells; 3 fits one (2), 4 fits two
+			// width 3 → one 你 (2 cells) per segment, 5 segments
+			expect(doc.visualLineCount).toBe(5);
+			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 1, end: 2, first: false });
+		});
+
+		it("counts cursor position in visual lines", () => {
+			const doc = new Document("abcdefghij");
+			doc.setWrapWidth(3);
+			doc.setCursor(0, 7); // segment [6-9)
+			expect(doc.cursorVisualLine).toBe(2);
+			expect(doc.cursorSegmentVisual).toBe(1); // 7-6
+			doc.setCursor(0, 10);
+			expect(doc.cursorVisualLine).toBe(3);
+			expect(doc.cursorSegmentVisual).toBe(1); // last segment [9-10)
+		});
+
+		it("moves up/down across visual lines, keeping the visual column", () => {
+			const doc = new Document("abcdefghij");
+			doc.setWrapWidth(3);
+			doc.setCursor(0, 7); // segment [6-9), offset 1 within it
+			doc.moveUp();
+			// segment [3-6), same offset 1 → column 4
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 4 });
+			doc.moveUp();
+			// segment [0-3), same offset 1 → column 1
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 1 });
+			doc.moveDown();
+			// back to segment [3-6), same offset 1 → column 4
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 4 });
+		});
+
+		it("moves past segment boundaries without stalling", () => {
+			const doc = new Document("abcdefghij");
+			doc.setWrapWidth(3);
+			doc.setCursor(0, 8); // segment [6-9), offset 2
+			doc.moveDown();
+			// last segment [9-10) is only 1 wide: offset clamps to its end 10
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 10 });
+			doc.moveUp();
+			// [9-10) offset 1 → segment [6-9) offset 1 → column 7
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 7 });
+			doc.moveUp();
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 4 });
+			doc.moveUp();
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 1 });
+			doc.moveUp();
+			// first visual line: move to the segment start
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 0 });
+		});
+
+		it("moves down into the next logical line after the last segment", () => {
+			const doc = new Document("abcdef\nxyz");
+			doc.setWrapWidth(3);
+			doc.setCursor(0, 6); // end of line 0
+			// visual lines: 0:[0-3) 1:[3-6) 2: line1 [0-3)
+			doc.moveDown();
+			// screen col 6 on a 3-col line clamps to its end
+			expect(doc.cursor).toMatchObject({ line: 1, logical: 3 });
+		});
+
+		it("pages by visual lines", () => {
+			const doc = new Document(["abcdefghij", "k"].join("\n"));
+			doc.setWrapWidth(3);
+			doc.setCursor(0, 0);
+			doc.movePageDown(3); // +2 visual lines → segment 2 [6-9), offset 0
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 6 });
+			doc.movePageUp(3); // -2 → segment 0, offset 0 → column 0
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 0 });
+		});
+
+		it("scrolls by visual lines", () => {
+			// 10 logical lines × 2 segments each = 20 visual lines.
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			expect(doc.visualLineCount).toBe(20);
+			doc.setCursor(9, 3); // last visual line
+			expect(doc.updateScroll(5)).toBe(15);
+			doc.setCursor(0, 0);
+			expect(doc.updateScroll(5)).toBe(0);
+		});
+
+		it("scrollView scrolls the view without moving the cursor", () => {
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			doc.setCursor(0, 0);
+			expect(doc.scrollView(3, 5)).toBe(3);
+			expect(doc.scrollTop).toBe(3);
+			expect(doc.cursor).toMatchObject({ line: 0, logical: 0 });
+		});
+
+		it("scrollView clamps at the document bounds", () => {
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			expect(doc.scrollView(999, 5)).toBe(15); // 20 - 5
+			expect(doc.scrollView(-999, 5)).toBe(0);
+		});
+
+		it("manual view scroll stays put until the cursor moves", () => {
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			doc.setCursor(0, 0);
+			doc.scrollView(8, 5);
+			// Cursor is still at the top, but updateScroll keeps the locked view.
+			expect(doc.updateScroll(5)).toBe(8);
+			// Moving the cursor releases the lock and the view follows again.
+			doc.moveDown();
+			expect(doc.updateScroll(5)).toBe(doc.cursorVisualLine);
+		});
+
+		it("keeps logical-line behavior when wrapping is off", () => {
+			const doc = new Document("abcdef");
+			// default wrapWidth = Infinity → one visual line per logical line
+			expect(doc.visualLineCount).toBe(1);
+			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 6, first: true });
+		});
+	});
 });
