@@ -218,8 +218,8 @@ export interface KeyboardContextValue {
   activeProcessor: (id: BuiltinProcessorId) => boolean;
 
   registerMouseRegion: (entry: MouseRegionEntry) => () => void;
-  unregisterMouseRegion: (layerId: string, elementId: string) => void;
-  getHoveredMouseRegion: () => { layerId: string; elementId: string } | null;
+  unregisterMouseRegion: (layerId: string, regionId: string) => void;
+  getHoveredMouseRegion: () => { layerId: string; regionId: string } | null;
 }
 
 /**

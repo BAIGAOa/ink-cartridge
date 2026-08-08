@@ -231,7 +231,7 @@ const boxRef = useMouseRegion({
 <Box ref={boxRef}>…</Box>
 ```
 
-Mouse escape sequences are filtered out of the keyboard stream automatically, so they never reach `useInput` handlers as text. See [useMouseRegion](../../../docs/keyboard/useMouseRegion-API.md) for the full API.
+Mouse escape sequences are filtered out of the keyboard stream automatically, so they never reach `useInput` handlers as text. Region rects stay in sync with the terminal: `useMouseRegion` re-measures on terminal resize and on layout commits, so resizing the window never leaves a stale hit area — including elements whose absolute position moves while their own relative metrics don't change (e.g. buttons inside a fixed-width centered menu row). See [useMouseRegion](../../../docs/keyboard/useMouseRegion-API.md) for the full API.
 
 ## See Also
 

@@ -9,7 +9,7 @@ Requires a `<KeyboardProvider mouse>` ancestor.
 ```tsx
 function useMouseRegion(
   callbacks: MouseRegionCallbacks,
-  options?: { layerId?: string; elementId?: string; priority?: number },
+  options?: { layerId?: string; regionId?: string; priority?: number },
 ): RefObject<DOMElement | null>
 ```
 
@@ -24,13 +24,13 @@ function useMouseRegion(
 | `callbacks.onDragStart` | `(event, region) => void` | Fired on the first `drag` event after a press inside the region (a press became a real drag) |
 | `callbacks.onDragMove` | `(event, region) => void` | Fired on every `drag` event while dragging |
 | `callbacks.onDragEnd` | `(event, region) => void` | Fired on `release` after a drag (plain clicks fire nothing) |
-| `options.layerId` | `string` | (Optional) Override the layer the region is attributed to. Defaults to the surrounding layer/modal element, or the shared root layer outside any layer. |
-| `options.elementId` | `string` | (Optional) Override the element id. Defaults to the surrounding layer/modal element id, or an auto-generated id. |
+| `options.layerId` | `string` | (Optional) Override the layer the region is attributed to. Defaults to the surrounding layer/modal layer, or the shared root layer outside any layer. |
+| `options.regionId` | `string` | (Optional) Unique identifier for this region within its layer. Defaults to an **auto-generated unique id** per call site — you generally don't need to set it. Pass one only to control identity (e.g. for hover/drag bookkeeping). Note it is **not** the surrounding layer/modal element id: reusing that id would collide for every region in the same layer/modal, with later registrations overwriting earlier ones. |
 | `options.priority` | `number` | (Optional) Hit-test priority within the same layer (default `0`). Higher wins on overlap — use `1` for child controls (buttons) so they beat their container. |
 
 ## Returns
 
-A ref to attach to the Ink `<Box>` to track. The rect is re-measured and re-registered after every render, so layout changes stay in sync with the engine.
+A ref to attach to the Ink `<Box>` to track. The rect is re-measured and re-registered **synchronously during render** (no effect timing gap), so the engine never holds a rect from a previous frame; the hook also re-renders the component on terminal resize (`useWindowSize`) and on layout commits (`useBoxMetrics`), so resizes always refresh the rect immediately — even when the element's **absolute position** moves while its own relative metrics stay fixed (e.g. a button inside a fixed-width, centered row on the main menu).
 
 ## Coordinate model
 

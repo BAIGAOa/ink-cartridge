@@ -23,9 +23,9 @@ The engine integrates mouse events via three methods:
 | Method | Description |
 |--------|-------------|
 | `processMouseEvent(event)` | Hit-test a mouse event against registered regions; drives hover transitions and drag capture |
-| `registerMouseRegion(entry)` | Register a region (`layerId` + `elementId` + 1-based terminal rect + callbacks) |
-| `unregisterMouseRegion(layerId, elementId)` | Remove a registered region |
-| `getHoveredMouseRegion()` | Current hover target (`{ layerId, elementId }` or `null`) |
+| `registerMouseRegion(entry)` | Register a region (`layerId` + `regionId` + 1-based terminal rect + callbacks) |
+| `unregisterMouseRegion(layerId, regionId)` | Remove a registered region |
+| `getHoveredMouseRegion()` | Current hover target (`{ layerId, regionId }` or `null`) |
 
 Hit priority follows keyboard semantics: **modal layers → regular layers → root regions**, later registration wins within a layer; `priority` in a region entry overrides registration order (used for child controls like buttons).
 

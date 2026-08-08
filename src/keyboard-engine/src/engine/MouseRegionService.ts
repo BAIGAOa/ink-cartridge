@@ -34,17 +34,17 @@ function pointInRect(x: number, y: number, rect: MouseRegionRect): boolean {
  */
 export default class MouseRegionService {
   private regions = new Map<string, Map<string, StoredRegion>>();
-  private hovered: { layerId: string; elementId: string } | null = null;
+  private hovered: { layerId: string; regionId: string } | null = null;
   /**
    * Drag capture: set on `press` (hit), promoted to a real drag on the first
    * `drag` event, cleared on `release`. `dragging` distinguishes a plain
    * click (armed then released) from an actual drag (drag events seen).
    */
-  private drag: { layerId: string; elementId: string; dragging: boolean } | null = null;
+  private drag: { layerId: string; regionId: string; dragging: boolean } | null = null;
 
   /**
    * Register a region. Overwrites any previous registration with the same
-   * layerId + elementId (registration order is preserved on overwrite).
+   * layerId + regionId (registration order is preserved on overwrite).
    *
    * @returns An unregister function (idempotent).
    */
@@ -54,7 +54,7 @@ export default class MouseRegionService {
       layerRegions = new Map();
       this.regions.set(entry.layerId, layerRegions);
     }
-    layerRegions.set(entry.elementId, {
+    layerRegions.set(entry.regionId, {
       rect: entry.rect,
       callbacks: entry.callbacks,
       priority: entry.priority ?? 0,
@@ -64,35 +64,35 @@ export default class MouseRegionService {
     return () => {
       if (unregistered) return;
       unregistered = true;
-      this.unregister(entry.layerId, entry.elementId);
+      this.unregister(entry.layerId, entry.regionId);
     };
   }
 
   /**
-   * Remove a region by layerId + elementId (idempotent).
+   * Remove a region by layerId + regionId (idempotent).
    *
    * Also clears hover/drag state that pointed at the removed region, so a
    * disappearing element (layer closed, component unmounted) never leaves a
    * stale hover or drag target behind.
    */
-  unregister(layerId: string, elementId: string): void {
+  unregister(layerId: string, regionId: string): void {
     const layer = this.regions.get(layerId);
     if (!layer) return;
-    layer.delete(elementId);
+    layer.delete(regionId);
     if (layer.size === 0) {
       this.regions.delete(layerId);
     }
     if (
       this.hovered &&
       this.hovered.layerId === layerId &&
-      this.hovered.elementId === elementId
+      this.hovered.regionId === regionId
     ) {
       this.hovered = null;
     }
     if (
       this.drag &&
       this.drag.layerId === layerId &&
-      this.drag.elementId === elementId
+      this.drag.regionId === regionId
     ) {
       this.drag = null;
     }
@@ -146,7 +146,7 @@ export default class MouseRegionService {
   ): boolean {
     const hit = this.hitTest(event.x, event.y, layers, modalLayers);
     if (hit) {
-      const region = this.getRegion(hit.layerId, hit.elementId);
+      const region = this.getRegion(hit.layerId, hit.regionId);
       if (region) {
         region.callbacks.onClick?.(event, region.rect);
       }
@@ -163,7 +163,7 @@ export default class MouseRegionService {
   ): boolean {
     const hit = this.hitTest(event.x, event.y, layers, modalLayers);
     if (hit) {
-      const region = this.getRegion(hit.layerId, hit.elementId);
+      const region = this.getRegion(hit.layerId, hit.regionId);
       if (region) {
         region.callbacks.onWheel?.(event, region.rect);
       }
@@ -180,7 +180,7 @@ export default class MouseRegionService {
   ): boolean {
     const hit = this.hitTest(event.x, event.y, layers, modalLayers);
     this.drag = hit
-      ? { layerId: hit.layerId, elementId: hit.elementId, dragging: false }
+      ? { layerId: hit.layerId, regionId: hit.regionId, dragging: false }
       : null;
     return hit !== null;
   }
@@ -188,7 +188,7 @@ export default class MouseRegionService {
   /** Promote armed press to a real drag; fire drag callbacks on the captured target. */
   private processDrag(event: XtermMouseEvent): boolean {
     if (!this.drag) return false;
-    const region = this.getRegion(this.drag.layerId, this.drag.elementId);
+    const region = this.getRegion(this.drag.layerId, this.drag.regionId);
     if (!region) return false;
     if (!this.drag.dragging) {
       this.drag.dragging = true;
@@ -205,7 +205,7 @@ export default class MouseRegionService {
     const drag = this.drag;
     this.drag = null;
     if (!drag) return false;
-    const region = this.getRegion(drag.layerId, drag.elementId);
+    const region = this.getRegion(drag.layerId, drag.regionId);
     if (region && drag.dragging) {
       region.callbacks.onDragEnd?.(event, region.rect);
     }
@@ -213,7 +213,7 @@ export default class MouseRegionService {
   }
 
   /** @returns The currently hovered region, or null. */
-  getHovered(): { layerId: string; elementId: string } | null {
+  getHovered(): { layerId: string; regionId: string } | null {
     return this.hovered ? { ...this.hovered } : null;
   }
 
@@ -229,18 +229,18 @@ export default class MouseRegionService {
       hit !== null &&
       prev !== null &&
       hit.layerId === prev.layerId &&
-      hit.elementId === prev.elementId;
+      hit.regionId === prev.regionId;
 
     if (prev && !stillHovered) {
-      this.getRegion(prev.layerId, prev.elementId)?.callbacks.onLeave?.(event);
+      this.getRegion(prev.layerId, prev.regionId)?.callbacks.onLeave?.(event);
       this.hovered = null;
     }
 
     if (hit && !stillHovered) {
-      const region = this.getRegion(hit.layerId, hit.elementId);
+      const region = this.getRegion(hit.layerId, hit.regionId);
       if (region) {
         region.callbacks.onEnter?.(event, region.rect);
-        this.hovered = { layerId: hit.layerId, elementId: hit.elementId };
+        this.hovered = { layerId: hit.layerId, regionId: hit.regionId };
       }
     }
 
@@ -256,7 +256,7 @@ export default class MouseRegionService {
     y: number,
     layers: KeyboardLayer[],
     modalLayers: KeyboardLayer[],
-  ): { layerId: string; elementId: string } | null {
+  ): { layerId: string; regionId: string } | null {
     for (let i = modalLayers.length - 1; i >= 0; i--) {
       const hit = this.hitLayer(modalLayers[i], x, y);
       if (hit) return hit;
@@ -272,22 +272,25 @@ export default class MouseRegionService {
     layer: KeyboardLayer,
     x: number,
     y: number,
-  ): { layerId: string; elementId: string } | null {
+  ): { layerId: string; regionId: string } | null {
     const layerRegions = this.regions.get(layer.layerId);
     if (!layerRegions) return null;
-    const candidates = layer.activeElements.map((elementId, i) => ({
-      elementId,
-      priority: layerRegions.get(elementId)?.priority ?? 0,
+    // Regions are independent of keyboard-layer `activeElements` — the layer
+    // being present in the hit-test order is the only gate. Candidate order
+    // is registration order, like the root layer.
+    const candidates = [...layerRegions.entries()].map(([regionId, region], i) => ({
+      regionId,
+      priority: region.priority,
       order: i,
     }));
     return this.hitCandidates(candidates, layer.layerId, layerRegions, x, y);
   }
 
-  private hitRoot(x: number, y: number): { layerId: string; elementId: string } | null {
+  private hitRoot(x: number, y: number): { layerId: string; regionId: string } | null {
     const rootRegions = this.regions.get(ROOT_MOUSE_LAYER_ID);
     if (!rootRegions) return null;
-    const candidates = [...rootRegions.entries()].map(([elementId, region], i) => ({
-      elementId,
+    const candidates = [...rootRegions.entries()].map(([regionId, region], i) => ({
+      regionId,
       priority: region.priority,
       order: i,
     }));
@@ -300,17 +303,17 @@ export default class MouseRegionService {
    * first one containing the point.
    */
   private hitCandidates(
-    candidates: Array<{ elementId: string; priority: number; order: number }>,
+    candidates: Array<{ regionId: string; priority: number; order: number }>,
     layerId: string,
     layerRegions: Map<string, StoredRegion>,
     x: number,
     y: number,
-  ): { layerId: string; elementId: string } | null {
+  ): { layerId: string; regionId: string } | null {
     candidates.sort((a, b) => b.priority - a.priority || b.order - a.order);
     for (const candidate of candidates) {
-      const region = layerRegions.get(candidate.elementId);
+      const region = layerRegions.get(candidate.regionId);
       if (region && pointInRect(x, y, region.rect)) {
-        return { layerId, elementId: candidate.elementId };
+        return { layerId, regionId: candidate.regionId };
       }
     }
     return null;
@@ -318,8 +321,8 @@ export default class MouseRegionService {
 
   private getRegion(
     layerId: string,
-    elementId: string,
+    regionId: string,
   ): StoredRegion | undefined {
-    return this.regions.get(layerId)?.get(elementId);
+    return this.regions.get(layerId)?.get(regionId);
   }
 }

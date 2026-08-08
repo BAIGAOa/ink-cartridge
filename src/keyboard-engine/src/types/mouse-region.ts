@@ -53,15 +53,22 @@ export type MouseRegionCallbacks = {
 /**
  * A mouse region registration.
  *
- * `layerId`/`elementId` must match the ids used in the engine's synced
+ * `layerId` must match the ids used in the engine's synced
  * {@link import("./state-sync.js").SyncState} layers so hit-testing can apply
- * the same modal > layer > root priority as keyboard events.
+ * the same modal > layer > root priority as keyboard events. `regionId` is an
+ * arbitrary unique identifier for the region within that layer — it is NOT
+ * the id of a keyboard layer element; two regions in the same layer must use
+ * different ids or the later registration overwrites the earlier one.
  */
 export type MouseRegionEntry = {
   /** The layer this region belongs to (must match synced layer ids). */
   layerId: string;
-  /** The element id within that layer (must appear in `activeElements`). */
-  elementId: string;
+  /**
+   * Unique identifier for this region within the layer. Callers are
+   * responsible for uniqueness — duplicate ids in the same layer overwrite
+   * each other's registration.
+   */
+  regionId: string;
   /** The region geometry in 1-based terminal coordinates. */
   rect: MouseRegionRect;
   /** Callbacks fired on hits. */
