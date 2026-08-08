@@ -21,7 +21,7 @@ registerMouseRegion(entry: MouseRegionEntry): () => void
 | Param | Type | Description |
 |-------|------|-------------|
 | `entry.layerId` | `string` | The layer this region belongs to. Must match a `layerId` from `sync()` so hit priority follows the same modal > layer > root order as keyboard events. |
-| `entry.elementId` | `string` | The element id within that layer (must appear in `activeElements`). |
+| `entry.regionId` | `string` | Unique identifier for this region within the layer. Caller-chosen — it is **not** a keyboard layer element id (regions are independent of `activeElements`); duplicate ids in the same layer overwrite each other. |
 | `entry.rect` | `MouseRegionRect` | Region geometry: `{ x, y, width, height }` in **1-based terminal coordinates**. |
 | `entry.callbacks` | `MouseRegionCallbacks` | Optional callbacks: `onClick`, `onWheel`, `onEnter`, `onLeave`, `onDragStart`, `onDragMove`, `onDragEnd`. |
 | `entry.priority` | `number` | (Optional) Hit-test priority within the same layer (default `0`). Higher wins on overlap — use `1` for child controls so they beat their container. |
@@ -30,7 +30,7 @@ registerMouseRegion(entry: MouseRegionEntry): () => void
 
 ### Returns
 
-An unregister function (idempotent). Re-registering the same `layerId` + `elementId` overwrites rect and callbacks while preserving registration order.
+An unregister function (idempotent). Re-registering the same `layerId` + `regionId` overwrites rect and callbacks while preserving registration order.
 
 ### Effect
 
@@ -41,7 +41,7 @@ Adds the region to the hit-test registry. No events fire until `processMouseEven
 ```ts
 const unbind = engine.registerMouseRegion({
   layerId: 'board-screen',
-  elementId: 'board',
+  regionId: 'board',
   rect: { x: 1, y: 1, width: 40, height: 20 },
   callbacks: {
     onClick: (event, rect) => selectCell(event.x, event.y),
@@ -57,12 +57,12 @@ const unbind = engine.registerMouseRegion({
 
 ### Summary
 
-Remove a mouse region by `layerId` + `elementId` (idempotent).
+Remove a mouse region by `layerId` + `regionId` (idempotent).
 
 ### Signature
 
 ```ts
-unregisterMouseRegion(layerId: string, elementId: string): void
+unregisterMouseRegion(layerId: string, regionId: string): void
 ```
 
 ### Parameters
@@ -70,7 +70,7 @@ unregisterMouseRegion(layerId: string, elementId: string): void
 | Param | Type | Description |
 |-------|------|-------------|
 | `layerId` | `string` | The layer the region was registered under. |
-| `elementId` | `string` | The element id within that layer. |
+| `regionId` | `string` | The element id within that layer. |
 
 ### Returns
 
@@ -139,12 +139,12 @@ Return the region currently hovered (the last `move` event's hit target), or `nu
 ### Signature
 
 ```ts
-getHoveredMouseRegion(): { layerId: string; elementId: string } | null
+getHoveredMouseRegion(): { layerId: string; regionId: string } | null
 ```
 
 ### Returns
 
-A copy of `{ layerId, elementId }` for the hovered region, or `null` when nothing is hovered.
+A copy of `{ layerId, regionId }` for the hovered region, or `null` when nothing is hovered.
 
 ### Effect
 
@@ -155,12 +155,12 @@ None — a read-only query. Useful for showing hover state (e.g. tooltips) drive
 ```ts
 const hovered = engine.getHoveredMouseRegion();
 if (hovered) {
-  showTooltip(hovered.elementId);
+  showTooltip(hovered.regionId);
 }
 ```
 
 ## API interactions
 
-- **[`sync`](./sync.md)** — region `layerId`/`elementId` must match ids in the synced layers/`activeElements`, otherwise hit-testing cannot resolve them (or falls back to the root layer).
+- **[`sync`](./sync.md)** — `layerId` must match a synced layer id so hit priority follows the modal > layer > root order; regions hit-test independently of the layers' `activeElements`.
 - **[`Mouse`](../README.md)** — the engine does not parse raw terminal bytes; pair `processMouseEvent` with the `Mouse` helper (or your own parser) that turns stdin data into `XtermMouseEvent`s.
 - **[`useMouseRegion`](../../../../docs/keyboard/useMouseRegion-API.md)** — the React/Ink adapter registers a region per `<Box>` and feeds `processMouseEvent` automatically; it also filters mouse escape sequences out of the keyboard stream.

@@ -41,7 +41,7 @@ describe('MouseRegionService', () => {
       const onClick = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick },
       });
@@ -62,7 +62,7 @@ describe('MouseRegionService', () => {
       const onWheel = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onWheel },
       });
@@ -87,7 +87,7 @@ describe('MouseRegionService', () => {
       const onWheel = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onWheel },
       });
@@ -107,13 +107,13 @@ describe('MouseRegionService', () => {
       const layerWheel = vi.fn();
       svc.register({
         layerId: 'modal-1',
-        elementId: 'm1',
+        regionId: 'm1',
         rect: RECT,
         callbacks: { onWheel: modalWheel },
       });
       svc.register({
         layerId: 'layer-1',
-        elementId: 'l1',
+        regionId: 'l1',
         rect: RECT,
         callbacks: { onWheel: layerWheel },
       });
@@ -130,7 +130,7 @@ describe('MouseRegionService', () => {
       const onClick = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick },
       });
@@ -145,18 +145,18 @@ describe('MouseRegionService', () => {
       expect(onClick).not.toHaveBeenCalled();
     });
 
-    test('re-registering the same elementId overwrites rect and callbacks', () => {
+    test('re-registering the same regionId overwrites rect and callbacks', () => {
       const first = vi.fn();
       const second = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick: first },
       });
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: { x: 10, y: 10, width: 2, height: 2 },
         callbacks: { onClick: second },
       });
@@ -177,19 +177,19 @@ describe('MouseRegionService', () => {
       const rootHit = vi.fn();
       svc.register({
         layerId: 'modal-1',
-        elementId: 'm1',
+        regionId: 'm1',
         rect: RECT,
         callbacks: { onClick: modalHit },
       });
       svc.register({
         layerId: 'layer-1',
-        elementId: 'l1',
+        regionId: 'l1',
         rect: RECT,
         callbacks: { onClick: layerHit },
       });
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'r1',
+        regionId: 'r1',
         rect: RECT,
         callbacks: { onClick: rootHit },
       });
@@ -211,31 +211,28 @@ describe('MouseRegionService', () => {
       expect(rootHit).toHaveBeenCalledTimes(1);
     });
 
-    test('within a layer, later-registered active elements win on overlap', () => {
+    test('within a layer, later-registered regions win on overlap', () => {
       const first = vi.fn();
       const second = vi.fn();
       svc.register({
         layerId: 'layer-1',
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick: first },
       });
       svc.register({
         layerId: 'layer-1',
-        elementId: 'b',
+        regionId: 'b',
         rect: RECT,
         callbacks: { onClick: second },
       });
 
-      // Both are active and overlap — b (registered later) wins.
-      const layers = [makeLayer('layer-1', ['a', 'b'])];
+      // Overlapping regions — b (registered later) wins. Region hit-testing
+      // is independent of the layer's activeElements.
+      const layers = [makeLayer('layer-1', [])];
       svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), layers, []);
       expect(second).toHaveBeenCalledTimes(1);
       expect(first).not.toHaveBeenCalled();
-
-      // Deactivating b (removing from activeElements) lets a win.
-      svc.process(makeEvent({ action: 'click', x: 2, y: 2 }), [makeLayer('layer-1', ['a'])], []);
-      expect(first).toHaveBeenCalledTimes(1);
     });
 
     test('priority overrides registration order within the same layer', () => {
@@ -245,14 +242,14 @@ describe('MouseRegionService', () => {
       // without priority the parent would win; priority inverts it.
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'child',
+        regionId: 'child',
         rect: RECT,
         callbacks: { onClick: high },
         priority: 1,
       });
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'parent',
+        regionId: 'parent',
         rect: RECT,
         callbacks: { onClick: low },
       });
@@ -269,7 +266,7 @@ describe('MouseRegionService', () => {
       const onLeave = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onEnter, onLeave },
       });
@@ -298,13 +295,13 @@ describe('MouseRegionService', () => {
       const bEnter = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: { x: 1, y: 1, width: 2, height: 2 },
         callbacks: { onEnter: aEnter, onLeave: aLeave },
       });
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'b',
+        regionId: 'b',
         rect: { x: 5, y: 5, width: 2, height: 2 },
         callbacks: { onEnter: bEnter },
       });
@@ -325,7 +322,7 @@ describe('MouseRegionService', () => {
       const onDragEnd = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onDragStart, onDragMove, onDragEnd },
       });
@@ -353,7 +350,7 @@ describe('MouseRegionService', () => {
       const onDragEnd = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onDragStart, onDragEnd },
       });
@@ -370,7 +367,7 @@ describe('MouseRegionService', () => {
       const onDragEnd = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onDragMove, onDragEnd },
       });
@@ -388,7 +385,7 @@ describe('MouseRegionService', () => {
       const onDragMove = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onDragMove },
       });
@@ -404,7 +401,7 @@ describe('MouseRegionService', () => {
       const onClick = vi.fn();
       const unregister = svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick },
       });
@@ -419,7 +416,7 @@ describe('MouseRegionService', () => {
       const onClick = vi.fn();
       const unregister = svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick },
       });
@@ -433,13 +430,13 @@ describe('MouseRegionService', () => {
       const onEnter = vi.fn();
       const unregister = svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onEnter },
       });
 
       svc.process(makeEvent({ action: 'move', x: 2, y: 2 }), [], []);
-      expect(svc.getHovered()).toEqual({ layerId: ROOT_MOUSE_LAYER_ID, elementId: 'a' });
+      expect(svc.getHovered()).toEqual({ layerId: ROOT_MOUSE_LAYER_ID, regionId: 'a' });
 
       unregister();
       expect(svc.getHovered()).toBeNull();
@@ -449,7 +446,7 @@ describe('MouseRegionService', () => {
       const onDragMove = vi.fn();
       const unregister = svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onDragMove },
       });
@@ -467,7 +464,7 @@ describe('MouseRegionService', () => {
       const rootHit = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'r1',
+        regionId: 'r1',
         rect: RECT,
         callbacks: { onClick: rootHit },
       });
@@ -485,7 +482,7 @@ describe('MouseRegionService', () => {
       const onClick = vi.fn();
       svc.register({
         layerId: ROOT_MOUSE_LAYER_ID,
-        elementId: 'a',
+        regionId: 'a',
         rect: RECT,
         callbacks: { onClick },
       });

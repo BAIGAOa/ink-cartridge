@@ -1,5 +1,5 @@
 import { useContext, useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
-import { measureElement, type DOMElement } from "ink";
+import { measureElement, useBoxMetrics, useWindowSize, type DOMElement } from "ink";
 import { KeyboardContext, KeyboardContextValue } from "./context.js";
 import { LayerElementContext } from "../screen/LayerElementContext.js";
 import { ModalLayerElementContext } from "../screen/ModalLayerElementContext.js";
@@ -224,9 +224,9 @@ function measureRegion(node: DOMElement): MouseRegionRect {
  * `onClick` for clicks, `onWheel` for wheel events, `onEnter`/`onLeave` for
  * hover transitions.
  *
- * The region is attributed to the surrounding layer/modal element
- * automatically (same scoping as {@link useKeyboard}); outside any layer it
- * registers on the shared root layer, hit-tested last.
+ * The region is attributed to the surrounding layer/modal layer
+ * automatically (same layer scoping as {@link useKeyboard}); outside any layer
+ * it registers on the shared root layer, hit-tested last.
  *
  * The rect is re-measured and re-registered after every render, so layout
  * changes (resize, content growth) stay in sync with the engine.
@@ -234,8 +234,11 @@ function measureRegion(node: DOMElement): MouseRegionRect {
  * Must be used inside a {@link KeyboardProvider} with `mouse` enabled.
  *
  * @param callbacks - Region callbacks (kept fresh across renders).
- * @param options   - Optional explicit layerId/elementId overrides and
- *                    hit-test `priority` (higher wins on overlap; defaults 0).
+ * @param options   - Optional `regionId` (defaults to an auto-generated
+ *                    unique id — pass one to control identity, e.g. for
+ *                    drag/hover bookkeeping), explicit `layerId` override,
+ *                    and hit-test `priority` (higher wins on overlap;
+ *                    defaults 0).
  * @returns A ref to attach to the Ink `<Box>` to track.
  *
  * @example
@@ -253,7 +256,7 @@ function measureRegion(node: DOMElement): MouseRegionRect {
  */
 export function useMouseRegion(
   callbacks: MouseRegionCallbacks,
-  options?: { layerId?: string; elementId?: string; priority?: number },
+  options?: { layerId?: string; regionId?: string; priority?: number },
 ): RefObject<DOMElement | null> {
   const ctx = useContext(KeyboardContext);
   const layerCtx = useContext(LayerElementContext);
@@ -261,37 +264,60 @@ export function useMouseRegion(
   const ref = useRef<DOMElement | null>(null);
   const autoId = useId();
 
+  // Ink's terminal-resize path only re-lays-out and redraws the yoga tree —
+  // it does NOT re-render React components. A region's rect is refreshed
+  // during render below, which needs a render to run, so without this a
+  // static layout (e.g. a centered menu) keeps a stale rect after a resize.
+  // Tracking the layout metrics forces this component to re-render on layout
+  // commits, which re-measures and re-registers the rect synchronously below.
+  useBoxMetrics(ref);
+
+  // `useBoxMetrics` only fires when the element's OWN relative metrics change
+  // (`getComputedLayout()` vs. its parent). A button inside a fixed-width,
+  // centered row keeps identical relative metrics after a resize while its
+  // absolute screen position moves — so no re-render, and the stale rect
+  // stays registered until any mouse hit happens to re-render the component.
+  // Subscribing to terminal resize re-renders unconditionally, so the
+  // re-measure below always runs with the fresh layout.
+  useWindowSize();
+
   const layerId =
     options?.layerId ??
     layerCtx?.layer.layerId ??
     modalCtx?.modalLayer.layerId ??
     ROOT_MOUSE_LAYER_ID;
-  const elementId =
-    options?.elementId ?? layerCtx?.id ?? modalCtx?.id ?? `mouse:${autoId}`;
+  // Region identity is NOT the surrounding layer/modal element id — reusing
+  // that id would collide for every region in the same layer/modal (the
+  // later registration overwrites the earlier one). Default to a unique id
+  // per call site; callers pass `regionId` to control identity explicitly.
+  const regionId = options?.regionId ?? `mouse:${autoId}`;
 
-  // No dependency array: re-register (overwrite) after every render so the
-  // engine always holds the latest rect and the latest callback closures.
-  // Overwriting preserves registration order and does NOT touch hover/drag
-  // state — essential so a dragging window can re-render mid-drag.
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || !ctx) return;
+  // Register synchronously during render so the engine never holds a rect
+  // from a previous frame: a resize re-renders this component (via
+  // useBoxMetrics above) and this runs with the fresh layout — no effect
+  // timing gap. Overwrite is idempotent: it preserves registration order
+  // and does NOT touch hover/drag state, essential so a dragging window
+  // can re-render mid-drag. The first render has no ref node yet; the
+  // metrics update right after mount forces a second render that registers.
+  const node = ref.current;
+  if (node && ctx) {
     ctx.registerMouseRegion({
       layerId,
-      elementId,
+      regionId,
       rect: measureRegion(node),
       callbacks,
       priority: options?.priority,
     });
-  });
+  }
 
-  // Separate unmount cleanup: only runs when the component truly unmounts
-  // (or layerId/elementId change), never on plain re-renders.
+  // Unmount cleanup: only runs when the component truly unmounts (or
+  // layerId/regionId change), never on plain re-renders — those overwrite
+  // the registration above.
   useEffect(() => {
     return () => {
-      ctx?.unregisterMouseRegion(layerId, elementId);
+      ctx?.unregisterMouseRegion(layerId, regionId);
     };
-  }, [ctx, layerId, elementId]);
+  }, [ctx, layerId, regionId]);
 
   return ref;
 }

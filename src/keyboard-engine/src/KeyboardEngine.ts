@@ -1026,9 +1026,11 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Register a mouse region for hit-testing.
    *
-   * The region's `layerId`/`elementId` must match ids in the synced state so
-   * hit priority follows the same modal > layer > root order as keyboard
-   * events. `rect` must be in 1-based terminal coordinates.
+   * The region's `layerId` must match a synced layer id so hit priority
+   * follows the same modal > layer > root order as keyboard events. `regionId`
+   * is a caller-chosen unique identifier for the region within that layer —
+   * it is independent of keyboard element ids. `rect` must be in 1-based
+   * terminal coordinates.
    *
    * @returns An unregister function.
    */
@@ -1037,12 +1039,12 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
-   * Remove a mouse region by layerId + elementId (idempotent).
+   * Remove a mouse region by layerId + regionId (idempotent).
    * Needed for unmount cleanup when a region may have been re-registered
    * multiple times via {@link registerMouseRegion}.
    */
-  unregisterMouseRegion(layerId: string, elementId: string): void {
-    this.mouseRegions.unregister(layerId, elementId);
+  unregisterMouseRegion(layerId: string, regionId: string): void {
+    this.mouseRegions.unregister(layerId, regionId);
   }
 
   /**
@@ -1063,7 +1065,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /** @returns The currently hovered mouse region, or null. */
-  getHoveredMouseRegion(): { layerId: string; elementId: string } | null {
+  getHoveredMouseRegion(): { layerId: string; regionId: string } | null {
     return this.mouseRegions.getHovered();
   }
 

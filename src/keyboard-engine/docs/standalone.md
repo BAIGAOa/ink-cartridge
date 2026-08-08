@@ -282,7 +282,7 @@ const engine = new KeyboardEngine({ ... });
 // Rect coordinates are 1-based terminal columns/rows
 engine.registerMouseRegion({
   layerId: 'app',
-  elementId: 'main',
+  regionId: 'main',
   rect: { x: 1, y: 1, width: 80, height: 24 },
   callbacks: {
     onClick: (event) => console.log(`click at ${event.x},${event.y}`),

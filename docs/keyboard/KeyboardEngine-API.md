@@ -271,9 +271,9 @@ The engine hit-tests mouse events against registered rectangular regions, using 
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `registerMouseRegion(entry)` | `() => void` | Register a region (1-based terminal rect) for hit-testing; returns an unregister function |
-| `unregisterMouseRegion(layerId, elementId)` | `void` | Remove a region (idempotent); also clears stale hover/drag state |
+| `unregisterMouseRegion(layerId, regionId)` | `void` | Remove a region (idempotent); also clears stale hover/drag state |
 | `processMouseEvent(event)` | `boolean` | Feed a mouse event (move/click/wheel/press/drag/release); `true` if a region consumed it. `wheel` events fire `onWheel` with `event.button` narrowed to `'wheel-up'`/`'wheel-down'`/`'wheel-left'`/`'wheel-right'` |
-| `getHoveredMouseRegion()` | `{ layerId, elementId } \| null` | The region currently hovered (from move events) |
+| `getHoveredMouseRegion()` | `{ layerId, regionId } \| null` | The region currently hovered (from move events) |
 
 The built-in [KeyboardProvider](./KeyboardProvider-API.md) already wires the `Mouse` parser to `processMouseEvent` and exposes regions via [useMouseRegion](./useMouseRegion-API.md); mouse escape sequences are filtered out of the keyboard stream automatically.
 

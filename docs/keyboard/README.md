@@ -91,3 +91,5 @@ const ref = useMouseRegion({
 ```
 
 Hit-testing follows the same priority as keyboard events — **modal layers → regular layers → root regions**, first hit wins; child controls can win over their container via the `priority` option. Drag is supported through the `onDragStart` / `onDragMove` / `onDragEnd` capture lifecycle (press locks the target; a plain click fires no drag callbacks). Wheel events fire `onWheel` through the same hit-test chain, and mouse escape sequences are filtered out of the keyboard stream automatically — they never leak into `useInput` handlers as text.
+
+Region rects stay in sync with the terminal: `useMouseRegion` re-measures on **terminal resize** and on layout commits, so resizing the window never leaves a stale hit area — including elements whose absolute position moves while their own relative metrics don't change (e.g. buttons inside a fixed-width centered menu row).
