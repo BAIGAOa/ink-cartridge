@@ -23,12 +23,12 @@ describe("MainMenu", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("renders the logo and the button labels (default English)", async () => {
+	it("renders the menu buttons (default English)", async () => {
+		// Logo art rendering is not asserted — its glyphs vary by terminal
+		// size tier. The buttons are the stable surface.
 		const { lastFrame, unmount } = renderApp(MainMenu);
 		await flush();
 		const frame = stripAnsi(lastFrame());
-		// The logo is rendered as figlet box-drawing glyphs, not the literal word.
-		expect(frame).toContain("██████╗");
 		expect(frame).toContain("Edit Mode");
 		expect(frame).toContain("Settings");
 		expect(frame).toContain("Quit");

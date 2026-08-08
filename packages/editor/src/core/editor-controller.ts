@@ -104,12 +104,22 @@ export class EditorController {
 			const height = typeof args?.height === "number" ? args.height : 1;
 			doc.movePageDown(height);
 		});
-		// Mouse click: position the cursor by terminal column (not code units).
+		// Mouse click: position the cursor by logical column (soft-wrap aware).
 		this.defineCommand("cursor.setPosition", (doc, args) => {
 			const line = typeof args?.line === "number" ? args.line : doc.cursor.line;
-			const visual =
-				typeof args?.visual === "number" ? args.visual : doc.cursor.visual;
-			doc.setCursorAtVisual(line, visual);
+			if (typeof args?.logical === "number") {
+				doc.setCursor(line, args.logical);
+			} else {
+				const visual =
+					typeof args?.visual === "number" ? args.visual : doc.cursor.visual;
+				doc.setCursorAtVisual(line, visual);
+			}
+		});
+		// Ctrl+wheel: scroll the view without moving the cursor (clamped).
+		this.defineCommand("view.scroll", (doc, args) => {
+			const delta = typeof args?.delta === "number" ? args.delta : 0;
+			const height = typeof args?.height === "number" ? args.height : 1;
+			doc.scrollView(delta, height);
 		});
 	}
 }

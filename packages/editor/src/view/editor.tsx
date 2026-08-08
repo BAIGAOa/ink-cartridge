@@ -159,22 +159,27 @@ export function Editor({
 	]);
 
 	const ref = useRef(null);
-	const { height } = useBoxMetrics(ref);
+	const { height, width } = useBoxMetrics(ref);
 
 	const doc = controller.document;
 	const lineNumberWidth = doc.getLineNumberWidth();
+	// Soft-wrap the text at the editable width minus one cell, leaving a
+	// right-hand margin so the last column never hugs the edge.
+	doc.setWrapWidth(width - lineNumberWidth - lineNumberRightSpacing - 1);
 	const visibleStart = doc.updateScroll(height);
-	const effectiveH = height > 0 ? height : doc.lineCount;
-	const visibleLines = doc.lines.slice(visibleStart, visibleStart + effectiveH);
+	const effectiveH = height > 0 ? height : doc.visualLineCount;
 	const cursor = doc.cursor;
+	const cursorVisualLine = doc.cursorVisualLine;
 	const cursorX =
-		cursor.visual + lineNumberWidth + lineNumberRightSpacing + cursorOffset;
-	const cursorY = cursor.line - visibleStart + cursorHeightOffset;
+		doc.cursorSegmentVisual + lineNumberWidth + lineNumberRightSpacing + cursorOffset;
+	const cursorY = cursorVisualLine - visibleStart + cursorHeightOffset;
 
 	setCursorPosition({ x: cursorX, y: cursorY });
 
-	// Mouse: clicks position the cursor in any mode; the wheel scrolls one
-	// line at a time. The callbacks close over this render's metrics.
+	// Mouse: clicks position the cursor in any mode. A plain wheel moves the
+	// cursor one visual line per notch; Ctrl+wheel scrolls the view without
+	// moving the cursor (clamped to the document). Callbacks close over this
+	// render's metrics.
 	const mouseRef = useMouseRegion({
 		onClick: (event, rect) => {
 			const target = clickToPosition(
@@ -182,19 +187,29 @@ export function Editor({
 				rect,
 				lineNumberWidth + lineNumberRightSpacing,
 				doc.scrollTop,
-				doc.lineCount,
+				doc,
 			);
 			controller.execute("cursor.setPosition", {
 				line: target.line,
-				visual: target.visual,
+				logical: target.logical,
 			});
 		},
 		onWheel: (event) => {
-			if (event.button === "wheel-up") {
-				controller.execute("cursor.pageUp", { height: 1 });
-			} else if (event.button === "wheel-down") {
-				controller.execute("cursor.pageDown", { height: 1 });
+			const up = event.button === "wheel-up";
+			const down = event.button === "wheel-down";
+			if (!up && !down) {
+				return;
 			}
+			if (event.ctrl) {
+				controller.execute("view.scroll", {
+					delta: up ? -1 : 1,
+					height,
+				});
+				return;
+			}
+			controller.execute(up ? "cursor.pageUp" : "cursor.pageDown", {
+				height: 1,
+			});
 		},
 	});
 
@@ -209,18 +224,24 @@ export function Editor({
 			/>
 			<Box ref={mouseRef} flexGrow={1} width="100%" backgroundColor="#1e1e1e">
 				<Box ref={ref} height="100%" width="100%" flexDirection="column">
-					{visibleLines.map((each, i) => {
-						const lineNumber = visibleStart + i;
+					{Array.from({ length: effectiveH }, (_, i) => {
+						const vline = visibleStart + i;
+						const seg = doc.visualLineAt(vline);
+						if (!seg) {
+							return null;
+						}
 						return (
-							<Box key={lineNumber} flexDirection="row">
+							<Box key={vline} flexDirection="row">
 								<Box
 									width={lineNumberWidth}
 									justifyContent="flex-end"
 									marginRight={lineNumberRightSpacing}
 								>
-									<Text bold={cursor.line === lineNumber}>{lineNumber}</Text>
+									{seg.first ? (
+										<Text bold={cursor.line === seg.line}>{seg.line}</Text>
+									) : null}
 								</Box>
-								<Text>{each}</Text>
+								<Text>{doc.getLine(seg.line).slice(seg.start, seg.end)}</Text>
 							</Box>
 						);
 					})}

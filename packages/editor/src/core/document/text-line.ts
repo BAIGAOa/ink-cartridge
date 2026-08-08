@@ -58,4 +58,39 @@ export class TextLine {
 		}
 		return lo;
 	}
+
+	/**
+	 * Cut one soft-wrap segment starting at `startVisual`: the longest
+	 * slice whose terminal width is at most `wrapWidth`. Returns the segment
+	 * text plus the visual/logical position where it ends (the next call's
+	 * `startVisual`). A single character wider than `wrapWidth` (or the
+	 * trailing empty segment at line end) is returned on its own so the
+	 * caller always makes progress.
+	 */
+	segmentFrom(
+		startVisual: number,
+		wrapWidth: number,
+	): { text: string; endVisual: number; endLogical: number } {
+		const start = this.logicalAt(startVisual);
+		if (start >= this.text.length) {
+			return {
+				text: "",
+				endVisual: this.visualAt(start),
+				endLogical: start,
+			};
+		}
+		const startVisualActual = this.visualAt(start);
+		const limit = startVisualActual + Math.max(1, wrapWidth);
+		let end = this.logicalAt(limit);
+		// `logicalAt` may snap left onto a wide char; guarantee progress by
+		// taking at least one code point (a surrogate pair counts as one).
+		if (end <= start) {
+			end = start + (this.text.codePointAt(start)! > 0xffff ? 2 : 1);
+		}
+		return {
+			text: this.text.slice(start, end),
+			endVisual: this.visualAt(end),
+			endLogical: end,
+		};
+	}
 }
