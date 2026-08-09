@@ -58,4 +58,34 @@ describe("clickToPosition", () => {
 			logical: 9,
 		});
 	});
+
+	it("snaps a click left of the region to the segment start", () => {
+		const doc = new Document("abcdefghij");
+		doc.setWrapWidth(3);
+		// x=0 → localX=-1 → offset 0 → start of the continuation [3-6).
+		expect(clickToPosition({ x: 0, y: 2 }, RECT, GUTTER, 0, doc)).toEqual({
+			line: 0,
+			logical: 3,
+		});
+	});
+
+	it("snaps a click inside a wide char on a wrapped continuation", () => {
+		const doc = new Document("ab你cd");
+		doc.setWrapWidth(3);
+		// Segments: [0-2) "ab", [2-4) "你c". Column 1 of the continuation
+		// lands inside 你 → snap to its start (logical 2).
+		expect(clickToPosition({ x: 4, y: 2 }, RECT, GUTTER, 0, doc)).toEqual({
+			line: 0,
+			logical: 2,
+		});
+	});
+
+	it("clicks on the gutter of a continuation snap to the segment start", () => {
+		const doc = new Document("ab你cd");
+		doc.setWrapWidth(3);
+		expect(clickToPosition({ x: 1, y: 2 }, RECT, GUTTER, 0, doc)).toEqual({
+			line: 0,
+			logical: 2,
+		});
+	});
 });
