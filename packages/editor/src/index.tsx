@@ -9,6 +9,7 @@ import {
   ScenarioManagementProvider,
 } from "ink-cartridge";
 import { resources } from "./i18n-resources.js";
+import { settingsStore } from "./core/settings/useSettings.js";
 import { MainMenu } from "./view/main-menu.js";
 import { Editor } from "./view/editor.js";
 import { Settings } from "./view/settings.js";
@@ -21,7 +22,7 @@ render(
   <ScenarioManagementProvider defaultScreen={MainMenu} fullScreen>
     <LanguageProvider
       resources={resources}
-      defaultLanguage="en"
+      defaultLanguage={settingsStore.settings.language}
       fallbackLanguage="en"
     >
       <KeyboardProvider

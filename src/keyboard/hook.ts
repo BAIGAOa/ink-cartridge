@@ -217,6 +217,16 @@ function measureRegion(node: DOMElement): MouseRegionRect {
 }
 
 /**
+ * Walk up to the `ink-root` DOM node. Ink's layout listeners are registered
+ * on the root node, which is also where `useBoxMetrics` attaches them.
+ */
+function findRootNode(node: DOMElement | null): DOMElement | undefined {
+  if (!node) return undefined;
+  if (!node.parentNode) return node.nodeName === "ink-root" ? node : undefined;
+  return findRootNode(node.parentNode);
+}
+
+/**
  * Register an Ink element as a mouse region.
  *
  * Attach the returned ref to a `<Box>`. The engine hit-tests xterm-mouse
@@ -309,6 +319,44 @@ export function useMouseRegion(
       priority: options?.priority,
     });
   }
+
+  // A region's rect is only re-measured when this component re-renders, but
+  // two common re-layouts never trigger that: React skips children whose
+  // element reference is unchanged (a draggable frame moving its children),
+  // and `useBoxMetrics` only fires when the element's OWN relative metrics
+  // change (an element inside a moved ancestor keeps identical relative
+  // metrics). The stale rect then wins hit-testing at the old position.
+  // Ink fires root layout listeners after every commit (`emitLayoutListeners`
+  // in the reconciler's `resetAfterCommit`, once the yoga layout is applied),
+  // so subscribe here and re-measure unconditionally — no render needed.
+  // `addLayoutListener` is not exported from ink's public entry, so touch the
+  // same internal listener set it uses (`internal_layoutListeners`); ink
+  // itself iterates it, and `useBoxMetrics` depends on the identical hook.
+  useEffect(() => {
+    const rootNode = findRootNode(ref.current);
+    if (!rootNode) return;
+    type LayoutListenerHost = DOMElement & {
+      internal_layoutListeners?: Set<() => void>;
+    };
+    const host = rootNode as LayoutListenerHost;
+    const listener = () => {
+      const current = ref.current;
+      if (current && ctx) {
+        ctx.registerMouseRegion({
+          layerId,
+          regionId,
+          rect: measureRegion(current),
+          callbacks,
+          priority: options?.priority,
+        });
+      }
+    };
+    host.internal_layoutListeners ??= new Set();
+    host.internal_layoutListeners.add(listener);
+    return () => {
+      host.internal_layoutListeners?.delete(listener);
+    };
+  });
 
   // Unmount cleanup: only runs when the component truly unmounts (or
   // layerId/regionId change), never on plain re-renders — those overwrite

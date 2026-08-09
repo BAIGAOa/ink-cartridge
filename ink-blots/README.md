@@ -26,5 +26,5 @@ Open an issue with the label `ink-blots` and tag which project you were running.
 ## Run
 
 ```bash
-npx tsx ink-blots/snake/index.tsx
+npx tsx ink-blots/Trello/index.tsx
 ```

@@ -30,7 +30,7 @@ function useMouseRegion(
 
 ## Returns
 
-A ref to attach to the Ink `<Box>` to track. The rect is re-measured and re-registered **synchronously during render** (no effect timing gap), so the engine never holds a rect from a previous frame; the hook also re-renders the component on terminal resize (`useWindowSize`) and on layout commits (`useBoxMetrics`), so resizes always refresh the rect immediately — even when the element's **absolute position** moves while its own relative metrics stay fixed (e.g. a button inside a fixed-width, centered row on the main menu).
+A ref to attach to the Ink `<Box>` to track. The rect is re-measured and re-registered **synchronously during render** (no effect timing gap), and again after every Ink layout commit — the hook subscribes to the root layout listeners Ink fires once the yoga tree has been re-computed. The hit area therefore always matches the current frame, even when the element's **absolute position** moves while its own relative metrics stay fixed: a button inside a fixed-width, centered row on terminal resize, or a child control inside a draggable modal frame. The layout-commit pass re-measures unconditionally, so it also covers re-layouts that never re-render the component — React bails out of re-rendering children whose element reference is unchanged, and `useBoxMetrics` only fires on the element's own relative metric changes.
 
 ## Coordinate model
 

@@ -1,8 +1,11 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import React from "react";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { clearRegistry, registerComponent } from "ink-cartridge";
 import { MainMenu } from "../src/view/main-menu.js";
 import { Settings } from "../src/view/settings.js";
+import { settingsStore } from "../src/core/settings/useSettings.js";
 import { flush, press, renderApp, stripAnsi } from "./base/_helpers.js";
 
 function registerAll() {
@@ -11,13 +14,18 @@ function registerAll() {
 }
 
 describe("Settings language switching", () => {
+	let tempDir = "";
 	beforeEach(() => {
 		clearRegistry();
 		registerAll();
+		// Isolate the shared settings store from the real ~/.config file.
+		tempDir = mkdtempSync(join(tmpdir(), "blots-settings-test-"));
+		settingsStore.reset(join(tempDir, "settings.json"));
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+		rmSync(tempDir, { recursive: true, force: true });
 	});
 
 	it("opens a language picker modal and switches to Chinese", async () => {
@@ -42,6 +50,11 @@ describe("Settings language switching", () => {
 		await flush();
 		expect(stripAnsi(lastFrame())).toContain("编辑模式");
 		expect(stripAnsi(lastFrame())).toContain("退出");
+		// The chosen language is persisted to the settings file.
+		const persisted = JSON.parse(
+			readFileSync(join(tempDir, "settings.json"), "utf8"),
+		) as { language?: string };
+		expect(persisted.language).toBe("zh");
 		unmount();
 	});
 
@@ -58,6 +71,38 @@ describe("Settings language switching", () => {
 		// Back on the settings screen, still in English.
 		expect(stripAnsi(lastFrame())).toContain("English");
 		expect(stripAnsi(lastFrame())).not.toContain("中文");
+		unmount();
+	});
+
+	it("adjusts the cursor wheel sensitivity via the slider picker", async () => {
+		const { stdin, lastFrame, unmount } = renderApp(MainMenu);
+		await flush();
+		await press(stdin, "s"); // open settings
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Cursor Wheel Sensitivity");
+
+		await press(stdin, "down"); // focus the cursor-sensitivity entry
+		await press(stdin, "\r"); // open its picker modal
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Click or drag to adjust");
+		expect(stripAnsi(lastFrame())).toContain("1.0×");
+
+		await press(stdin, "right"); // +0.5 step
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("1.5×");
+
+		await press(stdin, "right");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("2.0×");
+
+		await press(stdin, "left");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("1.5×");
+
+		await press(stdin, "\x1b"); // close the picker
+		await flush();
+		// The settings row reflects the new value.
+		expect(stripAnsi(lastFrame())).toContain("1.5×");
 		unmount();
 	});
 });

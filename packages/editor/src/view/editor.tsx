@@ -8,6 +8,7 @@ import {
 } from "ink-cartridge";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EditorController } from "../core/editor-controller.js";
+import { useSettings } from "../core/settings/useSettings.js";
 import { clickToPosition } from "./click-mapping.js";
 import { CommandBar } from "./command-bar.js";
 import { InformationBar } from "./information-bar.js";
@@ -57,6 +58,7 @@ export function Editor({
 		setMode,
 	} = useKeyboard();
 	const { t } = useI18n();
+	const { settings } = useSettings();
 
 	// The engine keeps modes in a ref (no React notification), so we mirror
 	// switches locally to keep the status bar live.
@@ -201,14 +203,17 @@ export function Editor({
 				return;
 			}
 			if (event.ctrl) {
+				// Ctrl+wheel scrolls the view at `view` lines per notch
+				// (clamped to the document); the cursor does not move.
 				controller.execute("view.scroll", {
-					delta: up ? -1 : 1,
+					delta: up ? -settings.wheel.view : settings.wheel.view,
 					height,
 				});
 				return;
 			}
+			// Plain wheel moves the cursor at `cursor` lines per notch.
 			controller.execute(up ? "cursor.pageUp" : "cursor.pageDown", {
-				height: 1,
+				height: settings.wheel.cursor,
 			});
 		},
 	});
