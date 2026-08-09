@@ -1,6 +1,6 @@
 {
   "name": "@cartridge-engine/search-input",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Text input with focus management",
   "type": "module",
   "main": "./dist/index.js",
