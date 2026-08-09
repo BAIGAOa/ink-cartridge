@@ -193,8 +193,21 @@ export class Document {
 	/** Set the cursor, clamping out-of-range values (line to `[0, lineCount-1]`, column to end of line). */
 	setCursor(line: number, logical: number): void {
 		const l = Math.max(0, Math.min(line, this._lines.length - 1));
-		const len = this._lines[l].text.length;
-		this._cursor = { line: l, logical: Math.max(0, Math.min(logical, len)) };
+		const text = this._lines[l].text;
+		let col = Math.max(0, Math.min(logical, text.length));
+		// The cursor must never sit between the halves of a surrogate pair —
+		// typing there would split the emoji — so snap it to the pair start.
+		if (
+			col > 0 &&
+			col < text.length &&
+			text.charCodeAt(col) >= 0xdc00 &&
+			text.charCodeAt(col) <= 0xdfff &&
+			text.charCodeAt(col - 1) >= 0xd800 &&
+			text.charCodeAt(col - 1) <= 0xdbff
+		) {
+			col--;
+		}
+		this._cursor = { line: l, logical: col };
 		// Any cursor movement releases the manual view-scroll lock so the
 		// viewport follows the cursor again.
 		this._viewScrollTop = null;
@@ -223,14 +236,29 @@ export class Document {
 	moveLeft(): void {
 		const { line, logical } = this._cursor;
 		if (logical > 0) {
-			this.setCursor(line, logical - 1);
+			let target = logical - 1;
+			// Step over the whole emoji: stopping at its trailing half would
+			// leave the cursor inside the pair.
+			const ch = this._lines[line].text.charCodeAt(target);
+			if (target > 0 && ch >= 0xdc00 && ch <= 0xdfff) {
+				target--;
+			}
+			this.setCursor(line, target);
 		}
 	}
 
 	moveRight(): void {
 		const { line, logical } = this._cursor;
-		if (logical < this._lines[line].text.length) {
-			this.setCursor(line, logical + 1);
+		const text = this._lines[line].text;
+		if (logical < text.length) {
+			let target = logical + 1;
+			// Step over the whole emoji: stopping at its leading half would
+			// leave the cursor inside the pair.
+			const ch = text.charCodeAt(logical);
+			if (target < text.length && ch >= 0xd800 && ch <= 0xdbff) {
+				target++;
+			}
+			this.setCursor(line, target);
 		}
 	}
 

@@ -44,10 +44,15 @@ export class DeleteBeforeOp implements EditOperation {
 		const { line, logical } = doc.cursor;
 		if (logical > 0) {
 			const cur = doc.getLine(line);
-			this._deletedChar = cur[logical - 1];
+			// Deleting only the trailing half of a surrogate pair would leave a
+			// broken half-rendering char, so delete the whole code point.
+			const last = cur.charCodeAt(logical - 1);
+			const isTrail = last >= 0xdc00 && last <= 0xdfff && logical >= 2;
+			const units = isTrail ? 2 : 1;
+			this._deletedChar = cur.slice(logical - units, logical);
 			this._joined = false;
-			doc.setLine(line, cur.slice(0, logical - 1) + cur.slice(logical));
-			doc.setCursor(line, logical - 1);
+			doc.setLine(line, cur.slice(0, logical - units) + cur.slice(logical));
+			doc.setCursor(line, logical - units);
 		} else if (line > 0) {
 			const prev = doc.getLine(line - 1);
 			const cur = doc.getLine(line);
@@ -66,7 +71,7 @@ export class DeleteBeforeOp implements EditOperation {
 				line,
 				cur.slice(0, logical) + this._deletedChar + cur.slice(logical)
 			);
-			doc.setCursor(line, logical + 1);
+			doc.setCursor(line, logical + this._deletedChar.length);
 		} else {
 			// Cursor sits at the end of the merged line; split it back at that point.
 			const { line, logical } = doc.cursor;
@@ -87,9 +92,14 @@ export class DeleteAfterOp implements EditOperation {
 		const { line, logical } = doc.cursor;
 		const cur = doc.getLine(line);
 		if (logical < cur.length) {
-			this._deletedChar = cur[logical];
+			// Deleting only the leading half of a surrogate pair would leave a
+			// broken half-rendering char, so delete the whole code point.
+			const first = cur.charCodeAt(logical);
+			const isLead = first >= 0xd800 && first <= 0xdbff && logical + 1 < cur.length;
+			const units = isLead ? 2 : 1;
+			this._deletedChar = cur.slice(logical, logical + units);
 			this._joined = false;
-			doc.setLine(line, cur.slice(0, logical) + cur.slice(logical + 1));
+			doc.setLine(line, cur.slice(0, logical) + cur.slice(logical + units));
 		} else if (line < doc.lineCount - 1) {
 			const next = doc.getLine(line + 1);
 			doc.setLine(line, cur + next);
