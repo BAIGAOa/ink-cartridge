@@ -20,7 +20,7 @@ npm run test:coverage  # vitest run --coverage
 npm run lint           # eslint src/ packages/
 npm run lint:fix       # eslint --fix src/ packages/
 npm run lint:quick     # eslint src/ packages/ --quiet --cache
-npm run demo:dev       # tsx examples/dev/dev.tsx
+npm run demo:dev       # tsx examples/dev/dev.tsx (BROKEN: file no longer exists; per-demo: npx tsx examples/<pkg>/<Demo>.tsx)
 npm run clean          # rm -rf dist
 ```
 
@@ -39,7 +39,9 @@ A task is not complete until:
 
 **Component Library** (`packages/`) — 14 `@cartridge-engine/*` packages (badge, confirm-dialog, divider, fold, form, key-hint, number-input, progress-bar, search-bar, search-input, select, spinner, tabs, text-input), each with own `src/`, `tests/`, `package.json`, `vitest.config.ts`, `README.md`. `select` bundles SelectInput + SelectRow + MultiSelectInput + shared tools. All interactive ones use `focusId`. Form system (`Form` + `Field`) with validation context, Ctrl+Enter submit. Components depend on the core via `peerDependencies` (`ink-cartridge`, `ink`, `react`); `search-bar` additionally depends on `@cartridge-engine/text-input`. When adding a package: add it to the root `build` script (before dependents) and to `vitest.config.ts` `projects` and CI's tsc checks.
 
-**Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), Dev Tool (`docs/dev-tool.md`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType`).
+`packages/editor/` is NOT a component package — it's `blots-editor`, a standalone Markdown-editor app (bin `blots-editor`) depending on `ink-cartridge`. It has its own `tests/` and vitest project and is built separately in the release workflow, but is absent from the root `build` script.
+
+**Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType` — entry `src/cli/index.ts`).
 
 ### ink-blots vs examples
 
@@ -140,5 +142,5 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## CI/CD
 
-- GitHub CI: `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/, all 14 package tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main` and tags.
-- On GitHub release publish: idempotency check → `npm publish --access public`.
+- GitHub CI (`ci.yml`): `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/, all 14 package tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main`.
+- Release (`release.yml`): `npm run build` + `npm run build -w blots-editor`, then `changesets/action` opens a version PR and publishes on merge (`createGithubReleases: true`).

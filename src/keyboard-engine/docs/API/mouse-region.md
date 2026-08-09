@@ -120,7 +120,7 @@ Dispatches by action:
 - `wheel` events fire `onWheel` (hit-test only, same priority chain).
 - `press`/`drag`/`release` drive the drag lifecycle: a `press` inside a region arms a drag capture; the first `drag` event promotes it and fires `onDragStart`/`onDragMove`; `release` fires `onDragEnd` (only if a real drag happened — plain clicks stay silent).
 
-Hit priority follows keyboard events: **modal layers → regular layers → root regions**, first hit wins; within a layer, later-registered regions win unless `priority` overrides.
+Hit priority follows keyboard events: **modal layers → regular layers → root regions**, first hit wins; within a layer, later-registered regions win unless `priority` overrides. While a modal layer is open it **takes over hit-testing** exactly like the keyboard modal priority — events that miss the modal do not fall through to regular layers or root regions, so clicking "through" a modal can never trigger the UI underneath.
 
 ### Usage
 

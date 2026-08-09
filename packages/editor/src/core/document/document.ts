@@ -24,6 +24,8 @@ export class Document {
 	// Non-null while the user is scrolling the view manually (Ctrl+wheel):
 	// updateScroll keeps this position instead of following the cursor.
 	private _viewScrollTop: number | null = null;
+	// Fractional view-scroll remainder, so e.g. 3.5 cells/notch scrolls 3,4,3,4…
+	private _scrollRemainder = 0;
 	readonly indentWidth: number;
 
 	constructor(text: string, options: DocumentOptions = {}) {
@@ -347,7 +349,10 @@ export class Document {
 
 	/** Page up: move the cursor up by `height - 1` visual lines (one line of overlap), keeping the visual column. */
 	movePageUp(height: number): void {
-		const target = Math.max(0, this.cursorVisualLine - Math.max(1, height - 1));
+		// `height` may be fractional (wheel sensitivity): round to whole
+		// visual lines, keeping the one-line overlap.
+		const step = Math.max(1, Math.round(height) - 1);
+		const target = Math.max(0, this.cursorVisualLine - step);
 		const seg = this.visualLineAt(target);
 		if (!seg) {
 			return;
@@ -356,9 +361,10 @@ export class Document {
 	}
 
 	movePageDown(height: number): void {
+		const step = Math.max(1, Math.round(height) - 1);
 		const target = Math.min(
 			this.visualLineCount - 1,
-			this.cursorVisualLine + Math.max(1, height - 1),
+			this.cursorVisualLine + step,
 		);
 		const seg = this.visualLineAt(target);
 		if (!seg) {
@@ -369,15 +375,19 @@ export class Document {
 
 	/**
 	 * Scroll the viewport by `delta` visual lines without moving the cursor,
-	 * clamped to the document range. Locks the view in place (Ctrl+wheel
-	 * browsing) until the cursor moves.
+	 * clamped to the document range. Fractional deltas (wheel sensitivity)
+	 * accumulate and round to whole visual lines over successive notches.
+	 * Locks the view in place (Ctrl+wheel browsing) until the cursor moves.
 	 */
 	scrollView(delta: number, height: number): number {
 		const total = this.visualLineCount;
 		const effectiveH = height > 0 ? height : total;
 		const maxScroll = Math.max(0, total - effectiveH);
 		const base = this._viewScrollTop ?? this._scrollTop;
-		const vs = Math.max(0, Math.min(base + delta, maxScroll));
+		this._scrollRemainder += delta;
+		const move = Math.trunc(this._scrollRemainder);
+		this._scrollRemainder -= move;
+		const vs = Math.max(0, Math.min(base + move, maxScroll));
 		this._viewScrollTop = vs;
 		this._scrollTop = vs;
 		return vs;

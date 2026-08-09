@@ -304,6 +304,27 @@ describe("Document", () => {
 			expect(doc.updateScroll(5)).toBe(doc.cursorVisualLine);
 		});
 
+		it("pages by fractional sensitivity (rounded)", () => {
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			doc.setCursor(0, 0);
+			doc.movePageDown(3.5); // round(3.5) - 1 = 3 visual lines
+			expect(doc.cursorVisualLine).toBe(3);
+		});
+
+		it("scrolls by fractional sensitivity with accumulation", () => {
+			const doc = new Document(
+				Array.from({ length: 10 }, (_, i) => `xx${i}`).join("\n")
+			);
+			doc.setWrapWidth(2);
+			// 3.5 cells/notch → moves 3, then 4, then 3… (remainder kept).
+			expect(doc.scrollView(3.5, 5)).toBe(3);
+			expect(doc.scrollView(3.5, 5)).toBe(7);
+			expect(doc.scrollView(3.5, 5)).toBe(10);
+		});
+
 		it("keeps logical-line behavior when wrapping is off", () => {
 			const doc = new Document("abcdef");
 			// default wrapWidth = Infinity → one visual line per logical line

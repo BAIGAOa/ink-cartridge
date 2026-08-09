@@ -250,6 +250,11 @@ export default class MouseRegionService {
   /**
    * Find the highest-priority region containing the point: modal layers
    * (reverse order) → regular layers (reverse order) → root regions.
+   *
+   * While any modal layer is open it takes over mouse hit-testing just like
+   * it takes over the keyboard: events never fall through to regular layers
+   * or root regions, so clicking "through" a modal cannot trigger the UI
+   * underneath.
    */
   private hitTest(
     x: number,
@@ -257,9 +262,12 @@ export default class MouseRegionService {
     layers: KeyboardLayer[],
     modalLayers: KeyboardLayer[],
   ): { layerId: string; regionId: string } | null {
-    for (let i = modalLayers.length - 1; i >= 0; i--) {
-      const hit = this.hitLayer(modalLayers[i], x, y);
-      if (hit) return hit;
+    if (modalLayers.length > 0) {
+      for (let i = modalLayers.length - 1; i >= 0; i--) {
+        const hit = this.hitLayer(modalLayers[i], x, y);
+        if (hit) return hit;
+      }
+      return null;
     }
     for (let i = layers.length - 1; i >= 0; i--) {
       const hit = this.hitLayer(layers[i], x, y);

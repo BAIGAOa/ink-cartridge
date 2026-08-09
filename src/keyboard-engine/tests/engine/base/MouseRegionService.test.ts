@@ -211,6 +211,33 @@ describe('MouseRegionService', () => {
       expect(rootHit).toHaveBeenCalledTimes(1);
     });
 
+    test('modal layers block clicks that miss them (no fall-through)', () => {
+      const rootHit = vi.fn();
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        regionId: 'r1',
+        rect: RECT,
+        callbacks: { onClick: rootHit },
+      });
+      svc.register({
+        layerId: 'modal-1',
+        regionId: 'm1',
+        // Away from RECT: a click inside RECT misses the modal.
+        rect: { x: 10, y: 10, width: 2, height: 2 },
+        callbacks: {},
+      });
+
+      const consumed = svc.process(
+        makeEvent({ action: 'click', x: 2, y: 2 }),
+        [],
+        [makeLayer('modal-1', ['m1'])],
+      );
+
+      // The modal is open: the miss must NOT fall through to the root region.
+      expect(consumed).toBe(false);
+      expect(rootHit).not.toHaveBeenCalled();
+    });
+
     test('within a layer, later-registered regions win on overlap', () => {
       const first = vi.fn();
       const second = vi.fn();
@@ -393,6 +420,37 @@ describe('MouseRegionService', () => {
       svc.process(makeEvent({ action: 'press', x: 50, y: 50 }), [], []);
       svc.process(makeEvent({ action: 'drag', x: 51, y: 51 }), [], []);
       expect(onDragMove).not.toHaveBeenCalled();
+    });
+
+    test('release resets the capture; the next press re-arms to the new region', () => {
+      const aMove = vi.fn();
+      const bMove = vi.fn();
+      const OTHER_RECT: MouseRegionRect = { x: 10, y: 10, width: 3, height: 3 };
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        regionId: 'a',
+        rect: RECT,
+        callbacks: { onDragMove: aMove },
+      });
+      svc.register({
+        layerId: ROOT_MOUSE_LAYER_ID,
+        regionId: 'b',
+        rect: OTHER_RECT,
+        callbacks: { onDragMove: bMove },
+      });
+
+      // Drag region a…
+      svc.process(makeEvent({ action: 'press', x: 2, y: 2 }), [], []);
+      svc.process(makeEvent({ action: 'drag', x: 3, y: 2 }), [], []);
+      expect(aMove).toHaveBeenCalledTimes(1);
+      svc.process(makeEvent({ action: 'release', x: 3, y: 2 }), [], []);
+
+      // …then drag region b: the capture must have been released, so the
+      // next press re-arms to b.
+      svc.process(makeEvent({ action: 'press', x: 11, y: 11 }), [], []);
+      svc.process(makeEvent({ action: 'drag', x: 12, y: 11 }), [], []);
+      expect(bMove).toHaveBeenCalledTimes(1);
+      expect(aMove).toHaveBeenCalledTimes(1);
     });
   });
 
