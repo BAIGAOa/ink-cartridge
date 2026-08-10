@@ -1,7 +1,7 @@
 ---
 name: comments
 description: Comments and documentation must be written in English. No Chinese or other languages in code comments, UI strings, or documentation.
-paths: ["src/**/*", "tests/**/*", "examples/**/*", "docs/**/*", "docs-agents/**/*", "agents/**/*", "*.md"]
+paths: ["src/**/*", "tests/**/*", "examples/**/*", "documents/**/*", "docs-agents/**/*", "agents/**/*", "*.md"]
 ---
 
 ## English-only
@@ -19,5 +19,4 @@ This includes:
 
 ## Exceptions
 
-- `examples/i18n/locales/zh-CN.json` — i18n locale data, intentionally Chinese
 - Commit messages — not governed by this rule (use project convention)

@@ -10,6 +10,15 @@
  * @param conditions - The conditions map from the pipeline context.
  * @returns The resolved boolean value of the condition.
  * @throws If `when` is a string referencing an unregistered condition.
+ *
+ * @example
+ * ```ts
+ * const conditions = new Map([['isEditing', true]]);
+ *
+ * checkWhen('isEditing', conditions);   // true
+ * checkWhen(() => false, conditions);   // false
+ * checkWhen(undefined, conditions);     // true (no condition = pass)
+ * ```
  */
 export function checkWhen(
   when: (() => boolean) | string | undefined,

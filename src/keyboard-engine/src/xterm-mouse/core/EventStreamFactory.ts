@@ -12,6 +12,10 @@ import { MouseError } from '../types/index.js';
  * - Handle queue management, abort signals, and cleanup
  */
 export class EventStreamFactory {
+  /**
+   * Creates an event stream factory over the given emitter.
+   * @param emitter The event emitter to listen for mouse events on.
+   */
   constructor(private emitter: EventEmitter) {}
 
   /**

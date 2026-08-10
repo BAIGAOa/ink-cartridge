@@ -14,5 +14,6 @@
   "editor.mode.insert": "插入",
   "editor.mode.normal": "普通",
   "command.prompt": "命令",
-  "command.unknown": "未知命令：{cmd}"
+  "command.unknown": "未知命令：{cmd}",
+  "toolbar.fileTree": "文件树"
 }

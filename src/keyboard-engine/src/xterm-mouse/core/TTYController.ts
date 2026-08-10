@@ -77,6 +77,14 @@ export class TTYController {
   private currentRawMode: boolean | null = null;
   private cleanupToken: { instance: TTYController } | null = null;
 
+  /**
+   * Creates a controller managing terminal state for mouse event tracking.
+   * @param inputStream The readable stream to listen for mouse events on.
+   * @param outputStream The writable stream to send ANSI control sequences to.
+   * @param handleEvent Callback invoked with raw data chunks from the input stream.
+   * @param setRawModeFn Custom function to set raw mode on the input stream.
+   * @throws {TypeError} If any of the dependencies are malformed.
+   */
   constructor(
     private inputStream: ReadableStreamWithEncoding,
     private outputStream: NodeJS.WriteStream,

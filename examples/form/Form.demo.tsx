@@ -19,7 +19,7 @@ import {
 import type { Validator } from '@cartridge-engine/form';
 import type { Item } from '@cartridge-engine/select';
 
-// ── Validators ────────────────────────────────────────────
+// Validators
 
 const required: Validator = (v) => (v ? undefined : 'Required');
 
@@ -40,7 +40,7 @@ const between = (min: number, max: number): Validator =>
     return undefined;
   };
 
-// ── Data ──────────────────────────────────────────────────
+// Data
 
 const countries: Item<string>[] = [
   { label: '🇨🇳 China', value: 'CN' },
@@ -58,7 +58,7 @@ const interests: Item<string>[] = [
   { label: 'Travel', value: 'travel' },
 ];
 
-// ── Demo Component ───────────────────────────────────────
+// Demo Component
 
 function FormDemo() {
   const [submitted, setSubmitted] = useState<Record<string, any> | null>(null);
@@ -89,7 +89,7 @@ function FormDemo() {
             setSubmitted(null);
           }}
         >
-          {/* ── Email ─────────────────────────── */}
+          {/* Email */}
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Email</Text>
             <Field name="email" rules={[required, isEmail]} defaultValue="">
@@ -105,7 +105,7 @@ function FormDemo() {
             {formErrors.email && <Text color="red">⚠ {formErrors.email}</Text>}
           </Box>
 
-          {/* ── Password ──────────────────────── */}
+          {/* Password */}
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Password</Text>
             <Field name="password" rules={[required, minLength(6)]} defaultValue="">
@@ -122,7 +122,7 @@ function FormDemo() {
             {formErrors.password && <Text color="red">⚠ {formErrors.password}</Text>}
           </Box>
 
-          {/* ── Age ───────────────────────────── */}
+          {/* Age */}
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Age</Text>
             <Field name="age" rules={[required, between(13, 120)]}>
@@ -139,7 +139,7 @@ function FormDemo() {
             {formErrors.age && <Text color="red">⚠ {formErrors.age}</Text>}
           </Box>
 
-          {/* ── Country ───────────────────────── */}
+          {/* Country */}
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Country</Text>
             <Field name="country" rules={[required]} defaultValue="">
@@ -157,7 +157,7 @@ function FormDemo() {
             {formErrors.country && !selectedCountry && <Text color="red">⚠ {formErrors.country}</Text>}
           </Box>
 
-          {/* ── Interests ─────────────────────── */}
+          {/* Interests */}
           <Box flexDirection="column" marginBottom={1}>
             <Text bold>Interests</Text>
             <Field name="interests" defaultValue={[]}>
@@ -183,7 +183,7 @@ function FormDemo() {
 
       <Divider />
 
-      {/* ── Submission Result ────────────────── */}
+      {/* Submission Result */}
       {submitted && (
         <Box flexDirection="column">
           <Text bold color="green">✓ Registration submitted!</Text>
@@ -209,7 +209,7 @@ function FormDemo() {
   );
 }
 
-// ── App / Screen wiring ──────────────────────────────────
+// App / Screen wiring
 
 registerComponent(FormDemo, {});
 

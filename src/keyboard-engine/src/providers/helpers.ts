@@ -75,8 +75,11 @@ export function removeKeysFromActionMap(
  * as {@link KeyRule} arrays.
  */
 export interface KeyRuleContainer {
+  /** Key rules marked as transparent (pass-through to lower layers or focus targets). */
   penetrationKeys: KeyRule[];
+  /** Key rules stopped here (propagation barrier). */
   stoppedKeys: KeyRule[];
+  /** Keys allowed to pass through the modal barrier (present on modal elements). */
   allowedKeys?: KeyRule[]
 }
 
@@ -130,7 +133,7 @@ export function pushKeyEntries(
   };
 }
 
-// ── Pure helpers for shortcut / sequence action CRUD ──────────────────
+// Pure helpers for shortcut / sequence action CRUD
 // Both shortcutOperationsRef and sequenceOperationsRef share the same
 // Map<string, { action, keys?, timeout? }> shape.  The CRUD callbacks
 // below differ only in which ref they target and the error-message label.
@@ -169,12 +172,26 @@ export function deleteIfPresent(
 }
 
 /**
+ * An operation entry (shortcut or sequence) that may carry preset keys.
+ *
+ * The `keys` array stores the default key names that trigger the action;
+ * {@link modifyEntryKeys} overwrites them in place.
+ */
+export type EntryWithOptionalKeys = {
+  /** Preset key names that trigger the action. */
+  keys?: string[];
+};
+
+/**
  * Retrieve an entry and overwrite its keys, throwing when the entry or
  * its preset keys are missing.  Returns the entry so callers can apply
  * additional mutations (e.g. timeout for sequence actions).
  * Used by modifyAction / modifySequenceAction.
+ *
+ * @typeParam T - Entry type carrying optional preset keys
+ *                (see {@link EntryWithOptionalKeys}).
  */
-export function modifyEntryKeys<T extends { keys?: string[] }>(
+export function modifyEntryKeys<T extends EntryWithOptionalKeys>(
   map: Map<string, T>,
   id: string,
   keys: string[],

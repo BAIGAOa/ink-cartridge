@@ -1,5 +1,10 @@
 import { ComponentProps, ComponentType } from "react"
 
+/**
+ * An element stored in a layer.
+ *
+ * Holds the element component, its props, and its keyboard-active flag.
+ */
 export type LayerElement = {
     /**
      * The ID of this element;

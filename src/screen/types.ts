@@ -1,5 +1,6 @@
 import React from "react";
 
+/** Registration metadata for a screen in the navigation tree. */
 export interface RegisterOptions {
 	/**
 	 * The parent component in the navigation tree.
@@ -8,6 +9,7 @@ export interface RegisterOptions {
 	parent?: React.ComponentType<any>;
 }
 
+/** Options for {@link skip} — navigation flags when moving to a child screen. */
 export interface SkipOptions {
 	/**
 	 * When true, only the component's props are updated without remounting the component.

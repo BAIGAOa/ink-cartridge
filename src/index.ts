@@ -1,4 +1,4 @@
-// ── Screen System ──────────────────────────────────────────
+// Screen System
 export {
   registerComponent,
   clearRegistry,
@@ -46,7 +46,7 @@ export type {
   LayerElement,
 } from "./screen/index.js";
 
-// ── Keyboard System ────────────────────────────────────────
+// Keyboard System
 export { KeyboardProvider, useKeyboard, KeyboardEngine, KeyboardContext } from "./keyboard/index.js";
 export { normalizeKeyNames, isNormalCharacter } from "./keyboard/index.js";
 

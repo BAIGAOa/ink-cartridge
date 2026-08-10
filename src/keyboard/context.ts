@@ -32,8 +32,19 @@ import type {
 import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 import { defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
 
+/**
+ * Token identifying the owner of a keyboard layer — a layer id string
+ * or an arbitrary non-string value.
+ */
 export type LayerOwner = unknown | string;
 
+/**
+ * Value exposed by the keyboard system via React context.
+ *
+ * Exposes the {@link KeyboardEngine} API bound to the engine instance.
+ * Layer and element scoping of bindings is handled automatically by
+ * {@link useKeyboard}; consume the context directly only when necessary.
+ */
 export interface KeyboardContextValue {
   boundKeyboard: {
     (

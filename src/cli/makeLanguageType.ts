@@ -1,9 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
+// Types
 
 interface LanguageFile {
   /** Locale code derived from the file name (e.g. "en-US"). */
@@ -12,6 +10,9 @@ interface LanguageFile {
   keys: Record<string, string>;
 }
 
+/**
+ * Options for the {@link makeLanguageType} command.
+ */
 export interface MakeLanguageTypeOptions {
   /** Directory containing {locale}.json files. */
   sourceDir: string;
@@ -25,9 +26,7 @@ export interface MakeLanguageTypeOptions {
   packageName: string;
 }
 
-/* ------------------------------------------------------------------ */
-/*  JSON flattening (must match src/language/provider.tsx)             */
-/* ------------------------------------------------------------------ */
+// JSON flattening (must match src/language/provider.tsx)
 
 /** @internal Exported for testing only. */
 export function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
@@ -47,9 +46,7 @@ export function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<stri
   return result;
 }
 
-/* ------------------------------------------------------------------ */
-/*  File scanning                                                     */
-/* ------------------------------------------------------------------ */
+// File scanning
 
 function scanLanguageFiles(dirPath: string): LanguageFile[] {
   const files: LanguageFile[] = [];
@@ -77,9 +74,7 @@ function scanLanguageFiles(dirPath: string): LanguageFile[] {
   return files;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Key analysis                                                      */
-/* ------------------------------------------------------------------ */
+// Key analysis
 
 /** Keys present in EVERY language file. */
 export function findCommonKeys(files: LanguageFile[]): string[] {
@@ -127,9 +122,7 @@ export function paramSetsForKey(key: string, files: LanguageFile[]): string[][] 
   });
 }
 
-/* ------------------------------------------------------------------ */
-/*  Code generation                                                   */
-/* ------------------------------------------------------------------ */
+// Code generation
 
 /** @internal Exported for testing only. */
 export function generateTypesContent(
@@ -221,9 +214,7 @@ export function generateRuntimeContent(packageName: string): string {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
+// Helpers
 
 /** @internal Exported for testing only. */
 export function escapeSingleQuote(s: string): string {
@@ -236,9 +227,7 @@ function writeOutput(outputDir: string, typesContent: string, runtimeContent: st
   fs.writeFileSync(path.join(outputDir, 'i18n.ts'), runtimeContent, 'utf-8');
 }
 
-/* ------------------------------------------------------------------ */
-/*  Public API                                                         */
-/* ------------------------------------------------------------------ */
+// Public API
 
 /**
  * Generate type-safe i18n bindings from a directory of {locale}.json files.
@@ -280,9 +269,7 @@ export function makeLanguageType(options: MakeLanguageTypeOptions): void {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Core generate function                                            */
-/* ------------------------------------------------------------------ */
+// Core generate function
 
 function generate(sourceDir: string, outputDir: string, options: MakeLanguageTypeOptions): void {
   const files = scanLanguageFiles(sourceDir);

@@ -19,6 +19,14 @@ const DEFAULT_SEQUENCE_TIMEOUT = 500;
  */
 export type ElementHandleResult = boolean | "sequence";
 
+/**
+ * Built-in Tab / Shift+Tab focus rotation for an element-level keyboard layer.
+ *
+ * Cycles the element's default focus order (Tab forward, Shift+Tab backward),
+ * wrapping at both ends.
+ *
+ * @returns `true` if a tab event was handled and focus was moved.
+ */
 export function handleTabNavigation<TC>(
 	layer: ElementKeyboard,
 	ctx: PipelineContext<TC>,

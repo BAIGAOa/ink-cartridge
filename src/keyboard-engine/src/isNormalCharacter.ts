@@ -14,6 +14,24 @@
  * @param isSpecialKey - Framework-provided predicate returning `true` when
  *                       the key is NOT a normal character.
  * @returns true when the event should be treated as a normal character.
+ *
+ * @example
+ * ```ts
+ * // Custom framework adapter: pass a predicate inspecting the native Key shape
+ * function mySpecialKeyChecker(key: unknown): boolean {
+ *   const k = key as Record<string, unknown>;
+ *   return k.ctrl || k.meta || k.return || k.escape || k.tab
+ *     || k.upArrow || k.downArrow || k.leftArrow || k.rightArrow;
+ * }
+ *
+ * isNormalCharacter('a', myKey, mySpecialKeyChecker); // true
+ * isNormalCharacter('', myKey, mySpecialKeyChecker);  // false (empty input)
+ * ```
+ *
+ * Common uses: filtering printable vs special keys inside
+ * `normalizeKeyNames` adapters, distinguishing text input from command
+ * keys in custom input components, and deciding in pipeline processors
+ * whether an event should be consumed or passed through.
  */
 export function isNormalCharacter(
   input: string,

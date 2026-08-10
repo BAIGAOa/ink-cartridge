@@ -53,12 +53,10 @@ export default function BoardScreen({ boardId }: Props) {
   const settingsRef = useRef(state.settings);
   settingsRef.current = state.settings;
 
-  // Esc → back
   useEffect(() => {
     return boundKeyboard(['escape'], () => back(), {});
   }, [boundKeyboard]);
 
-  // n → create card
   useEffect(() => {
     return boundKeyboard(['n'], () => {
       openOverlay('create-card', CreateCardOverlay, {
@@ -69,7 +67,6 @@ export default function BoardScreen({ boardId }: Props) {
     });
   }, [boundKeyboard, columns, boardId]);
 
-  // e → edit card
   useEffect(() => {
     return boundKeyboard(['e'], () => {
       const id = selectedCardIdRef.current;
@@ -80,7 +77,6 @@ export default function BoardScreen({ boardId }: Props) {
     });
   }, [boundKeyboard]);
 
-  // d → delete card
   useEffect(() => {
     return boundKeyboard(['d'], () => {
       const id = selectedCardIdRef.current;
@@ -109,7 +105,6 @@ export default function BoardScreen({ boardId }: Props) {
     });
   }, [boundKeyboard, deleteCard]);
 
-  // m → move card
   useEffect(() => {
     return boundKeyboard(['m'], () => {
       const id = selectedCardIdRef.current;

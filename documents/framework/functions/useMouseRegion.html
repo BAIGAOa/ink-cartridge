@@ -1,0 +1,92 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>useMouseRegion | ink-cartridge</title><meta name="description" content="Documentation for ink-cartridge"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">ink-cartridge</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">useMouseRegion</a></li></ul>
+<h1>Function useMouseRegion</h1></div>
+<section class="tsd-panel">
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="usemouseregion"><span class="tsd-kind-call-signature">useMouseRegion</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">callbacks</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">MouseRegionCallbacks</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">options</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">layerId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">priority</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">regionId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">RefObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">DOMElement</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span><a href="#usemouseregion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register an Ink element as a mouse region.</p>
+<p>Attach the returned ref to a <code>&lt;Box&gt;</code>. The engine hit-tests xterm-mouse
+events against the element's measured rectangle and fires the callbacks:
+<code>onClick</code> for clicks, <code>onWheel</code> for wheel events, <code>onEnter</code>/<code>onLeave</code> for
+hover transitions, and <code>onDragStart</code>/<code>onDragMove</code>/<code>onDragEnd</code> for the drag
+lifecycle.</p>
+<p>Clicks and drags are exclusive. A press inside the region arms a drag
+capture on the pressed region — the drag keeps firing even when the
+cursor leaves the region — and the first <code>drag</code> event promotes the press
+to a drag, firing <code>onDragStart</code> and then <code>onDragMove</code>. <code>onDragEnd</code> fires
+on release only when a real drag happened; a plain click fires <code>onClick</code>
+instead and never touches the drag callbacks.</p>
+<p>The region is attributed to the surrounding layer/modal layer
+automatically (same layer scoping as <a href="useKeyboard.html" class="tsd-kind-function">useKeyboard</a>); outside any layer
+it registers on the shared root layer, hit-tested last. While a modal
+layer is open it takes over hit-testing exactly like keyboard modal
+priority — events that miss the modal do not fall through to layers or
+root regions, so clicking &quot;through&quot; a modal can never trigger the UI
+underneath.</p>
+<p>The rect is re-measured and re-registered on every render and on every
+Ink layout commit, so the hit area stays in sync with the terminal
+whether the window resizes, content grows, or an ancestor moves (e.g. a
+draggable modal frame relocating its children) — no re-render of the
+tracked component required. This covers elements whose absolute position
+moves while their own relative metrics don't change (a button inside a
+fixed-width centered menu row, a child control inside a moved frame).</p>
+<p>Hit priority follows keyboard semantics: modal layers → regular layers →
+root regions; within a layer, later registration wins unless <code>priority</code>
+overrides. Use a higher <code>priority</code> for child controls (e.g. a button
+inside a panel): React mounts children before parents, so the child
+would otherwise register first and lose overlap resolution.</p>
+<p>Must be used inside a <a href="KeyboardProvider.html" class="tsd-kind-function">KeyboardProvider</a> with <code>mouse</code> enabled.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">callbacks</span>: <span class="tsd-signature-type">MouseRegionCallbacks</span></span>
+<div class="tsd-comment tsd-typography"><p>Region callbacks (kept fresh across renders).</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">options</span>: <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">layerId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">priority</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">regionId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional <code>regionId</code> (defaults to an auto-generated
+unique id — pass one to control identity, e.g. for
+drag/hover bookkeeping), explicit <code>layerId</code> override,
+and hit-test <code>priority</code> (higher wins on overlap;
+defaults 0).</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">RefObject</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">DOMElement</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">&gt;</span></h4><p>A ref to attach to the Ink <code>&lt;Box&gt;</code> to track.</p>
+
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example">Example<a href="#example" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Click, wheel, hover, and drag callbacks:</p>
+<pre><code class="tsx"><span class="hl-0">const</span><span class="hl-1"> </span><span class="hl-4">boxRef</span><span class="hl-1"> = </span><span class="hl-5">useMouseRegion</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-5">onClick</span><span class="hl-3">:</span><span class="hl-1"> (</span><span class="hl-3">event</span><span class="hl-1">, </span><span class="hl-3">rect</span><span class="hl-1">) </span><span class="hl-0">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-0">const</span><span class="hl-1"> </span><span class="hl-4">col</span><span class="hl-1"> = </span><span class="hl-3">event</span><span class="hl-1">.</span><span class="hl-3">x</span><span class="hl-1"> - </span><span class="hl-3">rect</span><span class="hl-1">.</span><span class="hl-3">x</span><span class="hl-1"> - </span><span class="hl-7">1</span><span class="hl-1">; </span><span class="hl-10">// local cell column (1-cell border)</span><br/><span class="hl-1">    </span><span class="hl-3">console</span><span class="hl-1">.</span><span class="hl-5">log</span><span class="hl-1">(</span><span class="hl-6">`Clicked cell </span><span class="hl-0">${</span><span class="hl-3">col</span><span class="hl-0">}</span><span class="hl-6"> at </span><span class="hl-0">${</span><span class="hl-3">event</span><span class="hl-9">.</span><span class="hl-3">x</span><span class="hl-0">}</span><span class="hl-6">,</span><span class="hl-0">${</span><span class="hl-3">event</span><span class="hl-9">.</span><span class="hl-3">y</span><span class="hl-0">}</span><span class="hl-6">`</span><span class="hl-1">);</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-5">onWheel</span><span class="hl-3">:</span><span class="hl-1"> (</span><span class="hl-3">event</span><span class="hl-1">) </span><span class="hl-0">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-8">if</span><span class="hl-1"> (</span><span class="hl-3">event</span><span class="hl-1">.</span><span class="hl-3">button</span><span class="hl-1"> === </span><span class="hl-6">&#39;wheel-up&#39;</span><span class="hl-1">) </span><span class="hl-5">scrollUp</span><span class="hl-1">();</span><br/><span class="hl-1">    </span><span class="hl-8">if</span><span class="hl-1"> (</span><span class="hl-3">event</span><span class="hl-1">.</span><span class="hl-3">button</span><span class="hl-1"> === </span><span class="hl-6">&#39;wheel-down&#39;</span><span class="hl-1">) </span><span class="hl-5">scrollDown</span><span class="hl-1">();</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-5">onEnter</span><span class="hl-3">:</span><span class="hl-1"> () </span><span class="hl-0">=&gt;</span><span class="hl-1"> </span><span class="hl-5">setIsHovered</span><span class="hl-1">(</span><span class="hl-0">true</span><span class="hl-1">),</span><br/><span class="hl-1">  </span><span class="hl-5">onLeave</span><span class="hl-3">:</span><span class="hl-1"> () </span><span class="hl-0">=&gt;</span><span class="hl-1"> </span><span class="hl-5">setIsHovered</span><span class="hl-1">(</span><span class="hl-0">false</span><span class="hl-1">),</span><br/><span class="hl-1">  </span><span class="hl-5">onDragStart</span><span class="hl-3">:</span><span class="hl-1"> () </span><span class="hl-0">=&gt;</span><span class="hl-1"> </span><span class="hl-5">setIsDragging</span><span class="hl-1">(</span><span class="hl-0">true</span><span class="hl-1">),</span><br/><span class="hl-1">  </span><span class="hl-5">onDragMove</span><span class="hl-3">:</span><span class="hl-1"> (</span><span class="hl-3">event</span><span class="hl-1">) </span><span class="hl-0">=&gt;</span><span class="hl-1"> </span><span class="hl-5">moveTo</span><span class="hl-1">(</span><span class="hl-3">event</span><span class="hl-1">.</span><span class="hl-3">x</span><span class="hl-1">, </span><span class="hl-3">event</span><span class="hl-1">.</span><span class="hl-3">y</span><span class="hl-1">),</span><br/><span class="hl-1">  </span><span class="hl-5">onDragEnd</span><span class="hl-3">:</span><span class="hl-1"> () </span><span class="hl-0">=&gt;</span><span class="hl-1"> </span><span class="hl-5">setIsDragging</span><span class="hl-1">(</span><span class="hl-0">false</span><span class="hl-1">),</span><br/><span class="hl-1">});</span><br/><span class="hl-8">return</span><span class="hl-1"> </span><span class="hl-12">&lt;</span><span class="hl-2">Box</span><span class="hl-1"> </span><span class="hl-13">ref</span><span class="hl-1">=</span><span class="hl-0">{</span><span class="hl-3">boxRef</span><span class="hl-0">}</span><span class="hl-12">&gt;</span><span class="hl-1">…</span><span class="hl-12">&lt;/</span><span class="hl-2">Box</span><span class="hl-12">&gt;</span><span class="hl-1">;</span>
+</code><button type="button">Copy</button></pre>
+
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard/hook.ts#L365">keyboard/hook.ts:365</a></li></ul></aside></div></li></ul></section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html">ink-cartridge</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

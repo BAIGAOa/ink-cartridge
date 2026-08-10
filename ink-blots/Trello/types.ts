@@ -43,7 +43,7 @@ export interface Settings {
   showKeyHints: boolean;
 }
 
-/** Full application state persisted to disk */
+/** Full application state held by the in-memory store */
 export interface AppState {
   boards: Board[];
   columns: Column[];

@@ -31,6 +31,10 @@ export class ClickDetector {
   private readonly degradedDedupDistance: number;
   private readonly degradedDedupWindowMs: number;
 
+  /**
+   * Creates a click detector.
+   * @param options Configuration options for click distance and degraded-mode thresholds.
+   */
   constructor(options?: MouseOptions) {
     this.clickDistanceThreshold = options?.clickDistanceThreshold ?? 1;
     this.pressStormThreshold = options?.pressStormThreshold ?? 3;

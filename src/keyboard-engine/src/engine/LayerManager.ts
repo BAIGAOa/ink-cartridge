@@ -1,5 +1,9 @@
 import { defaultTargetsSymbol } from "../types/default-targets-symbol.js";
-import { FocusSetOptions, FocusTarget } from "../types/focus.js";
+import {
+  FocusCurrentResult,
+  FocusSetOptions,
+  FocusTarget,
+} from "../types/focus.js";
 import { KeyboardLayer } from "../types/keyboard-layer.js";
 import {
   ElementKeyboard,
@@ -8,6 +12,10 @@ import {
 } from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 
+/**
+ * Owns layer lifecycle (create/read/clean) and focus management for the
+ * current owner stack.
+ */
 export default class LayerManager<TComponent = unknown> {
   constructor(private state: EngineState<TComponent>) {}
 
@@ -16,7 +24,8 @@ export default class LayerManager<TComponent = unknown> {
   prevModalLayers: KeyboardLayer[] = [];
 
   /**
-   * Clear the keyboard data layer of a page that no longer exists in the path
+   * Remove keyboard layers of pages that no longer exist in the current path,
+   * cancelling any pending sequence timers on the removed layers.
    */
   cleanPages() {
     const prev = this.prevPath;
@@ -195,10 +204,10 @@ export default class LayerManager<TComponent = unknown> {
   }
 
   /**
-   * Used to get the current page
-   * This method will be used for graceful fallback of
-   * the binding method and to ensure that the page level binding
-   * remains stable even after the layer is present
+   * Return the topmost page component in the current path.
+   *
+   * Used as a graceful fallback when resolving the binding target, so
+   * page-level bindings remain stable even while a layer is present.
    */
   getTopPage() {
     const data = this.state.synchronizedData;
@@ -270,6 +279,14 @@ export default class LayerManager<TComponent = unknown> {
     }
   }
 
+  /**
+   * Get or lazily create a focus target on a layer.
+   *
+   * The first target registered on a layer (in the default group or any
+   * named group) is auto-activated and triggers {@link notifyFocusChange}
+   * — this is why a screen with a single focus target needs no explicit
+   * `focusSet` call.
+   */
   getOrCreateFocusTarget(
     layer: PageKeyboardLayer | ElementKeyboard,
     focusId: string,
@@ -362,6 +379,14 @@ export default class LayerManager<TComponent = unknown> {
     return this.state.layersKeyboardMap.get(ownerOrLayer);
   }
 
+  /**
+   * Register a listener called whenever the active focus target changes
+   * (via `focusSet`, `focusNext`, `focusPrev`, `focusUnregister`,
+   * `activateFocusGroup`, or `kickFocusGroup`). Use it to re-render
+   * focus indicators.
+   *
+   * @returns An unsubscribe function.
+   */
   subscribeFocus(listener: () => void) {
     this.state.focusSubscribersRef.add(listener);
     return () => {
@@ -412,6 +437,18 @@ export default class LayerManager<TComponent = unknown> {
     return { layer, name: `${owner}/${elementId}` };
   }
 
+  /**
+   * Activate a named focus target on the current owner's layer.
+   *
+   * Targets are lazily created — the first binding with a given `focusId`
+   * (via `boundKeyboard` `{ focusId }`) creates the target, so `focusSet`
+   * must be called after at least one binding is registered. The group's
+   * previous active entry (if any) is replaced, and any pending sequence
+   * on the layer is cleared.
+   *
+   * @throws If the current owner has no layer, or the target is not
+   *         registered in the group.
+   */
   focusSet(focusId: string, group?: string): void;
   focusSet(focusId: string, options?: FocusSetOptions): void;
   focusSet(focusId: string, groupOrOptions?: string | FocusSetOptions): void {
@@ -502,6 +539,15 @@ export default class LayerManager<TComponent = unknown> {
     });
   }
 
+  /**
+   * Cycle to the next focus target in the group's registration order,
+   * wrapping around at the end (Tab semantics).
+   *
+   * When `autoTab` is enabled, the pipeline calls this automatically on
+   * Tab; otherwise developers bind Tab and call it themselves. Only
+   * switches the active target — a group with no current focus is left
+   * untouched.
+   */
   focusNext(group?: string): void;
   focusNext(options?: FocusSetOptions): void;
   focusNext(groupOrOptions?: string | FocusSetOptions): void {
@@ -563,6 +609,11 @@ export default class LayerManager<TComponent = unknown> {
     }
   }
 
+  /**
+   * Cycle to the previous focus target in the group's registration order,
+   * wrapping around at the end (Shift+Tab semantics). See
+   * {@link focusNext} for the group parameter behavior.
+   */
   focusPrev(group?: string): void;
   focusPrev(options?: FocusSetOptions): void;
   focusPrev(groupOrOptions?: string | FocusSetOptions): void {
@@ -624,24 +675,15 @@ export default class LayerManager<TComponent = unknown> {
     }
   }
 
-  focusCurrent(group?: string): {
-    noOwner?: boolean;
-    noLayer?: boolean;
-    noFound?: boolean;
-    result?: { id: string; fromGroup: string | typeof defaultTargetsSymbol };
-  };
-  focusCurrent(options?: FocusSetOptions): {
-    noOwner?: boolean;
-    noLayer?: boolean;
-    noFound?: boolean;
-    result?: { id: string; fromGroup: string | typeof defaultTargetsSymbol };
-  };
-  focusCurrent(groupOrOptions?: string | FocusSetOptions): {
-    noOwner?: boolean;
-    noLayer?: boolean;
-    noFound?: boolean;
-    result?: { id: string; fromGroup: string | typeof defaultTargetsSymbol };
-  } {
+  /**
+   * Return the currently active focus target, or a tagged-union result
+   * when there is no owner (`{ noOwner: true }`), no layer for the owner
+   * (`{ noLayer: true }`), or no active focus target (`{ noFound: true }`).
+   * Check `.result?.id` for the active focus id.
+   */
+  focusCurrent(group?: string): FocusCurrentResult;
+  focusCurrent(options?: FocusSetOptions): FocusCurrentResult;
+  focusCurrent(groupOrOptions?: string | FocusSetOptions): FocusCurrentResult {
     const owner = this.getCurrentOwner();
     if (!owner) {
       return { noOwner: true };
@@ -690,6 +732,14 @@ export default class LayerManager<TComponent = unknown> {
     return { result: layer.currentFocusIds[index] };
   }
 
+  /**
+   * Remove a focus target from the current owner's layer.
+   *
+   * If the removed target was the active one for its group, the first
+   * remaining target (in registration order) is auto-activated; when no
+   * targets remain, the group's focus slot is cleared. Silently no-ops
+   * when the target, group, or layer is absent.
+   */
   focusUnregister(focusId: string, group?: string): void;
   focusUnregister(focusId: string, options?: FocusSetOptions): void;
   focusUnregister(
@@ -771,6 +821,34 @@ export default class LayerManager<TComponent = unknown> {
     }
   }
 
+  /**
+   * Activate a focus target in a group that currently has no active focus —
+   * lazy initial activation without overwriting.
+   *
+   * Pushes `{ id: focusId, fromGroup: group }` into the layer's
+   * `currentFocusIds` array and notifies focus subscribers on success.
+   * Does NOT replace an existing active entry — unlike {@link focusSet},
+   * it is idempotent for already-active groups.
+   *
+   * @returns `true` if the target was activated; `false` when the current
+   *          owner has no layer, the group is not registered on the layer,
+   *          the `focusId` is not found within the group, or the group
+   *          already has an active focus target (use {@link focusSet} to
+   *          switch it).
+   *
+   * @example
+   * ```ts
+   * engine.boundKeyboard('*', handleName,  { focusId: { group: 'field', focusId: 'name' } });
+   * engine.boundKeyboard('*', handleEmail, { focusId: { group: 'field', focusId: 'email' } });
+   * engine.boundKeyboard('tab', handleTab, { focusId: { group: 'nav',   focusId: 'tabs' } });
+   *
+   * // Give each group its initial focus — only succeeds for groups that
+   * // are not yet active. 'field' was already auto-activated when its
+   * // first target was registered, so this call returns false for it.
+   * engine.activateFocusGroup('name', 'field');  // false — already active
+   * engine.activateFocusGroup('tabs', 'nav');    // true  — first activation
+   * ```
+   */
   activateFocusGroup(focusId: string, group?: string): boolean;
   activateFocusGroup(focusId: string, options?: FocusSetOptions): boolean;
   activateFocusGroup(
@@ -834,6 +912,30 @@ export default class LayerManager<TComponent = unknown> {
     return false;
   }
 
+  /**
+   * Remove an entire group's active focus entry from the current owner's
+   * layer — the group holds no active focus afterward.
+   *
+   * Only the group's active slot is removed: registered focus targets and
+   * their bindings stay intact, and the group can be re-activated later
+   * via {@link activateFocusGroup} or {@link focusSet}. To remove
+   * individual targets instead, use `focusUnregister`. Subscribers are
+   * notified on successful removal.
+   *
+   * @returns `true` if the group's entry was removed from
+   *          `currentFocusIds`; `false` when the owner has no layer, the
+   *          group is not registered on the layer, or the group is not
+   *          currently active.
+   *
+   * @example
+   * ```ts
+   * engine.boundKeyboard('*', handleInput, { focusId: { group: 'field', focusId: 'name' } });
+   *
+   * // Deactivate the entire field group so no field receives keys
+   * engine.kickFocusGroup('field');  // true — group was active, now removed
+   * engine.kickFocusGroup('field');  // false — group is no longer active (safe no-op)
+   * ```
+   */
   kickFocusGroup(group?: string): boolean;
   kickFocusGroup(options?: FocusSetOptions): boolean;
   kickFocusGroup(groupOrOptions?: string | FocusSetOptions): boolean {

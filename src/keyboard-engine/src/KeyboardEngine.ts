@@ -14,7 +14,7 @@ import CompositionEngine, {
 } from "./CompositionEngine.js";
 import { BuiltinProcessorId } from "./pipeline/chain.js";
 import { SyncState } from "./types/state-sync.js";
-import { MouseRegionEntry } from "./types/mouse-region.js";
+import { HoveredRegion, MouseRegionEntry } from "./types/mouse-region.js";
 import type { MouseEvent as XtermMouseEvent } from "./xterm-mouse/types/index.js";
 import {
   GlobalKeyEntry,
@@ -92,7 +92,7 @@ export interface EngineProps<TComponent> {
   isNormalChar: (key: unknown) => boolean;
 
   /**
-   * Default composition engine timeout
+   * Default composition chain timeout in ms. Defaults to 400.
    */
   defaultTimeout?: number;
 
@@ -185,6 +185,42 @@ export interface EngineProps<TComponent> {
  * });
  * useInput((input, key) => engine.processKey(input, key));
  * ```
+ *
+ * @example Standalone (Node.js, no framework)
+ * ```ts
+ * import { KeyboardEngine } from '@cartridge-engine/keyboard-engine';
+ * import * as readline from 'node:readline';
+ *
+ * function isSpecialKey(key: unknown): boolean {
+ *   const k = key as Record<string, unknown>;
+ *   return !!(k.ctrl || k.meta || k.shift || k.name === 'escape' || k.name === 'tab');
+ * }
+ *
+ * const engine = new KeyboardEngine({
+ *   isNormalChar: isSpecialKey,
+ *   normalizeKeyNames: (input, key) => {
+ *     const k = key as Record<string, unknown>;
+ *     if (k.ctrl && k.name) return [`ctrl+${k.name}`];
+ *     return [k.name ? String(k.name) : input];
+ *   },
+ * });
+ *
+ * engine.sync({ pagePath: ['app'], layers: [], modalLayers: [] });
+ *
+ * engine.boundKeyboard(['ctrl+c'], () => {
+ *   console.log('Goodbye!');
+ *   process.exit(0);
+ * });
+ *
+ * readline.emitKeypressEvents(process.stdin);
+ * if (process.stdin.isTTY) process.stdin.setRawMode(true);
+ * process.stdin.on('keypress', (_input, key) => {
+ *   engine.processKey(_input ?? '', key);
+ * });
+ *
+ * // Mouse events (from the bundled Mouse helper) are fed the same way:
+ * // mouse.on('click', (event) => engine.processMouseEvent(event));
+ * ```
  */
 export default class KeyboardEngine<TComponent = unknown> {
   private state: EngineState<TComponent>;
@@ -195,9 +231,38 @@ export default class KeyboardEngine<TComponent = unknown> {
   private mouseRegions: MouseRegionService;
 
   /**
+   * Create a new engine instance.
+   *
+   * Builds the internal state tree: `EngineState` (path, layer/modal-layer
+   * ids, modes, conditions, global keys/sequences, operation registries,
+   * owner stack), `LayerManager`, `PipelineManager` (the built-in 9-stage
+   * chain plus any custom `processors`), `BindingService`, `OperationRegistry`
+   * and the `CompositionEngine` (initialized with `defaultTimeout` and
+   * `valueSchema`).
+   *
+   * The instance is meant to persist for the lifetime of the host component —
+   * store it in a stable reference (e.g. `useRef` in React, a class field in
+   * Vue/Svelte).
+   *
    * @param props - Engine configuration.
    *   `normalizeKeyNames` is required — the engine has no built-in default
    *   so each framework must provide its own adapter.
+   *
+   * @example
+   * ```ts
+   * const engine = new KeyboardEngine({
+   *   normalizeKeyNames: (input, key) => {
+   *     const k = key as Record<string, unknown>;
+   *     return [k.name ? String(k.name) : input];
+   *   },
+   *   isNormalChar: (key) => {
+   *     const k = key as Record<string, unknown>;
+   *     return !!(k.ctrl || k.meta || k.escape || k.tab || k.upArrow || k.downArrow);
+   *   },
+   *   modes: ['normal', 'insert'],
+   *   defaultMode: 'normal',
+   * });
+   * ```
    */
   constructor(props: EngineProps<TComponent>) {
     this.state = new EngineState(props);
@@ -374,12 +439,33 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Push page-path, layer, and modal-layer state into the engine.
    *
-   * Call this synchronously on every render (before any keyboard events)
-   * so that {@link processKey} reads a fresh snapshot. Cleanup methods
-   * ({@link cleanLayers}, etc.) should be called in a post-render effect
-   * so they compare the pre- and post-sync state.
+   * The engine does not observe the host framework's component tree — it
+   * relies on `sync` being called on every render to build an accurate
+   * snapshot. Call this synchronously on every render (before any keyboard
+   * events) so that {@link processKey} reads a fresh snapshot. Cleanup
+   * methods ({@link cleanLayers}, etc.) should be called in a post-render
+   * effect so they compare the pre- and post-sync state.
+   *
+   * The write is a direct field assignment — no merging, no diffing, no
+   * incremental update. `layers` and `modalLayers` are expected sorted by
+   * zIndex ascending.
    *
    * @param state - Current screen system state from the host framework.
+   *
+   * @example
+   * ```ts
+   * // Call synchronously on every render — before any processKey() calls
+   * engine.sync({
+   *   pagePath: getCurrentPath(),
+   *   layers: getLayers(),
+   *   modalLayers: getModalLayers(),
+   * });
+   *
+   * // Post-render — remove keyboard data for detached pages/layers
+   * engine.cleanLayers();
+   * engine.cleanOverlayLayers();
+   * engine.cleanModalLayers();
+   * ```
    */
   sync(state: SyncState<TComponent>) {
     this.state.synchronizedData = state;
@@ -387,17 +473,39 @@ export default class KeyboardEngine<TComponent = unknown> {
 
   /**
    * Remove keyboard layers for screens that are no longer in the current path.
+   *
+   * This is the cleanup side of the {@link sync} lifecycle: `sync` pushes
+   * new state, these methods remove stale state from the previous render
+   * cycle. Designed to be called in a post-render effect (e.g. `useEffect`
+   * in React) so they compare against the state pushed by the most recent
+   * `sync`.
+   *
    * Also clears any pending sequence timers on removed layers to prevent
    * stale timeouts from firing after the layer is gone.
+   *
+   * @example
+   * ```ts
+   * useEffect(() => { engine.cleanLayers(); }, [currentPath, engine]);
+   * useEffect(() => { engine.cleanOverlayLayers(); }, [allLayers, engine]);
+   * useEffect(() => { engine.cleanModalLayers(); }, [allModalLayers, engine]);
+   * ```
    */
   cleanLayers() {
     this.layers.cleanPages();
   }
-  /** Remove element keyboards for layers that have been closed. */
+  /**
+   * Remove element keyboards for layers that have been closed.
+   * Only cleans keyboards whose layer owner is no longer present in the
+   * synced `layers` state — pages and modal layers are left untouched.
+   */
   cleanOverlayLayers() {
     this.layers.cleanLayers();
   }
-  /** Remove keyboard layers for modals that have been closed. */
+  /**
+   * Remove element keyboards for modal layers that have been closed.
+   * Only cleans keyboards whose modal-layer owner is no longer present in
+   * the synced `modalLayers` state.
+   */
   cleanModalLayers() {
     this.layers.cleanModalLayers();
   }
@@ -405,6 +513,9 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Read a layer without creating it. Returns `undefined` when no layer
    * exists for the given owner.
+   *
+   * Unlike the other binding functions (which lazily create a layer when the
+   * owner is missing), `readLayer` is strictly read-only.
    */
   readLayer(
     screenComponent: TComponent,
@@ -428,6 +539,20 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Push a new owner onto the owner stack so that keyboard bindings in
    * a layer or modal element are attributed to that layer rather than
    * the current top layer.
+   *
+   * The "current owner" is the top of the stack — every call to
+   * {@link boundKeyboard}, {@link boundSequence}, {@link penetration},
+   * {@link stop}, etc. registers on the layer belonging to the current owner.
+   * Layer and modal-layer rendering code pushes the layer/modal-layer id
+   * while rendering its children and pops it afterwards.
+   *
+   * @example
+   * ```ts
+   * // When rendering a layer:
+   * engine.pushOwner(layerId);
+   * // ... bindings inside the layer element register on the layer's keyboard
+   * engine.popOwner(layerId);
+   * ```
    */
   pushOwner(owner: TComponent | string) {
     this.layers.pushOwner(owner);
@@ -646,11 +771,27 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Enable wildcard-priority mode. In this mode, `"*"` (wildcard) bindings
    * take absolute priority over exact-key matches.
    *
+   * By default exact-key bindings (`"return"`, `"ctrl+s"`) are checked before
+   * wildcard bindings; with this mode the order is reversed so `"*"` bindings
+   * fire first. Essential for screens that must intercept every key press
+   * (e.g. a text input capturing all printable characters).
+   *
    * Uses reference counting: multiple callers can enable independently.
    * Mode disables when all callers have called the returned disable function.
    *
    * @returns A disable function. When the reference count reaches 0,
    *          wildcard priority is turned off.
+   *
+   * @example
+   * ```ts
+   * const d1 = engine.enableWildcardPriority();
+   * const d2 = engine.enableWildcardPriority();
+   * // Wildcard priority is on
+   * d1();
+   * // Still on — d2 hasn't released yet
+   * d2();
+   * // Now off
+   * ```
    */
   enableWildcardPriority() {
     return this.registry.enableWildcardPriority();
@@ -660,12 +801,40 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Register global key bindings. Global keys fire independently of the
    * screen stack, subject to `category` whitelist and `affectLayer` placement.
    *
+   * Evaluated at pipeline stages 3 and 7 — above the layer stage when
+   * `affectLayer: true`, below it otherwise. Entries are matched in
+   * registration order — the first match wins. Use this for application-wide
+   * shortcuts (quit, toggle dev tools, switch language) that should work on
+   * every screen. When `cover` is `false`, screens and layer elements cannot
+   * override the key via {@link boundKeyboard}.
+   *
    * When `operate` is a string, it is resolved to a registered shortcut action.
    * Press-count tracking (`times`/`pressCount`) is initialized for entries with `times`.
    *
    * @param options.mode — `'replace'` (default) replaces all global keys;
    *   `'add'` appends without removing existing entries.
    * @throws If `times < 1` or `observer` without `times`.
+   *
+   * @example
+   * ```ts
+   * engine.defineShortcutAction([{
+   *   actionId: 'quit',
+   *   action: () => process.exit(0),
+   *   keys: ['ctrl+q'],
+   * }]);
+   *
+   * // Replace all global keys
+   * engine.globalKeys([
+   *   { key: 'ctrl+q', operate: 'quit' },
+   *   { key: 'f1', operate: () => toggleHelp(), category: '*' },
+   *   { key: 'escape', operate: handleEscape, when: () => isModalOpen, mode: 'normal' },
+   * ]);
+   *
+   * // Add without removing existing entries
+   * engine.globalKeys([
+   *   { key: 'ctrl+shift+p', operate: openCommandPalette },
+   * ], { mode: 'add' });
+   * ```
    */
   globalKeys(
     entries: GlobalKeyEntry[],
@@ -673,7 +842,10 @@ export default class KeyboardEngine<TComponent = unknown> {
   ) {
     this.registry.globalKeys(entries, options);
   }
-  /** @returns A shallow copy of all registered global key entries. */
+  /**
+   * @returns A shallow copy of all registered global key entries, with
+   *          string `operate` values already resolved to functions.
+   */
   getGlobalKeys(): ResolvedGlobalKeyEntry[] {
     return this.registry.getGlobalKeys();
   }
@@ -681,7 +853,17 @@ export default class KeyboardEngine<TComponent = unknown> {
   getGlobalSequences(): ResolvedGlobalSequenceEntry[] {
     return this.registry.getGlobalSequences();
   }
-  /** @returns The current global pending sequence state, or null. */
+  /**
+   * @returns The current `GlobalPendingSequence` if one is active — between
+   *          the first key press and completion or timeout — or `null`.
+   * @example
+   * ```ts
+   * const pending = engine.getGlobalPendingSequence();
+   * if (pending) {
+   *   console.log(`Waiting for key ${pending.nextIndex + 1}/${pending.sequences.length}`);
+   * }
+   * ```
+   */
   getGlobalPendingSequence(): GlobalPendingSequence | null {
     return this.registry.getGlobalPendingSequence();
   }
@@ -690,14 +872,33 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Register global sequence key bindings. Global sequences fire independently
    * of the screen stack with higher priority than global keys.
    *
-   * When the first key matches, the engine enters a pending state and waits
-   * for subsequent keys within a configurable timeout.
+   * Evaluated at pipeline stages 2 and 6 — just above the global-key stages.
+   * When the first key of any registered sequence matches, the engine creates
+   * a pending global sequence and waits for subsequent keys within the
+   * sequence timeout (default 500 ms). On a full match the handler fires and
+   * the pending state clears; a mismatched key cancels the sequence (default)
+   * or is silently consumed (`exclusive: true`). Use these for
+   * application-wide key chords (like Vim-style `g g` to scroll to top).
    *
    * When `operate` is a string, it resolves to a registered sequence action.
    * In `'replace'` mode (default), any active pending global sequence is
    * cancelled before replacement.
    *
    * @throws If any sequence has fewer than 2 keys.
+   *
+   * @example
+   * ```ts
+   * engine.globalSequence([
+   *   { keys: ['g', 'g'], operate: () => scrollToTop(), timeout: 600 },
+   *   { keys: ['ctrl+w', 'q'], operate: 'quit-all', exclusive: true },
+   *   { keys: ['ctrl+b', 'd'], operate: toggleDebug, mode: 'normal' },
+   * ]);
+   *
+   * // Add without replacing
+   * engine.globalSequence([
+   *   { keys: ['ctrl+k', 'ctrl+k'], operate: openQuickMenu },
+   * ], { mode: 'add' });
+   * ```
    */
   globalSequence(
     entries: GlobalSequenceEntry[],
@@ -774,6 +975,30 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Check whether a global multi-key sequence is currently pending
    * (i.e. the first key was pressed and the engine is waiting for
    * subsequent keys or a timeout).
+   *
+   * This is a "pull" API — it reads the pending state on demand, equivalent
+   * to {@link getGlobalPendingSequence}() !== null. Pass a `sync` callback to
+   * make it "push": the engine invokes the callback after every
+   * {@link processKey} invocation, letting the host framework re-render when
+   * the pending state changes.
+   *
+   * @param sync - Optional callback invoked after each {@link processKey}
+   *               so the host can re-render (e.g. a `useState` updater).
+   * @returns `true` if a global sequence is pending, `false` otherwise.
+   *
+   * @example
+   * ```ts
+   * // Polling — check on each render
+   * if (engine.thereGlobalQueueWaiting()) {
+   *   // Show "g _" hint — first key of "g g" was pressed
+   * }
+   *
+   * // Reactive — force a re-render when the pending state changes
+   * function useGlobalPendingState() {
+   *   const [, forceUpdate] = useState(0);
+   *   return engine.thereGlobalQueueWaiting(() => forceUpdate(n => n + 1));
+   * }
+   * ```
    */
   thereGlobalQueueWaiting(sync?: () => void): boolean {
     return this.registry.thereGlobalQueueWaiting(sync);
@@ -783,9 +1008,27 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Check whether the current owner's layer has an active pending multi-key
    * sequence (registered via {@link boundSequence}).
    * Unlike {@link thereGlobalQueueWaiting}, this only checks the layer
-   * belonging to the current owner.
+   * belonging to the current owner — the page, layer, or modal layer that
+   * owns the active keyboard data. Use this to show sequence-progress hints
+   * (like Vim's pending key display).
    *
+   * When a `sync` callback is provided it is added to the same pending-sync
+   * set used by {@link thereGlobalQueueWaiting} and fires after each
+   * {@link processKey} invocation.
+   *
+   * @param sync - Optional callback invoked after each {@link processKey}
+   *               so the host can re-render.
+   * @returns `true` if the current layer has a pending sequence,
+   *          `false` otherwise.
    * @throws If there is no current owner (no active page, layer, or modal layer).
+   *
+   * @example
+   * ```ts
+   * // Show a hint while a local sequence is pending
+   * if (engine.currentScreenHasSequenceWaiting()) {
+   *   // Display partial sequence indicator
+   * }
+   * ```
    */
   currentScreenHasSequenceWaiting(sync?: () => void): boolean {
     return this.registry.currentScreenHasSequenceWaiting(sync);
@@ -831,11 +1074,56 @@ export default class KeyboardEngine<TComponent = unknown> {
    * 2. `boundKeyboard(keys, actionId, options?)` — explicit keys, shortcut action by id
    * 3. `boundKeyboard(actionId, options?)` — uses the shortcut action's preset keys
    *
-   * If a `focusId` is provided in options, the binding is stored on that
-   * focus target instead of the layer-level bucket.
+   * Storage follows the options: with `elementId` the binding is stored on
+   * that element's keyboard data; with `focusId` on the named
+   * `FocusTarget.bindings` array; with neither, on the page layer's bindings
+   * array (or the element keyboard's bindings inside a layer/modal layer).
+   * Element bindings are evaluated in the layer broadcast stage and the
+   * modal stage; page-level bindings in the screen-stack stage, after global
+   * keys and layer broadcast. Within a keyboard layer, focus-target bindings
+   * are checked before layer-level bindings.
    *
-   * @returns An unbind function.
+   * Options behavior:
+   * - `once` — auto-remove after the first invocation; the unbind happens
+   *   before the handler runs
+   * - `times` / `observer` — the handler fires after `times` presses; the
+   *   counter resets after the handler runs, and `observer` is called on
+   *   each press while counting (requires `times`)
+   * - `when` — a condition function or a registered condition id
+   *   (see {@link addCondition}); the binding is skipped when it evaluates
+   *   to `false`
+   * - `mode` — restricts the binding to a specific mode; skipped when the
+   *   active mode doesn't match
+   * - `stopsWorkingAfterLayerAppearing` — page-level bindings only: when any
+   *   layer is present the page binding stops responding; has no effect
+   *   inside a layer
+   *
+   * @returns An unbind function. Removes the binding from the layer
+   *          immediately; safe to call multiple times.
    * @throws If no current owner exists, times < 1, or observer without times.
+   *
+   * @example
+   * ```ts
+   * // Inline handler
+   * const unbind = engine.boundKeyboard('return', (input, key) => {
+   *   console.log('submit');
+   * });
+   *
+   * // Via shortcut action
+   * engine.boundKeyboard('ctrl+s', 'save');
+   *
+   * // Via action preset keys
+   * engine.boundKeyboard('confirm');
+   *
+   * // With options — one-shot, focus-scoped, press-counted
+   * engine.boundKeyboard('escape', handleCancel, {
+   *   once: true,
+   *   focusId: 'dialog',
+   *   times: 2,
+   *   when: () => isDirty,
+   *   mode: 'normal',
+   * });
+   * ```
    */
   boundKeyboard(
     keysOrActionId: string | string[],
@@ -854,19 +1142,67 @@ export default class KeyboardEngine<TComponent = unknown> {
    * reaches the layer (or the named focus target), the layer's own bindings
    * are skipped and the key continues to layers below.
    *
+   * Penetration means **pass-through**, not blocking — the key is only
+   * released, never consumed. Penetration rules are checked first during key
+   * matching (layer broadcast and screen-stack stages), so a key that is both
+   * stopped and penetrated on the same layer passes through. A wildcard `"*"`
+   * entry marks all keys transparent, and a `when` condition (callback or
+   * registered condition id) gates the rule — when it evaluates to `false`
+   * the penetration rule is ignored.
+   *
    * @returns A function that removes the transparency markers.
    * @throws If there is no current owner.
+   *
+   * @example
+   * ```ts
+   * // Make arrow keys transparent so the parent screen handles them
+   * engine.penetration(['up', 'down', 'left', 'right']);
+   *
+   * // Focus-scoped with condition
+   * engine.penetration(['tab'], {
+   *   focusId: 'searchInput',
+   *   when: () => !isEditing,
+   * });
+   *
+   * // Wildcard — all keys pass through
+   * engine.penetration(['*']);
+   * ```
    */
   penetration(keys: string[], options?: PenetrationOptions): () => void {
     return this.bindings.penetration(keys, options);
   }
 
   /**
-   * Prevent keys from propagating beyond the current layer. Supports
-   * `stopAction: true` to resolve action IDs to their bound keys.
+   * Prevent keys from propagating beyond the current layer. A "stop barrier"
+   * means: once a key reaches this layer, even if no binding handles it, it
+   * does not fall through to layers below. Stop rules are checked after
+   * bindings and penetrations, and a `when` condition (callback or registered
+   * condition id) gates the rule — when it evaluates to `false` the key
+   * propagates normally. A wildcard `"*"` entry stops all keys.
+   *
+   * `stopAction: true` treats `keys` as shortcut action IDs: the stop rule is
+   * stored against the action id and resolved to the action's current bound
+   * keys at match time, so re-binding the action moves the barrier
+   * automatically.
    *
    * @returns A function that removes the stop barrier.
-   * @throws If there is no current owner.
+   * @throws If there is no current owner, or `stopAction: true` with an
+   *         action id that has no bound keys.
+   *
+   * @example
+   * ```ts
+   * // Stop arrow keys — parent screens never see them
+   * engine.stop(['up', 'down', 'left', 'right']);
+   *
+   * // Stop via action ID resolution
+   * engine.stop(['submit', 'cancel'], { stopAction: true });
+   *
+   * // Focus-scoped with condition
+   * engine.stop(['escape'], {
+   *   focusId: 'modal',
+   *   when: () => hasUnsavedChanges,
+   * });
+   * ```
    */
   stop(keys: string[], options?: StopOptions): () => void {
     return this.bindings.stop(keys, options);
@@ -877,7 +1213,31 @@ export default class KeyboardEngine<TComponent = unknown> {
    * active modal consumes every key event — even unbound keys. Adding a key
    * to the allow list releases it to lower pipeline stages.
    *
+   * This is the only mechanism by which keys can escape the modal barrier.
+   * In the modal pipeline stage (stage 0), `allowedKeys` is checked before
+   * any other processing: a matching key (whose `when` evaluates to `true`)
+   * makes the modal processor return `false`, so the event continues to the
+   * global/layer/page stages below. Keys released this way count as
+   * unhandled ("miss") for {@link useModalMissListener} when nothing else
+   * consumes them.
+   *
+   * @returns A function that removes the allow entry, restoring the default
+   *          behavior (the modal blocks the key again).
    * @throws If not called on a modal layer.
+   *
+   * @example
+   * ```ts
+   * // Allow arrow keys through the modal so the underlying screen can still navigate
+   * engine.allowModal(['up', 'down', 'left', 'right']);
+   *
+   * // Allow escape only when a condition is met
+   * engine.allowModal(['escape'], {
+   *   when: () => !isCriticalOperation,
+   * });
+   *
+   * // Focus-scoped allow
+   * engine.allowModal(['enter'], { focusId: 'transferInput' });
+   * ```
    */
   allowModal(keys: string[], options?: AllowModalOptions): () => void {
     return this.bindings.allowModal(keys, options);
@@ -886,14 +1246,51 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Register a multi-key sequence binding on the current owner's layer.
    *
+   * When the first key of a registered sequence is pressed, the layer enters
+   * a pending state. Subsequent key presses are matched against the remaining
+   * keys; when all match within the timeout the handler fires. A mismatched
+   * key cancels the sequence (default) or is silently consumed
+   * (`exclusive: true`). The `when` condition (callback or registered
+   * condition id) is checked at each key press — if it returns `false`, the
+   * pending sequence is cancelled.
+   *
    * Supports two calling conventions:
    * 1. `boundSequence(keys, handler, options?)` — explicit keys and callback
    * 2. `boundSequence(actionId, options?)` — uses a registered sequence action's preset
    *
-   * Throws if fewer than 2 keys are provided, or if the first key conflicts
-   * with a global sequence that has `cover: false`.
+   * The sequence timeout defaults to 500 ms — the timer starts on the first
+   * key and resets on each match. Unbinding while a sequence is pending does
+   * not cancel it.
+   *
+   * Throws if fewer than 2 keys are provided, if the first key conflicts
+   * with a global sequence that has `cover: false`, or if `observer` is set
+   * without `times`.
    *
    * @returns An unbind function.
+   *
+   * @example
+   * ```ts
+   * // Explicit keys with handler
+   * engine.boundSequence(['g', 'g'], () => {
+   *   scrollToTop();
+   * });
+   *
+   * // With timeout and exclusive mode
+   * engine.boundSequence(['ctrl+w', 'q'], handleQuit, {
+   *   timeout: 1000,
+   *   exclusive: true,
+   *   mode: 'normal',
+   * });
+   *
+   * // Via sequence action
+   * engine.defineSequenceAction([{
+   *   sequenceActionId: 'vim-goto-top',
+   *   action: () => scrollToTop(),
+   *   keys: ['g', 'g'],
+   *   timeout: 600,
+   * }]);
+   * engine.boundSequence('vim-goto-top');
+   * ```
    */
   boundSequence(
     keysOrActionId: string[] | string,
@@ -1032,6 +1429,9 @@ export default class KeyboardEngine<TComponent = unknown> {
    * it is independent of keyboard element ids. `rect` must be in 1-based
    * terminal coordinates.
    *
+   * Within a layer, later registrations win; a `priority` in the region entry
+   * overrides registration order (used for child controls like buttons).
+   *
    * @returns An unregister function.
    */
   registerMouseRegion(entry: MouseRegionEntry): () => void {
@@ -1051,7 +1451,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Process a mouse event through the mouse region hit-testing.
    *
    * `move` events drive hover transitions (`onEnter`/`onLeave`); `click`
-   * events fire `onClick`; `wheel` events fire `onWheel`.
+   * events fire `onClick`; `wheel` events fire `onWheel`. `press`/`drag`/
+   * `release` events drive the drag lifecycle: a press inside a region arms
+   * a drag capture that the first `drag` event promotes (`onDragStart`/
+   * `onDragMove`), and `release` fires `onDragEnd` — only when a real drag
+   * happened; plain clicks stay silent.
    *
    * @param event - A mouse event from the host framework's mouse adapter.
    * @returns `true` if the event hit a registered region, `false` otherwise.
@@ -1065,7 +1469,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /** @returns The currently hovered mouse region, or null. */
-  getHoveredMouseRegion(): { layerId: string; regionId: string } | null {
+  getHoveredMouseRegion(): HoveredRegion | null {
     return this.mouseRegions.getHovered();
   }
 
@@ -1074,11 +1478,35 @@ export default class KeyboardEngine<TComponent = unknown> {
    *
    * Builds a snapshot context from the engine's current state, then runs
    * each processor in order. The first processor that returns `true`
-   * (event consumed) stops the chain.
+   * (event consumed) stops the chain. The pipeline order is:
+   *
+   * `modal` → composition (`affectOverlay: true`) → global sequence
+   * (`affectLayer: true`) → global keys (`affectLayer: true`) → layer
+   * broadcast → composition (`affectOverlay: false`) → global sequence
+   * (`affectLayer: false`) → global keys (`affectLayer: false`) → screen stack.
+   *
+   * `processKey` itself only orchestrates the chain — side effects are
+   * produced by the individual processors, which may mutate layers
+   * (e.g. unbind `once` bindings), pending sequence state, focus targets,
+   * composition context, or press-count counters. After the chain finishes,
+   * pending `sync` callbacks registered via {@link thereGlobalQueueWaiting}
+   * and {@link currentScreenHasSequenceWaiting} are notified so the host
+   * framework can re-render.
    *
    * @param input - Raw character string from the host framework's keyboard event.
    * @param key   - Full key descriptor from the host framework (shape defined by `normalizeKeyNames`).
    * @returns `true` if any processor consumed the event, `false` if it fell through.
+   *
+   * @example
+   * ```ts
+   * // Engine-level: call for every key event from the host framework
+   * useInput((input, key) => {
+   *   const handled = engine.processKey(input, key);
+   *   if (!handled) {
+   *     // Key fell through the entire pipeline — host may handle it or ignore
+   *   }
+   * });
+   * ```
    */
   processKey(input: string, key: unknown): boolean {
     const ctx = this.buildPipelineContext(input, key);

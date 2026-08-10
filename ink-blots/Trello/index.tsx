@@ -50,7 +50,7 @@ function GlobalKeysSetup() {
   useEffect(() => {
     globalKeys([
       {
-        key: ['ctrl+,'], // Changed from ctrl+, — normalized form
+        key: ['ctrl+,'], // Normalized (lowercase) key form
         operate: () => gotoScreen(SettingScreen, {}),
         category: '*',
         affectOverlay: true,

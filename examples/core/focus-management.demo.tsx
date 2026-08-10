@@ -42,7 +42,6 @@ function FocusableItem({
     return unbind;
   }, [boundKeyboard, id, onAction]);
 
-  // Clean up the focus target when this component unmounts.
   useEffect(() => {
     return () => focusUnregister(id);
   }, [id, focusUnregister]);

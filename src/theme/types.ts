@@ -12,6 +12,7 @@ export interface ThemeDefinition {
  * Props for the {@link ThemeProvider} component.
  */
 export interface ThemeProviderProps {
+  /** The app tree rendered inside the provider. */
   children: React.ReactNode;
 
   /** Directory path containing `{id}.json` files. */

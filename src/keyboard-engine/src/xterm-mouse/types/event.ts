@@ -102,3 +102,16 @@ export type ESCMouseEvent = MouseEventBase & {
  * ```
  */
 export type MouseEvent = SGRMouseEvent | ESCMouseEvent;
+
+/**
+ * A mouse position in terminal coordinates (1-based column and row).
+ *
+ * This is the shape returned by {@link Mouse#getLastPosition} and
+ * {@link Mouse#getMousePosition}.
+ */
+export interface MousePosition {
+  /** The x-coordinate (column), 1-indexed. */
+  x: number;
+  /** The y-coordinate (row), 1-indexed. */
+  y: number;
+}

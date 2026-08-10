@@ -29,7 +29,7 @@ npm run clean          # rm -rf dist
 A task is not complete until:
 1. `npm run build` exits zero
 2. `npm test` exits zero
-3. Public API changes are reflected in `docs/` and `src/index.ts`
+3. Public API changes are reflected in `documents/` (typedoc output, via `npm run docs`) and `src/index.ts`
 
 ## Architecture
 
@@ -117,8 +117,7 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## Documentation
 
-- Public API changes → update `docs/` and `src/index.ts`.
-- New docs go in `docs/`. Match the style of existing files.
+- Public API changes → run `npm run docs` (typedoc regenerates `documents/framework/` and `documents/engine/`) and update `src/index.ts`. All API documentation lives in JSDoc — there are no hand-written API docs.
 - `docs-agents/` is agent reference material (not user-facing docs).
 
 ## Reference docs
@@ -138,7 +137,7 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 | `agents/rules/components.md` | `packages/*/src/**` |
 | `agents/rules/public-api.md` | `src/index.ts` |
 | `agents/rules/examples.md` | `examples/**/*` |
-| `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `docs/**/*`, `*.md` |
+| `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `documents/**/*`, `*.md` |
 
 ## CI/CD
 

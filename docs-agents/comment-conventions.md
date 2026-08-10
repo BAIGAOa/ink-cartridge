@@ -54,7 +54,7 @@ this.pending = this.pending.then(task, task);
 
 ## 4. Public API must have English JSDoc
 
-Every public function, component, type, or constant exported from `src/index.ts` must have an English JSDoc comment.
+Every public function, component, type, or constant exported from `src/index.ts` must have an English JSDoc comment. These comments feed the typedoc-generated API docs in `documents/framework/` (engine: `documents/engine/`) — run `npm run docs` after any public API change. Keep JSDoc free of project-internal chatter that would pollute the generated pages.
 
 **Correct** (complete JSDoc):
 ```ts
@@ -82,7 +82,7 @@ export function registerComponent(...) { ... }
 
 ## 5. Timestamp large comment blocks
 
-Any comment block spanning **more than 5 lines** MUST end with a timestamp (date + project version from `package.json`):
+Any `//` comment block spanning **more than 5 lines** MUST end with a timestamp (date + project version from `package.json`). JSDoc (`/** */`) never carries timestamps — they would leak into the typedoc output:
 
 ```
 // @2026-06-14 v3.1.0

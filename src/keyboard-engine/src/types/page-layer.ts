@@ -5,7 +5,7 @@ import {
   PageSequenceBinding,
 } from "./binding.js";
 import { defaultTargetsSymbol } from "./default-targets-symbol.js";
-import { FocusTarget, PageFocusTarget } from "./focus.js";
+import { BaseFocusTarget, FocusTarget, PageFocusTarget } from "./focus.js";
 import { KeyRule } from "./key-rule.js";
 import { ModalMissCallback } from "./modal.js";
 import { ModalMissOptions } from "./options.js";
@@ -16,26 +16,34 @@ import { PendingSequence } from "./pending-sequence.js";
  */
 export const pageLayerSymbol: unique symbol = Symbol("pageLayer");
 
+/**
+ * The pending-sequence slot of a layer that hosts elements.
+ *
+ * Either both fields are present (an element-owned sequence is waiting
+ * for the next key) or both are null (no sequence is pending).
+ */
 export type SequenceIdentity =
 	| {
 			/**
-			 * This sequence is derived from the IDs of elements within a specific layer.
+			 * ID of the element whose keyboard started the pending sequence.
 			 */
 			fromElementId: string;
 
 			/**
-			 * Waiting sequence for the current layer, only one waiting sequence per layer is allowed
+			 * The pending sequence for the current layer — only one
+			 * waiting sequence per layer is allowed.
 			 */
 			pendingSequence: PendingSequence;
 	  }
 	| {
 			/**
-			 * This sequence is derived from the IDs of elements within a specific layer.
+			 * ID of the element whose keyboard started the pending sequence.
 			 */
 			fromElementId: null;
 
 			/**
-			 * Waiting sequence for the current layer, only one waiting sequence per layer is allowed
+			 * The pending sequence for the current layer — only one
+			 * waiting sequence per layer is allowed.
 			 */
 			pendingSequence: null;
 	  };
@@ -75,23 +83,59 @@ export type MissListener =
 			onMissOptions: null;
 	  };
 
-export interface LayerKeyboardLayer {
+/**
+ * Focus targets of one named focus group: the target map keyed by
+ * focus id, plus the order in which the group's targets are cycled
+ * during automatic focus switching.
+ *
+ * @typeParam TFocusTarget - The focus-target variant held by the group
+ *                           (element-level or page-level).
+ */
+export type FocusTargetsMap<TFocusTarget extends BaseFocusTarget> = {
+	/** Focus targets of the group, keyed by their focus id. */
+	map: Map<string, TFocusTarget>;
 	/**
-	 * the layer id
+	 * Order in which the group's targets are cycled during automatic
+	 * focus switching.
 	 */
+	order: string[];
+};
+
+/**
+ * A single currently active focus target: its id plus the group it was
+ * activated from (or the default-group symbol).
+ */
+export interface CurrentFocusId {
+	/** The id of the active focus target. */
+	id: string;
+	/**
+	 * The named group the target was activated from, or
+	 * {@link defaultTargetsSymbol} for the default group.
+	 */
+	fromGroup: string | typeof defaultTargetsSymbol;
+}
+
+/**
+ * Keyboard state for a layer that hosts elements (as opposed to a
+ * page layer).
+ */
+export interface LayerKeyboardLayer {
+	/** The layer ID. */
 	layerId: string;
 
 	/**
-	 * Waiting sequence for the current layer, only one waiting sequence per layer is allowed
+	 * The layer's pending sequence — only one waiting sequence per
+	 * layer is allowed.
 	 */
 	pendingSequence: SequenceIdentity;
 
-	/**
-	 * Keyboard layer for all elements below this layer
-	 */
+	/** Keyboard data for every element registered on this layer. */
 	elementKeyboards: Map<string, ElementKeyboard>;
 }
 
+/**
+ * Common keyboard data shared by page layers and element keyboards.
+ */
 export interface BaseKeyboard {
 	/** Key rules marked as transparent at the screen level (pass-through). */
 	penetrationKeys: KeyRule[];
@@ -105,6 +149,9 @@ export interface BaseKeyboard {
 
 }
 
+/**
+ * Keyboard state for a single element within a layer.
+ */
 export interface ElementKeyboard extends BaseKeyboard {
 	/** Registered screen-level key bindings (evaluation order). */
 	bindings: BaseBoundKeyEntry[];
@@ -114,45 +161,45 @@ export interface ElementKeyboard extends BaseKeyboard {
 	 */
 	elementId: string;
 	/**
-	 * The layer from which this element originates; it can be a pageLayer.
+	 * The layer this element belongs to (which may be the page layer).
 	 */
 	associatedLayer: string;
 	/**
-	 * Key indicating that the modal box allows penetration to the underlying layer
-	 * Only the modal layer is valid
+	 * Keys allowed to pass through the modal barrier to the layers beneath.
+	 * Only meaningful for elements in a modal layer.
 	 */
 	allowedKeys: KeyRule[];
 
 	/**
-	 * The modality of the current element.
-	 * This option is checked only for elements in the modal layer.
+	 * Miss-listener state for this element.
+	 * Only meaningful for elements in a modal layer.
 	 */
 	missListener: MissListener;
 
 	/**
-	 * Focal layer of the current layer
-	 * The key is the group and the value is a Map that represents the group.
-	 * Focuses in different groups can be activated within a layer, and each group can have only one focus
+	 * Focus targets grouped by named focus group: the key is the group name
+	 * and the value is the group's target map plus activation order.
+	 * Different groups can be active simultaneously within a layer, but
+	 * each group can have only one active focus.
 	 */
-	focusTargets: Map<string, { map: Map<string, FocusTarget>; order: string[] }>;
+	focusTargets: Map<string, FocusTargetsMap<FocusTarget>>;
 
 	/**
-	 * Default focus layer, if the focus is not registered in the specified group
-	 * The focus will be registered into this
-	 * Similarly, there can only be one active focus for this group
+	 * Default focus layer: focus targets not registered in a named group
+	 * are stored here. Like named groups, this group allows only one
+	 * active focus.
 	 */
 	defaultTargets: Map<string, FocusTarget>;
 
 	/**
-	 * All focus of the default focus layer is used for automatic focus switching by default
+	 * Order in which the default group's focus targets are cycled during
+	 * automatic focus switching.
 	 */
 	defaultFocusOrder: string[];
 
-	/** The currently active focus target id, or null. */
-	currentFocusIds: {
-		id: string;
-		fromGroup: string | typeof defaultTargetsSymbol;
-	}[];
+	/** The currently active focus targets, each with its id and the group
+	 * (or the default symbol) it came from. */
+	currentFocusIds: CurrentFocusId[];
 
   /**
 	 * Registered sequence bindings, keyed by their first key.
@@ -170,34 +217,35 @@ export interface PageKeyboardLayer extends BaseKeyboard {
 	/** Registered screen-level key bindings (evaluation order). */
 	bindings: PageBoundKeyEntry[];
 	/**
-	 * Waiting sequence for the current layer, only one waiting sequence per layer is allowed
+	 * The layer's pending sequence, or null when none is waiting —
+	 * only one waiting sequence per layer is allowed.
 	 */
 	pendingSequence: PendingSequence | null;
 
 	/**
-	 * Focal layer of the current layer
-	 * The key is the group and the value is a Map that represents the group.
-	 * Focuses in different groups can be activated within a layer, and each group can have only one focus
+	 * Focus targets grouped by named focus group: the key is the group name
+	 * and the value is the group's target map plus activation order.
+	 * Different groups can be active simultaneously within a layer, but
+	 * each group can have only one active focus.
 	 */
-	focusTargets: Map<string, { map: Map<string, PageFocusTarget>; order: string[] }>;
+	focusTargets: Map<string, FocusTargetsMap<PageFocusTarget>>;
 
 	/**
-	 * Default focus layer, if the focus is not registered in the specified group
-	 * The focus will be registered into this
-	 * Similarly, there can only be one active focus for this group
+	 * Default focus layer: focus targets not registered in a named group
+	 * are stored here. Like named groups, this group allows only one
+	 * active focus.
 	 */
 	defaultTargets: Map<string, PageFocusTarget>;
 
 	/**
-	 * All focus of the default focus layer is used for automatic focus switching by default
+	 * Order in which the default group's focus targets are cycled during
+	 * automatic focus switching.
 	 */
 	defaultFocusOrder: string[];
 
-	/** The currently active focus target id, or null. */
-	currentFocusIds: {
-		id: string;
-		fromGroup: string | typeof defaultTargetsSymbol;
-	}[];
+	/** The currently active focus targets, each with its id and the group
+	 * (or the default symbol) it came from. */
+	currentFocusIds: CurrentFocusId[];
 
   /**
 	 * Registered sequence bindings, keyed by their first key.

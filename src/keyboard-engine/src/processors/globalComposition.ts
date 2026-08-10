@@ -11,7 +11,7 @@ import type {
  * phase ({@link affectOverlay} = `false`). Both read the shared
  * {@link CompositionEngine} instance from {@link PipelineContext.compositionEngine}.
  *
- * @param config.affectOverlay — Which pipeline phase this instance serves.
+ * @param config.affectOverlay - Which pipeline phase this instance serves.
  * @returns A PipelineProcessor for the composition stage.
  */
 export function createCompositionProcessor<TComponent>(config: {

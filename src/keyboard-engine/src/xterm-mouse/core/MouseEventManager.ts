@@ -18,6 +18,11 @@ export class MouseEventManager {
   private readonly clickDetector: ClickDetector;
   private readonly positionTracker: PositionTracker;
 
+  /**
+   * Creates an event manager that parses raw ANSI data and emits mouse events.
+   * @param emitter The event emitter to emit mouse events through.
+   * @param options Configuration options forwarded to the click detector.
+   */
   constructor(
     private emitter: EventEmitter,
     options?: MouseOptions,
@@ -46,13 +51,10 @@ export class MouseEventManager {
     try {
       const events = parseMouseEvents(data.toString());
       for (const event of events) {
-        // Track position for move/drag events
         this.positionTracker.processEvent(event);
 
-        // Emit the event
         this.emitter.emit(event.action, event);
 
-        // Detect clicks
         this.clickDetector.processEvent(event, (clickEvent: MouseEvent) => {
           this.emitter.emit('click', clickEvent);
         });

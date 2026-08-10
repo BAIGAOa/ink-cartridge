@@ -1,6 +1,7 @@
 /**
- * Layer data required by the keyboard
- * You can extend this type by inheriting from it within the framework.
+ * Layer data required by the keyboard engine.
+ *
+ * Host frameworks extend this type for their own layer implementations.
  */
 export interface KeyboardLayer {
   /**
@@ -8,14 +9,14 @@ export interface KeyboardLayer {
    */
   layerId: string;
   /**
-   * For all elements currently on this layer,
-   * the keyboard system will create a separate keyboard data layer for each of them.
+   * All elements currently on this layer. The keyboard system creates
+   * separate keyboard data for each of them.
    */
   elements: string[];
 
   /**
-   * At this moment, among all elements on this layer,
-   * only the active ones will receive keyboard and mouse events.
+   * The subset of `elements` that currently receive keyboard and mouse
+   * events; inactive elements are skipped.
    */
   activeElements: string[];
 }

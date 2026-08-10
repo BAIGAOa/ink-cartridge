@@ -1,6 +1,9 @@
 import { Box, Text, useBoxMetrics, useCursor } from "ink";
 import {
+	applyElement,
 	applyElementToModalLayer,
+	closeLayer,
+	openLayer,
 	openModalLayer,
 	useI18n,
 	useKeyboard,
@@ -12,6 +15,12 @@ import { useSettings } from "../core/settings/useSettings.js";
 import { clickToPosition } from "./click-mapping.js";
 import { CommandBar } from "./command-bar.js";
 import { InformationBar } from "./information-bar.js";
+import { ToolBar } from "./tool-bar.js";
+
+/** Layer hosting the floating toolbar; below modal layers so it never
+ *  intercepts keys meant for a modal (e.g. the command bar). */
+const TOOLBAR_LAYER_ID = "toolbar";
+const TOOLBAR_Z_INDEX = 1;
 
 export type EditorContext = {
 	onChance?: () => void;
@@ -78,6 +87,38 @@ export function Editor({
 			element: CommandBar,
 		});
 	}, []);
+
+	// The toolbar lives in a regular layer (below modal layers) so it floats
+	// above the document without taking over the keyboard. The editor owns the
+	// layer lifecycle and the ctrl+tab toggle because the layer's element
+	// unmounts when it closes — a binding inside it could never re-open it.
+	const [toolbarOpen, setToolbarOpen] = useState(true);
+	useEffect(() => {
+		return () => closeLayer(TOOLBAR_LAYER_ID);
+	}, []);
+	// Opening must wait one tick: passive effects run child-first on mount, so
+	// when the editor IS the initial screen this effect races the provider's
+	// dispatcher registration and openLayer would throw. ctrl+tab toggles hit
+	// the same deferred path — the one-tick delay is imperceptible. Closing is
+	// safe immediately because the dispatcher is registered by then.
+	useEffect(() => {
+		if (!toolbarOpen) {
+			closeLayer(TOOLBAR_LAYER_ID);
+			return;
+		}
+		const timer = setTimeout(() => {
+			openLayer(TOOLBAR_LAYER_ID, TOOLBAR_Z_INDEX);
+			applyElement(TOOLBAR_LAYER_ID, {
+				elementId: "toolbar",
+				element: ToolBar,
+				props: { mode },
+			});
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [toolbarOpen, mode]);
+	useEffect(() => {
+		return boundKeyboard(["ctrl+tab"], () => setToolbarOpen((open) => !open));
+	}, [boundKeyboard]);
 
 	useEffect(() => {
 		const removeWildcard = enableWildcardPriority();

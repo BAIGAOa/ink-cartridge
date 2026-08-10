@@ -33,7 +33,10 @@
         "lint": "eslint src/ packages/",
         "lint:fix": "eslint --fix src/ packages/",
         "lint:quick": "eslint src/ packages/ --quiet --cache",
-        "demo:dev": "tsx examples/dev/dev.tsx"
+        "demo:dev": "tsx examples/dev/dev.tsx",
+        "docs": "npm run docs:framework && npm run docs:engine",
+        "docs:framework": "typedoc --options typedoc.json",
+        "docs:engine": "typedoc --options typedoc.engine.json"
     },
     "keywords": [
         "ink",
@@ -70,6 +73,7 @@
         "jsdom": "^26.0.0",
         "react": "^19.2.4",
         "tsx": "^4.22.4",
+        "typedoc": "^0.28.20",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.62.0",
         "vitest": "^4.1.5"

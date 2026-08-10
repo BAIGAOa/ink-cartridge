@@ -1,9 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
+// Types
 
 interface ThemeFile {
   /** Theme id from the file name (e.g. "dark"). */
@@ -12,6 +10,9 @@ interface ThemeFile {
   values: Record<string, string | boolean>;
 }
 
+/**
+ * Options for the {@link makeThemeType} command.
+ */
 export interface MakeThemeTypeOptions {
   /** Directory containing {id}.json theme files. */
   sourceDir: string;
@@ -25,9 +26,7 @@ export interface MakeThemeTypeOptions {
   packageName: string;
 }
 
-/* ------------------------------------------------------------------ */
-/*  File scanning                                                     */
-/* ------------------------------------------------------------------ */
+// File scanning
 
 function scanThemeFiles(dirPath: string): ThemeFile[] {
   const files: ThemeFile[] = [];
@@ -62,9 +61,7 @@ function scanThemeFiles(dirPath: string): ThemeFile[] {
   return files;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Key analysis                                                      */
-/* ------------------------------------------------------------------ */
+// Key analysis
 
 /** Keys present in EVERY theme file. */
 export function findCommonKeys(files: ThemeFile[]): string[] {
@@ -101,9 +98,7 @@ export function classifyKeys(
   return { colorKeys, styleKeys };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Code generation                                                   */
-/* ------------------------------------------------------------------ */
+// Code generation
 
 /** @internal Exported for testing only. */
 export function generateTypesContent(
@@ -179,9 +174,7 @@ export function generateRuntimeContent(packageName: string): string {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
+// Helpers
 
 /** @internal Exported for testing only. */
 export function escapeSingleQuote(s: string): string {
@@ -194,9 +187,7 @@ function writeOutput(outputDir: string, typesContent: string, runtimeContent: st
   fs.writeFileSync(path.join(outputDir, 'theme.ts'), runtimeContent, 'utf-8');
 }
 
-/* ------------------------------------------------------------------ */
-/*  Public API                                                         */
-/* ------------------------------------------------------------------ */
+// Public API
 
 /**
  * Generate type-safe theme bindings from a directory of {id}.json theme files.
@@ -238,9 +229,7 @@ export function makeThemeType(options: MakeThemeTypeOptions): void {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Core generate function                                            */
-/* ------------------------------------------------------------------ */
+// Core generate function
 
 function generate(sourceDir: string, outputDir: string, options: MakeThemeTypeOptions): void {
   const files = scanThemeFiles(sourceDir);

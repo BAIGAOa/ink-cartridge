@@ -175,7 +175,7 @@ console.log(`  cd ${projectName}`);
 console.log('  npm start');
 }
 
-/* ── initTheme ── */
+// initTheme
 
 if (subcommand === 'initTheme') {
   const outputIndex = args.indexOf('--output');
@@ -184,7 +184,7 @@ if (subcommand === 'initTheme') {
   initTheme({ outputDir });
 }
 
-/* ── makeLanguageType ── */
+// makeLanguageType
 
 if (subcommand === 'makeLanguageType') {
   const sourceDir = args[1];
@@ -216,7 +216,7 @@ if (subcommand === 'makeLanguageType') {
   process.exit(0);
 }
 
-/* ── makeThemeType ── */
+// makeThemeType
 
 if (subcommand === 'makeThemeType') {
   const sourceDir = args[1];
@@ -248,7 +248,7 @@ if (subcommand === 'makeThemeType') {
   process.exit(0);
 }
 
-/* ── unknown subcommand ── */
+// unknown subcommand
 
 console.error(`Error: unknown subcommand "${subcommand}"`);
 printHelp();
