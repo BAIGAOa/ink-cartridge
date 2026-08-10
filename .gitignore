@@ -152,3 +152,6 @@ test_record.md
 .reasonix/
 .codegraph/
 .vscode/settings.json
+
+# typedoc — auto-published to GitHub Pages
+documents/
