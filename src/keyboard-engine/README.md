@@ -393,7 +393,7 @@ if (pending) {
 
 ## API Documentation
 
-See [`documents/engine/`](../../documents/engine/) for the typedoc-generated API reference — every public class, method, and type is documented from its JSDoc (including usage examples). Run `npm run docs` from the repo root to regenerate.
+See [keyboard-engine API docs](https://baigaoa.github.io/ink-cartridge/engine/) for the typedoc-generated API reference — every public class, method, and type is documented from its JSDoc (including usage examples). Run `npm run docs` from the repo root to regenerate.
 
 ### Quick Example: ink-cartridge (React)
 

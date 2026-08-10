@@ -1,7 +1,7 @@
 ---
 name: comments
 description: Comments and documentation must be written in English. No Chinese or other languages in code comments, UI strings, or documentation.
-paths: ["src/**/*", "tests/**/*", "examples/**/*", "documents/**/*", "docs-agents/**/*", "agents/**/*", "*.md"]
+paths: ["src/**/*", "tests/**/*", "examples/**/*", "docs-agents/**/*", "agents/**/*", "*.md"]
 ---
 
 ## English-only

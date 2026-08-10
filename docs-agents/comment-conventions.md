@@ -54,7 +54,7 @@ this.pending = this.pending.then(task, task);
 
 ## 4. Public API must have English JSDoc
 
-Every public function, component, type, or constant exported from `src/index.ts` must have an English JSDoc comment. These comments feed the typedoc-generated API docs in `documents/framework/` (engine: `documents/engine/`) — run `npm run docs` after any public API change. Keep JSDoc free of project-internal chatter that would pollute the generated pages.
+Every public function, component, type, or constant exported from `src/index.ts` must have an English JSDoc comment. These comments feed the [typedoc-generated API docs](https://baigaoa.github.io/ink-cartridge/) (auto-published to GitHub Pages). Run `npm run docs` after any public API change. Keep JSDoc free of project-internal chatter that would pollute the generated pages.
 
 **Correct** (complete JSDoc):
 ```ts

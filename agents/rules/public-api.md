@@ -36,6 +36,6 @@ export function registerComponent(...): void;
 
 When changing a public API:
 
-1. Run `npm run docs` so the typedoc output under `documents/` reflects the change (the framework and engine each have their own generated site).
+1. Run `npm run docs` to verify typedoc output (auto-publishes to GitHub Pages on push to `main`).
 2. Verify `src/index.ts` re-exports the change.
 3. If the change doesn't affect existing documentation (e.g., bug fix with no API change), no doc update is required.

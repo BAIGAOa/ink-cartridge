@@ -29,7 +29,7 @@ npm run clean          # rm -rf dist
 A task is not complete until:
 1. `npm run build` exits zero
 2. `npm test` exits zero
-3. Public API changes are reflected in `documents/` (typedoc output, via `npm run docs`) and `src/index.ts`
+3. Public API changes are reflected in `src/index.ts` (typedoc docs auto-publish to GitHub Pages)
 
 ## Architecture
 
@@ -117,7 +117,7 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## Documentation
 
-- Public API changes → run `npm run docs` (typedoc regenerates `documents/framework/` and `documents/engine/`) and update `src/index.ts`. All API documentation lives in JSDoc — there are no hand-written API docs.
+- Public API changes → run `npm run docs` to verify typedoc output, then update `src/index.ts`. Docs auto-publish to [GitHub Pages](https://baigaoa.github.io/ink-cartridge/) on push to `main`. All API documentation lives in JSDoc — there are no hand-written API docs.
 - `docs-agents/` is agent reference material (not user-facing docs).
 
 ## Reference docs
@@ -137,7 +137,7 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 | `agents/rules/components.md` | `packages/*/src/**` |
 | `agents/rules/public-api.md` | `src/index.ts` |
 | `agents/rules/examples.md` | `examples/**/*` |
-| `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `documents/**/*`, `*.md` |
+| `agents/rules/comments.md` | `src/**/*`, `tests/**/*`, `examples/**/*`, `*.md` |
 
 ## CI/CD
 
