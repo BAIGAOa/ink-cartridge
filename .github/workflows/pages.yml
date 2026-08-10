@@ -26,12 +26,18 @@ jobs:
           <html lang="en">
           <head>
             <meta charset="utf-8">
-            <meta http-equiv="refresh" content="0; url=framework/">
             <title>ink-cartridge API docs</title>
+            <style>
+              body { font-family: system-ui, sans-serif; max-width: 480px; margin: 80px auto; padding: 0 20px; }
+              a { display: block; padding: 16px 20px; margin: 12px 0; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: #333; }
+              a:hover { border-color: #06f; color: #06f; }
+              a small { display: block; color: #888; margin-top: 4px; }
+            </style>
           </head>
           <body>
-            <p>Redirecting to <a href="framework/">Framework API</a>…</p>
-            <p>Also: <a href="engine/">Keyboard Engine API</a></p>
+            <h1>ink-cartridge API docs</h1>
+            <a href="framework/"><strong>Framework</strong><small>Core ink-cartridge framework — screen, keyboard, theme, language, CLI</small></a>
+            <a href="engine/"><strong>Keyboard Engine</strong><small>Framework-agnostic keyboard event engine</small></a>
           </body>
           </html>
           HTML
