@@ -20,6 +20,21 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run docs
+      - run: |
+          cat > documents/index.html << 'HTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=framework/">
+            <title>ink-cartridge API docs</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="framework/">Framework API</a>…</p>
+            <p>Also: <a href="engine/">Keyboard Engine API</a></p>
+          </body>
+          </html>
+          HTML
       - uses: actions/upload-pages-artifact@v3
         with:
           path: documents
