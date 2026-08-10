@@ -11,6 +11,11 @@ import { MouseError } from '../types/index.js';
  * - getMousePosition: Get current mouse position (with caching)
  */
 export class MouseConvenienceMethods {
+  /**
+   * Creates promise-based convenience wrappers for common mouse event patterns.
+   * @param emitter The event emitter to listen for mouse events on.
+   * @param getLastPosition Callback returning the last known mouse position, if any.
+   */
   constructor(
     private emitter: EventEmitter,
     private getLastPosition: () => { x: number; y: number } | null,
@@ -141,7 +146,6 @@ export class MouseConvenienceMethods {
       throw new MouseError('The operation was aborted.');
     }
 
-    // If we already have a cached position, return it immediately
     const cachedPosition = this.getLastPosition();
     if (cachedPosition !== null) {
       return cachedPosition;

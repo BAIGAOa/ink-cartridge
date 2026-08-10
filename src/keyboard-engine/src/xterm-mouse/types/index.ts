@@ -1,7 +1,13 @@
 export type { MouseEventAction } from './action.js';
 export type { ButtonType } from './button.js';
 export { MouseError } from './error.js';
-export type { ESCMouseEvent, MouseEvent, MouseEventBase, SGRMouseEvent } from './event.js';
+export type {
+  ESCMouseEvent,
+  MouseEvent,
+  MouseEventBase,
+  MousePosition,
+  SGRMouseEvent,
+} from './event.js';
 export type {
   ErrorEventListener,
   EventByAction,
@@ -11,4 +17,4 @@ export type {
   TypedEventListener,
 } from './eventHandler.js';
 export type { MouseOptions } from './options.js';
-export type { ReadableStreamWithEncoding } from './stream.js';
+export type { MouseStreamEvent, ReadableStreamWithEncoding } from './stream.js';

@@ -244,8 +244,9 @@ npm install @cartridge-engine/select @cartridge-engine/text-input @cartridge-eng
 
 ## Documentation
 
-- [ink-cartridge API docs](docs/) — keyboard, screen, event, theme, language, cli
-- [keyboard-engine API docs](src/keyboard-engine/docs/API/) — standalone engine APIs (framework-agnostic)
+- [ink-cartridge API docs](documents/framework/) — keyboard, screen, event, theme, language, cli
+- [keyboard-engine API docs](documents/engine/) — standalone engine APIs (framework-agnostic)
+- Online (GitHub Pages): [ink-cartridge](https://baigaoa.github.io/ink-cartridge/framework/) · [keyboard-engine](https://baigaoa.github.io/ink-cartridge/engine/) — auto-published on every push to `main`
 
 ## For AI
 

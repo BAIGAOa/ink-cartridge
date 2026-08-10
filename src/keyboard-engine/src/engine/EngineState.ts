@@ -9,9 +9,13 @@ import { GlobalPendingSequence } from "../types/pending-sequence.js";
 import { PipelineProcessor } from "../types/processor.js";
 import { SyncState } from "../types/state-sync.js";
 
+/**
+ * Mutable keyboard state shared across the engine's services and processors.
+ */
 export default class EngineState<TComponent> {
 	/**
-	 * Data input from an external source for recognition by the keyboard engine.
+	 * State snapshot pushed by the host framework on each render and
+	 * consumed by the keyboard engine.
 	 */
 	synchronizedData: SyncState<TComponent> = {
 		pagePath: [],
@@ -37,6 +41,7 @@ export default class EngineState<TComponent> {
 	 */
 	conditions: Map<string, boolean> = new Map();
 
+	/** Registered global key entries. */
 	globalKeysRef: ResolvedGlobalKeyEntry[] = [];
 	/**
 	 * Registered listeners notified whenever the active focus target changes.
@@ -83,11 +88,12 @@ export default class EngineState<TComponent> {
 		{ action: () => void; keys?: string[]; timeout?: number }
 	> = new Map();
 
+	/** Keyboard data per page screen component. */
 	pageLayerEelementsKeyboards: Map<TComponent, PageKeyboardLayer> = new Map();
 
 	/**
-	 * Note: This field is used solely to store the layer's keyboard layer data;
-	 * the keys of the nested Map correspond to element IDs.
+	 * Keyboard data per overlay/modal layer id. The nested map's keys are
+	 * element IDs.
 	 */
 	layersKeyboardMap: Map<string, LayerKeyboardLayer> = new Map();
 
@@ -101,17 +107,30 @@ export default class EngineState<TComponent> {
 	_isNormalChar: (key: unknown) => boolean;
 
 	/**
-	 * Indicates which processor is waiting to process the sequence at this point
+	 * `true` while a composition chain is pending, so processors know the
+	 * composition engine is waiting for the next key.
 	 */
 	compositionEngineHandle: boolean = false;
 
 	/** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
 	autoTab: boolean;
+	/** Key name used for auto-tab focus rotation (default `"tab"`). */
 	tabKey: string;
 
 	/** The composition engine instance, assigned by KeyboardEngine after construction. */
 	compositionEngine!: CompositionEngine<TComponent>;
 
+	/**
+	 * Ids of built-in processors currently kicked (disabled) at runtime,
+	 * managed by `kickProcessor` / `activeProcessor`.
+	 *
+	 * `buildPipelineContext` passes this array to every processor as
+	 * `ctx.noActiveProcessor`; each built-in processor factory checks
+	 * `ctx.noActiveProcessor.includes(this.id)` as the first guard in its
+	 * `process()` method and returns `false` immediately when kicked.
+	 * `resetProcessors` rebuilds the pipeline array but does NOT clear this
+	 * list — kicked processors stay disabled until re-activated.
+	 */
 	noActiveProcessor: string[] = [];
 
 	constructor(props: EngineProps<TComponent>) {

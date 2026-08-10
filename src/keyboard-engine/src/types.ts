@@ -27,10 +27,16 @@ export type BoundKeyEntry = BaseBoundKeyEntry;
 export type SequenceBinding = BaseSequenceBinding;
 
 /** A minimal overlay entry still used by legacy processor helpers. */
-export type EngineOverlayEntry = { id: string };
+export type EngineOverlayEntry = {
+	/** The overlay layer id, used for keyboard syncing and mouse-region attribution. */
+	id: string;
+};
 
 /** A minimal modal entry still used by legacy processor helpers. */
-export type EngineModalEntry = { id: string };
+export type EngineModalEntry = {
+	/** The modal layer id, used for keyboard syncing and mouse-region attribution. */
+	id: string;
+};
 
 /** @deprecated Layer kinds are now represented by the layer/owner model. */
 export type LayerKind = "screen" | "overlay" | "modal";

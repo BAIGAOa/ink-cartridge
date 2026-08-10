@@ -45,6 +45,12 @@ export interface BaseBoundKeyEntry {
   mode?: string;
 }
 
+/**
+ * A key binding registered on a page (screen) layer.
+ *
+ * Extends {@link BaseBoundKeyEntry} with the page-only
+ * `stopsWorkingAfterLayerAppearing` option.
+ */
 export interface PageBoundKeyEntry extends BaseBoundKeyEntry {
   /**
    * When `true`, this binding stops responding after its owning layer
@@ -87,6 +93,12 @@ export interface BaseSequenceBinding {
   when?: (() => boolean) | string;
 }
 
+/**
+ * Sequence options for bindings registered on a page (screen) layer.
+ *
+ * Extends {@link SequenceOptions} with the page-only
+ * `stopsWorkingAfterLayerAppearing` option.
+ */
 export interface PageSequenceOptions extends SequenceOptions {
   /**
    * When `true`, this binding stops responding after its owning layer
@@ -97,6 +109,11 @@ export interface PageSequenceOptions extends SequenceOptions {
   stopsWorkingAfterLayerAppearing: boolean;
 }
 
+/**
+ * A sequence binding registered on a page (screen) layer.
+ *
+ * Extends {@link BaseSequenceBinding} with page-only options.
+ */
 export interface PageSequenceBinding extends BaseSequenceBinding {
   /** Binding options (exclusive mode, focusId, onlyThis, etc.). */
   options?: PageSequenceOptions;

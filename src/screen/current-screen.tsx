@@ -17,6 +17,16 @@ import { LayerElementContext } from "./LayerElementContext.js";
  * can isolate per-modal keyboard layers by modal ID.
  *
  * Architecturally symmetric between overlays and modals.
+ *
+ * @example
+ * Render it as the leaf of the provider chain:
+ * ```tsx
+ * <ScenarioManagementProvider defaultScreen={MainScreen} fullScreen>
+ *   <KeyboardProvider modes={['normal', 'insert']} mouse>
+ *     <CurrentScreen />
+ *   </KeyboardProvider>
+ * </ScenarioManagementProvider>
+ * ```
  */
 export function CurrentScreen(): React.ReactNode {
   const { pageLayer, fullScreen, allLayers, allModalLayers } =

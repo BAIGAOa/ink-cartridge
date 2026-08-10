@@ -1,0 +1,8 @@
+{
+	"name": "ink-cartridge",
+	"entryPoints": ["src/index.ts"],
+	"out": "documents/framework",
+	"tsconfig": "tsconfig.json",
+	"readme": "none",
+	"githubPages": true
+}

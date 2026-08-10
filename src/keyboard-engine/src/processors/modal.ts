@@ -163,8 +163,13 @@ function invokeMissIfNeeded(
  *
  * The highest-z-index modal layer receives the event. Inside the modal,
  * all active elements are offered the event (broadcast). The modal still
- * consumes every unhandled event by default; only keys registered via
- * `allowModal` pass through to lower stages.
+ * consumes every unhandled event by default — the modal takes over the
+ * keyboard while open, so nothing beneath it ever sees unhandled keys;
+ * only keys registered via `allowModal` pass through to lower stages.
+ *
+ * `useModalMissListener` callbacks are invoked for consumed keys that
+ * nothing on the modal layer handled, so the modal can react to unknown
+ * keys (e.g. a "key not bound" hint).
  */
 export function createModalProcessor<TComponent>(): PipelineProcessor<TComponent> {
 	return {

@@ -1,18 +1,26 @@
 import { KeyboardLayer } from "./keyboard-layer.js";
 
+/**
+ * State snapshot pushed by the host framework on every engine sync.
+ *
+ * The keyboard engine uses it to keep the screen path, layers, and
+ * modal layers in sync with the host's navigation state.
+ */
 export type SyncState<TComponent> = {
   /**
-   * The screen path to be transmitted; this will be used by the keyboard system to identify the current page.
+   * The screen path to transmit; used by the keyboard system to
+   * identify the current page.
    */
   pagePath: TComponent[];
   /**
-   * All layers currently on the screen.
-   * Note: Layers appearing later in the array have higher keyboard priority.
+   * All non-modal layers currently on the screen.
+   * Layers appearing later in the array have higher keyboard priority.
    */
   layers: KeyboardLayer[];
   /**
-   * Regarding all modal layers at this moment—note that keyboard
-   * and mouse events for modal layers always take precedence over those for `pageLayer` and `layer`.
+   * All modal layers currently on the screen. Keyboard and mouse events
+   * for modal layers always take precedence over those for pages and
+   * ordinary layers.
    */
   modalLayers: KeyboardLayer[];
 };

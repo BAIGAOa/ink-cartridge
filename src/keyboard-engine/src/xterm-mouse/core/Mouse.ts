@@ -1,5 +1,13 @@
 import { EventEmitter } from 'node:events';
-import type { ListenerFor, MouseEvent, MouseEventAction, MouseOptions, ReadableStreamWithEncoding } from '../types/index.js';
+import type {
+  ListenerFor,
+  MouseEvent,
+  MouseEventAction,
+  MouseOptions,
+  MousePosition,
+  MouseStreamEvent,
+  ReadableStreamWithEncoding,
+} from '../types/index.js';
 import { EventStreamFactory } from './EventStreamFactory.js';
 import { MouseConvenienceMethods } from './MouseConvenienceMethods.js';
 import { MouseEventManager } from './MouseEventManager.js';
@@ -91,7 +99,6 @@ class Mouse {
     // Create event manager first (needed by TTYController for handleEvent)
     this.eventManager = new MouseEventManager(eventEmitter, options);
 
-    // Create TTY controller with event handler and custom setRawMode
     this.tty = new TTYController(
       inputStream,
       outputStream,
@@ -99,7 +106,6 @@ class Mouse {
       options?.setRawMode,
     );
 
-    // Create stream factory and convenience methods
     this.streamFactory = new EventStreamFactory(this.eventManager.getEmitter());
     this.convenience = new MouseConvenienceMethods(this.eventManager.getEmitter(), () =>
       this.eventManager.getLastPosition(),
@@ -716,13 +722,13 @@ class Mouse {
    * @param options.latestOnly If true, only the latest event is buffered. Defaults to false.
    * @param options.maxQueue The maximum number of events to queue. Defaults to 1000.
    * @param options.signal An AbortSignal to cancel the async generator.
-   * @yields {{ type: MouseEventAction; event: MouseEvent }} An object with the event type and data.
+   * @yields {MouseStreamEvent} An object with the event type and data.
    */
   public async *stream(options?: {
     latestOnly?: boolean;
     maxQueue?: number;
     signal?: AbortSignal;
-  }): AsyncGenerator<{ type: MouseEventAction; event: MouseEvent }> {
+  }): AsyncGenerator<MouseStreamEvent> {
     yield* this.streamFactory.stream(options);
   }
 
@@ -1008,7 +1014,7 @@ class Mouse {
    * }
    * ```
    */
-  public getLastPosition(): { x: number; y: number } | null {
+  public getLastPosition(): MousePosition | null {
     return this.eventManager.getLastPosition();
   }
 
@@ -1069,7 +1075,7 @@ class Mouse {
   public async getMousePosition(options?: {
     timeout?: number;
     signal?: AbortSignal;
-  }): Promise<{ x: number; y: number }> {
+  }): Promise<MousePosition> {
     return this.convenience.getMousePosition(options);
   }
 }

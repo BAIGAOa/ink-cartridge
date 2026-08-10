@@ -29,6 +29,22 @@ import { ROOT_MOUSE_LAYER_ID } from "@cartridge-engine/keyboard-engine";
  * Must be used inside a {@link KeyboardProvider}.
  *
  * @throws If no provider is found in the component tree.
+ *
+ * @example
+ * Bind a key with a mode restriction. `boundKeyboard` returns an unbind
+ * function — return it from the effect so the binding is removed on unmount
+ * (and re-registered on re-render, picking up fresh closures).
+ * ```tsx
+ * function MyScreen() {
+ *   const { boundKeyboard } = useKeyboard();
+ *
+ *   useEffect(() => {
+ *     return boundKeyboard(['ctrl+s'], () => save(), { mode: 'insert' });
+ *   }, []);
+ *
+ *   return <Text>Press Ctrl+S to save</Text>;
+ * }
+ * ```
  */
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
@@ -165,6 +181,32 @@ export function useKeyboard(): KeyboardContextValue {
   return wrapped;
 }
 
+/**
+ * Track whether a focusable element currently holds focus.
+ *
+ * Re-renders whenever focus moves; returns `true` while `focusId` is the
+ * active focus target (optionally constrained to a focus group).
+ *
+ * @param focusId        - Id of the focusable element to track.
+ * @param groupOrOptions - Focus group name or {@link FocusSetOptions}.
+ * @returns `true` when the element currently holds focus.
+ *
+ * @example
+ * Track a `TextInput` — the same `focusId` the input registers with the
+ * focus system:
+ * ```tsx
+ * function LoginForm() {
+ *   const focused = useFocusState('username');
+ *
+ *   return (
+ *     <Box flexDirection="column">
+ *       <TextInput focusId="username" value={username} onChange={setUsername} />
+ *       <Text dimColor>{focused ? 'editing username' : 'press Tab'}</Text>
+ *     </Box>
+ *   );
+ * }
+ * ```
+ */
 export function useFocusState(
   focusId: string,
   groupOrOptions?: string | FocusSetOptions,
@@ -183,6 +225,31 @@ export function useFocusState(
   return isFocused;
 }
 
+/**
+ * Register a callback for key presses that miss every modal layer binding.
+ *
+ * The listener is scoped to the surrounding modal layer element
+ * automatically; outside a modal layer the hook does nothing. The listener
+ * is removed automatically when the component unmounts or when the callback
+ * or options change.
+ *
+ * @param cb      - Called when a key press is not consumed by any modal
+ *                  layer binding.
+ * @param options - Additional {@link ModalMissOptions}.
+ * @returns A no-op function; actual unsubscription happens in an effect
+ *          cleanup.
+ *
+ * @example
+ * Give feedback inside a modal layer when the user presses a key no modal
+ * binding handles:
+ * ```tsx
+ * function HelpModal() {
+ *   const [hint, setHint] = useState('');
+ *   useModalMissListener(() => setHint('Unknown key — press q to close'));
+ *   return <Text>{hint}</Text>;
+ * }
+ * ```
+ */
 export function useModalMissListener(
   cb: ModalMissCallback,
   options?: ModalMissOptions,
@@ -232,14 +299,37 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  * Attach the returned ref to a `<Box>`. The engine hit-tests xterm-mouse
  * events against the element's measured rectangle and fires the callbacks:
  * `onClick` for clicks, `onWheel` for wheel events, `onEnter`/`onLeave` for
- * hover transitions.
+ * hover transitions, and `onDragStart`/`onDragMove`/`onDragEnd` for the drag
+ * lifecycle.
+ *
+ * Clicks and drags are exclusive. A press inside the region arms a drag
+ * capture on the pressed region — the drag keeps firing even when the
+ * cursor leaves the region — and the first `drag` event promotes the press
+ * to a drag, firing `onDragStart` and then `onDragMove`. `onDragEnd` fires
+ * on release only when a real drag happened; a plain click fires `onClick`
+ * instead and never touches the drag callbacks.
  *
  * The region is attributed to the surrounding layer/modal layer
  * automatically (same layer scoping as {@link useKeyboard}); outside any layer
- * it registers on the shared root layer, hit-tested last.
+ * it registers on the shared root layer, hit-tested last. While a modal
+ * layer is open it takes over hit-testing exactly like keyboard modal
+ * priority — events that miss the modal do not fall through to layers or
+ * root regions, so clicking "through" a modal can never trigger the UI
+ * underneath.
  *
- * The rect is re-measured and re-registered after every render, so layout
- * changes (resize, content growth) stay in sync with the engine.
+ * The rect is re-measured and re-registered on every render and on every
+ * Ink layout commit, so the hit area stays in sync with the terminal
+ * whether the window resizes, content grows, or an ancestor moves (e.g. a
+ * draggable modal frame relocating its children) — no re-render of the
+ * tracked component required. This covers elements whose absolute position
+ * moves while their own relative metrics don't change (a button inside a
+ * fixed-width centered menu row, a child control inside a moved frame).
+ *
+ * Hit priority follows keyboard semantics: modal layers → regular layers →
+ * root regions; within a layer, later registration wins unless `priority`
+ * overrides. Use a higher `priority` for child controls (e.g. a button
+ * inside a panel): React mounts children before parents, so the child
+ * would otherwise register first and lose overlap resolution.
  *
  * Must be used inside a {@link KeyboardProvider} with `mouse` enabled.
  *
@@ -252,14 +342,22 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  * @returns A ref to attach to the Ink `<Box>` to track.
  *
  * @example
+ * Click, wheel, hover, and drag callbacks:
  * ```tsx
  * const boxRef = useMouseRegion({
  *   onClick: (event, rect) => {
  *     const col = event.x - rect.x - 1; // local cell column (1-cell border)
  *     console.log(`Clicked cell ${col} at ${event.x},${event.y}`);
  *   },
+ *   onWheel: (event) => {
+ *     if (event.button === 'wheel-up') scrollUp();
+ *     if (event.button === 'wheel-down') scrollDown();
+ *   },
  *   onEnter: () => setIsHovered(true),
  *   onLeave: () => setIsHovered(false),
+ *   onDragStart: () => setIsDragging(true),
+ *   onDragMove: (event) => moveTo(event.x, event.y),
+ *   onDragEnd: () => setIsDragging(false),
  * });
  * return <Box ref={boxRef}>…</Box>;
  * ```

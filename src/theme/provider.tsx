@@ -260,7 +260,7 @@ export function ThemeProvider({
     [mergedThemes, rawThemes],
   );
 
-  // ── addThemes ────────────────────────────────────────────────
+  // addThemes
   const addThemes = useCallback(
     (paths: string[]) => {
       const base = mergedThemes ?? rawThemes;

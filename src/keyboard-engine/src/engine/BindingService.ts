@@ -24,6 +24,11 @@ import { ElementKeyboard, PageKeyboardLayer } from "../types/page-layer.js";
 import EngineState from "./EngineState.js";
 import LayerManager from "./LayerManager.js";
 
+/**
+ * Resolves keyboard bindings against the current owner's layer: key
+ * bindings, penetration, stop barriers, modal allow-lists, and multi-key
+ * sequences.
+ */
 export default class BindingService<TComponent = unknown> {
   constructor(
     private state: EngineState<TComponent>,
@@ -55,6 +60,35 @@ export default class BindingService<TComponent = unknown> {
     return layer;
   }
 
+  /**
+   * Bind one or more keys to a handler on the current owner's layer.
+   *
+   * Supports three calling conventions:
+   * 1. `boundKeyboard(keys, handler, options?)` — explicit keys and callback
+   * 2. `boundKeyboard(keys, actionId, options?)` — explicit keys, shortcut
+   *    action by id (resolved to its stored callback at registration time)
+   * 3. `boundKeyboard(actionId, options?)` — uses the action's preset keys
+   *
+   * With a `focusId` option the binding is stored on that focus target
+   * (created lazily) instead of the layer-level bucket. Bindings are also
+   * checked against registered global keys: binding a key already declared
+   * in `globalKeys` marks it as overridden on the layer — unless the
+   * global entry has `cover: false`, which throws.
+   *
+   * @example
+   * ```ts
+   * engine.defineShortcutAction([
+   *   { actionId: 'submit', action: handleSubmit, keys: ['ctrl+enter'] },
+   * ]);
+   * engine.boundKeyboard('submit');          // uses preset keys
+   * engine.boundKeyboard('f5', 'submit');    // overrides keys locally
+   * ```
+   *
+   * @returns An unbind function.
+   * @throws If no current owner exists, the action id is not registered,
+   *         `times < 1`, `observer` without `times`, or a `cover: false`
+   *         global key conflict.
+   */
   boundKeyboard(
     keysOrActionId: string | string[],
     handlerOrOptions: KeyHandler | string | BoundKeyboardOptions,
@@ -458,6 +492,26 @@ export default class BindingService<TComponent = unknown> {
     };
   }
 
+  /**
+   * Subscribe to unhandled key presses inside a modal.
+   *
+   * When a modal is active, the modal processor consumes every key event —
+   * but some keys match no binding, sequence, or navigation rule on the
+   * modal layer. This listener fires for those "misses" so the modal can
+   * react to unknown keys (e.g. show a "key not bound" hint). The callback
+   * receives `{ miss: false }` when the key was handled, or
+   * `{ miss: true, key, input, eventNames }` when nothing consumed it.
+   *
+   * Sets `onMiss` / `onMissOptions` on the modal layer's element keyboard;
+   * the modal processor invokes the callback during each key evaluation.
+   * With `monitorWhen: true`, a key matching a binding whose `when()`
+   * returns `false` counts as a miss (default: counted as handled); with
+   * `monitorFocusMismatch: true`, a key matching a binding on a
+   * non-active focus target counts as a miss.
+   *
+   * @returns An unsubscribe function.
+   * @throws If not called on a modal layer (element keyboard).
+   */
   useModalMissListener(
     cb: ModalMissCallback,
     options?: ModalMissOptions,

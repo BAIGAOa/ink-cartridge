@@ -16,12 +16,23 @@ import { GlobalPendingSequence, PendingSequence } from "../types/pending-sequenc
 import EngineState from "./EngineState.js";
 import type LayerManager from "./LayerManager.js";
 
+/**
+ * Manages modes, conditions, wildcard priority, global keys/sequences, and
+ * named shortcut/sequence actions.
+ */
 export default class OperationRegistry<TComponent = unknown> {
   constructor(
     private state: EngineState<TComponent>,
     private layers: LayerManager<TComponent>,
   ) {}
 
+  /**
+   * Register a new mode name. Modes segment key bindings into separate
+   * contexts (like Vim's normal/insert/visual modes) and must be
+   * registered before they can be set or referenced by bindings.
+   *
+   * @returns `true` if added, `false` if already registered.
+   */
   addMode(mode: string) {
     if (this.state.modesRef.has(mode)) {
       return false;
@@ -30,10 +41,24 @@ export default class OperationRegistry<TComponent = unknown> {
     return true;
   }
 
+  /**
+   * Unregister a mode.
+   *
+   * If the removed mode is currently active, the engine does NOT
+   * auto-switch — call {@link setMode}(null) to exit.
+   *
+   * @returns `true` if the mode existed and was removed.
+   */
   removeMode(mode: string) {
     return this.state.modesRef.delete(mode);
   }
 
+  /**
+   * Switch to a specific mode. Pass `null` to exit all modes (no-mode
+   * state).
+   *
+   * @returns `true` on success, `false` if the mode is not registered.
+   */
   setMode(mode: string | null) {
     if (typeof mode === "string" && !this.state.modesRef.has(mode)) {
       return false;
@@ -42,6 +67,10 @@ export default class OperationRegistry<TComponent = unknown> {
     return true;
   }
 
+  /**
+   * Cycle to the next mode in registration order, wrapping around at the
+   * end. In no-mode state, enters the first registered mode.
+   */
   nextMode() {
     const modes = Array.from(this.state.modesRef);
     if (modes.length === 0) return;
@@ -50,6 +79,10 @@ export default class OperationRegistry<TComponent = unknown> {
     this.state.currentModeRef = modes[nextIndex];
   }
 
+  /**
+   * Cycle to the previous mode in registration order, wrapping around at
+   * the end.
+   */
   prevMode() {
     const modes = Array.from(this.state.modesRef);
     if (modes.length === 0) return;
@@ -58,10 +91,30 @@ export default class OperationRegistry<TComponent = unknown> {
     this.state.currentModeRef = modes[prevIndex];
   }
 
+  /**
+   * Return the active mode name, or `null` in no-mode state.
+   *
+   * The active mode is stored in `currentModeRef` and written into every
+   * pipeline context as `currentMode`; each processor that evaluates
+   * bindings (screen stack, global keys, global sequences, composition)
+   * checks `entry.mode` against it and skips entries whose mode doesn't
+   * match. Bindings without a `mode` option fire in all modes.
+   */
   getCurrentMode() {
     return this.state.currentModeRef;
   }
 
+  /**
+   * Register a named boolean condition for `when: "conditionId"`
+   * references.
+   *
+   * Unlike modes (discrete, exclusive states), conditions are independent
+   * booleans that can be toggled at runtime and are evaluated per key
+   * press — use them for state-driven gating like "isEditing",
+   * "hasSelection", "isConnected".
+   *
+   * @returns `true` if registered, `false` if the id already exists.
+   */
   addCondition(id: string, defaultVal: boolean) {
     if (this.state.conditions.has(id)) {
       return false;
@@ -70,10 +123,23 @@ export default class OperationRegistry<TComponent = unknown> {
     return true;
   }
 
+  /**
+   * Unregister a condition.
+   *
+   * @returns `true` if it existed and was removed.
+   */
   removeCondition(target: string) {
     return this.state.conditions.delete(target);
   }
 
+  /**
+   * Update a condition's value. Bindings referencing it via
+   * `when: "conditionId"` use the new value on the very next key event —
+   * the check is per-key-press, so no sync or cleanup is needed.
+   *
+   * @returns `true` if updated, `false` if the condition is not
+   *          registered.
+   */
   setCondition(target: string, value: boolean) {
     if (!this.state.conditions.has(target)) {
       return false;
@@ -95,6 +161,20 @@ export default class OperationRegistry<TComponent = unknown> {
     };
   }
 
+  /**
+   * Register global key bindings. Global keys fire independently of the
+   * screen stack, subject to `category` whitelist and `affectLayer`
+   * placement.
+   *
+   * When `operate` is a string, it is resolved here to the registered
+   * shortcut action's callback (throwing if the action is not
+   * registered); press-count tracking is initialized for entries with
+   * `times`. `'replace'` mode (default) replaces all global keys,
+   * `'add'` appends.
+   *
+   * @throws If `times < 1`, `observer` without `times`, or a string
+   *         `operate` that names no registered shortcut action.
+   */
   globalKeys(
     entries: GlobalKeyEntry[],
     options?: { mode?: "replace" | "add" },
@@ -168,6 +248,19 @@ export default class OperationRegistry<TComponent = unknown> {
     return this.state.globalPendingSeqRef;
   }
 
+  /**
+   * Register global sequence key bindings. Global sequences fire
+   * independently of the screen stack with higher priority than global
+   * keys, matching multi-key sequences instead of single presses.
+   *
+   * When `operate` is a string, it is resolved here to the registered
+   * sequence action's callback (throwing if the action is not
+   * registered). In `'replace'` mode (default), any active pending global
+   * sequence is cancelled before replacement.
+   *
+   * @throws If any sequence has fewer than 2 keys, or a string `operate`
+   *         names no registered sequence action.
+   */
   globalSequence(
     entries: GlobalSequenceEntry[],
     options?: { mode?: "replace" | "add" },
@@ -207,6 +300,32 @@ export default class OperationRegistry<TComponent = unknown> {
     }
   }
 
+  /**
+   * Register named shortcut actions that key bindings can reference by
+   * string id instead of inline callbacks.
+   *
+   * Decouples key bindings from callback logic: register an action once
+   * and reference it by `actionId` everywhere, so keys can be changed
+   * without touching every binding site. The stored callback is resolved
+   * to a stable reference at registration time (when `boundKeyboard` /
+   * `globalKeys` receives a string `operate`), not at key-press time.
+   *
+   * @example
+   * ```ts
+   * engine.defineShortcutAction([
+   *   { actionId: 'save', action: () => saveFile(), keys: ['ctrl+s'] },
+   *   { actionId: 'quit', action: () => process.exit(0), keys: ['ctrl+q'] },
+   *   { actionId: 'help', action: () => toggleHelp() },
+   * ]);
+   *
+   * // Reference by id everywhere
+   * engine.boundKeyboard('save');                     // uses preset keys
+   * engine.boundKeyboard('f9', 'save');               // overrides keys locally
+   * engine.globalKeys([{ key: 'ctrl+s', operate: 'save' }]);
+   * ```
+   *
+   * @throws If any `actionId` is duplicated.
+   */
   defineShortcutAction(entries: ShortcutOperationEntry[]) {
     for (const each of entries) {
       setIfAbsent(
@@ -221,6 +340,26 @@ export default class OperationRegistry<TComponent = unknown> {
     }
   }
 
+  /**
+   * Register named sequence actions that `boundSequence` and
+   * `globalSequence` can reference by `sequenceActionId`.
+   *
+   * The sequence counterpart to {@link defineShortcutAction}. The stored
+   * callback is resolved at registration time, not at key-press time.
+   *
+   * @example
+   * ```ts
+   * engine.defineSequenceAction([
+   *   { sequenceActionId: 'scroll-top', action: () => scrollToTop(), keys: ['g', 'g'], timeout: 600 },
+   * ]);
+   *
+   * engine.boundSequence('scroll-top');               // uses preset keys
+   * engine.boundSequence(['shift+g'], 'scroll-top');  // overrides keys locally
+   * engine.globalSequence([{ keys: ['ctrl+home'], operate: 'scroll-top' }]);
+   * ```
+   *
+   * @throws If any `sequenceActionId` is duplicated.
+   */
   defineSequenceAction(entries: SequenceOperationEntry[]) {
     for (const each of entries) {
       setIfAbsent(
@@ -236,6 +375,12 @@ export default class OperationRegistry<TComponent = unknown> {
     }
   }
 
+  /**
+   * Change the preset keys and/or timeout of an existing sequence action.
+   *
+   * @throws If the action does not exist or was registered without a
+   *         `keys` (or `timeout`, when one is passed) field.
+   */
   modifySequenceAction(actionId: string, keys: string[], timeout?: number) {
     const entry = modifyEntryKeys(
       this.state.sequenceOperationsRef,
@@ -254,6 +399,12 @@ export default class OperationRegistry<TComponent = unknown> {
     }
   }
 
+  /**
+   * Change the preset keys of an existing shortcut action.
+   *
+   * @throws If the action does not exist or was registered without a
+   *         `keys` field.
+   */
   modifyAction(actionId: string, keys: string[]) {
     modifyEntryKeys(
       this.state.shortcutOperationsRef,
@@ -264,6 +415,11 @@ export default class OperationRegistry<TComponent = unknown> {
     );
   }
 
+  /**
+   * Add a single sequence action.
+   *
+   * @throws If the `sequenceActionId` already exists.
+   */
   addSequenceAction(entry: SequenceOperationEntry) {
     setIfAbsent(
       this.state.sequenceOperationsRef,
@@ -277,10 +433,16 @@ export default class OperationRegistry<TComponent = unknown> {
     );
   }
 
+  /** Check sequence action registration without throwing. */
   hasSequenceAction(sequenceActionId: string): boolean {
     return this.state.sequenceOperationsRef.has(sequenceActionId);
   }
 
+  /**
+   * Remove a registered sequence action.
+   *
+   * @throws If the `sequenceActionId` is not registered.
+   */
   removeSequenceAction(sequenceActionId: string) {
     deleteIfPresent(
       this.state.sequenceOperationsRef,
@@ -289,10 +451,16 @@ export default class OperationRegistry<TComponent = unknown> {
     );
   }
 
+  /** Remove all registered sequence actions. */
   clearSequenceOperations() {
     this.state.sequenceOperationsRef.clear();
   }
 
+  /**
+   * Add a single shortcut action.
+   *
+   * @throws If the `actionId` already exists.
+   */
   addAction(entry: ShortcutOperationEntry) {
     setIfAbsent(
       this.state.shortcutOperationsRef,
@@ -305,10 +473,16 @@ export default class OperationRegistry<TComponent = unknown> {
     );
   }
 
+  /** Check shortcut action registration without throwing. */
   hasAction(actionId: string): boolean {
     return this.state.shortcutOperationsRef.has(actionId);
   }
 
+  /**
+   * Remove a registered shortcut action.
+   *
+   * @throws If the `actionId` is not registered.
+   */
   removeAction(actionId: string) {
     deleteIfPresent(
       this.state.shortcutOperationsRef,
@@ -317,10 +491,20 @@ export default class OperationRegistry<TComponent = unknown> {
     );
   }
 
+  /** Remove all registered shortcut actions. */
   clearShortcutOperations() {
     this.state.shortcutOperationsRef.clear();
   }
 
+  /**
+   * Check whether a global multi-key sequence is currently pending
+   * (i.e. the first key was pressed and the engine is waiting for
+   * subsequent keys or a timeout).
+   *
+   * When `sync` is provided, it is registered as a pending-sync callback
+   * and notified after each {@link processKey} so the host framework can
+   * re-render.
+   */
   thereGlobalQueueWaiting(sync?: () => void): boolean {
     if (sync) {
       this.state.pendingSyncs.add(sync);
@@ -328,6 +512,18 @@ export default class OperationRegistry<TComponent = unknown> {
     return this.state.globalPendingSeqRef !== null;
   }
 
+  /**
+   * Check whether the current owner's layer has an active pending
+   * multi-key sequence (registered via `boundSequence`).
+   *
+   * Unlike {@link thereGlobalQueueWaiting}, this only checks the layer
+   * belonging to the current owner. With `options.monitorLayer: true`,
+   * a layer-id owner's own pending sequence is inspected; otherwise the
+   * top page's pending sequence is used.
+   *
+   * @throws If there is no current owner (no active page, layer, or
+   *         modal layer).
+   */
   currentScreenHasSequenceWaiting(
     sync?: () => void,
     options?: SequenceListeningOptions,

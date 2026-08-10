@@ -46,7 +46,6 @@ function CompositionScreen() {
     return unbind;
   }, [boundKeyboard]);
 
-  // Register composition keys on mount
   React.useEffect(() => {
     // "3" — writes value=3 into context
     registryCompositionKey({

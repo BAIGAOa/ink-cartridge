@@ -1,6 +1,12 @@
 import { createContext } from "react";
 import { Layer } from "./types/layer.js";
 
+/**
+ * React context for elements rendered inside a layer.
+ *
+ * Carries the element's ID, its owning layer, the host page, and whether
+ * the layer automatically takes over keyboard events.
+ */
 export const LayerElementContext = createContext<{
   /** This field indicates the ID of this Element. */
   id: string;

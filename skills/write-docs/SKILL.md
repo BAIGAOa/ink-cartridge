@@ -22,9 +22,9 @@ Then **must** ask: new doc or updating existing doc?
 3. Read at least one existing API doc from the same subsystem to match style
 4. Draft the complete doc and present it to the user
 5. User confirms; write the file
-6. **Must** update the subsystem README index table (`docs/<subsystem>/README.md`)
-7. **Must** update the top-level docs index (`docs/README.md`) if entry is needed
-8. **Must** update the root `README.md` Documentation section (`<details>` block) with the new link
+6. **Must** update the source JSDoc if the doc describes a public API — typedoc generates `documents/framework/` (and `documents/engine/` for the engine) from it
+7. **Must** run `npm run docs` to regenerate the typedoc output
+8. **Must** update the root `README.md` Documentation section with the new link
 9. **Must** check `src/index.ts` — if this API is public and not exported, warn the user
 
 ## Auto-explore workflow (update existing doc)
@@ -43,7 +43,7 @@ Then **must** ask: new doc or updating existing doc?
 3. List the sections to be written; user confirms
 4. Generate the doc
 5. Ask: does any README index need updating?
-6. **Must** check `src/index.ts`
+6. **Must** check `src/index.ts` and run `npm run docs` to refresh `documents/`
 
 ## Step-by-step workflow (update existing doc)
 
@@ -68,7 +68,7 @@ Component API docs may also include `## Keyboard` table.
 ## Non-negotiable conventions
 
 - **Must** match the style of existing docs in the same subsystem — never invent new section names or table formats
-- **Must** update all three index locations for a new API: subsystem README, `docs/README.md`, root `README.md`
+- **Must** run `npm run docs` after any public API change so `documents/` reflects the new JSDoc — all API documentation is JSDoc-driven, there are no hand-written API docs
 - **Must** check `src/index.ts` for public API export; warn if missing
 - **Must not** write docs in `docs-agents/` (those are manually maintained agent reference files)
 - **Must not** rewrite entire files for minor prop additions — modify only affected sections

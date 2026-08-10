@@ -14,5 +14,6 @@
   "editor.mode.insert": "INSERT",
   "editor.mode.normal": "NORMAL",
   "command.prompt": "Command",
-  "command.unknown": "Unknown command: {cmd}"
+  "command.unknown": "Unknown command: {cmd}",
+  "toolbar.fileTree": "File Tree"
 }

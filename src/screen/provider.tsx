@@ -137,6 +137,28 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 
 /**
  * Open a new layer with a unique ID and z-index.
+ *
+ * These lifecycle functions are module-level: they dispatch to the most
+ * recently mounted provider, so they can be called from effects, key
+ * handlers, or plain module code as long as a
+ * {@link ScenarioManagementProvider} is mounted (or from the equivalent
+ * methods of `useScreenSystem()`). Opening alone renders nothing — follow
+ * it with {@link applyElement}. Higher z-index layers appear on top.
+ *
+ * @example
+ * The full floating-layer lifecycle from a component effect: open the
+ * layer, apply its element, and close it again on unmount.
+ * ```tsx
+ * useEffect(() => {
+ *   openLayer('edit-panel', 10);
+ *   applyElement('edit-panel', {
+ *     elementId: 'edit-panel-element',
+ *     element: EditPanel,
+ *     props: { value, onClose: () => closeLayer('edit-panel') },
+ *   });
+ *   return () => closeLayer('edit-panel');
+ * }, [value]);
+ * ```
  */
 export function openLayer(
   layerId: string,
@@ -151,6 +173,18 @@ export function openLayer(
  *
  * `props` is type-checked against the element component's own prop type —
  * the same type-safety pattern `skip()` uses for `params`.
+ *
+ * @throws If the target layer has not been opened first.
+ *
+ * @example
+ * ```tsx
+ * // after openLayer('edit-panel', 10)
+ * applyElement('edit-panel', {
+ *   elementId: 'edit-panel-element',
+ *   element: EditPanel,
+ *   props: { value, onClose: () => closeLayer('edit-panel') },
+ * });
+ * ```
  */
 export function applyElement<C extends React.ComponentType<any>>(
   targetLayerId: string,
@@ -165,6 +199,18 @@ export function applyElement<C extends React.ComponentType<any>>(
 
 /**
  * Close a registered layer by its ID.
+ *
+ * Removes the layer and all of its elements; the keyboard engine drops the
+ * layer's bindings with it. Typically called from the layer's own element
+ * (via a bound key or a button callback) or from the cleanup of the effect
+ * that opened the layer.
+ *
+ * @example
+ * ```tsx
+ * const { closeLayer } = useScreenSystem();
+ * // in a key handler or button callback of the layer element:
+ * closeLayer('edit-panel');
+ * ```
  */
 export function closeLayer(targetLayerId: string): void {
   getDispatch()({ type: "closeLayer", targetLayerId });
@@ -172,6 +218,18 @@ export function closeLayer(targetLayerId: string): void {
 
 /**
  * Remove an element from a registered layer.
+ *
+ * The layer itself stays open — only the element is removed. Prefer
+ * {@link deactivateElement} when the element should stay mounted but stop
+ * receiving key events (its bindings are preserved for later
+ * reactivation).
+ *
+ * @example
+ * ```tsx
+ * // replace the spinner with a fresh element, same layer
+ * eraseElement('status-bar', 'spinner');
+ * applyElement('status-bar', { elementId: 'done', element: DoneBadge });
+ * ```
  */
 export function eraseElement(
   targetLayerId: string,
@@ -182,11 +240,45 @@ export function eraseElement(
 
 /**
  * Close all layers at once.
+ *
+ * Equivalent to calling {@link closeLayer} for every open layer; modal
+ * layers are left untouched.
+ *
+ * @example
+ * ```tsx
+ * // e.g. on logout — dismiss every floating panel
+ * closeAllLayer();
+ * ```
  */
 export function closeAllLayer(): void {
   getDispatch()({ type: "closeAllLayer" });
 }
 
+/**
+ * Open a new modal layer with a unique ID and z-index.
+ *
+ * The keyboard difference from a regular layer: a modal layer takes over
+ * the keyboard. While it is open, key events are routed to it first and
+ * blocked from reaching layers and screens below unless a binding calls
+ * `allowModal` to release specific keys through the barrier (the engine
+ * treats the active modal as the highest-priority pipeline stage). Modal
+ * and regular layers share the layer-ID namespace, so an ID cannot be
+ * reused across the two.
+ *
+ * @example
+ * The floating modal lifecycle from a component effect:
+ * ```tsx
+ * useEffect(() => {
+ *   openModalLayer('confirm-dialog', 100);
+ *   applyElementToModalLayer('confirm-dialog', {
+ *     elementId: 'confirm-dialog-element',
+ *     element: ConfirmDialog,
+ *     props: { onCancel: () => closeModalLayer('confirm-dialog') },
+ *   });
+ *   return () => closeModalLayer('confirm-dialog');
+ * }, []);
+ * ```
+ */
 export function openModalLayer(
   layerId: string,
   zIndex: number,
@@ -195,6 +287,24 @@ export function openModalLayer(
   getDispatch()({ type: "openModalLayer", layerId, zIndex, options });
 }
 
+/**
+ * Apply an element to a registered modal layer.
+ *
+ * `props` is type-checked against the element component's own prop type —
+ * the same type-safety pattern `skip()` uses for `params`.
+ *
+ * @throws If the target modal layer has not been opened first.
+ *
+ * @example
+ * ```tsx
+ * // after openModalLayer('confirm-dialog', 100)
+ * applyElementToModalLayer('confirm-dialog', {
+ *   elementId: 'confirm-dialog-element',
+ *   element: ConfirmDialog,
+ *   props: { onCancel: () => closeModalLayer('confirm-dialog') },
+ * });
+ * ```
+ */
 export function applyElementToModalLayer<C extends React.ComponentType<any>>(
   targetModalLayerId: string,
   modalLayerElement: LayerElementInput<C>,
@@ -206,10 +316,36 @@ export function applyElementToModalLayer<C extends React.ComponentType<any>>(
   });
 }
 
+/**
+ * Close a registered modal layer by its ID.
+ *
+ * Removes the modal layer and restores keyboard control to the layers and
+ * screen below it.
+ *
+ * @example
+ * ```tsx
+ * const { closeModalLayer } = useScreenSystem();
+ * // from the modal element's own key binding:
+ * boundKeyboard(['q'], () => closeModalLayer('confirm-dialog'));
+ * ```
+ */
 export function closeModalLayer(targetModalLayerId: string): void {
   getDispatch()({ type: "closeModalLayer", targetModalLayerId });
 }
 
+/**
+ * Remove an element from a registered modal layer.
+ *
+ * The modal layer itself stays open — only the element is removed. Prefer
+ * {@link deactivateElementInModalLayer} when the element should stay
+ * mounted but stop receiving key events (its bindings are preserved for
+ * later reactivation).
+ *
+ * @example
+ * ```tsx
+ * eraseElementInModalLayer('settings-modal', 'advanced-section');
+ * ```
+ */
 export function eraseElementInModalLayer(
   targetModalLayerId: string,
   targetElementId: string,
@@ -221,6 +357,18 @@ export function eraseElementInModalLayer(
   });
 }
 
+/**
+ * Close all modal layers at once.
+ *
+ * Equivalent to calling {@link closeModalLayer} for every open modal
+ * layer; regular layers are left untouched.
+ *
+ * @example
+ * ```tsx
+ * // e.g. on logout — dismiss every dialog
+ * closeAllModalLayer();
+ * ```
+ */
 export function closeAllModalLayer(): void {
   getDispatch()({ type: "closeAllModalLayer" });
 }
@@ -279,8 +427,10 @@ export function deactivateElementInModalLayer(
 }
 
 /**
- * 从树中查找共同祖先
- * 从 currentPath 栈底向上找到第一个在 targetAncestors 中的节点
+ * Find the common ancestor of the current path and a target component.
+ *
+ * Walks from the bottom of `currentPath` upward and returns the first
+ * node that is also among the target's ancestors.
  */
 function findCommonAncestor(
   currentPath: React.ComponentType<any>[],
@@ -305,7 +455,7 @@ function findCommonAncestor(
 }
 
 /**
- * 构建从祖先到目标节点的路径（不含祖先本身）
+ * Build the path from an ancestor down to the target, excluding the ancestor itself.
  */
 function buildPathFrom(
   ancestor: React.ComponentType<any>,
@@ -899,13 +1049,18 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
   }
 }
 
+/**
+ * Props for the {@link ScenarioManagementProvider} component.
+ */
 export interface ScenarioManagementProviderProps {
+  /** The app tree rendered inside the provider. */
   children: ReactNode;
-  /** 默认屏幕组件（必填，需先 registerComponent） */
+  /** Initial screen component (required; must be registered via registerComponent). */
   defaultScreen: React.ComponentType<any>;
-  /** 默认参数（可选，未传则使用注册时的模板参数） */
+  /** Initial props (optional; defaults to the template props registered with the component). */
   defaultParams?: Record<string, unknown>;
 
+  /** When true, the screen fills the full terminal height instead of the parent box. */
   fullScreen?: boolean;
 }
 
@@ -958,7 +1113,7 @@ export function ScenarioManagementProvider({
     [topComponent, topParams, state.counter],
   );
 
-  // Context 内的导航方法
+  // Navigation methods provided via context.
   const skipInContext: SkipFn = useMemo(
     () => (component, params, options) => {
       if (!hasComponent(component)) {

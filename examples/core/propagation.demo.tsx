@@ -97,7 +97,6 @@ function ChildScreen() {
     return;
   }, [stop, stopActive]);
 
-  // Toggle stop for 's' key.
   React.useEffect(() => {
     const unbindT = boundKeyboard(['t'], () => {
       setStopActive((prev) => {

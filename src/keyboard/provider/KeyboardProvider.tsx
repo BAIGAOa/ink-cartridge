@@ -56,7 +56,9 @@ function toKeyboardLayerState(
   });
 }
 
+/** Props for the keyboard provider. */
 export interface KeyboardProviderProps {
+  /** The app tree rendered inside the provider. */
   children: ReactNode;
 
   /**
@@ -91,7 +93,7 @@ export interface KeyboardProviderProps {
   defaultMode?: string | null;
 
   /**
-   * Optional runtime type schema for composition chain value validatio
+   * Optional runtime type schema for composition chain value validation.
    *
    * @example
    * ```tsx
@@ -113,8 +115,12 @@ export interface KeyboardProviderProps {
   autoTab?: boolean;
 
   /**
-   * After enabling this option,
-   * the system will automatically listen for mouse events.
+   * Enables terminal mouse tracking (wires xterm-mouse into the engine).
+   *
+   * Mouse escape sequences are filtered out of the keyboard stream
+   * automatically, so they never reach `useInput` handlers as garbage
+   * text. Mark any `<Box>` with {@link useMouseRegion} to receive click,
+   * wheel, hover, and drag callbacks.
    */
   mouse?: boolean;
 
@@ -126,6 +132,35 @@ export interface KeyboardProviderProps {
   mouseOptions?: MouseOptions;
 }
 
+/**
+ * Provides the keyboard system to the component tree.
+ *
+ * Instantiates a {@link KeyboardEngine} (kept alive across renders via a
+ * ref), keeps it in sync with the screen system's layer state, and feeds
+ * Ink's key events — and mouse events when `mouse` is enabled — into the
+ * pipeline. Must be nested inside a {@link ScenarioManagementProvider}.
+ *
+ * @param props - See {@link KeyboardProviderProps}.
+ *
+ * @example
+ * The full provider chain. `modes` registers the mode names before any
+ * binding can be restricted to them (`defaultMode` must be one of them).
+ * With `mouse` enabled, SGR mouse reports are filtered out of the keyboard
+ * stream automatically, so they never reach `useInput` handlers as text.
+ * ```tsx
+ * import { ScenarioManagementProvider, KeyboardProvider, CurrentScreen } from 'ink-cartridge';
+ *
+ * function App() {
+ *   return (
+ *     <ScenarioManagementProvider defaultScreen={MainScreen} fullScreen>
+ *       <KeyboardProvider modes={['normal', 'insert']} defaultMode="normal" mouse>
+ *         <CurrentScreen />
+ *       </KeyboardProvider>
+ *     </ScenarioManagementProvider>
+ *   );
+ * }
+ * ```
+ */
 export function KeyboardProvider({
   children,
   processors,

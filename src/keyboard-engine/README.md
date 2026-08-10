@@ -393,16 +393,7 @@ if (pending) {
 
 ## API Documentation
 
-See [`docs/API/`](./docs/API/) for the full API reference — each public method has its own document with signature, parameters, internal effects, usage examples, and cross-API interactions.
-
-## Framework Adapters
-
-See the [docs/](./docs/) directory for detailed integration guides:
-
-- [React / Ink (ink-cartridge)](./docs/react-ink.md)
-- [Vue](./docs/vue.md)
-- [Svelte](./docs/svelte.md)
-- [Standalone (Node.js)](./docs/standalone.md)
+See [`documents/engine/`](../../documents/engine/) for the typedoc-generated API reference — every public class, method, and type is documented from its JSDoc (including usage examples). Run `npm run docs` from the repo root to regenerate.
 
 ### Quick Example: ink-cartridge (React)
 

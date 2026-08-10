@@ -245,6 +245,11 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
  * 1. Drain any active global pending sequence.
  * 2. Try to start a new sequence from registered entries.
  *
+ * Manages pending-sequence state, timeout resets, sequence
+ * disambiguation between entries sharing a first key, and `exclusive`
+ * mode key consumption. Entries are matched against the phase via their
+ * `affectLayer` field.
+ *
  * @param config.affectOverlay - Which priority group this processor serves.
  * @returns A PipelineProcessor for the global sequence stage.
  */

@@ -128,8 +128,8 @@ export function handleTabNavigation(
 			return each.fromGroup === defaultTargetsSymbol;
 		});
 
-		// Theoretically, if current above is not null, then currentIdx here should not be -1
-		// But I don't believe in theory, so I decided to throw defensive mistakes.
+		// If `current` is not null, `currentIdx` should never be -1 — but
+		// defensive code throws rather than trusting the theory.
 		if (currentIdx === -1) {
 			throw new Error(
 				`[ink-cartridge] [Unknown Reason] ${current} focus is missing for an unknown reason`,
@@ -147,6 +147,10 @@ export function handleTabNavigation(
 	return true;
 }
 
+/**
+ * Resolve focus entries into their registered focus targets, skipping
+ * entries whose group or target is missing.
+ */
 export function conductFocusGroups(
 	ids: {
 		id: string;
@@ -177,9 +181,17 @@ export function conductFocusGroups(
 /**
  * Handle a keyboard event against a single layer.
  *
- * Evaluates tab navigation, penetration keys, wildcard priority, sequence
- * matching, focus-target bindings, layer-level bindings, and stopped
- * keys — in that order.
+ * Evaluates, in that order: tab navigation (only when `autoTab` is
+ * `true`), penetration keys, wildcard priority, sequence matching,
+ * focus-target bindings, layer-level bindings, and stopped keys.
+ *
+ * When `autoTab` is `false` (the default), Tab / Shift+Tab pass through
+ * to normal bindings instead of triggering automatic focus rotation —
+ * developers can then bind Tab to custom handlers.
+ *
+ * This is the core routing function: framework adapters that want to
+ * reuse the built-in layer dispatch logic should call `handleLayer`
+ * rather than re-implementing the evaluation order.
  *
  * @returns true if the event was consumed by this layer.
  */

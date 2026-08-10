@@ -2,6 +2,9 @@ import { LayerElement } from "./element.js";
 import { LayerElementInput } from "./element.js";
 import { ComponentType } from "react";
 
+/**
+ * State shape of a normal (non-modal) layer.
+ */
 export type Layer = {
   /**
    * The ID of this layer
@@ -33,9 +36,17 @@ export type Layer = {
    * with `crossPage` so a persistent layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
+  /**
+   * The screen that was current in the navigation path when the layer opened.
+   * Used with `automaticTakeoverKeyboard` to decide whether the layer's
+   * keyboard bindings stay dormant while its host page is not active.
+   */
   hostPage: React.ComponentType<any> | null;
 };
 
+/**
+ * Options for {@link OpenLayerFn}.
+ */
 export type LayerOptions = {
   /**
    * Normally, when the application executes page-switching methods such as `skip` or `gotoScreen`,
@@ -53,6 +64,9 @@ export type LayerOptions = {
   automaticTakeoverKeyboard?: boolean;
 };
 
+/**
+ * Action dispatched by {@link openLayer}.
+ */
 export type OpenLayerAction = {
   type: "openLayer";
   /**
@@ -75,12 +89,18 @@ export type OpenLayerAction = {
   options?: LayerOptions;
 };
 
+/**
+ * Opens a new layer with a unique ID and z-index.
+ */
 export type OpenLayerFn = (
   layerId: string,
   zIndex: number,
   options?: LayerOptions,
 ) => void;
 
+/**
+ * Action dispatched by {@link applyElement}.
+ */
 export type ApplyElementAction = {
   type: "applyElement";
 
@@ -111,6 +131,9 @@ export type ApplyElementFn = <C extends ComponentType<any>>(
   layerElement: LayerElementInput<C>,
 ) => void;
 
+/**
+ * Action dispatched by {@link closeLayer}.
+ */
 export type CloseLayerAction = {
   type: "closeLayer";
 
@@ -122,6 +145,9 @@ export type CloseLayerAction = {
 /** Closes a registered layer by ID. */
 export type CloseLayerFn = (targetLayerId: string) => void;
 
+/**
+ * Action dispatched by {@link eraseElement}.
+ */
 export type EraseElementAction = {
   type: "eraseElement";
 
@@ -142,6 +168,9 @@ export type EraseElementFn = (
   targetElementId: string,
 ) => void;
 
+/**
+ * Action dispatched by {@link activateElement}.
+ */
 export type ActivateElementAction = {
   type: "activateElement";
   /** ID of the registered layer that owns the target element. */
@@ -180,12 +209,24 @@ export type DeactivateElementFn = (
   targetElementId: string,
 ) => void;
 
+/**
+ * Action dispatched by {@link closeAllLayer}.
+ */
 export type CloseAllLayerAction = {
   type: "closeAllLayer";
 };
 
+/**
+ * Closes all layers at once.
+ */
 export type CloseAllLayerFn = () => void;
 
+/**
+ * State shape of a modal layer.
+ *
+ * Modal layers render above normal layers and take keyboard priority:
+ * only the modal layer with the highest z-index receives keyboard events.
+ */
 export type ModalLayer = {
   /**
    * The ID of the modal layer must be unique
@@ -223,9 +264,18 @@ export type ModalLayer = {
    * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
    */
   automaticTakeoverKeyboard: boolean;
+  /**
+   * The screen that was current in the navigation path when the modal layer
+   * opened. Used with `automaticTakeoverKeyboard` to decide whether the
+   * modal layer's keyboard bindings stay dormant while its host page is
+   * not active.
+   */
   hostPage: React.ComponentType<any> | null;
 };
 
+/**
+ * Options for {@link OpenModalLayerFn}.
+ */
 export type ModalLayerOptions = {
   /**
    * Normally, when the application executes page-switching methods such as `skip` or `gotoScreen`,
@@ -243,6 +293,9 @@ export type ModalLayerOptions = {
   automaticTakeoverKeyboard?: boolean;
 };
 
+/**
+ * Action dispatched by {@link openModalLayer}.
+ */
 export type OpenModalLayerAction = {
   type: "openModalLayer";
 
@@ -266,12 +319,18 @@ export type OpenModalLayerAction = {
   options?: ModalLayerOptions;
 };
 
+/**
+ * Opens a new modal layer with a unique ID and z-index.
+ */
 export type OpenModalLayerFn = (
   layerId: string,
   zIndex: number,
   options?: ModalLayerOptions,
 ) => void;
 
+/**
+ * Action dispatched by {@link applyElementToModalLayer}.
+ */
 export type ApplyElementToModalLayerAction = {
   type: "applyElementToModalLayer";
 
@@ -303,6 +362,9 @@ export type ApplyElementToModalLayerFn = <C extends ComponentType<any>>(
   modalLayerElement: LayerElementInput<C>,
 ) => void;
 
+/**
+ * Action dispatched by {@link closeModalLayer}.
+ */
 export type CloseModalLayerAction = {
   type: "closeModalLayer";
 
@@ -314,6 +376,9 @@ export type CloseModalLayerAction = {
 /** Closes a registered layer by ID. */
 export type CloseModalLayerFn = (targetModalLayerId: string) => void;
 
+/**
+ * Action dispatched by {@link eraseElementInModalLayer}.
+ */
 export type EraseElementInModalLayerAction = {
   type: "eraseElementInModalLayer";
 
@@ -370,8 +435,14 @@ export type DeactivateElementInModalLayerFn = (
   targetElementId: string,
 ) => void;
 
+/**
+ * Action dispatched by {@link closeAllModalLayer}.
+ */
 export type CloseAllModalLayerAction = {
   type: "closeAllModalLayer";
 };
 
+/**
+ * Closes all modal layers at once.
+ */
 export type CloseAllModalLayerFn = () => void;

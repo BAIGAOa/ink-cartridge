@@ -13,8 +13,10 @@ export interface GlobalKeyEntry {
    */
   key: string | string[];
 
-  /** Callback to invoke when the key is pressed.
-   * It can also be a string, which is used to directly invoke an operation
+  /**
+   * Callback to invoke when the key is pressed.
+   * Can also be a string naming a registered shortcut action
+   * (see {@link KeyboardEngine.addAction}), whose callback is invoked instead.
    */
   operate: (() => void) | string;
 
@@ -66,6 +68,11 @@ export interface GlobalKeyEntry {
    * are not evaluated.
    */
   when?: (() => boolean) | string;
+  /**
+   * When `true`, an overlay-phase entry (`affectLayer: true`) fires even
+   * while no layer is open. With the default `false`, the entry is skipped
+   * when no layers exist. Only relevant when `affectLayer` is `true`.
+   */
   executeWhenNoOverlay?: boolean;
 
   /**
@@ -174,6 +181,11 @@ export interface GlobalSequenceEntry {
    * starts and continues when this returns `true`.
    */
   when?: (() => boolean) | string;
+  /**
+   * When `true`, an overlay-phase entry (`affectLayer: true`) fires even
+   * while no layer is open. With the default `false`, the entry is skipped
+   * when no layers exist. Only relevant when `affectLayer` is `true`.
+   */
   executeWhenNoOverlay?: boolean;
 
   /**
@@ -194,37 +206,61 @@ export interface GlobalSequenceEntry {
 }
 
 /**
- * Type definition for shortcut
+ * A registered shortcut operation, addressable by `actionId`.
+ *
+ * Used by {@link KeyboardEngine.defineShortcutAction} /
+ * {@link KeyboardEngine.addAction} to register named callbacks that
+ * `boundKeyboard` and `globalKeys` can invoke by id. Actions decouple
+ * key bindings from callback logic — register once, reference by id
+ * everywhere, and change keys without touching every binding site.
+ *
+ * @example
+ * ```ts
+ * engine.defineShortcutAction([
+ *   { actionId: 'save', action: () => saveFile(), keys: ['ctrl+s'] },
+ * ]);
+ * engine.boundKeyboard('save');            // uses the preset keys
+ * engine.boundKeyboard('f9', 'save');      // overrides keys locally
+ * engine.globalKeys([{ key: 'ctrl+s', operate: 'save' }]);
+ * ```
  */
 export interface ShortcutOperationEntry {
   /**
-   * Unique identification of the shortcut
-   * Used to get an operation and so on.
+   * Unique identifier of the shortcut, used to retrieve and invoke
+   * the operation.
    */
   actionId: string;
-  /**
-   * What does calling a shortcut trigger
-   */
+  /** The callback invoked when the shortcut fires. */
   action: () => void;
-  /**
-   * You can directly specify the predetermined Keys of this Action
-   */
+  /** Preset keys that trigger this action. */
   keys?: string[];
 }
 
+/**
+ * A registered sequence action, addressable by `sequenceActionId`.
+ *
+ * Used by {@link KeyboardEngine.defineSequenceAction} /
+ * {@link KeyboardEngine.addSequenceAction} to register named callbacks
+ * that `boundSequence` and `globalSequence` can invoke by id. The
+ * sequence counterpart to {@link ShortcutOperationEntry}.
+ *
+ * @example
+ * ```ts
+ * engine.defineSequenceAction([
+ *   { sequenceActionId: 'scroll-top', action: () => scrollToTop(), keys: ['g', 'g'], timeout: 600 },
+ * ]);
+ * engine.boundSequence('scroll-top');                   // uses preset keys
+ * engine.globalSequence([{ keys: ['ctrl+home'], operate: 'scroll-top' }]);
+ * ```
+ */
 export interface SequenceOperationEntry {
-  /**
-   * Unique identification of this Action
-   */
+  /** Unique identifier of this sequence action. */
   sequenceActionId: string;
+  /** The callback invoked when the full sequence is matched. */
   action: () => void;
-  /**
-   * Preset Key
-   */
+  /** Preset keys that trigger this sequence. */
   keys?: string[];
-  /**
-   * Preset delay
-   */
+  /** Preset timeout in milliseconds between key presses. */
   timeout?: number;
 }
 
@@ -240,6 +276,7 @@ export interface ResolvedGlobalSequenceEntry extends Omit<
   GlobalSequenceEntry,
   "operate"
 > {
+  /** The resolved callback invoked when the full sequence is matched. */
   operate: () => void;
 }
 
@@ -253,15 +290,57 @@ export interface ResolvedGlobalSequenceEntry extends Omit<
  * `operate: string | (() => void)`.
  */
 export interface ResolvedGlobalKeyEntry {
+  /** Key name(s) to match, in the same normalized format as `boundKeyboard`. */
   key: string | string[];
+  /**
+   * The callback to invoke when the key is pressed — string action
+   * references have already been resolved to their callbacks.
+   */
   operate: () => void;
+  /**
+   * Whether screen components are allowed to override this global key
+   * via `boundKeyboard`. Defaults to `true`.
+   */
   cover?: boolean;
+  /**
+   * Whether this global key fires before the layer broadcast (`true`)
+   * or after it (`false`, the default).
+   */
   affectLayer?: boolean;
+  /**
+   * Whitelist of screen components that may use this global key.
+   * `"*"` or omitted matches all screens; `[]` disables the key.
+   */
   category?: unknown[] | "*";
+  /**
+   * Number of presses required before the handler fires.
+   * Semantics are identical to {@link GlobalKeyEntry.times}.
+   */
   times?: number;
+  /**
+   * Callback invoked on every key press while counting toward `times`,
+   * receiving the number of remaining presses before the handler fires.
+   */
   observer?: (times: number) => void;
+  /**
+   * Current press count — initialized to `0` when `times` is set,
+   * incremented on each matching press, and reset to `0` once the
+   * counter reaches `times` and the handler fires.
+   */
   pressCount?: number;
+  /**
+   * When `true`, an overlay-phase entry (`affectLayer: true`) fires even
+   * while no layer is open. Only relevant when `affectLayer` is `true`.
+   */
   executeWhenNoOverlay?: boolean;
+  /**
+   * Optional condition — when it evaluates to `false` the entry is
+   * skipped entirely.
+   */
   when?: (() => boolean) | string;
+  /**
+   * Restrict this global key to a specific mode; when omitted it fires
+   * in all modes (including no-mode).
+   */
   mode?: string;
 }

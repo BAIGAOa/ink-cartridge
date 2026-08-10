@@ -151,3 +151,4 @@ test_record.md
 .claude/
 .reasonix/
 .codegraph/
+.vscode/settings.json

@@ -126,7 +126,6 @@ function SettingsScreen({ from = '' }: { from?: string }) {
   );
 }
 
-// Build the navigation tree
 registerComponent(HomeScreen, {});
 registerComponent(DetailScreen, {}, { parent: HomeScreen });
 registerComponent(SettingsScreen, {}, { parent: HomeScreen });

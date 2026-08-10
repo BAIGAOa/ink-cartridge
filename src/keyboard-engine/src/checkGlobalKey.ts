@@ -12,6 +12,17 @@ import type { PageKeyboardLayer } from "./types/page-layer.js";
  * @param topComponent The topmost screen component, or null.
  * @param layersRef    Map of all page keyboard layers.
  * @returns true if the global key matches and is not overridden.
+ *
+ * @example
+ * ```ts
+ * // Inside a custom processor:
+ * for (const entry of resolvedGlobalKeys) {
+ *   if (checkGlobalKey(entry, eventNames, ctx.topComponent, ctx.layersRef)) {
+ *     entry.operate();
+ *     return true;
+ *   }
+ * }
+ * ```
  */
 export function checkGlobalKey(
   entry: GlobalKeyEntry,

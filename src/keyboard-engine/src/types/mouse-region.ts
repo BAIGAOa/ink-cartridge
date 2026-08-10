@@ -51,14 +51,42 @@ export type MouseRegionCallbacks = {
 };
 
 /**
+ * The currently hovered mouse region, as returned by
+ * {@link KeyboardEngine#getHoveredMouseRegion}.
+ */
+export interface HoveredRegion {
+  /** The layer the hovered region belongs to. */
+  layerId: string;
+  /** The region's unique identifier within that layer. */
+  regionId: string;
+}
+
+/**
  * A mouse region registration.
  *
  * `layerId` must match the ids used in the engine's synced
- * {@link import("./state-sync.js").SyncState} layers so hit-testing can apply
- * the same modal > layer > root priority as keyboard events. `regionId` is an
- * arbitrary unique identifier for the region within that layer — it is NOT
- * the id of a keyboard layer element; two regions in the same layer must use
- * different ids or the later registration overwrites the earlier one.
+ * {@link SyncState} layers so hit-testing can apply the same modal > layer >
+ * root priority as keyboard events. `regionId` is an arbitrary unique
+ * identifier for the region within that layer — it is NOT the id of a
+ * keyboard layer element; two regions in the same layer must use different
+ * ids or the later registration overwrites the earlier one.
+ *
+ * @example
+ * ```ts
+ * const unbind = engine.registerMouseRegion({
+ *   layerId: 'board-screen',
+ *   regionId: 'board',
+ *   rect: { x: 1, y: 1, width: 40, height: 20 },
+ *   callbacks: {
+ *     onClick: (event) => selectCell(event.x, event.y),
+ *     onWheel: (event) => {
+ *       if (event.button === 'wheel-up') scrollUp();
+ *       if (event.button === 'wheel-down') scrollDown();
+ *     },
+ *   },
+ *   priority: 1, // child controls beat their container on overlap
+ * });
+ * ```
  */
 export type MouseRegionEntry = {
   /** The layer this region belongs to (must match synced layer ids). */

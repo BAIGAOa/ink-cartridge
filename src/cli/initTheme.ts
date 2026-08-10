@@ -2,6 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 
+/**
+ * Options for the {@link initTheme} scaffold command.
+ */
 export interface InitThemeOptions {
   /** Output directory for theme JSON files (default: "./themes"). */
   outputDir: string;
@@ -132,8 +135,7 @@ export function initTheme(options: InitThemeOptions): void {
     for (const id of ids) {
       const filePath = path.join(outDir, `${id}.json`);
       const obj: Record<string, unknown> = { id, ...themes[id] };
-      delete obj.id; // id is already there, we set it above — need to restructure
-      // Build clean object with id first
+      delete obj.id; // themes[id] already contains it; rebuild below so the written JSON lists `id` first
       const clean: Record<string, unknown> = { id };
       for (const [k, v] of Object.entries(themes[id])) {
         if (k !== 'id') clean[k] = v;

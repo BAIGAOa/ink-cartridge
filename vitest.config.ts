@@ -11,6 +11,7 @@ export default defineConfig({
         "tests/**/_helpers.*",
         "tests/**/_helpers/**",
         "src/**/index.ts",
+        "packages/**",
       ],
       thresholds: {
         lines: 90,

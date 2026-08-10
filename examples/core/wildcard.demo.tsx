@@ -37,7 +37,6 @@ function MainScreen() {
     return disable;
   }, [wildcardEnabled, enableWildcardPriority]);
 
-  // Wildcard binding: captures every normal character key press.
   React.useEffect(() => {
     if (!wildcardEnabled) return;
     const unbind = boundKeyboard(['*'], (input: string) => {

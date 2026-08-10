@@ -1,0 +1,529 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>CompositionEngine | @cartridge-engine/keyboard-engine</title><meta name="description" content="Documentation for @cartridge-engine/keyboard-engine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@cartridge-engine/keyboard-engine</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="" aria-current="page">CompositionEngine</a></li></ul>
+<h1>Class CompositionEngine&lt;TComponent&gt;</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>State machine for multi-key composition chains (vim-style key sequences).</p>
+<p>Builds &quot;flag → needs → execute&quot; chains: pressing key &quot;A&quot; sets
+<code>lastFlag: &quot;A&quot;</code> and produces a value; the next key &quot;B&quot; (with
+<code>needs: [&quot;A&quot;]</code>) receives that value via its <code>execute(ctx)</code> callback,
+transforms it, and passes it forward. The chain continues until a key
+with no matching entry is pressed or the timeout expires.</p>
+<p>Entry resolution uses <code>needs</code> matching: when a pending chain exists,
+only keys whose <code>needs</code> include <code>lastFlag</code> are eligible; when no chain
+is pending, only keys with <code>optional: true</code> or empty <code>needs</code> can start
+one.</p>
+<p>Owns the key mapping table, pending chain state, mapping-key sequences,
+and undo buffers. Driven by the composition pipeline processors; exposed
+on <a href="KeyboardEngine.html" class="tsd-kind-class">KeyboardEngine</a> for direct registration and inspection.</p>
+</div></section>
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li><span id="tcomponent"><span class="tsd-kind-type-parameter">TComponent</span> = <span class="tsd-signature-type">unknown</span></span></li></ul></section><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L520">src/keyboard-engine/src/CompositionEngine.ts:520</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="constructors">Constructors<a href="#constructors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#constructor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#abort" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>abort</span></a>
+<a href="#addmapping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Mapping</span></a>
+<a href="#bufferedcount" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>buffered<wbr/>Count</span></a>
+<a href="#clearallcompositionkeys" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>clear<wbr/>All<wbr/>Composition<wbr/>Keys</span></a>
+<a href="#clearbuffers" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>clear<wbr/>Buffers</span></a>
+<a href="#getcontext" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Context</span></a>
+<a href="#getlastevent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Last<wbr/>Event</span></a>
+<a href="#getlastmappingevent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Last<wbr/>Mapping<wbr/>Event</span></a>
+<a href="#haspending" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Pending</span></a>
+<a href="#registrycompositionkey" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>registry<wbr/>Composition<wbr/>Key</span></a>
+<a href="#removecompositionkey" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Composition<wbr/>Key</span></a>
+<a href="#removemapping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Mapping</span></a>
+<a href="#removemappingkey" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Mapping<wbr/>Key</span></a>
+<a href="#setvalueschema" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Value<wbr/>Schema</span></a>
+<a href="#start" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a>
+<a href="#subscribe" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe</span></a>
+<a href="#subscribemapping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Mapping</span></a>
+<a href="#synchronizingkey" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>synchronizing<wbr/>Key</span></a>
+<a href="#undo" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>undo</span></a>
+<a href="#updatecompositionkey" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>update<wbr/>Composition<wbr/>Key</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="constructors-1">Constructors<a href="#constructors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="constructorcompositionengine"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">CompositionEngine</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#constructorcompositionenginetcomponent">TComponent</a> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">state</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">EngineState</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">defaultTimeout</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">valueSchema</span><span class="tsd-signature-symbol">?:</span> <a href="../types/ValueSchema.html" class="tsd-signature-type tsd-kind-type-alias">ValueSchema</a><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">CompositionEngine</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><a href="#constructorcompositionengine" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li><span id="constructorcompositionenginetcomponent"><span class="tsd-kind-type-parameter">TComponent</span> = <span class="tsd-signature-type">unknown</span></span></li></ul></section>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">state</span>: <span class="tsd-signature-type">EngineState</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span></span></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">defaultTimeout</span>: <span class="tsd-signature-type">number</span></span></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">valueSchema</span>: <a href="../types/ValueSchema.html" class="tsd-signature-type tsd-kind-type-alias">ValueSchema</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">CompositionEngine</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L559">src/keyboard-engine/src/CompositionEngine.ts:559</a></li></ul></aside></div></li></ul></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="abort"><span>abort</span><a href="#abort" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="abort-1"><span class="tsd-kind-call-signature">abort</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#abort-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Cancel the current pending chain immediately (no timeout).</p>
+<p>Clears the pending timer (no stale timeout callback will fire),
+resets the context to <code>{ value: undefined, lastFlag: null, steps: [] }</code>,
+and sets the engine's <code>compositionEngineHandle</code> flag to <code>false</code> so
+pipeline processors stop treating the chain as pending. No-op when
+no chain is pending.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L908">src/keyboard-engine/src/CompositionEngine.ts:908</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="addmapping"><span>add<wbr/>Mapping</span><a href="#addmapping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="addmapping-1"><span class="tsd-kind-call-signature">addMapping</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">base</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">target</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">options</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/MappingKeyEntry.html" class="tsd-signature-type tsd-kind-interface">MappingKeyEntry</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;keys&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;target&quot;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#addmapping-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register a mapping key entry — vim-style key mapping that maps an
+external key sequence (<code>base</code>) to an internal composition key chain
+(<code>target</code>).</p>
+<p>Entries are stored in <code>this.mapping</code> (a <code>Map&lt;string, Set&lt;MappingKeyEntry&gt;&gt;</code>)
+keyed by <code>base[0]</code>. When a key event matches <code>base[0]</code>:</p>
+<ul>
+<li>single-key mappings (<code>base.length === 1</code>) execute their target chain
+immediately;</li>
+<li>multi-key mappings create a pending entry and wait for the
+subsequent keys.</li>
+</ul>
+<p>Mapping-key pending and ordinary composition pending are mutually
+exclusive, and mapping keys take priority: they are checked inside
+<code>startPending</code> before single-key composition startup.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">base</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></span>
+<div class="tsd-comment tsd-typography"><p>The external trigger key sequence (what the user presses).</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">target</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></span>
+<div class="tsd-comment tsd-typography"><p>The internal composition key chain to execute in order.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">options</span>: <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/MappingKeyEntry.html" class="tsd-signature-type tsd-kind-interface">MappingKeyEntry</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;keys&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;target&quot;</span><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional fields forwarded to the stored <a href="../interfaces/MappingKeyEntry.html" class="tsd-kind-interface">MappingKeyEntry</a>:
+<code>exclusive</code>, <code>KeyReleaseWhenChainInterrupted</code>, <code>when</code>, <code>affectOverlay</code>,
+<code>mode</code>, <code>category</code>, <code>executeWhenNoOverlay</code>.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if registered, <code>false</code> if <code>base</code> is empty, any <code>target</code>
+key is not registered in <code>keyMappingTable</code>, or an identical
+<code>base</code> sequence already exists.</p>
+
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example">Example<a href="#example" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">registryCompositionKey</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-0">key:</span><span class="hl-1"> </span><span class="hl-3">&#39;t&#39;</span><span class="hl-1">, </span><span class="hl-0">flags:</span><span class="hl-1"> [], </span><span class="hl-0">alternativeFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">optional:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1">, </span><span class="hl-0">needs:</span><span class="hl-1"> [],</span><br/><span class="hl-1">  </span><span class="hl-2">execute</span><span class="hl-0">:</span><span class="hl-1"> (</span><span class="hl-0">ctx</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> ({ ...</span><span class="hl-0">ctx</span><span class="hl-1">, </span><span class="hl-0">lastFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">, </span><span class="hl-0">steps:</span><span class="hl-1"> [...</span><span class="hl-0">ctx</span><span class="hl-1">.</span><span class="hl-0">steps</span><span class="hl-1">, </span><span class="hl-3">&#39;t&#39;</span><span class="hl-1">] }),</span><br/><span class="hl-1">});</span><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">registryCompositionKey</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-0">key:</span><span class="hl-1"> </span><span class="hl-3">&#39;d&#39;</span><span class="hl-1">, </span><span class="hl-0">flags:</span><span class="hl-1"> [], </span><span class="hl-0">alternativeFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;action&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">needs:</span><span class="hl-1"> [</span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-2">execute</span><span class="hl-0">:</span><span class="hl-1"> (</span><span class="hl-0">ctx</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> ({ ...</span><span class="hl-0">ctx</span><span class="hl-1">, </span><span class="hl-0">lastFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;action&#39;</span><span class="hl-1">, </span><span class="hl-0">steps:</span><span class="hl-1"> [...</span><span class="hl-0">ctx</span><span class="hl-1">.</span><span class="hl-0">steps</span><span class="hl-1">, </span><span class="hl-3">&#39;d&#39;</span><span class="hl-1">] }),</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-5">// Map &#39;g b&#39; → &#39;t d&#39;</span><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-0">composition</span><span class="hl-1">.</span><span class="hl-2">addMapping</span><span class="hl-1">([</span><span class="hl-3">&#39;g&#39;</span><span class="hl-1">, </span><span class="hl-3">&#39;b&#39;</span><span class="hl-1">], [</span><span class="hl-3">&#39;t&#39;</span><span class="hl-1">, </span><span class="hl-3">&#39;d&#39;</span><span class="hl-1">]);</span><br/><br/><span class="hl-5">// Single-key mapping and exclusive multi-key mapping</span><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-0">composition</span><span class="hl-1">.</span><span class="hl-2">addMapping</span><span class="hl-1">([</span><span class="hl-3">&#39;q&#39;</span><span class="hl-1">], [</span><span class="hl-3">&#39;t&#39;</span><span class="hl-1">]);</span><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-0">composition</span><span class="hl-1">.</span><span class="hl-2">addMapping</span><span class="hl-1">([</span><span class="hl-3">&#39;g&#39;</span><span class="hl-1">, </span><span class="hl-3">&#39;d&#39;</span><span class="hl-1">], [</span><span class="hl-3">&#39;t&#39;</span><span class="hl-1">], { </span><span class="hl-0">exclusive:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1"> });</span><br/><br/><span class="hl-5">// Remove a mapping</span><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-0">composition</span><span class="hl-1">.</span><span class="hl-2">removeMappingKey</span><span class="hl-1">([</span><span class="hl-3">&#39;g&#39;</span><span class="hl-1">, </span><span class="hl-3">&#39;b&#39;</span><span class="hl-1">]);</span>
+</code><button type="button">Copy</button></pre>
+
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L653">src/keyboard-engine/src/CompositionEngine.ts:653</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="bufferedcount"><span>buffered<wbr/>Count</span><a href="#bufferedcount" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="bufferedcount-1"><span class="tsd-kind-call-signature">bufferedCount</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><a href="#bufferedcount-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Number of completed sequences available for undo.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L1123">src/keyboard-engine/src/CompositionEngine.ts:1123</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="clearallcompositionkeys"><span>clear<wbr/>All<wbr/>Composition<wbr/>Keys</span><a href="#clearallcompositionkeys" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="clearallcompositionkeys-1"><span class="tsd-kind-call-signature">clearAllCompositionKeys</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#clearallcompositionkeys-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Remove every registered composition key (clears the entire mapping
+table). Does not cancel an active pending chain — see
+<a href="#removecompositionkey" class="tsd-kind-method">removeCompositionKey</a>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L872">src/keyboard-engine/src/CompositionEngine.ts:872</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="clearbuffers"><span>clear<wbr/>Buffers</span><a href="#clearbuffers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="clearbuffers-1"><span class="tsd-kind-call-signature">clearBuffers</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#clearbuffers-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Clear all buffered undo history.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L1128">src/keyboard-engine/src/CompositionEngine.ts:1128</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getcontext"><span>get<wbr/>Context</span><a href="#getcontext" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getcontext-1"><span class="tsd-kind-call-signature">getContext</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/CompositionContext.html" class="tsd-signature-type tsd-kind-interface">CompositionContext</a><a href="#getcontext-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Return a copy of the current composition context — the chain's
+accumulated <code>value</code>, <code>lastFlag</code>, and <code>steps</code> history.</p>
+<p>The copy is shallow: the <code>steps</code> array is a fresh array copy, but
+<code>value</code> is a reference (not deep-cloned), and modifying the returned
+object does not affect the engine's internal state.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/CompositionContext.html" class="tsd-signature-type tsd-kind-interface">CompositionContext</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L895">src/keyboard-engine/src/CompositionEngine.ts:895</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getlastevent"><span>get<wbr/>Last<wbr/>Event</span><a href="#getlastevent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getlastevent-1"><span class="tsd-kind-call-signature">getLastEvent</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../types/CompositionEvent.html" class="tsd-signature-type tsd-kind-type-alias">CompositionEvent</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#getlastevent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Return the most recent <a href="../types/CompositionEvent.html" class="tsd-kind-type-alias">CompositionEvent</a>, or <code>null</code> if nothing
+has happened yet. Useful for displaying diagnostic context (e.g.
+&quot;Chain started with key '3'&quot; or &quot;Broke on key 'x'&quot;).</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../types/CompositionEvent.html" class="tsd-signature-type tsd-kind-type-alias">CompositionEvent</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L743">src/keyboard-engine/src/CompositionEngine.ts:743</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getlastmappingevent"><span>get<wbr/>Last<wbr/>Mapping<wbr/>Event</span><a href="#getlastmappingevent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getlastmappingevent-1"><span class="tsd-kind-call-signature">getLastMappingEvent</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../types/MappingKeyEvent.html" class="tsd-signature-type tsd-kind-type-alias">MappingKeyEvent</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#getlastmappingevent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Return the most recent <a href="../types/MappingKeyEvent.html" class="tsd-kind-type-alias">MappingKeyEvent</a>, or <code>null</code> if no
+mapping-key event has happened yet.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../types/MappingKeyEvent.html" class="tsd-signature-type tsd-kind-type-alias">MappingKeyEvent</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L773">src/keyboard-engine/src/CompositionEngine.ts:773</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="haspending"><span>has<wbr/>Pending</span><a href="#haspending" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="haspending-1"><span class="tsd-kind-call-signature">hasPending</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#haspending-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether the engine currently has an active pending chain.</p>
+<p>A chain is &quot;pending&quot; from the moment the first key starts it until it
+completes naturally, a key is pressed with no matching entry, or the
+timeout expires.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L883">src/keyboard-engine/src/CompositionEngine.ts:883</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="registrycompositionkey"><span>registry<wbr/>Composition<wbr/>Key</span><a href="#registrycompositionkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="registrycompositionkey-1"><span class="tsd-kind-call-signature">registryCompositionKey</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">entry</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/CompositioKey.html" class="tsd-signature-type tsd-kind-interface">CompositioKey</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#registrycompositionkey-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register a composition key entry. Semantically equivalent duplicates
+(same fingerprint) are skipped.</p>
+<p>Each entry is a node in a composition chain: when the entry's <code>key</code>
+is pressed, the engine either continues the pending chain (if the
+entry's <code>needs</code> are satisfied by the preceding <code>lastFlag</code>) or starts
+a new chain (if the entry is a head key — <code>optional: true</code> or empty
+<code>needs</code>). Multiple entries can share the same <code>key</code> name; they are
+stored in a <code>Map&lt;string, Set&lt;CompositioKey&gt;&gt;</code> (duplicate identities
+are not added twice) and the best match is resolved at runtime via
+resolveCompositionKey.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">entry</span>: <a href="../interfaces/CompositioKey.html" class="tsd-signature-type tsd-kind-interface">CompositioKey</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example-1">Example<a href="#example-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">registryCompositionKey</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-0">key:</span><span class="hl-1"> </span><span class="hl-3">&#39;3&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">alternativeFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">needs:</span><span class="hl-1"> [],</span><br/><span class="hl-1">  </span><span class="hl-0">optional:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-2">execute</span><span class="hl-0">:</span><span class="hl-1"> (</span><span class="hl-0">ctx</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> ({</span><br/><span class="hl-1">    </span><span class="hl-0">value:</span><span class="hl-1"> </span><span class="hl-6">3</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-0">lastFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-0">steps:</span><span class="hl-1"> [...</span><span class="hl-0">ctx</span><span class="hl-1">.</span><span class="hl-0">steps</span><span class="hl-1">, </span><span class="hl-3">&#39;3&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  }),</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">registryCompositionKey</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-0">key:</span><span class="hl-1"> </span><span class="hl-3">&#39;3&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">alternativeFlag:</span><span class="hl-1"> </span><span class="hl-3">&#39;action&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-0">needs:</span><span class="hl-1"> [</span><span class="hl-3">&#39;times&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  </span><span class="hl-2">execute</span><span class="hl-0">:</span><span class="hl-1"> (</span><span class="hl-0">ctx</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-7">count</span><span class="hl-1"> = </span><span class="hl-0">ctx</span><span class="hl-1">.</span><span class="hl-0">value</span><span class="hl-1"> </span><span class="hl-8">as</span><span class="hl-1"> </span><span class="hl-9">number</span><span class="hl-1">;</span><br/><span class="hl-1">    </span><span class="hl-5">// Fire the compound action after the first timed press</span><br/><span class="hl-1">    </span><span class="hl-0">console</span><span class="hl-1">.</span><span class="hl-2">log</span><span class="hl-1">(</span><span class="hl-3">`Repeated </span><span class="hl-4">${</span><span class="hl-0">count</span><span class="hl-4">}</span><span class="hl-3"> times`</span><span class="hl-1">);</span><br/><span class="hl-1">    </span><span class="hl-8">return</span><span class="hl-1"> </span><span class="hl-4">null</span><span class="hl-1">; </span><span class="hl-5">// End the chain</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">});</span>
+</code><button type="button">Copy</button></pre>
+
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L832">src/keyboard-engine/src/CompositionEngine.ts:832</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="removecompositionkey"><span>remove<wbr/>Composition<wbr/>Key</span><a href="#removecompositionkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="removecompositionkey-1"><span class="tsd-kind-call-signature">removeCompositionKey</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">key</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#removecompositionkey-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Remove all entries registered under <code>key</code> — the entire set is deleted
+from the mapping table.</p>
+<p>Does NOT cancel an active pending chain: if a chain is pending when
+its entries are removed, it continues with its already-started
+context until the timeout expires. Call <a href="#abort" class="tsd-kind-method">abort</a> to cancel it.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">key</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if an entry was removed, <code>false</code> if none existed.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L863">src/keyboard-engine/src/CompositionEngine.ts:863</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="removemapping"><span>remove<wbr/>Mapping</span><a href="#removemapping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="removemapping-1"><span class="tsd-kind-call-signature">removeMapping</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">firstKey</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#removemapping-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Remove all mapping key entries whose head key matches <code>firstKey</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">firstKey</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if any entries were removed, <code>false</code> otherwise.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L720">src/keyboard-engine/src/CompositionEngine.ts:720</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="removemappingkey"><span>remove<wbr/>Mapping<wbr/>Key</span><a href="#removemappingkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="removemappingkey-1"><span class="tsd-kind-call-signature">removeMappingKey</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">keys</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#removemappingkey-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Remove a mapping key entry by its exact key sequence.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">keys</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if found and removed, <code>false</code> otherwise.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L697">src/keyboard-engine/src/CompositionEngine.ts:697</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="setvalueschema"><span>set<wbr/>Value<wbr/>Schema</span><a href="#setvalueschema" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="setvalueschema-1"><span class="tsd-kind-call-signature">setValueSchema</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">schema</span><span class="tsd-signature-symbol">:</span> <a href="../types/ValueSchema.html" class="tsd-signature-type tsd-kind-type-alias">ValueSchema</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#setvalueschema-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Set or replace the runtime value schema for composition chain
+validation.</p>
+<p>The schema replaces the previous one entirely (no merging). For each
+composition key event the engine validates the input value before
+<code>execute</code> runs (against the <code>lastFlag</code>'s guard) and the output value
+afterwards (against the current flag's guard). Flags without a guard
+entry pass through silently. Validation failures clear the pending
+chain and emit a <code>console.warn</code> in development.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">schema</span>: <a href="../types/ValueSchema.html" class="tsd-signature-type tsd-kind-type-alias">ValueSchema</a></span>
+<div class="tsd-comment tsd-typography"><p>Guard functions keyed by flag name.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L581">src/keyboard-engine/src/CompositionEngine.ts:581</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start"><span>start</span><a href="#start" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="start-1"><span class="tsd-kind-call-signature">start</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">ctx</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/PipelineContext.html" class="tsd-signature-type tsd-kind-interface">PipelineContext</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">affectOverlay</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#start-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Process a key event through the composition subsystem: first advance an
+in-progress pending chain, then attempt to start a new chain.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">ctx</span>: <a href="../interfaces/PipelineContext.html" class="tsd-signature-type tsd-kind-interface">PipelineContext</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>The current pipeline context.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">affectOverlay</span>: <span class="tsd-signature-type">boolean</span></span>
+<div class="tsd-comment tsd-typography"><p>Whether the calling pipeline phase is overlay mode.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if the key was consumed by the composition subsystem.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L1891">src/keyboard-engine/src/CompositionEngine.ts:1891</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="subscribe"><span>subscribe</span><a href="#subscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="subscribe-1"><span class="tsd-kind-call-signature">subscribe</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">fn</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><a href="#subscribe-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Subscribe to composition state changes. The callback fires whenever the
+chain starts, advances, breaks, completes, or is undone. Use it to
+trigger a framework re-render (e.g. React <code>useState</code> setter).</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">fn</span>: <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></h4><p>An unsubscribe function.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L731">src/keyboard-engine/src/CompositionEngine.ts:731</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="subscribemapping"><span>subscribe<wbr/>Mapping</span><a href="#subscribemapping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="subscribemapping-1"><span class="tsd-kind-call-signature">subscribeMapping</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">fn</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><a href="#subscribemapping-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Subscribe to mapping-key state changes. The callback fires whenever a
+mapping-key sequence starts, advances, breaks, is consumed
+(exclusive), or completes. Independent from <a href="#subscribe" class="tsd-kind-method">subscribe</a> so
+composition subscribers are not notified by mapping-key events.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">fn</span>: <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></h4><p>An unsubscribe function.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L762">src/keyboard-engine/src/CompositionEngine.ts:762</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="synchronizingkey"><span>synchronizing<wbr/>Key</span><a href="#synchronizingkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="synchronizingkey-1"><span class="tsd-kind-call-signature">synchronizingKey</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">eventName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#synchronizingkey-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Record the normalized key names of the current event for matching
+against registered composition and mapping keys.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">eventName</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L788">src/keyboard-engine/src/CompositionEngine.ts:788</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="undo"><span>undo</span><a href="#undo" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="undo-1"><span class="tsd-kind-call-signature">undo</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">steps</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">options</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">byKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">isolated</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/CompositionContext.html" class="tsd-signature-type tsd-kind-interface">CompositionContext</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#undo-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Undo one or more completed composition sequences.</p>
+<p>Each completed chain is stored as a separate entry in the undo buffer.
+Passing <code>steps</code> undoes that many sequences, executing every key's
+<a href="../interfaces/CompositioKey.html#undoaction" class="tsd-kind-property">CompositioKey#undoAction</a> in reverse order.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">steps</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 1</span></span>
+<div class="tsd-comment tsd-typography"><p>Number of past sequences to undo. Defaults to 1.
+When <code>options.byKey</code> is <code>true</code>, <code>steps</code> counts individual keys instead.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">options</span>: <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">byKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">isolated</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">}</span></span>
+<ul class="tsd-parameters">
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">byKey</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
+<div class="tsd-comment tsd-typography"><p>When <code>true</code>, <code>steps</code> counts individual keys
+instead of whole sequences. Orthogonal to <code>isolated</code>.
+Defaults to <code>false</code>.</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">isolated</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
+<div class="tsd-comment tsd-typography"><p>When <code>true</code>, each sequence's undo starts from
+its own saved context — ctx does NOT propagate across sequences.
+Defaults to <code>false</code> (flat propagation).</p>
+</div></li></ul></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/CompositionContext.html" class="tsd-signature-type tsd-kind-interface">CompositionContext</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><p>The final context after all undo actions, or <code>null</code> if
+nothing was undone.</p>
+
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-throws">
+<h4 class="tsd-anchor-link" id="throws">Throws<a href="#throws" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>If <code>steps</code> exceeds the number of buffered sequences (or keys,
+when <code>byKey</code> is <code>true</code>).</p>
+</div>
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example-flat-mode-default">Example: Flat mode (default)<a href="#example-flat-mode-default" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">undo</span><span class="hl-1">(</span><span class="hl-6">2</span><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+</div>
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example-isolated-mode">Example: Isolated mode<a href="#example-isolated-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">undo</span><span class="hl-1">(</span><span class="hl-6">2</span><span class="hl-1">, { </span><span class="hl-0">isolated:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1"> });</span>
+</code><button type="button">Copy</button></pre>
+
+</div>
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example-by-key-mode">Example: By-key mode<a href="#example-by-key-mode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">engine</span><span class="hl-1">.</span><span class="hl-2">undo</span><span class="hl-1">(</span><span class="hl-6">3</span><span class="hl-1">, { </span><span class="hl-0">byKey:</span><span class="hl-1"> </span><span class="hl-4">true</span><span class="hl-1"> });  </span><span class="hl-5">// undo 3 keys, not 3 sequences</span>
+</code><button type="button">Copy</button></pre>
+
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L949">src/keyboard-engine/src/CompositionEngine.ts:949</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="updatecompositionkey"><span>update<wbr/>Composition<wbr/>Key</span><a href="#updatecompositionkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="updatecompositionkey-1"><span class="tsd-kind-call-signature">updateCompositionKey</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">key</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">flags</span><span class="tsd-signature-symbol">:</span> <a href="../types/Flags.html" class="tsd-signature-type tsd-kind-type-alias">Flags</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">updates</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/CompositioKey.html" class="tsd-signature-type tsd-kind-interface">CompositioKey</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;key&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;flags&quot;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#updatecompositionkey-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Update a registered entry identified by <code>key</code> + <code>flags</code>.</p>
+<p>The old entry is removed and a merged entry (old fields + <code>updates</code>,
+preserving <code>key</code> and <code>flags</code>) is re-registered. Together <code>key</code> and
+<code>flags</code> uniquely identify the entry (compared via <code>areFlagsEqual</code>),
+so entries sharing a key name can be targeted individually instead
+of removing all entries for that key.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">key</span>: <span class="tsd-signature-type">string</span></span></li>
+<li><span><span class="tsd-kind-parameter">flags</span>: <a href="../types/Flags.html" class="tsd-signature-type tsd-kind-type-alias">Flags</a></span></li>
+<li><span><span class="tsd-kind-parameter">updates</span>: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/CompositioKey.html" class="tsd-signature-type tsd-kind-interface">CompositioKey</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#tcomponent">TComponent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;key&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;flags&quot;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p><code>true</code> if the entry was found and updated, <code>false</code> if no
+entry matched.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/BAIGAOa/ink-cartridge/blob/bdcb30ccc88bac6d0ea43d5f029a942586fb0313/src/keyboard-engine/src/CompositionEngine.ts#L1198">src/keyboard-engine/src/CompositionEngine.ts:1198</a></li></ul></aside></div></li></ul></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
+<div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
+<div><a href="#abort"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>abort</span></a><a href="#addmapping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Mapping</span></a><a href="#bufferedcount"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>buffered<wbr/>Count</span></a><a href="#clearallcompositionkeys"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>clear<wbr/>All<wbr/>Composition<wbr/>Keys</span></a><a href="#clearbuffers"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>clear<wbr/>Buffers</span></a><a href="#getcontext"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Context</span></a><a href="#getlastevent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Last<wbr/>Event</span></a><a href="#getlastmappingevent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Last<wbr/>Mapping<wbr/>Event</span></a><a href="#haspending"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Pending</span></a><a href="#registrycompositionkey"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>registry<wbr/>Composition<wbr/>Key</span></a><a href="#removecompositionkey"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Composition<wbr/>Key</span></a><a href="#removemapping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Mapping</span></a><a href="#removemappingkey"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Mapping<wbr/>Key</span></a><a href="#setvalueschema"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Value<wbr/>Schema</span></a><a href="#start"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start</span></a><a href="#subscribe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe</span></a><a href="#subscribemapping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Mapping</span></a><a href="#synchronizingkey"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>synchronizing<wbr/>Key</span></a><a href="#undo"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>undo</span></a><a href="#updatecompositionkey"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>update<wbr/>Composition<wbr/>Key</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html">@cartridge-engine/keyboard-engine</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

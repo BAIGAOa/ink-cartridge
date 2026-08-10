@@ -32,10 +32,8 @@ function CounterScreen() {
   const { boundKeyboard } = useKeyboard();
 
   React.useEffect(() => {
-    // Basic binding: press 'a' to increment.
     const unbindA = boundKeyboard(['a'], () => setValue((v) => v + 1));
 
-    // Basic binding: press 's' to decrement.
     const unbindS = boundKeyboard(['s'], () => setValue((v) => v - 1));
 
     // times + observer: press 't' 3 times to add 5.

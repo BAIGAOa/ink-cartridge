@@ -79,20 +79,180 @@ export function resolveCompositionKey<TComponent = unknown>(
 	return sameSpecificity[0];
 }
 
-export type Flags = {
+/**
+ * A single flag transition declared by a composition key: `need` is the
+ * preceding flag required to fire the transition, `become` is the flag
+ * assigned afterwards.
+ */
+export type FlagTransition = {
+	/** The preceding flag required to fire the transition. */
 	need: string;
+	/** The flag assigned when the transition fires. */
 	become: string;
-}[];
+};
 
+/**
+ * Flag transitions declared by a composition key — one entry per
+ * preceding-flag match, each specifying the flag assigned afterwards.
+ */
+export type Flags = FlagTransition[];
+
+/**
+ * Fired when a new composition chain starts: a head key (`optional: true`
+ * or empty `needs`) matched and its `execute` callback ran successfully.
+ */
+export interface CompositionStartedEvent {
+	/** Event discriminant — always `"started"`. */
+	type: "started";
+	/** The head key that started the chain. */
+	key: string;
+}
+
+/**
+ * Fired when a pending chain advances to the next key: the key matched
+ * the pending `lastFlag` and its `execute` callback ran successfully.
+ */
+export interface CompositionContinuedEvent {
+	/** Event discriminant — always `"continued"`. */
+	type: "continued";
+	/** The key that advanced the chain. */
+	key: string;
+}
+
+/**
+ * Fired when a pending chain completes: the chain timeout expired, an end
+ * key matched, or `execute` returned `null`. The chain's keys are recorded
+ * in the undo buffer at this point.
+ */
+export interface CompositionCompletedEvent {
+	/** Event discriminant — always `"completed"`. */
+	type: "completed";
+}
+
+/**
+ * Fired when a pending chain is cancelled immediately via
+ * {@link CompositionEngine#abort}.
+ */
+export interface CompositionAbortedEvent {
+	/** Event discriminant — always `"aborted"`. */
+	type: "aborted";
+}
+
+/**
+ * Fired when a key with no matching entry breaks a pending chain: the
+ * pending state is cleared and the key falls through to lower pipeline
+ * stages (unless the breaking key is swallowed).
+ */
+export interface CompositionBrokenEvent {
+	/** Event discriminant — always `"broken"`. */
+	type: "broken";
+	/** The key that broke the chain. */
+	key: string;
+}
+
+/**
+ * Fired when an exclusive pending chain silently consumes a mismatched
+ * key: the chain keeps waiting and the key does not reach lower pipeline
+ * stages.
+ */
+export interface CompositionConsumedEvent {
+	/** Event discriminant — always `"consumed"`. */
+	type: "consumed";
+	/** The mismatched key that was consumed. */
+	key: string;
+}
+
+/**
+ * Fired when one or more completed sequences are undone via
+ * {@link CompositionEngine#undo}.
+ */
+export interface CompositionUndoneEvent {
+	/** Event discriminant — always `"undone"`. */
+	type: "undone";
+	/**
+	 * Number of undone sequences (or individual keys, when `undo` was
+	 * called with `{ byKey: true }`).
+	 */
+	steps: number;
+}
+
+/**
+ * Fired when the buffered undo history is cleared via
+ * {@link CompositionEngine#clearBuffers}.
+ */
+export interface CompositionClearedEvent {
+	/** Event discriminant — always `"cleared"`. */
+	type: "cleared";
+}
+
+/**
+ * State-change events emitted by the composition engine during a key chain's
+ * lifecycle.
+ */
 export type CompositionEvent =
-	| { type: "started"; key: string }
-	| { type: "continued"; key: string }
-	| { type: "completed" }
-	| { type: "aborted" }
-	| { type: "broken"; key: string }
-	| { type: "consumed"; key: string }
-	| { type: "undone"; steps: number }
-	| { type: "cleared" };
+	| CompositionStartedEvent
+	| CompositionContinuedEvent
+	| CompositionCompletedEvent
+	| CompositionAbortedEvent
+	| CompositionBrokenEvent
+	| CompositionConsumedEvent
+	| CompositionUndoneEvent
+	| CompositionClearedEvent;
+
+/**
+ * Fired when a mapping-key sequence starts: the head key matched a
+ * registered mapping key and its target chain is about to run.
+ */
+export interface MappingKeyStartedEvent {
+	/** Event discriminant — always `"started"`. */
+	type: "started";
+	/** The head key that started the sequence. */
+	key: string;
+}
+
+/**
+ * Fired when a pending mapping-key sequence advances to the next key:
+ * the pressed key matched the next segment of the remaining candidates.
+ */
+export interface MappingKeyContinuedEvent {
+	/** Event discriminant — always `"continued"`. */
+	type: "continued";
+	/** The key that advanced the sequence. */
+	key: string;
+}
+
+/**
+ * Fired when a mapping-key sequence completes and its target composition
+ * chain ran end-to-end successfully.
+ */
+export interface MappingKeyCompletedEvent {
+	/** Event discriminant — always `"completed"`. */
+	type: "completed";
+}
+
+/**
+ * Fired when a mismatched key breaks a pending mapping-key sequence: the
+ * pending state is cleared and the key falls through to lower pipeline
+ * stages (unless the breaking key is swallowed).
+ */
+export interface MappingKeyBrokenEvent {
+	/** Event discriminant — always `"broken"`. */
+	type: "broken";
+	/** The key that broke the sequence. */
+	key: string;
+}
+
+/**
+ * Fired when an exclusive pending mapping-key sequence silently consumes
+ * a mismatched key: the sequence keeps waiting and the key does not reach
+ * lower pipeline stages.
+ */
+export interface MappingKeyConsumedEvent {
+	/** Event discriminant — always `"consumed"`. */
+	type: "consumed";
+	/** The mismatched key that was consumed. */
+	key: string;
+}
 
 /**
  * State-change events emitted by the mapping-key subsystem.
@@ -103,12 +263,15 @@ export type CompositionEvent =
  * have an "aborted" / "undone" / "cleared" lifecycle.
  */
 export type MappingKeyEvent =
-	| { type: "started"; key: string }
-	| { type: "continued"; key: string }
-	| { type: "completed" }
-	| { type: "broken"; key: string }
-	| { type: "consumed"; key: string };
+	| MappingKeyStartedEvent
+	| MappingKeyContinuedEvent
+	| MappingKeyCompletedEvent
+	| MappingKeyBrokenEvent
+	| MappingKeyConsumedEvent;
 
+/**
+ * State of an active composition chain waiting for the next key.
+ */
 export interface CompositionPneding {
 	timeout: number;
 	timer: ReturnType<typeof setTimeout>;
@@ -118,14 +281,18 @@ export interface CompositionPneding {
 	affectOverlay: boolean;
 }
 
+/**
+ * Context passed to and returned by composition key `execute` callbacks.
+ */
 export interface CompositionContext<T = unknown> {
 	/**
-	 * The value currently passed through the context
+	 * The value currently passed through the context.
 	 */
 	value: T;
 
 	/**
-	 * The flag of the previous key. If it is, it represents the head key.
+	 * Flag of the previous key in the chain. When `null`, this key is the
+	 * head key of a new chain.
 	 */
 	lastFlag: string | null;
 
@@ -135,39 +302,43 @@ export interface CompositionContext<T = unknown> {
 	steps: string[];
 }
 
+/**
+ * A registered composition key: the trigger key, its flags, and how it
+ * transforms the {@link CompositionContext}.
+ */
 export interface CompositioKey<
 	TComponet,
 	TValue = unknown,
 > extends PrimitiveTypeKeys<TComponet> {
 	/**
-	 * Trigger key names, such as a, B, C, or even the number 3
+	 * Trigger key name(s), e.g. `a`, `B`, `3`, or `"ctrl+s"`.
 	 */
 	key: string;
 
 	/**
-	 * Declare what this key is.
-	 * This will help the following key to recognize the preceding key, which is used to determine what
-	 * If the flag is not already registered, it will be automatically registered.
+	 * Declare what this key becomes after execution. The next key in the
+	 * chain uses these flags to recognize its predecessor. Flags are
+	 * auto-registered when not already known.
 	 */
 	flags: Flags;
 
 	/**
-	 * What type of key is expected to precede
-	 * If the preceding type does not match, the key is discarded
+	 * Flags this key expects on the preceding key. When the preceding flag
+	 * does not match, the key is discarded.
 	 */
 	needs: string[];
 
+	/** Fallback flag used when no `needs` entry matches, or at the head of a chain. */
 	alternativeFlag: string;
 
 	/**
-	 * Declare whether the dependent preceding flag is optional, and if so, the key is automatically executed if it is a head key
-	 * It should be noted that if it is not the head key, the front type will also be checked.
+	 * Whether the preceding flag is optional. When `true` and no chain is
+	 * pending, the key executes automatically as a head key. When a chain is
+	 * already pending, the preceding flag is still checked.
 	 */
 	optional?: boolean;
 
-	/**
-	 * What is the timeout for pressing a key
-	 */
+	/** Timeout for the next key press in the sequence, in milliseconds. */
 	timeout?: number;
 
 	/**
@@ -177,39 +348,60 @@ export interface CompositioKey<
 	 */
 	exclusive?: boolean;
 
+	/**
+	 * Transform the composition context when this key fires. Receives the
+	 * current chain context and returns the modified context passed to the
+	 * next key in the chain, or `null` to terminate the chain — the key is
+	 * then released to lower pipeline stages, or silently swallowed when
+	 * `KeyReleaseWhenChainInterrupted` is set.
+	 */
 	execute?: (
 		ctx: CompositionContext<TValue>,
 	) => CompositionContext<TValue> | null;
 
-	/**
-	 * This key is enabled only when this callback method returns true.
-	 */
+	/** The key is enabled only while this callback returns `true`. */
 	when?: (() => boolean) | string;
 
 	/**
-	 * If true, when CTX returns null, the key will be swallowed silently after the chain is terminated, not released
+	 * When `true` and `execute` returns `null`, the breaking key is silently
+	 * swallowed after the chain terminates instead of being released to lower
+	 * pipeline stages.
 	 */
 	KeyReleaseWhenChainInterrupted?: boolean;
 
 	/**
-	 * The back button's function is usually the opposite of the execute key.
-	 * Returning null will stop the undo action.
+	 * The inverse of `execute`, run when the sequence is undone. Returning
+	 * `null` stops the undo action.
 	 */
 	undoAction?: undo;
 
+	/**
+	 * When the chain's current `lastFlag` is in this list, the key terminates
+	 * the chain without executing.
+	 */
 	isEndKey?: string[];
 }
 
+/**
+ * Undo action for a single composition key.
+ */
 export type undo<TValue = unknown> = (
 	ctx: CompositionContext<TValue>,
 ) => CompositionContext<TValue> | null;
 
+/**
+ * One executed key recorded in a completed sequence, keeping its undo action
+ * and the context at the time of execution.
+ */
 export type bufferEntry = {
 	key: string;
 	undoAction: undo;
 	ctx: CompositionContext;
 };
 
+/**
+ * State of a pending mapping-key sequence waiting for the next key.
+ */
 export interface MappingPendingEntry<TComponent> {
 	keys: string[];
 	nextIndex: number;
@@ -220,16 +412,36 @@ export interface MappingPendingEntry<TComponent> {
 	candidates: MappingKeyEntry<TComponent>[];
 }
 
+/**
+ * A registered mapping key: an external key sequence (`keys`) that triggers
+ * a target composition chain (`target`) when fully typed.
+ */
 export interface MappingKeyEntry<
 	TComponet,
 > extends PrimitiveTypeKeys<TComponet> {
+	/**
+	 * External key sequence the user must type (e.g. `["g", "i"]`).
+	 */
 	keys: string[];
+	/**
+	 * Internal composition keys to execute in order.
+	 */
 	target: string[];
+	/**
+	 * Timeout for the next key in the sequence, in milliseconds.
+	 */
 	timeout?: number;
+	/**
+	 * The mapping is enabled only while this callback returns `true`.
+	 */
 	when?: (() => boolean) | string;
+	/**
+	 * When `true`, keys that break the pending mapping sequence are silently
+	 * consumed and the sequence keeps waiting.
+	 */
 	exclusive?: boolean;
 	/**
-	 * If true, when the target composition chain is interrupted (any
+	 * When `true`, if the target composition chain is interrupted (any
 	 * target key fails to resolve / execute), the final key that broke
 	 * the sequence is swallowed silently instead of being released to
 	 * lower pipeline stages. Mirrors {@link CompositioKey.KeyReleaseWhenChainInterrupted}.
@@ -237,10 +449,33 @@ export interface MappingKeyEntry<
 	KeyReleaseWhenChainInterrupted?: boolean;
 }
 
+/**
+ * Fields shared by composition keys and mapping keys.
+ */
 export interface PrimitiveTypeKeys<TComponet> {
+	/**
+	 * Which pipeline phase this entry fires in: `true` = layer phase
+	 * (before the layer broadcast), `false` = page phase (after the
+	 * layer broadcast, before the screen stack).
+	 */
 	affectOverlay?: boolean;
+	/**
+	 * Restrict the entry to a specific mode. When the active mode does
+	 * not match, the entry is skipped. Omitted = fires in all modes.
+	 */
 	mode?: string;
+	/**
+	 * Top-component whitelist: `"*"` or omitted = all screens; `[]` =
+	 * no screens (effectively disabled); `[A, B]` = only when the
+	 * stack top is exactly A or B.
+	 */
 	category?: TComponet[] | "*";
+	/**
+	 * When `true`, an overlay-phase entry (`affectOverlay: true`) fires
+	 * even while no layer is open. With the default `false`, the entry
+	 * is skipped when no layers exist. Only relevant when
+	 * `affectOverlay` is `true`.
+	 */
 	executeWhenNoOverlay?: boolean;
 }
 
@@ -264,6 +499,24 @@ function compositionFingerprint<TComponent>(
 	});
 }
 
+/**
+ * State machine for multi-key composition chains (vim-style key sequences).
+ *
+ * Builds "flag → needs → execute" chains: pressing key "A" sets
+ * `lastFlag: "A"` and produces a value; the next key "B" (with
+ * `needs: ["A"]`) receives that value via its `execute(ctx)` callback,
+ * transforms it, and passes it forward. The chain continues until a key
+ * with no matching entry is pressed or the timeout expires.
+ *
+ * Entry resolution uses `needs` matching: when a pending chain exists,
+ * only keys whose `needs` include `lastFlag` are eligible; when no chain
+ * is pending, only keys with `optional: true` or empty `needs` can start
+ * one.
+ *
+ * Owns the key mapping table, pending chain state, mapping-key sequences,
+ * and undo buffers. Driven by the composition pipeline processors; exposed
+ * on {@link KeyboardEngine} for direct registration and inspection.
+ */
 export default class CompositionEngine<TComponent = unknown> {
 	private currentKey: string[] = [];
 	private keyMappingTable: Map<string, Set<CompositioKey<TComponent>>> =
@@ -271,8 +524,9 @@ export default class CompositionEngine<TComponent = unknown> {
 
 	private defaultTimeout: number;
 
-	// This array represents the history of pressed keys.
-	// Once the sequence begins, it records the keys in the order they are pressed by the user.
+	// Keys pressed in the current sequence, in press order. Reset at the
+	// start of each sequence; snapshots are pushed into `buffers` so undo
+	// history survives across sequences.
 	private historyKeys: bufferEntry[] = [];
 	// Each inner array represents one completed sequence's key history.
 	// Multiple sequences accumulate here so undo can rewind across
@@ -290,9 +544,9 @@ export default class CompositionEngine<TComponent = unknown> {
 	private lastMappingEvent: MappingKeyEvent | null = null;
 
 	private mapping: Map<string, Set<MappingKeyEntry<TComponent>>> = new Map();
-	// Mapping keys independently maintain their own wait sequences.
-	// This is done to better distinguish between key combinations and mapped keys, and to make management easier.
-	// Sequences of mapped keys and sequences of key combinations cannot coexist.
+	// Mapping keys keep their own pending sequence so mapped-key chains and
+	// ordinary composition chains are easier to distinguish and manage. The
+	// two kinds of pending sequence cannot coexist.
 	private mappingPendingEntry: MappingPendingEntry<TComponent> | null = null;
 	private pendingEntry: CompositionPneding | null = null;
 
@@ -311,7 +565,19 @@ export default class CompositionEngine<TComponent = unknown> {
 		this.valueSchema = valueSchema;
 	}
 
-	/** Set or replace the runtime value schema for composition chain validation. */
+	/**
+	 * Set or replace the runtime value schema for composition chain
+	 * validation.
+	 *
+	 * The schema replaces the previous one entirely (no merging). For each
+	 * composition key event the engine validates the input value before
+	 * `execute` runs (against the `lastFlag`'s guard) and the output value
+	 * afterwards (against the current flag's guard). Flags without a guard
+	 * entry pass through silently. Validation failures clear the pending
+	 * chain and emit a `console.warn` in development.
+	 *
+	 * @param schema - Guard functions keyed by flag name.
+	 */
 	setValueSchema(schema: ValueSchema): void {
 		this.valueSchema = schema;
 	}
@@ -336,7 +602,20 @@ export default class CompositionEngine<TComponent = unknown> {
 	}
 
 	/**
-	 * Register a mapping key entry.
+	 * Register a mapping key entry — vim-style key mapping that maps an
+	 * external key sequence (`base`) to an internal composition key chain
+	 * (`target`).
+	 *
+	 * Entries are stored in `this.mapping` (a `Map<string, Set<MappingKeyEntry>>`)
+	 * keyed by `base[0]`. When a key event matches `base[0]`:
+	 * - single-key mappings (`base.length === 1`) execute their target chain
+	 *   immediately;
+	 * - multi-key mappings create a pending entry and wait for the
+	 *   subsequent keys.
+	 *
+	 * Mapping-key pending and ordinary composition pending are mutually
+	 * exclusive, and mapping keys take priority: they are checked inside
+	 * `startPending` before single-key composition startup.
 	 *
 	 * @param base   The external trigger key sequence (what the user presses).
 	 * @param target The internal composition key chain to execute in order.
@@ -346,6 +625,30 @@ export default class CompositionEngine<TComponent = unknown> {
 	 * @returns `true` if registered, `false` if `base` is empty, any `target`
 	 *          key is not registered in `keyMappingTable`, or an identical
 	 *          `base` sequence already exists.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.registryCompositionKey({
+	 *   key: 't', flags: [], alternativeFlag: 'times',
+	 *   optional: true, needs: [],
+	 *   execute: (ctx) => ({ ...ctx, lastFlag: 'times', steps: [...ctx.steps, 't'] }),
+	 * });
+	 * engine.registryCompositionKey({
+	 *   key: 'd', flags: [], alternativeFlag: 'action',
+	 *   needs: ['times'],
+	 *   execute: (ctx) => ({ ...ctx, lastFlag: 'action', steps: [...ctx.steps, 'd'] }),
+	 * });
+	 *
+	 * // Map 'g b' → 't d'
+	 * engine.composition.addMapping(['g', 'b'], ['t', 'd']);
+	 *
+	 * // Single-key mapping and exclusive multi-key mapping
+	 * engine.composition.addMapping(['q'], ['t']);
+	 * engine.composition.addMapping(['g', 'd'], ['t'], { exclusive: true });
+	 *
+	 * // Remove a mapping
+	 * engine.composition.removeMappingKey(['g', 'b']);
+	 * ```
 	 */
 	addMapping(
 		base: string[],
@@ -387,6 +690,10 @@ export default class CompositionEngine<TComponent = unknown> {
 		return true;
 	}
 
+	/**
+	 * Remove a mapping key entry by its exact key sequence.
+	 * @returns `true` if found and removed, `false` otherwise.
+	 */
 	removeMappingKey(keys: string[]) {
 		const firstKey = keys[0];
 		const mappingKey = this.mapping.get(firstKey);
@@ -406,6 +713,10 @@ export default class CompositionEngine<TComponent = unknown> {
 		return false;
 	}
 
+	/**
+	 * Remove all mapping key entries whose head key matches `firstKey`.
+	 * @returns `true` if any entries were removed, `false` otherwise.
+	 */
 	removeMapping(firstKey: string) {
 		return this.mapping.delete(firstKey);
 	}
@@ -470,10 +781,54 @@ export default class CompositionEngine<TComponent = unknown> {
 		}
 	}
 
+	/**
+	 * Record the normalized key names of the current event for matching
+	 * against registered composition and mapping keys.
+	 */
 	synchronizingKey(eventName: string[]) {
 		this.currentKey = eventName;
 	}
 
+	/**
+	 * Register a composition key entry. Semantically equivalent duplicates
+	 * (same fingerprint) are skipped.
+	 *
+	 * Each entry is a node in a composition chain: when the entry's `key`
+	 * is pressed, the engine either continues the pending chain (if the
+	 * entry's `needs` are satisfied by the preceding `lastFlag`) or starts
+	 * a new chain (if the entry is a head key — `optional: true` or empty
+	 * `needs`). Multiple entries can share the same `key` name; they are
+	 * stored in a `Map<string, Set<CompositioKey>>` (duplicate identities
+	 * are not added twice) and the best match is resolved at runtime via
+	 * {@link resolveCompositionKey}.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.registryCompositionKey({
+	 *   key: '3',
+	 *   alternativeFlag: 'times',
+	 *   needs: [],
+	 *   optional: true,
+	 *   execute: (ctx) => ({
+	 *     value: 3,
+	 *     lastFlag: 'times',
+	 *     steps: [...ctx.steps, '3'],
+	 *   }),
+	 * });
+	 *
+	 * engine.registryCompositionKey({
+	 *   key: '3',
+	 *   alternativeFlag: 'action',
+	 *   needs: ['times'],
+	 *   execute: (ctx) => {
+	 *     const count = ctx.value as number;
+	 *     // Fire the compound action after the first timed press
+	 *     console.log(`Repeated ${count} times`);
+	 *     return null; // End the chain
+	 *   },
+	 * });
+	 * ```
+	 */
 	registryCompositionKey(entry: CompositioKey<TComponent>) {
 		const key = entry.key;
 		const set = this.keyMappingTable.get(key);
@@ -496,29 +851,60 @@ export default class CompositionEngine<TComponent = unknown> {
 	}
 
 	/**
-	 * Remove all entries registered under `key`.
+	 * Remove all entries registered under `key` — the entire set is deleted
+	 * from the mapping table.
+	 *
+	 * Does NOT cancel an active pending chain: if a chain is pending when
+	 * its entries are removed, it continues with its already-started
+	 * context until the timeout expires. Call {@link abort} to cancel it.
+	 *
 	 * @returns `true` if an entry was removed, `false` if none existed.
 	 */
 	removeCompositionKey(key: string): boolean {
 		return this.keyMappingTable.delete(key);
 	}
 
-	/** Remove every registered composition key. */
+	/**
+	 * Remove every registered composition key (clears the entire mapping
+	 * table). Does not cancel an active pending chain — see
+	 * {@link removeCompositionKey}.
+	 */
 	clearAllCompositionKeys(): void {
 		this.keyMappingTable.clear();
 	}
 
-	/** Whether the engine currently has an active pending chain. */
+	/**
+	 * Whether the engine currently has an active pending chain.
+	 *
+	 * A chain is "pending" from the moment the first key starts it until it
+	 * completes naturally, a key is pressed with no matching entry, or the
+	 * timeout expires.
+	 */
 	hasPending(): boolean {
 		return this.pendingEntry !== null;
 	}
 
-	/** Return a shallow copy of the current composition context. */
+	/**
+	 * Return a copy of the current composition context — the chain's
+	 * accumulated `value`, `lastFlag`, and `steps` history.
+	 *
+	 * The copy is shallow: the `steps` array is a fresh array copy, but
+	 * `value` is a reference (not deep-cloned), and modifying the returned
+	 * object does not affect the engine's internal state.
+	 */
 	getContext(): CompositionContext {
 		return { ...this.context, steps: [...this.context.steps] };
 	}
 
-	/** Cancel the current pending chain immediately (no timeout). */
+	/**
+	 * Cancel the current pending chain immediately (no timeout).
+	 *
+	 * Clears the pending timer (no stale timeout callback will fire),
+	 * resets the context to `{ value: undefined, lastFlag: null, steps: [] }`,
+	 * and sets the engine's `compositionEngineHandle` flag to `false` so
+	 * pipeline processors stop treating the chain as pending. No-op when
+	 * no chain is pending.
+	 */
 	abort(): void {
 		this.recordHistory();
 		this.clearPending();
@@ -632,7 +1018,6 @@ export default class CompositionEngine<TComponent = unknown> {
 		steps: number,
 		isolated: boolean,
 	): CompositionContext | null {
-		// Count total keys available
 		let totalKeys = 0;
 		for (const seq of this.buffers) {
 			totalKeys += seq.length;
@@ -707,14 +1092,13 @@ export default class CompositionEngine<TComponent = unknown> {
 
 		if (currentCtx === null) return null;
 
-		// Remove consumed entries from their sequences
-		// Track per-sequence removal counts
+		// Remove the undone entries from their sequences, tracking how many
+		// were consumed per sequence.
 		const removals: Map<number, number> = new Map();
 		for (const c of collected) {
 			removals.set(c.seqIndex, (removals.get(c.seqIndex) ?? 0) + 1);
 		}
 
-		// Walk sequences from the end, applying removals
 		for (let si = this.buffers.length - 1; si >= 0; si--) {
 			const count = removals.get(si);
 			if (count === undefined) continue;
@@ -801,8 +1185,15 @@ export default class CompositionEngine<TComponent = unknown> {
 
 	/**
 	 * Update a registered entry identified by `key` + `flags`.
-	 * The old entry is removed and the merged entry is re-registered.
-	 * @returns `true` if the entry was found and updated, `false` otherwise.
+	 *
+	 * The old entry is removed and a merged entry (old fields + `updates`,
+	 * preserving `key` and `flags`) is re-registered. Together `key` and
+	 * `flags` uniquely identify the entry (compared via `areFlagsEqual`),
+	 * so entries sharing a key name can be targeted individually instead
+	 * of removing all entries for that key.
+	 *
+	 * @returns `true` if the entry was found and updated, `false` if no
+	 *          entry matched.
 	 */
 	updateCompositionKey(
 		key: string,
@@ -959,9 +1350,9 @@ export default class CompositionEngine<TComponent = unknown> {
 
 	private isEndKey(neededKeysFlag: string[], lastFlag: string | null) {
 		if (!lastFlag) {
-			// There is only one scenario in which null is returned: the key is the head key.
-			// However, theoretically speaking, this situation shouldn't occur when this function is used within `processPending`.
-			// So we're keeping it as a fallback option.
+			// `lastFlag` is null only for the head key. In theory that cannot
+			// happen here because `isEndKey` is only called from
+			// `processPending`, but keep the fallback anyway.
 			return false;
 		}
 
@@ -979,9 +1370,8 @@ export default class CompositionEngine<TComponent = unknown> {
 		}
 
 		if (!nextCtx.lastFlag) {
-			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
-			// it indicates that they want the system to handle the flag automatically.
-			// We give users control.
+			// When the user leaves `lastFlag` null, the flag is assigned
+			// automatically — the user always keeps control.
 			nextCtx.lastFlag = result.alternativeFlag;
 		}
 
@@ -1054,8 +1444,8 @@ export default class CompositionEngine<TComponent = unknown> {
 				continue;
 			}
 
-			// Because the first key was specially handled during the first iteration,
-			// `lastFlag` here is extremely unlikely to be `null`.
+			// The first key was resolved separately above, so `lastFlag` is
+			// extremely unlikely to be `null` at this point.
 			const result = resolveCompositionKey(f, currentCtx.lastFlag);
 			if (!result) {
 				return {
@@ -1298,16 +1688,17 @@ export default class CompositionEngine<TComponent = unknown> {
 		ctx: PipelineContext<TComponent>,
 		affectOverlay: boolean,
 	): boolean {
-		// We must ensure that only one of the mapped key sequence and the combined key sequence exists.
-		// Therefore, we must ensure that neither of these two sequences exists before attempting to trigger one of them.
+		// Only one of the mapped-key sequence and the composition chain may
+		// exist at a time, so do not start a new one while either is pending.
 		if (this.pendingEntry || this.mappingPendingEntry) return false;
 		this.historyKeys = [];
 
 		const map = this.tryStartMappingKeyPending(ctx, affectOverlay);
-		// If the variable above returns true, it indicates that the mapping processor has initiated a sequence.
-		// If it returns `false`, it means the corresponding key was not found.
-		// We return `true` only when it is being processed, to prevent subsequent handling of the key combination that could lead to confusion.
-		// At the same time, the execution order ensures that mapped keys take precedence over standard key combinations.
+		// `tryStartMappingKeyPending` returns `true` when the mapping processor
+		// started a sequence, and `false` when no mapping key matched. Returning
+		// early on `true` prevents the composition chain from also handling the
+		// key, and the call order gives mapped keys precedence over standard
+		// key combinations.
 		if (map) {
 			return true;
 		}
@@ -1333,13 +1724,13 @@ export default class CompositionEngine<TComponent = unknown> {
 		if (!nextCtx) return false;
 
 		if (!nextCtx.lastFlag) {
-			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
-			// it indicates that they want the system to handle the flag automatically.
-			// We give users control.
+			// When the user leaves `lastFlag` null, the flag is assigned
+			// automatically — the user always keeps control.
 			nextCtx.lastFlag = result.alternativeFlag;
 		}
 
-		// Instead of passing candidate keys directly into the result, they are obtained from the context provided by the user.
+		// The candidate keys are not passed into `result` directly — they are
+		// taken from the context provided by the user.
 		if (!this.validateOutput(nextCtx.lastFlag, nextCtx.value, result.key)) {
 			return false;
 		}
@@ -1416,10 +1807,10 @@ export default class CompositionEngine<TComponent = unknown> {
 					: result.KeyReleaseWhenChainInterrupted;
 			}
 
-			// In fact, if the user manually returns `null`,
-			// it is possible to simulate the current key being the last key under specific circumstances.
-			// But I prefer to respect the user's choice.
-			// Therefore, the check for the trailing key is placed after the check for whether the context is null.
+			// A user returning `null` from `execute` could simulate an end key
+			// under specific circumstances, but we prefer to respect the user's
+			// choice — the end-key check therefore runs after the
+			// context-null check.
 			if (this.isEndKey(result.isEndKey ?? [], this.context.lastFlag)) {
 				this.recordHistory();
 				this.clearPending();
@@ -1428,9 +1819,8 @@ export default class CompositionEngine<TComponent = unknown> {
 					: result.KeyReleaseWhenChainInterrupted;
 			}
 
-			// Constraint: If the user returns `null` for the `lastFlag` associated with this key,
-			// it indicates that they want the system to handle the flag automatically.
-			// We give users control.
+			// When the user leaves `lastFlag` null, the flag is assigned
+			// automatically — the user always keeps control.
 			if (!nextCtx.lastFlag) {
 				const resultFlag = this.chooseFlag(
 					this.context.lastFlag,
@@ -1457,11 +1847,11 @@ export default class CompositionEngine<TComponent = unknown> {
 			const timer = setTimeout(() => {
 				this.clearPending();
 
-				// Why is a buffer needed?
-				// Without a buffer, we can only manipulate historyKeys.
-				// This is because `historyKeys` is cleared at the start of each sequence to avoid confusion.
-				// However, clearing it in that way would result in the loss of historical information from the previous sequence, making it impossible to perform undo operations during the new sequence.
-				// The buffer is responsible for recording these historical keys before each cleanup.
+				// Why a buffer at all? Without one, only `historyKeys` could be
+				// manipulated — and it is cleared at the start of each sequence
+				// to avoid confusion. That clearing would erase the previous
+				// sequence's history and make undo impossible mid-sequence. The
+				// buffer records the history keys before each cleanup.
 				this.recordHistory();
 				this.notify({ type: "completed" });
 			}, timeout);
@@ -1490,6 +1880,14 @@ export default class CompositionEngine<TComponent = unknown> {
 		return false;
 	}
 
+	/**
+	 * Process a key event through the composition subsystem: first advance an
+	 * in-progress pending chain, then attempt to start a new chain.
+	 *
+	 * @param ctx           The current pipeline context.
+	 * @param affectOverlay Whether the calling pipeline phase is overlay mode.
+	 * @returns `true` if the key was consumed by the composition subsystem.
+	 */
 	start(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
 		this.synchronizingKey(ctx.eventNames);
 		if (this.processPending(ctx, affectOverlay)) return true;

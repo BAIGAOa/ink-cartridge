@@ -1,4 +1,17 @@
 /**
+ * Reference to a named focus target, optionally inside a focus group.
+ *
+ * A plain string refers to a target in the default focus layer; the
+ * object form refers to a target inside the named group.
+ */
+export type FocusRef = {
+  /** The name of the focus group the target belongs to. */
+  group: string;
+  /** The id of the target inside the group. */
+  focusId: string;
+};
+
+/**
  * Options for {@link KeyboardEngine.boundSequence}.
  *
  * Extends {@link BoundKeyboardOptions} with sequence-specific settings:
@@ -35,16 +48,16 @@ export interface SequenceOptions extends BoundKeyboardOptions {
  */
 export interface BoundKeyboardOptions {
   /**
-   * If an ID is specified,
-   * the keyboard data is bound to the target element of the current layer
+   * When set, binds the keyboard data to the element with this ID on the
+   * current layer.
    */
   elementId?: string;
   /**
-   * In which focus must the currently bound key be active for it to take effect
-   * If only one string is filled in, this key is bound to the default focus layer
-   * If an explicit group is declared, it is bound to that group.
+   * Focus target in which the binding must be active to take effect.
+   * A plain string binds the key to the default focus layer; an explicit
+   * group binds it to that group.
    */
-  focusId?: string | { group: string; focusId: string };
+  focusId?: string | FocusRef;
 
   /**
    * When `true`, the binding is automatically removed after its first
@@ -122,16 +135,13 @@ export interface BoundKeyboardOptions {
   mode?: string;
 
   /**
-   * If this option is turned on,
-   * this button will not respond when any layer is present
-   * This key takes effect only when there are no layers.
-   * If this option is turned on within a layer, it will not actually take effect
-   * Only if this option is turned on in the page, It will take effect.
+   * When `true`, the binding stops responding once any layer is present
+   * on screen; it only takes effect while no layers are open.
    *
-   * Note: If there is a Page,
-   * but there is no Layer,
-   * and no elementId is passed in,
-   * this option will take effect, and the binding data will be on the current Page
+   * Enabling this on a binding registered inside a layer has no effect —
+   * it only works when enabled on the page. Note that when a page exists
+   * without any layers and no `elementId` is passed, the option takes
+   * effect and the binding data is placed on the current page.
    */
   stopsWorkingAfterLayerAppearing?: boolean;
 }
@@ -142,7 +152,7 @@ export interface BoundKeyboardOptions {
  */
 export interface StopOptions {
   /** If provided, stops only within the named focus target. */
-  focusId?: string | { group: string; focusId: string };
+  focusId?: string | FocusRef;
   /**
    * When `true`, treats each entry in `keys` as a shortcut **action ID**
    * and resolves it to the actual key names currently bound to that action
@@ -162,9 +172,7 @@ export interface StopOptions {
    * ignored and the key propagates normally.
    */
   when?: (() => boolean) | string;
-  /**
-   * Bind the keyboard to the ID of the specified element
-   */
+  /** ID of the element whose keyboard data the stop rule applies to. */
   elementId?: string;
 }
 
@@ -174,6 +182,17 @@ export interface StopOptions {
  * Each option defaults to `false`, meaning only explicit `boundKeyboard`
  * / `boundSequence` matches (and built-in Tab navigation) count as
  * "handled". Enable flags to broaden the definition of a handled key.
+ *
+ * @example
+ * ```ts
+ * // Catch condition-gated misses
+ * engine.useModalMissListener(
+ *   (evt) => {
+ *     if (evt.miss) showKeyHint(evt.eventNames);
+ *   },
+ *   { monitorWhen: true, monitorFocusMismatch: true },
+ * );
+ * ```
  */
 export interface ModalMissOptions {
   /**
@@ -188,9 +207,7 @@ export interface ModalMissOptions {
    */
   monitorFocusMismatch?: boolean;
 
-  /**
-   * The ID of the element to which you want to bind the keyboard
-   */
+  /** ID of the element the miss listener applies to. */
   elementId?: string;
 }
 
@@ -200,16 +217,14 @@ export interface ModalMissOptions {
  */
 export interface PenetrationOptions {
   /** If provided, penetrates only within the named focus target. */
-  focusId?: string | { group: string; focusId: string };
+  focusId?: string | FocusRef;
   /**
    * Optional condition callback. When provided, the key is only transparent
    * when this returns `true`. When `false`, the penetration rule
    * is ignored and the key is not passed through.
    */
   when?: (() => boolean) | string;
-  /**
-   * ID bound to the corresponding element
-   */
+  /** ID of the element the penetration rule applies to. */
   elementId?: string;
 }
 
@@ -219,15 +234,20 @@ export interface PenetrationOptions {
  */
 export interface AllowModalOptions {
   /** If provided, allows only within the named focus target. */
-  focusId?: string | { group: string; focusId: string };
+  focusId?: string | FocusRef;
   /** Optional condition callback. When provided, the key is only allowed through when this returns `true`. When `false`, the allow rule is ignored and the key is blocked. */
   when?: (() => boolean) | string;
-  /**
-   * The ID of the element to which you want to bind
-   */
+  /** ID of the element the allow rule applies to. */
   elementId?: string;
 }
 
+/**
+ * Options for {@link KeyboardEngine.currentScreenHasSequenceWaiting}.
+ */
 export interface SequenceListeningOptions {
+  /**
+   * When `true`, also inspects the pending sequence of the current layer
+   * when the owner is a layer id, instead of only the top page's sequence.
+   */
   monitorLayer?: boolean;
 }

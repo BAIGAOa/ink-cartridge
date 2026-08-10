@@ -4,6 +4,14 @@
 // unmodified upstream source is kept at `core/Mouse.original.ts` for
 // reference.
 // Upstream: https://www.npmjs.com/package/xterm-mouse
+// @2026-08-10 v5.1.6
 export { Mouse } from './core/Mouse.js';
-export type { MouseEvent, MouseEventAction, MouseOptions, ReadableStreamWithEncoding } from './types/index.js';
+export type {
+  MouseEvent,
+  MouseEventAction,
+  MouseOptions,
+  MousePosition,
+  MouseStreamEvent,
+  ReadableStreamWithEncoding,
+} from './types/index.js';
 export { MouseError } from './types/index.js';

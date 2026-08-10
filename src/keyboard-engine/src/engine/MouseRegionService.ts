@@ -46,6 +46,30 @@ export default class MouseRegionService {
    * Register a region. Overwrites any previous registration with the same
    * layerId + regionId (registration order is preserved on overwrite).
    *
+   * Rect coordinates are 1-based terminal columns/rows — the same space
+   * xterm-mouse events report; host frameworks are responsible for
+   * converting their layout coordinates (e.g. adding the live-region
+   * viewport offset). Regions whose `layerId` does not match any synced
+   * layer fall back to the shared root layer
+   * ({@link ROOT_MOUSE_LAYER_ID}), hit-tested last. No callbacks fire
+   * until events are fed via {@link process}.
+   *
+   * @example
+   * ```ts
+   * const unbind = engine.registerMouseRegion({
+   *   layerId: 'board-screen',
+   *   regionId: 'board',
+   *   rect: { x: 1, y: 1, width: 40, height: 20 },
+   *   callbacks: {
+   *     onClick: (event, rect) => selectCell(event.x, event.y),
+   *     onWheel: (event) => {
+   *       if (event.button === 'wheel-up') scrollUp();
+   *       if (event.button === 'wheel-down') scrollDown();
+   *     },
+   *   },
+   * });
+   * ```
+   *
    * @returns An unregister function (idempotent).
    */
   register(entry: MouseRegionEntry): () => void {
@@ -112,6 +136,14 @@ export default class MouseRegionService {
    *
    * @returns `true` if the event was consumed by a registered region,
    *          `false` otherwise.
+   *
+   * @example
+   * ```ts
+   * // The engine does not parse raw terminal bytes — pair processMouseEvent
+   * // with the Mouse helper (or your own parser) that turns stdin data
+   * // into XtermMouseEvents, then forward each event into the engine.
+   * engine.processMouseEvent(event);
+   * ```
    */
   process(
     event: XtermMouseEvent,

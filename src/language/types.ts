@@ -15,7 +15,7 @@ export interface LanguageProviderProps {
    *
    * @example
    * ```ts
-   * resources={{ 'en-US': { hello: 'Hello' }, 'zh-CN': { hello: '你好' } }}
+   * resources={{ 'en-US': { hello: 'Hello' }, 'zh-CN': { hello: 'Nǐ hǎo' } }}
    * ```
    */
   resources?: Record<string, Record<string, string>>;

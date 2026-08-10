@@ -1,17 +1,17 @@
 import React from "react";
 import type { RegisterOptions } from "./types.js";
 
-/** 单条注册记录 */
+/** One entry in the registry. */
 interface RegistryEntry {
-  /** 参数模板对象 */
+  /** Default props template registered for the component. */
   template: Record<string, unknown>;
-  /** 父节点组件引用（null 表示根节点候选） */
+  /** Parent component reference (null means the component is a root candidate). */
   parent: React.ComponentType<any> | null;
-  /** 子节点列表（由 registerComponent 自动维护） */
+  /** Child components (maintained automatically by registerComponent). */
   children: Set<React.ComponentType<any>>;
 }
 
-/** 模块级注册表：组件 → 注册信息 */
+/** Module-level registry: component → registration info. */
 const registry = new Map<React.ComponentType<any>, RegistryEntry>();
 
 /**
@@ -41,7 +41,7 @@ export function registerComponent<C extends React.ComponentType<any>>(
     children: new Set(),
   });
 
-  // 如果声明了父节点，将自己添加到父节点的 children 中
+  // When a parent is declared, register ourselves in the parent's children.
   if (options?.parent) {
     const parentEntry = registry.get(options.parent);
     if (!parentEntry) {
@@ -59,21 +59,21 @@ export function registerComponent<C extends React.ComponentType<any>>(
   }
 }
 
-/** 获取组件的模板参数 */
+/** Get the template props registered for a component. */
 export function getTemplate(
   component: React.ComponentType<any>,
 ): Record<string, unknown> | undefined {
   return registry.get(component)?.template;
 }
 
-/** 获取组件的父节点 */
+/** Get the parent of a component. */
 export function getParent(
   component: React.ComponentType<any>,
 ): React.ComponentType<any> | null | undefined {
   return registry.get(component)?.parent;
 }
 
-/** 获取组件的子节点列表 */
+/** Get the children of a component. */
 export function getChildren(
   component: React.ComponentType<any>,
 ): React.ComponentType<any>[] {
@@ -81,12 +81,12 @@ export function getChildren(
   return entry ? Array.from(entry.children) : [];
 }
 
-/** 检查组件是否已注册 */
+/** Check whether a component is registered. */
 export function hasComponent(component: React.ComponentType<any>): boolean {
   return registry.has(component);
 }
 
-/** 获取所有根节点（parent 为 null 的组件） */
+/** Get all root components (components whose parent is null). */
 export function getRoots(): React.ComponentType<any>[] {
   const roots: React.ComponentType<any>[] = [];
   for (const [component, entry] of registry) {
@@ -97,7 +97,7 @@ export function getRoots(): React.ComponentType<any>[] {
   return roots;
 }
 
-/** 判断 child 是否是 parent 的直接子节点 */
+/** Check whether `child` is a direct child of `parent`. */
 export function isChildOf(
   child: React.ComponentType<any>,
   parent: React.ComponentType<any>,
@@ -106,7 +106,7 @@ export function isChildOf(
   return entry?.parent === parent;
 }
 
-/** 清除所有注册（仅供测试使用） */
+/** Clear all registrations (test use only). */
 export function clearRegistry(): void {
   registry.clear();
 }

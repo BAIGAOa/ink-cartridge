@@ -1,3 +1,6 @@
+import type { MouseEventAction } from './action.js';
+import type { MouseEvent } from './event.js';
+
 /**
  * Extends NodeJS.ReadStream to include the readableEncoding property.
  *
@@ -18,4 +21,15 @@
  */
 export interface ReadableStreamWithEncoding extends NodeJS.ReadStream {
   readableEncoding: BufferEncoding | null;
+}
+
+/**
+ * One item yielded by {@link Mouse#stream}: the event action type plus the
+ * event payload.
+ */
+export interface MouseStreamEvent {
+  /** The mouse event action (e.g. `"click"`, `"move"`, `"wheel"`). */
+  type: MouseEventAction;
+  /** The mouse event payload. */
+  event: MouseEvent;
 }

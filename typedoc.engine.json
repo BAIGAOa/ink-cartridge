@@ -1,0 +1,8 @@
+{
+	"name": "@cartridge-engine/keyboard-engine",
+	"entryPoints": ["src/keyboard-engine/src/index.ts"],
+	"out": "documents/engine",
+	"tsconfig": "src/keyboard-engine/tsconfig.json",
+	"readme": "none",
+	"githubPages": true
+}

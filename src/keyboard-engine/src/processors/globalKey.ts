@@ -29,8 +29,11 @@ function anyLayerHasOverride<TComponent>(
  * Create a processor for global single-key bindings.
  *
  * Iterates registered global keys, filters by the given affectOverlay flag,
- * applies executeWhenNoOverlay / override / category / times constraints,
- * and fires the first matching entry.
+ * applies executeWhenNoOverlay / override (cover) / category / times /
+ * when constraints, and fires the first matching entry. Entries are
+ * matched against the phase via their `affectLayer` field: `true` entries
+ * run in the overlay phase (before the layer broadcast), `false` entries
+ * in the screen phase (after it).
  */
 export function createGlobalKeyProcessor<TComponent>(config: {
 	affectOverlay: boolean;

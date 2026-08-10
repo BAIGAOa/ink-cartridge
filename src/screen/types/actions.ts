@@ -20,6 +20,9 @@ import {
 	OpenModalLayerAction,
 } from "./layer.js";
 
+/**
+ * Union of all actions handled by the screen reducer.
+ */
 export type ScreenAction =
 	| SkipAction
 	| BackAction
@@ -39,6 +42,9 @@ export type ScreenAction =
 	| ActivateElementInModalLayerAction
 	| DeactivateElementInModalLayerAction;
 
+/**
+ * String literal union of every screen action's `type` field.
+ */
 export type ScreenActionType =
 	| "skip"
 	| "back"

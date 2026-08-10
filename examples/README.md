@@ -59,8 +59,6 @@ Mouse support is built on the `xterm-mouse` fork shipped inside `@cartridge-engi
 | Divider | `Divider.demo.tsx` | `npx tsx examples/divider/Divider.demo.tsx` |
 | Fold | `Fold.demo.tsx` | `npx tsx examples/fold/Fold.demo.tsx` |
 | Form | `Form.demo.tsx` | `npx tsx examples/form/Form.demo.tsx` |
-| I18n | `I18n.demo.tsx` | `npx tsx examples/i18n/I18n.demo.tsx` |
-| I18n (typed) | `I18n.typed.demo.tsx` | `npx tsx examples/i18n/I18n.typed.demo.tsx` |
 | KeyHint | `KeyHint.demo.tsx` | `npx tsx examples/key-hint/KeyHint.demo.tsx` |
 | MultiSelectInput | `MultiSelectInput.demo.tsx` | `npx tsx examples/multi-select/MultiSelectInput.demo.tsx` |
 | NumberInput | `NumberInput.demo.tsx` | `npx tsx examples/number-input/NumberInput.demo.tsx` |
@@ -70,5 +68,3 @@ Mouse support is built on the `xterm-mouse` fork shipped inside `@cartridge-engi
 | SearchInput | `SearchInput.demo.tsx` | `npx tsx examples/search-input/SearchInput.demo.tsx` |
 | Spinner | `Spinner.demo.tsx` | `npx tsx examples/spinner/Spinner.demo.tsx` |
 | Tabs | `Tabs.demo.tsx` | `npx tsx examples/tabs/Tabs.demo.tsx` |
-| Theme | `Theme.demo.tsx` | `npx tsx examples/theme/Theme.demo.tsx` |
-| Theme (typed) | `Theme.typed.demo.tsx` | `npx tsx examples/theme/Theme.typed.demo.tsx` |

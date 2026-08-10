@@ -27,7 +27,6 @@ function MainScreen() {
 
   const addLog = (msg: string) => setLog((prev) => [...prev.slice(-6), msg]);
 
-  // Define base actions once on mount.
   useEffect(() => {
     defineShortcutAction([
       { actionId: 'copy', action: () => { setClipboard(selected); addLog(`Copied: "${selected}"`); }, keys: ['c'] },
@@ -56,7 +55,6 @@ function MainScreen() {
         setSelected((prev) => prev.toUpperCase());
         addLog(`Uppercased: "${selected.toUpperCase()}"`);
       }, keys: ['u'] });
-      // Now bind the new action
       const unbindNew = boundKeyboard('uppercase');
       addLog('Added action: uppercase (press u)');
       // Store cleanup if needed — for demo, we just keep it
