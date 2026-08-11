@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TextLine } from "../src/core/document/text-line.js";
+import { expandTabs, TextLine } from "../src/core/document/text-line.js";
 
 describe("TextLine", () => {
 	describe("width", () => {
@@ -109,5 +109,37 @@ describe("TextLine", () => {
 				endLogical: 2,
 			});
 		});
+	});
+});
+
+describe("tabs", () => {
+	it("counts a tab as jumping to the next tab stop (column-relative)", () => {
+		expect(new TextLine("\t").width).toBe(4);
+		expect(new TextLine("a\t").width).toBe(4);
+		expect(new TextLine("abc\t").width).toBe(4);
+		expect(new TextLine("abcd\t").width).toBe(8);
+	});
+
+	it("maps visual columns across tabs", () => {
+		const tl = new TextLine("a\tb");
+		expect(tl.visualAt(2)).toBe(4); // logical 2 = the tab's code unit
+		expect(tl.visualAt(3)).toBe(5);
+		expect(tl.logicalAt(4)).toBe(2);
+		expect(tl.logicalAt(0)).toBe(0);
+	});
+
+	it("expands tabs to spaces aligned to the tab stops", () => {
+		expect(expandTabs("\t")).toBe("    ");
+		expect(expandTabs("a\tb")).toBe("a   b");
+		expect(expandTabs("abcd\tx")).toBe("abcd    x");
+		// Expansion is column-aware when starting mid-line (wrap segment).
+		expect(expandTabs("\tx", 2)).toBe("  x");
+	});
+
+	it("soft-wrap segments carry tab-expanded text", () => {
+		const tl = new TextLine("ab\tcd");
+		const seg = tl.segmentFrom(0, 4);
+		expect(seg.text).toBe("ab  ");
+		expect(seg.endVisual).toBe(4);
 	});
 });

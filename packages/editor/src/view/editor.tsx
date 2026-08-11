@@ -3,6 +3,7 @@ import {
 	applyElement,
 	applyElementToModalLayer,
 	closeLayer,
+	eraseElement,
 	openLayer,
 	openModalLayer,
 	useI18n,
@@ -10,10 +11,12 @@ import {
 	useMouseRegion,
 } from "ink-cartridge";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { EditorController } from "../core/editor-controller.js";
+import { EditorSession } from "../core/session.js";
 import { useSettings } from "../core/settings/useSettings.js";
 import { clickToPosition } from "./click-mapping.js";
 import { CommandBar } from "./command-bar.js";
+import { EditorSetting } from "./editor-setting.js";
+import { FileTree } from "./file-tree.js";
 import { InformationBar } from "./information-bar.js";
 import { ToolBar } from "./tool-bar.js";
 
@@ -21,6 +24,12 @@ import { ToolBar } from "./tool-bar.js";
  *  intercepts keys meant for a modal (e.g. the command bar). */
 const TOOLBAR_LAYER_ID = "toolbar";
 const TOOLBAR_Z_INDEX = 1;
+/** Layer hosting the file tree; a regular layer like the toolbar. */
+const FILETREE_LAYER_ID = "file-tree";
+const FILETREE_Z_INDEX = 1;
+/** Layer hosting the in-editor settings overlay (above the other panes). */
+const EDITOR_SETTINGS_LAYER_ID = "editor-settings";
+const EDITOR_SETTINGS_Z_INDEX = 2;
 
 export type EditorContext = {
 	onChance?: () => void;
@@ -44,18 +53,27 @@ export function Editor({
 	cursorHeightOffset = 2,
 	numberOfIndentationSpaces = 2,
 }: EditorContext) {
-	const controllerRef = useRef<EditorController | null>(null);
-	if (!controllerRef.current) {
-		controllerRef.current = new EditorController(initialText, {
+	// One file session per editor mount; `Document.setText` keeps the
+	// controller instance stable across file opens, so bindings stay live.
+	const sessionRef = useRef<EditorSession | null>(null);
+	if (!sessionRef.current) {
+		sessionRef.current = new EditorSession(initialText, {
 			indentWidth: numberOfIndentationSpaces,
 		});
 	}
-	const controller = controllerRef.current;
+	const session = sessionRef.current;
+	const controller = session.controller;
 
 	const [, forceUpdate] = useState(0);
 	useEffect(() => {
-		return controller.onChange(() => forceUpdate((n) => n + 1));
-	}, [controller]);
+		const unbindDoc = controller.onChange(() => forceUpdate((n) => n + 1));
+		// File opens/saves notify the session, not the controller.
+		const unbindSession = session.onChange(() => forceUpdate((n) => n + 1));
+		return () => {
+			unbindDoc();
+			unbindSession();
+		};
+	}, [controller, session]);
 
 	const { setCursorPosition } = useCursor();
 	const {
@@ -85,8 +103,9 @@ export function Editor({
 		applyElementToModalLayer("command", {
 			elementId: "command-input",
 			element: CommandBar,
+			props: { session },
 		});
-	}, []);
+	}, [session]);
 
 	// The toolbar lives in a regular layer (below modal layers) so it floats
 	// above the document without taking over the keyboard. The editor owns the
@@ -101,6 +120,13 @@ export function Editor({
 	// dispatcher registration and openLayer would throw. ctrl+tab toggles hit
 	// the same deferred path — the one-tick delay is imperceptible. Closing is
 	// safe immediately because the dispatcher is registered by then.
+	// The file tree pane (right side) toggles via the toolbar's File Tree
+	// button; it defaults to open so the editor greets the user with a tree.
+	const [fileTreeOpen, setFileTreeOpen] = useState(true);
+	// The in-editor settings overlay toggles via the toolbar's Settings
+	// button; the overlay itself closes via its Exit button or Esc.
+	const [settingsOpen, setSettingsOpen] = useState(false);
+
 	useEffect(() => {
 		if (!toolbarOpen) {
 			closeLayer(TOOLBAR_LAYER_ID);
@@ -108,14 +134,63 @@ export function Editor({
 		}
 		const timer = setTimeout(() => {
 			openLayer(TOOLBAR_LAYER_ID, TOOLBAR_Z_INDEX);
+			// applyElement ignores re-applies of an existing element id, so
+			// erase first — otherwise prop updates (mode, fileTreeOpen) would
+			// never reach the mounted toolbar. The toolbar's drag position
+			// survives the remount via the external position store.
+			eraseElement(TOOLBAR_LAYER_ID, "toolbar");
 			applyElement(TOOLBAR_LAYER_ID, {
 				elementId: "toolbar",
 				element: ToolBar,
-				props: { mode },
+				props: {
+					mode,
+					session,
+					fileTreeOpen,
+					onToggleFileTree: () => setFileTreeOpen((open) => !open),
+					onOpenSettings: () => setSettingsOpen((open) => !open),
+				},
 			});
 		}, 0);
 		return () => clearTimeout(timer);
-	}, [toolbarOpen, mode]);
+	}, [toolbarOpen, mode, session, fileTreeOpen, settingsOpen]);
+	useEffect(() => {
+		if (!fileTreeOpen) {
+			closeLayer(FILETREE_LAYER_ID);
+			return;
+		}
+		const timer = setTimeout(() => {
+			openLayer(FILETREE_LAYER_ID, FILETREE_Z_INDEX);
+			applyElement(FILETREE_LAYER_ID, {
+				elementId: "file-tree",
+				element: FileTree,
+				props: { session },
+			});
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [fileTreeOpen, session]);
+	// Both branches are deferred: settingsOpen starts false, and an immediate
+	// closeLayer on the first mount would race the provider's dispatcher
+	// registration (same child-first effect ordering as the toolbar open).
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (!settingsOpen) {
+				closeLayer(EDITOR_SETTINGS_LAYER_ID);
+				return;
+			}
+			openLayer(EDITOR_SETTINGS_LAYER_ID, EDITOR_SETTINGS_Z_INDEX);
+			applyElement(EDITOR_SETTINGS_LAYER_ID, {
+				elementId: "editor-settings",
+				element: EditorSetting,
+			});
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [settingsOpen]);
+	useEffect(() => {
+		return () => closeLayer(EDITOR_SETTINGS_LAYER_ID);
+	}, []);
+	useEffect(() => {
+		return () => closeLayer(FILETREE_LAYER_ID);
+	}, []);
 	useEffect(() => {
 		return boundKeyboard(["ctrl+tab"], () => setToolbarOpen((open) => !open));
 	}, [boundKeyboard]);
@@ -185,6 +260,8 @@ export function Editor({
 		bind(["shift+G"], () => controller.execute("cursor.documentEnd"), { mode: "normal" });
 		bind(["i"], () => switchMode("insert"), { mode: "normal" });
 		bind([":"], () => openCommandBar(), { mode: "normal" });
+		// Ctrl+S saves in normal mode (Vim-style; insert stays untouched).
+		bind(["ctrl+s"], () => session.save(), { mode: "normal" });
 
 		return () => {
 			removeWildcard();
@@ -199,6 +276,7 @@ export function Editor({
 		registryCompositionKey,
 		removeCompositionKey,
 		switchMode,
+		session,
 	]);
 
 	const ref = useRef(null);
@@ -267,6 +345,7 @@ export function Editor({
 			<InformationBar
 				mode={modeText}
 				cursor={{ line: cursor.line, column: cursor.visual }}
+				session={session}
 			/>
 			<Box ref={mouseRef} flexGrow={1} width="100%" backgroundColor="#1e1e1e">
 				<Box ref={ref} height="100%" width="100%" flexDirection="column">
@@ -287,7 +366,9 @@ export function Editor({
 										<Text bold={cursor.line === seg.line}>{seg.line}</Text>
 									) : null}
 								</Box>
-								<Text>{doc.getLine(seg.line).slice(seg.start, seg.end)}</Text>
+								{/* seg.text is tab-expanded; raw tabs would render at the
+									terminal tab stops and scramble the layout. */}
+								<Text>{seg.text}</Text>
 							</Box>
 						);
 					})}

@@ -1,6 +1,40 @@
 import stringWidth from "string-width";
 
 /**
+ * Tab stop used for display width and tab expansion. Tabs are expanded by
+ * the editor (see {@link expandTabs}) so the rendered text is plain spaces —
+ * this keeps Ink's internal layout, the terminal paint, and the width math
+ * identical, which raw tabs would break (string-width counts a tab as one
+ * cell while terminals jump to the next tab stop). 4 matches the common
+ * editor default.
+ */
+export const TAB_STOP = 4;
+
+/** Width of one character at the given column; a tab jumps to the next stop. */
+function charWidth(ch: string, col: number): number {
+	if (ch === "\t") {
+		return TAB_STOP - (col % TAB_STOP);
+	}
+	return stringWidth(ch);
+}
+
+/**
+ * Expand tabs to spaces aligned to `startColumn`'s tab stops. This is what
+ * gets rendered (and what segment widths are computed against), so raw tabs
+ * never reach the terminal.
+ */
+export function expandTabs(text: string, startColumn = 0): string {
+	let col = startColumn;
+	let out = "";
+	for (const ch of text) {
+		const w = charWidth(ch, col);
+		out += ch === "\t" ? " ".repeat(w) : ch;
+		col += w;
+	}
+	return out;
+}
+
+/**
  * A single line of text with its terminal width cached.
  *
  * `_prefix[i]` is the cumulative terminal width of the first `i` code units
@@ -8,7 +42,7 @@ import stringWidth from "string-width";
  * the same prefix at the middle index — the cursor never sits inside a
  * surrogate pair, but aligning the array to code units lets `visualAt` /
  * `logicalAt` use direct indexing and binary search instead of per-character
- * scans on every call.
+ * scans on every call. Tabs are column-relative (width to the next stop).
  */
 export class TextLine {
 	private readonly _prefix: number[];
@@ -19,7 +53,8 @@ export class TextLine {
 		let sum = 0;
 		for (let i = 0; i < text.length; ) {
 			const cp = text.codePointAt(i)!;
-			const w = stringWidth(String.fromCodePoint(cp));
+			const ch = String.fromCodePoint(cp);
+			const w = charWidth(ch, sum);
 			const units = cp > 0xffff ? 2 : 1;
 			for (let k = 0; k < units; k++) {
 				prefix.push(sum + w);
@@ -88,7 +123,8 @@ export class TextLine {
 			end = start + (this.text.codePointAt(start)! > 0xffff ? 2 : 1);
 		}
 		return {
-			text: this.text.slice(start, end),
+			// Tabs expanded so the caller can render the segment verbatim.
+			text: expandTabs(this.text.slice(start, end), startVisualActual),
 			endVisual: this.visualAt(end),
 			endLogical: end,
 		};

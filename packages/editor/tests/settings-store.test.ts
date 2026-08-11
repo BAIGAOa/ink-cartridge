@@ -92,6 +92,7 @@ describe("SettingsStore", () => {
 		expect(JSON.parse(readFileSync(file(), "utf8"))).toEqual({
 			language: "zh",
 			wheel: { cursor: 4, view: 4 },
+			fileTree: { root: "startup", customPath: "" },
 		});
 	});
 

@@ -15,5 +15,19 @@
   "editor.mode.normal": "普通",
   "command.prompt": "命令",
   "command.unknown": "未知命令：{cmd}",
-  "toolbar.fileTree": "文件树"
+  "command.saveError": "保存失败",
+  "toolbar.fileTree": "文件树",
+  "toolbar.save": "保存",
+  "toolbar.settings": "设置",
+  "editor.setting.title": "菜单",
+  "editor.setting.openSetting": "设置",
+  "editor.setting.exit": "退出",
+  "confirm.save": "保存",
+  "confirm.discard": "丢弃",
+  "confirm.cancel": "取消",
+  "settings.fileTreeRoot": "文件树根目录",
+  "settings.fileTreeRoot.startup": "启动目录",
+  "settings.fileTreeRoot.custom": "自定义路径",
+  "settings.ok": "确定",
+  "settings.cancel": "取消"
 }

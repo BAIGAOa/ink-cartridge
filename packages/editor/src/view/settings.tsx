@@ -12,6 +12,7 @@ import React, {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import type { WheelSensitivity } from "../core/settings/schema.js";
@@ -198,6 +199,137 @@ function SensitivityPicker({ sensitivityKey }: SensitivityPickerProps) {
 	);
 }
 
+type PickerButtonProps = {
+	label: string;
+	active: boolean;
+	onEnter: () => void;
+	onLeave: () => void;
+	onClick: () => void;
+};
+
+/** Small clickable button used inside the file-tree-root picker. */
+function PickerButton({ label, active, onEnter, onLeave, onClick }: PickerButtonProps) {
+	const ref = useMouseRegion({ onEnter, onLeave, onClick }, { priority: 1 });
+	return (
+		<Box ref={ref} paddingLeft={1} paddingRight={1}>
+			<Text inverse={active}>{label}</Text>
+		</Box>
+	);
+}
+
+/**
+ * Modal picker for the file-tree root: startup directory or a custom path.
+ * Up/down switches the mode; while "custom" is active the row is a text
+ * input (any key appends, backspace deletes). Return confirms, Esc cancels.
+ */
+function FileTreePicker() {
+	const ctx = useContext(ModalLayerElementContext);
+	const { t } = useI18n();
+	const { boundKeyboard } = useKeyboard();
+	const { closeModalLayer } = useScreenSystem();
+	const { settings, setFileTree } = useSettings();
+	const [root, setRoot] = useState<"startup" | "custom">(settings.fileTree.root);
+	const [path, setPath] = useState(settings.fileTree.customPath);
+	const [hovered, setHovered] = useState<"ok" | "cancel" | null>(null);
+	// The wildcard handler needs the current mode without rebinding on
+	// every keystroke; a ref keeps it fresh.
+	const rootRef = useRef(root);
+	rootRef.current = root;
+
+	const apply = useCallback(() => {
+		if (!ctx) {
+			return;
+		}
+		setFileTree({
+			root,
+			customPath: root === "custom" ? path : "",
+		});
+		closeModalLayer(ctx.modalLayer.layerId);
+	}, [closeModalLayer, ctx, path, root, setFileTree]);
+
+	const close = useCallback(() => {
+		if (ctx) {
+			closeModalLayer(ctx.modalLayer.layerId);
+		}
+	}, [closeModalLayer, ctx]);
+
+	useEffect(() => {
+		if (!ctx) {
+			return;
+		}
+		const unbinds = [
+			boundKeyboard(
+				["up"],
+				() => setRoot((r) => (r === "custom" ? "startup" : "custom")),
+				{ elementId: ctx.id },
+			),
+			boundKeyboard(
+				["down"],
+				() => setRoot((r) => (r === "custom" ? "startup" : "custom")),
+				{ elementId: ctx.id },
+			),
+			boundKeyboard(
+				["*"],
+				(ch) => {
+					// Typing only makes sense while editing a custom path.
+					if (rootRef.current === "custom") {
+						setPath((p) => p + ch);
+					}
+				},
+				{ elementId: ctx.id },
+			),
+			boundKeyboard(
+				["backspace"],
+				() => {
+					if (rootRef.current === "custom") {
+						setPath((p) => p.slice(0, -1));
+					}
+				},
+				{ elementId: ctx.id },
+			),
+			boundKeyboard(["return"], apply, { elementId: ctx.id }),
+			boundKeyboard(["escape"], close, { elementId: ctx.id }),
+		];
+		return () => unbinds.forEach((fn) => fn());
+	}, [apply, boundKeyboard, close, ctx]);
+
+	return (
+		<ModalFrame title={t("settings.fileTreeRoot")}>
+			<Box flexDirection="column">
+				<Text inverse={root === "startup"}>
+					{root === "startup" ? "▸ " : "  "}
+					{t("settings.fileTreeRoot.startup")}
+				</Text>
+				<Text inverse={root === "custom"}>
+					{root === "custom" ? "▸ " : "  "}
+					{t("settings.fileTreeRoot.custom")}
+					{": "}
+					<Text color={root === "custom" ? undefined : "gray"}>
+						{path}
+						{root === "custom" ? "▌" : ""}
+					</Text>
+				</Text>
+			</Box>
+			<Box flexDirection="row" gap={2}>
+				<PickerButton
+					label={t("settings.ok")}
+					active={hovered === "ok"}
+					onEnter={() => setHovered("ok")}
+					onLeave={() => setHovered((h) => (h === "ok" ? null : h))}
+					onClick={apply}
+				/>
+				<PickerButton
+					label={t("settings.cancel")}
+					active={hovered === "cancel"}
+					onEnter={() => setHovered("cancel")}
+					onLeave={() => setHovered((h) => (h === "cancel" ? null : h))}
+					onClick={close}
+				/>
+			</Box>
+		</ModalFrame>
+	);
+}
+
 type SettingRowProps = {
 	label: string;
 	value: string;
@@ -207,7 +339,9 @@ type SettingRowProps = {
 	onClick: () => void;
 };
 
-/** A single settings entry: label plus its current value; opens a picker on activation. */
+/** A single settings entry: label plus its current value; opens a picker on
+ *  activation. priority 1: rows live inside the draggable ModalFrame in the
+ *  in-editor settings layer and must win over the frame region. */
 function SettingRow({
 	label,
 	value,
@@ -216,7 +350,7 @@ function SettingRow({
 	onLeave,
 	onClick,
 }: SettingRowProps) {
-	const ref = useMouseRegion({ onEnter, onLeave, onClick });
+	const ref = useMouseRegion({ onEnter, onLeave, onClick }, { priority: 1 });
 	return (
 		<Box ref={ref} paddingLeft={1} paddingRight={1} flexDirection="row" gap={2}>
 			<Text inverse={active}>
@@ -228,7 +362,18 @@ function SettingRow({
 	);
 }
 
-export function Settings() {
+export type SettingsEntriesProps = {
+	/** Called on Esc/Backspace — the screen navigates back, the in-editor
+	 *  settings layer closes itself. */
+	onExit: () => void;
+};
+
+/**
+ * The setting rows with their keyboard navigation and modal pickers.
+ * Shared by the settings screen and the in-editor settings layer; the only
+ * difference is what `onExit` does.
+ */
+export function SettingsEntries({ onExit }: SettingsEntriesProps) {
 	const { t, currentLanguage } = useI18n();
 	const { boundKeyboard } = useKeyboard();
 	const { openModalLayer, applyElementToModalLayer } = useScreenSystem();
@@ -252,6 +397,14 @@ export function Settings() {
 		applyElementToModalLayer(id, {
 			elementId: id,
 			element: Picker,
+		});
+	}, [applyElementToModalLayer, openModalLayer]);
+
+	const openFileTreePicker = useCallback(() => {
+		openModalLayer("file-tree-root", 50);
+		applyElementToModalLayer("file-tree-root", {
+			elementId: "file-tree-root-picker",
+			element: FileTreePicker,
 		});
 	}, [applyElementToModalLayer, openModalLayer]);
 
@@ -279,14 +432,26 @@ export function Settings() {
 				value: `${settings.wheel.view.toFixed(1)}×`,
 				open: () => openSensitivityPicker("view"),
 			},
+			{
+				id: "file-tree-root",
+				label: t("settings.fileTreeRoot"),
+				value:
+					settings.fileTree.root === "custom" && settings.fileTree.customPath
+						? settings.fileTree.customPath
+						: t("settings.fileTreeRoot.startup"),
+				open: openFileTreePicker,
+			},
 		],
 		[
 			t,
 			currentLabel,
 			settings.wheel.cursor,
 			settings.wheel.view,
+			settings.fileTree.root,
+			settings.fileTree.customPath,
 			openLanguagePicker,
 			openSensitivityPicker,
+			openFileTreePicker,
 		],
 	);
 
@@ -298,11 +463,30 @@ export function Settings() {
 				() => setIndex((i) => Math.min(entries.length - 1, i + 1)),
 			),
 			boundKeyboard(["return"], () => entries[index].open()),
-			boundKeyboard(["escape", "backspace"], () => back()),
+			boundKeyboard(["escape", "backspace"], () => onExit()),
 		];
 		return () => unbinds.forEach((fn) => fn());
-	}, [boundKeyboard, entries, index]);
+	}, [boundKeyboard, entries, index, onExit]);
 
+	return (
+		<Box flexDirection="column" gap={2} marginTop={2}>
+			{entries.map((entry, i) => (
+				<SettingRow
+					key={entry.id}
+					label={entry.label}
+					value={entry.value}
+					active={i === index || hovered === i}
+					onEnter={() => setHovered(i)}
+					onLeave={() => setHovered((h) => (h === i ? null : h))}
+					onClick={entry.open}
+				/>
+			))}
+		</Box>
+	);
+}
+
+export function Settings() {
+	const { t } = useI18n();
 	return (
 		<Box
 			flexDirection="column"
@@ -313,19 +497,7 @@ export function Settings() {
 			gap={2}
 		>
 			<Text bold>{t("settings.title")}</Text>
-			<Box flexDirection="column" gap={2} marginTop={2}>
-				{entries.map((entry, i) => (
-					<SettingRow
-						key={entry.id}
-						label={entry.label}
-						value={entry.value}
-						active={i === index || hovered === i}
-						onEnter={() => setHovered(i)}
-						onLeave={() => setHovered((h) => (h === i ? null : h))}
-						onClick={entry.open}
-					/>
-				))}
-			</Box>
+			<SettingsEntries onExit={() => back()} />
 			<Box marginTop={4}>
 				<Text dimColor>
 					{t("settings.back")} (Esc)

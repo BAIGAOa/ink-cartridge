@@ -15,5 +15,19 @@
   "editor.mode.normal": "NORMAL",
   "command.prompt": "Command",
   "command.unknown": "Unknown command: {cmd}",
-  "toolbar.fileTree": "File Tree"
+  "command.saveError": "Save failed",
+  "toolbar.fileTree": "File Tree",
+  "toolbar.save": "Save",
+  "toolbar.settings": "Settings",
+  "editor.setting.title": "Menu",
+  "editor.setting.openSetting": "Settings",
+  "editor.setting.exit": "Exit",
+  "confirm.save": "Save",
+  "confirm.discard": "Discard",
+  "confirm.cancel": "Cancel",
+  "settings.fileTreeRoot": "FileTree Root",
+  "settings.fileTreeRoot.startup": "Startup directory",
+  "settings.fileTreeRoot.custom": "Custom path",
+  "settings.ok": "OK",
+  "settings.cancel": "Cancel"
 }

@@ -47,6 +47,29 @@ export class Document {
 		return this._lines[i].text;
 	}
 
+	/**
+	 * The full document text with normalized LF line endings — the inverse
+	 * of the constructor's `split(/\r?\n/)`, so text → document → text is
+	 * lossless. Used for saving and dirty-hash comparison.
+	 */
+	get text(): string {
+		return this._lines.map((l) => l.text).join("\n");
+	}
+
+	/**
+	 * Replace the whole content (used when opening a file). Resets the
+	 * cursor and scroll state; the wrap width is view-configured and
+	 * untouched. The `Document` instance stays stable, so controllers and
+	 * bindings that hold it keep working.
+	 */
+	setText(text: string): void {
+		this._lines = text.split(/\r?\n/).map((t) => new TextLine(t));
+		this._cursor = { line: 0, logical: 0 };
+		this._scrollTop = 0;
+		this._viewScrollTop = null;
+		this._scrollRemainder = 0;
+	}
+
 	get cursor(): CursorState {
 		const line = this._lines[this._cursor.line];
 		return {
@@ -71,17 +94,22 @@ export class Document {
 	}
 
 	/** The soft-wrap segments of one logical line (an empty line is one empty segment). */
-	private lineSegments(line: number): Array<{ start: number; end: number }> {
+	private lineSegments(line: number): Array<{
+		start: number;
+		end: number;
+		/** Tab-expanded display text (safe to render verbatim). */
+		text: string;
+	}> {
 		const tl = this._lines[line];
 		if (tl.text.length === 0) {
-			return [{ start: 0, end: 0 }];
+			return [{ start: 0, end: 0, text: "" }];
 		}
-		const segs: Array<{ start: number; end: number }> = [];
+		const segs: Array<{ start: number; end: number; text: string }> = [];
 		let segVisual = 0;
 		let segStart = 0;
 		while (segStart < tl.text.length) {
 			const seg = tl.segmentFrom(segVisual, this._wrapWidth);
-			segs.push({ start: segStart, end: seg.endLogical });
+			segs.push({ start: segStart, end: seg.endLogical, text: seg.text });
 			if (seg.text === "") {
 				break;
 			}
@@ -107,7 +135,7 @@ export class Document {
 	 */
 	visualLineAt(
 		vline: number,
-	): { line: number; start: number; end: number; first: boolean } | null {
+	): { line: number; start: number; end: number; first: boolean; text: string } | null {
 		if (vline < 0) {
 			return null;
 		}
@@ -120,6 +148,7 @@ export class Document {
 					start: segs[remaining].start,
 					end: segs[remaining].end,
 					first: remaining === 0,
+					text: segs[remaining].text,
 				};
 			}
 			remaining -= segs.length;
