@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import type { EditorSettings, WheelSensitivity } from "./schema.js";
 import { SettingsStore } from "./store.js";
 
@@ -19,6 +19,8 @@ export type SettingsApi = {
 	commit: () => void;
 	/** Persist the UI language (called alongside the i18n `setLanguage`). */
 	setLanguage: (code: string) => void;
+	/** Persist the file-tree root settings. */
+	setFileTree: (fileTree: EditorSettings["fileTree"]) => void;
 };
 
 /**
@@ -33,17 +35,22 @@ export function useSettings(): SettingsApi {
 		() => settingsStore.settings,
 	);
 
-	const next = (key: keyof WheelSensitivity, value: number): EditorSettings => ({
-		...settings,
-		wheel: { ...settings.wheel, [key]: value },
-	});
-
-	return {
-		settings,
-		setSensitivity: (key, value) => settingsStore.persist(next(key, value)),
-		setDraft: (key, value) => settingsStore.update(next(key, value)),
-		commit: () => settingsStore.commit(),
-		setLanguage: (code) =>
-			settingsStore.persist({ ...settings, language: code }),
-	};
+	// Memoized per settings snapshot so the returned functions keep stable
+	// identities across renders — effect deps that reference them stay calm.
+	return useMemo<SettingsApi>(() => {
+		const next = (key: keyof WheelSensitivity, value: number): EditorSettings => ({
+			...settings,
+			wheel: { ...settings.wheel, [key]: value },
+		});
+		return {
+			settings,
+			setSensitivity: (key, value) => settingsStore.persist(next(key, value)),
+			setDraft: (key, value) => settingsStore.update(next(key, value)),
+			commit: () => settingsStore.commit(),
+			setLanguage: (code) =>
+				settingsStore.persist({ ...settings, language: code }),
+			setFileTree: (fileTree) =>
+				settingsStore.persist({ ...settings, fileTree }),
+		};
+	}, [settings]);
 }

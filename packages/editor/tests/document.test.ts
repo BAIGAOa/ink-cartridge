@@ -171,9 +171,9 @@ describe("Document", () => {
 			const doc = new Document("abcdefghij");
 			doc.setWrapWidth(3);
 			expect(doc.visualLineCount).toBe(4);
-			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 3, first: true });
-			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 3, end: 6, first: false });
-			expect(doc.visualLineAt(3)).toEqual({ line: 0, start: 9, end: 10, first: false });
+			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 3, first: true, text: "abc" });
+			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 3, end: 6, first: false, text: "def" });
+			expect(doc.visualLineAt(3)).toEqual({ line: 0, start: 9, end: 10, first: false, text: "j" });
 			expect(doc.visualLineAt(4)).toBeNull();
 		});
 
@@ -181,7 +181,7 @@ describe("Document", () => {
 			const doc = new Document("a\n\nb");
 			doc.setWrapWidth(3);
 			expect(doc.visualLineCount).toBe(3);
-			expect(doc.visualLineAt(1)).toEqual({ line: 1, start: 0, end: 0, first: true });
+			expect(doc.visualLineAt(1)).toEqual({ line: 1, start: 0, end: 0, first: true, text: "" });
 		});
 
 		it("never splits a wide character across segments", () => {
@@ -189,7 +189,7 @@ describe("Document", () => {
 			doc.setWrapWidth(3); // each 你 is 2 cells; 3 fits one (2), 4 fits two
 			// width 3 → one 你 (2 cells) per segment, 5 segments
 			expect(doc.visualLineCount).toBe(5);
-			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 1, end: 2, first: false });
+			expect(doc.visualLineAt(1)).toEqual({ line: 0, start: 1, end: 2, first: false, text: "你" });
 		});
 
 		it("counts cursor position in visual lines", () => {
@@ -329,7 +329,7 @@ describe("Document", () => {
 			const doc = new Document("abcdef");
 			// default wrapWidth = Infinity → one visual line per logical line
 			expect(doc.visualLineCount).toBe(1);
-			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 6, first: true });
+			expect(doc.visualLineAt(0)).toEqual({ line: 0, start: 0, end: 6, first: true, text: "abcdef" });
 		});
 	});
 });

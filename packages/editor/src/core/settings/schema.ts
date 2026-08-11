@@ -19,6 +19,9 @@ export const sensitivitySchema = z
 
 const DEFAULT_WHEEL = { cursor: 1, view: 3 } as const;
 
+/** File-tree root source: the process startup directory or a custom path. */
+export const fileTreeRootSchema = z.enum(["startup", "custom"]).default("startup");
+
 export const settingsSchema = z.object({
 	/** Persisted UI language (validated at the app layer; unknown codes fall back). */
 	language: z.string().min(1).default("en"),
@@ -30,14 +33,24 @@ export const settingsSchema = z.object({
 			view: sensitivitySchema,
 		})
 		.default(DEFAULT_WHEEL),
+	fileTree: z
+		.object({
+			/** Which directory the file tree scans: startup dir or `customPath`. */
+			root: fileTreeRootSchema,
+			/** Absolute path scanned when `root` is "custom"; ignored otherwise. */
+			customPath: z.string().default(""),
+		})
+		.default({ root: "startup", customPath: "" }),
 });
 
 export type EditorSettings = z.infer<typeof settingsSchema>;
 export type WheelSensitivity = EditorSettings["wheel"];
+export type FileTreeSettings = EditorSettings["fileTree"];
 
 export const DEFAULT_SETTINGS: EditorSettings = {
 	language: "en",
 	wheel: DEFAULT_WHEEL,
+	fileTree: { root: "startup", customPath: "" },
 };
 
 /** Parse an unknown persisted value, falling back to defaults on any failure. */

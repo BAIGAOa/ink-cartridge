@@ -7,13 +7,19 @@ import {
 	useScreenSystem,
 } from "ink-cartridge";
 import React, { useContext, useEffect, useRef, useState } from "react";
+import type { EditorSession } from "../core/session.js";
+
+export type CommandBarProps = {
+	/** File session used by `:save`. */
+	session?: EditorSession | null;
+};
 
 /**
  * Modal command bar (like Helix's `:` prompt). Rendered as a modal layer
  * element, so it exclusively owns the keyboard while open — the editor's
  * bindings (including the insert-mode `*` wildcard) stay dormant.
  */
-export function CommandBar() {
+export function CommandBar({ session = null }: CommandBarProps) {
 	const ctx = useContext(ModalLayerElementContext);
 	const { t } = useI18n();
 	const { boundKeyboard, setMode } = useKeyboard();
@@ -68,6 +74,13 @@ export function CommandBar() {
 						closeModalLayer(ctx.modalLayer.layerId);
 						setMode("insert");
 						back();
+					} else if (cmd === "save") {
+						// The session records the result as an info-bar message.
+						if (session?.save().ok) {
+							closeModalLayer(ctx.modalLayer.layerId);
+						} else if (session) {
+							setError(session.message?.text ?? t("command.saveError"));
+						}
 					} else if (cmd) {
 						setError(t("command.unknown", { params: { cmd } }));
 					}
@@ -78,7 +91,7 @@ export function CommandBar() {
 		return () => {
 			unbinds.forEach((fn) => fn());
 		};
-	}, [boundKeyboard, closeModalLayer, ctx, setMode, t]);
+	}, [boundKeyboard, closeModalLayer, ctx, session, setMode, t]);
 
 	return (
 		<Box
