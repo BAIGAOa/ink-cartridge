@@ -1,5 +1,16 @@
 # blots-editor
 
+## 0.0.14
+
+### Patch Changes
+
+- 8b88f53: - **feat**(`blots-editor`): file tree — a VSCode-style pane pinned to the right edge of the editor (regular layer, bold border, editor background, not draggable, kept below the information bar and out of the toolbar's drag area). The root directory comes from a new setting (`FileTree Root`: startup directory or a custom path, `~` expanded), is scanned recursively (ignoring `node_modules`/`.git`/hidden entries and symlinks), and is cached after the first scan — later opens are instant; the `↻` button next to the pane title forces a re-scan. Directories expand/collapse on click (▸/▾ arrows follow the state), the pane sizes itself to its widest visible file name, and clicking a file opens it in the editor; with unsaved changes a Save / Discard / Cancel prompt appears first. The pane toggles via the toolbar's File Tree button and defaults to open.
+  - **feat**(`blots-editor`): file open/save lifecycle — a shared file session drives the editor. Files load with CRLF normalized to LF; the dirty state is a sha256 comparison of the buffer against the last saved content (node `crypto`), shown as a `●` marker in the status bar. Saving happens via the toolbar's Save button, the `:save` command, or Ctrl+S in normal mode; results (Saved / error) appear in the status bar. The status bar also shows the open file name (`[untitled]` for the empty buffer).
+  - **feat**(`blots-editor`): in-editor menu — the toolbar's Settings button opens a centered dialog (ModalFrame) with two buttons: Settings opens the settings panel as its own layer on top (same entries as the settings screen — language, wheel sensitivity, file tree root), Exit navigates back to the main menu. Dialogs share the editor background color and stay below the information bar (also when the terminal is resized).
+  - **fix**(`blots-editor`): the toolbar can no longer be dragged over the file tree (the clamp follows the pane's live width) and is pushed aside when the pane opens; a shrunken terminal re-clamps the toolbar and dialogs back inside the viewport.
+  - **fix**(`blots-editor`): files containing tabs no longer scramble the layout — tabs are expanded to spaces for rendering (tab-stop aware), so width math, Ink's layout, and the terminal paint agree; the buffer itself keeps the raw tabs.
+  - **fix**(`blots-editor`): the toolbar's keyboard activation now uses bare Enter in normal mode instead of Ctrl+Enter — terminals send the same byte (`\r`) for both, so a ctrl-modified Enter can never reach the engine.
+
 ## 0.0.13
 
 ### Patch Changes
