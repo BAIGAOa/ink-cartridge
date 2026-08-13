@@ -11,14 +11,14 @@ import {
 	useMouseRegion,
 } from "ink-cartridge";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { EditorSession } from "../core/session.js";
-import { useSettings } from "../core/settings/useSettings.js";
-import { clickToPosition } from "./click-mapping.js";
-import { CommandBar } from "./command-bar.js";
-import { EditorSetting } from "./editor-setting.js";
-import { FileTree } from "./file-tree.js";
-import { InformationBar } from "./information-bar.js";
-import { ToolBar } from "./tool-bar.js";
+import { EditorSession } from "../../core/io/session.js";
+import { useSettings } from "../../core/settings/useSettings.js";
+import { clickToPosition } from "../../utils/view/click-mapping.js";
+import { CommandBar } from "../editor/command-bar.js";
+import { EditorSetting } from "../editor/editor-setting.js";
+import { FileTree } from "../editor/file-tree.js";
+import { ToolBar } from "../editor/tool-bar.js";
+import { InformationBar } from "../editor/information-bar.js";
 
 /** Layer hosting the floating toolbar; below modal layers so it never
  *  intercepts keys meant for a modal (e.g. the command bar). */
@@ -143,11 +143,11 @@ export function Editor({
 				elementId: "toolbar",
 				element: ToolBar,
 				props: {
-					mode,
+					currentMode: mode,
 					session,
-					fileTreeOpen,
-					onToggleFileTree: () => setFileTreeOpen((open) => !open),
-					onOpenSettings: () => setSettingsOpen((open) => !open),
+					openFileTree: () => setFileTreeOpen((open) => !open),
+					openSettings: () => setSettingsOpen((open) => !open),
+					fileTreeOpen
 				},
 			});
 		}, 0);

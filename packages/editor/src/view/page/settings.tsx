@@ -15,10 +15,10 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import type { WheelSensitivity } from "../core/settings/schema.js";
-import { useSettings } from "../core/settings/useSettings.js";
-import { ModalFrame } from "./modal-frame.js";
-import { SensitivityBar, snapSensitivity } from "./sensitivity-bar.js";
+import type { WheelSensitivity } from "../../core/settings/schema.js";
+import { useSettings } from "../../core/settings/useSettings.js";
+import { ModalFrame } from "../utils/modal-frame.js";
+import { SensitivityBar, snapSensitivity } from "../utils/sensitivity-bar.js";
 
 const LANGUAGES = [
 	{ code: "en", labelKey: "settings.language.en" },

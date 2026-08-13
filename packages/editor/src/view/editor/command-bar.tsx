@@ -7,7 +7,7 @@ import {
 	useScreenSystem,
 } from "ink-cartridge";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import type { EditorSession } from "../core/session.js";
+import type { EditorSession } from "../../core/io/session.js";
 
 export type CommandBarProps = {
 	/** File session used by `:save`. */

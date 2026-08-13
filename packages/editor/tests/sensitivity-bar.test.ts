@@ -4,7 +4,7 @@ import {
 	valueFromRatio,
 	SENSITIVITY_MAX,
 	SENSITIVITY_MIN,
-} from "../src/view/sensitivity-bar.js";
+} from "../src/view/utils/sensitivity-bar.js";
 
 describe("sensitivity bar mapping", () => {
 	it("maps the bar ratio to 0.5-step values in 1..10", () => {

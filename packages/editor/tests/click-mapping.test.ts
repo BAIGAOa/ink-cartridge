@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Document } from "../src/core/document/document.js";
-import { clickToPosition } from "../src/view/click-mapping.js";
+import { clickToPosition } from "../src/utils/view/click-mapping.js";
 
 const RECT = { x: 1, y: 1, width: 10, height: 5 };
 const GUTTER = 2; // 1-digit line numbers + 1 spacing

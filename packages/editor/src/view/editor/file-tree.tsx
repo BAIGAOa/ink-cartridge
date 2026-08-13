@@ -8,21 +8,27 @@ import {
 	useMouseRegion,
 	useScreenSystem,
 } from "ink-cartridge";
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { basename } from "node:path";
 import stringWidth from "string-width";
-import type { FileNode } from "../core/file-tree-model.js";
+import type { FileNode, FileTreeState } from "../../core/io/file-tree-model.js";
 import {
 	clearFileTreeCache,
 	flattenTree,
 	resolveFileTreeRoot,
 	scanDirectoryCached,
 	toggleExpanded,
-} from "../core/file-tree-model.js";
-import type { EditorSession } from "../core/session.js";
-import { useSettings } from "../core/settings/useSettings.js";
-import { ModalFrame } from "./modal-frame.js";
-import { setTreeWidth } from "./tree-width-store.js";
+} from "../../core/io/file-tree-model.js";
+import type { EditorSession } from "../../core/io/session.js";
+import { useSettings } from "../../core/settings/useSettings.js";
+import { ModalFrame } from "../utils/modal-frame.js";
+import { setTreePos } from "../event/subscription/tree-store.js";
 
 /** Narrowest the pane can be; wide enough for short names. */
 const MIN_TREE_WIDTH = 24;
@@ -33,6 +39,12 @@ export type FileTreeProps = {
 	/** The shared file session; clicking a file opens it here. */
 	session: EditorSession;
 };
+
+export type FileTreeDirState =
+	| FileTreeState
+	| {
+			noDir?: boolean;
+	  };
 
 /**
  * VSCode-style file tree pinned to the right edge of the terminal (regular
@@ -45,6 +57,7 @@ export type FileTreeProps = {
 export function FileTree({ session }: FileTreeProps) {
 	const { rows, columns } = useWindowSize();
 	const { settings } = useSettings();
+	const { t } = useI18n();
 	const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 	const [scrollTop, setScrollTop] = useState(0);
 	const [hoveredPath, setHoveredPath] = useState<string | null>(null);
@@ -52,22 +65,33 @@ export function FileTree({ session }: FileTreeProps) {
 	// scanTick bumps to force a re-scan — the cache never expires on its own.
 	const [scanTick, setScanTick] = useState(0);
 
-	const root = useMemo(() => {
-		// scanTick is a dependency only to force a re-scan on refresh.
-		void scanTick;
-		const resolved = resolveFileTreeRoot(settings.fileTree, process.cwd());
-		return resolved ? scanDirectoryCached(resolved) : null;
+	const [root, setRoot] = useState<FileTreeDirState>({
+		scanning: true,
+	});
+	const [prevRoot, setPrevRoot] = useState(root);
+
+	useEffect(() => {
+		setRoot({ scanning: true });
+		(async () => {
+			const resolved = resolveFileTreeRoot(settings.fileTree, process.cwd());
+			const tree: FileNode | FileTreeDirState = resolved
+				? await scanDirectoryCached(resolved)
+				: { noDir: true };
+			setRoot(tree);
+		})();
 	}, [settings.fileTree, scanTick]);
 
-	// A new scan (root path changed) starts collapsed at the top.
-	useEffect(() => {
+	// A new scan (root changed) starts collapsed at the top — reset during
+	// render so the next frame already renders with the reset state.
+	if (prevRoot !== root) {
+		setPrevRoot(root);
 		setExpanded(new Set());
 		setScrollTop(0);
-	}, [root]);
+	}
 
 	const visibleRows = useMemo(
-		() => (root ? flattenTree(root, expanded) : []),
-		[root, expanded],
+		() => ('node' in root ? flattenTree(root.node, expanded) : []),
+		[root, expanded]
 	);
 
 	const handleWheel = useCallback((event: { button: string }) => {
@@ -81,12 +105,12 @@ export function FileTree({ session }: FileTreeProps) {
 	const openFile = useCallback(
 		(path: string) => {
 			if (session.isDirty()) {
-				openUnsavedPrompt(session, path);
+				openUnsavedPrompt(session, path, t("fileTree.unsaved"));
 			} else {
 				session.open(path);
 			}
 		},
-		[session],
+		[session, t]
 	);
 
 	const toggleDir = useCallback((path: string) => {
@@ -118,9 +142,9 @@ export function FileTree({ session }: FileTreeProps) {
 		const widest = visible.reduce(
 			(max, row) =>
 				Math.max(max, (row.depth - 1) * 2 + 2 + stringWidth(row.node.name)),
-			0,
+			0
 		);
-		const title = root ? stringWidth(basename(root.path)) : 0;
+		const title = "node" in root ? stringWidth(basename(root.path)) : 0;
 		// +3 = row padding (1) + the two border cells.
 		const content = Math.max(widest, title) + 3;
 		return Math.min(Math.max(MIN_TREE_WIDTH, content), MAX_TREE_WIDTH);
@@ -129,8 +153,13 @@ export function FileTree({ session }: FileTreeProps) {
 	// Publish the live width so the toolbar's drag clamp stays in sync
 	// (module store — the tree and toolbar are separate layer elements).
 	useEffect(() => {
-		setTreeWidth(treeWidth);
-	}, [treeWidth]);
+		setTreePos({
+			y: 1,
+			x: columns - treeWidth,
+			width: treeWidth,
+			height: rows - 1,
+		});
+	}, [treeWidth, columns, rows]);
 
 	return (
 		<Box
@@ -148,12 +177,24 @@ export function FileTree({ session }: FileTreeProps) {
 			flexDirection="column"
 		>
 			<Box paddingLeft={1} paddingTop={1} flexDirection="row">
-				<Text bold>{root ? basename(root.path) : "-"}</Text>
+				<Text bold>{"node" in root ? basename(root.path) : "-"}</Text>
 				<Box ref={refreshRef} marginLeft={1}>
 					<Text color={refreshHovered ? "green" : "gray"}>↻</Text>
 				</Box>
 			</Box>
-			{root ? (
+			{"scanning" in root ? (
+				<Box paddingLeft={1}>
+					<Text dimColor>{t("fileTree.scanning")}</Text>
+				</Box>
+			) : "noDir" in root ? (
+				<Box paddingLeft={1}>
+					<Text dimColor>{t("fileTree.noDir")}</Text>
+				</Box>
+			) : "fail" in root ? (
+				<Box paddingLeft={1}>
+					<Text dimColor>{t("fileTree.fail")}</Text>
+				</Box>
+			) : (
 				visible.map((row) => (
 					<TreeRow
 						key={row.node.path}
@@ -162,7 +203,9 @@ export function FileTree({ session }: FileTreeProps) {
 						expanded={expanded.has(row.node.path)}
 						hovered={hoveredPath === row.node.path}
 						onEnter={() => setHoveredPath(row.node.path)}
-						onLeave={() => setHoveredPath((h) => (h === row.node.path ? null : h))}
+						onLeave={() =>
+							setHoveredPath((h) => (h === row.node.path ? null : h))
+						}
 						onWheel={handleWheel}
 						onClick={() => {
 							if (row.node.isDir) {
@@ -173,10 +216,6 @@ export function FileTree({ session }: FileTreeProps) {
 						}}
 					/>
 				))
-			) : (
-				<Box paddingLeft={1}>
-					<Text dimColor>No directory</Text>
-				</Box>
 			)}
 		</Box>
 	);
@@ -201,8 +240,20 @@ type TreeRowProps = {
  * so scrolling works while the cursor is over a row — the engine delivers
  * wheel to the top hit region only.
  */
-function TreeRow({ node, depth, expanded, hovered, onEnter, onLeave, onWheel, onClick }: TreeRowProps) {
-	const ref = useMouseRegion({ onEnter, onLeave, onClick, onWheel }, { priority: 1 });
+function TreeRow({
+	node,
+	depth,
+	expanded,
+	hovered,
+	onEnter,
+	onLeave,
+	onWheel,
+	onClick,
+}: TreeRowProps) {
+	const ref = useMouseRegion(
+		{ onEnter, onLeave, onClick, onWheel },
+		{ priority: 1 }
+	);
 	const hasChildren = (node.children?.length ?? 0) > 0;
 	const arrow = node.isDir
 		? hasChildren
@@ -234,7 +285,14 @@ type PromptButtonProps = {
 };
 
 /** One button of the unsaved-changes prompt (mouse + keyboard hotkey). */
-function PromptButton({ label, hotkey, active, onEnter, onLeave, onClick }: PromptButtonProps) {
+function PromptButton({
+	label,
+	hotkey,
+	active,
+	onEnter,
+	onLeave,
+	onClick,
+}: PromptButtonProps) {
 	const ref = useMouseRegion({ onEnter, onLeave, onClick }, { priority: 1 });
 	return (
 		<Box ref={ref} paddingLeft={1} paddingRight={1}>
@@ -257,12 +315,19 @@ type UnsavedPromptProps = {
  * Cancel), opened when a file-tree click would discard a dirty buffer.
  * Keyboard: s / d / c (Esc also cancels); the buttons are mouse-clickable.
  */
-function UnsavedPrompt({ title, onSave, onDiscard, onCancel }: UnsavedPromptProps) {
+function UnsavedPrompt({
+	title,
+	onSave,
+	onDiscard,
+	onCancel,
+}: UnsavedPromptProps) {
 	const ctx = useContext(ModalLayerElementContext);
 	const { t } = useI18n();
 	const { boundKeyboard } = useKeyboard();
 	const { closeModalLayer } = useScreenSystem();
-	const [hovered, setHovered] = useState<"save" | "discard" | "cancel" | null>(null);
+	const [hovered, setHovered] = useState<"save" | "discard" | "cancel" | null>(
+		null
+	);
 
 	const close = useCallback(() => {
 		if (ctx) {
@@ -281,7 +346,7 @@ function UnsavedPrompt({ title, onSave, onDiscard, onCancel }: UnsavedPromptProp
 					close();
 					onSave();
 				},
-				{ elementId: ctx.id },
+				{ elementId: ctx.id }
 			),
 			boundKeyboard(
 				["d"],
@@ -289,7 +354,7 @@ function UnsavedPrompt({ title, onSave, onDiscard, onCancel }: UnsavedPromptProp
 					close();
 					onDiscard();
 				},
-				{ elementId: ctx.id },
+				{ elementId: ctx.id }
 			),
 			boundKeyboard(
 				["c", "escape"],
@@ -297,7 +362,7 @@ function UnsavedPrompt({ title, onSave, onDiscard, onCancel }: UnsavedPromptProp
 					close();
 					onCancel();
 				},
-				{ elementId: ctx.id },
+				{ elementId: ctx.id }
 			),
 		];
 		return () => unbinds.forEach((fn) => fn());
@@ -348,13 +413,17 @@ function UnsavedPrompt({ title, onSave, onDiscard, onCancel }: UnsavedPromptProp
  * Open the unsaved-changes prompt; on Save the buffer is written first and
  * only then is the target file loaded (a failed save keeps the editor put).
  */
-function openUnsavedPrompt(session: EditorSession, targetPath: string): void {
+function openUnsavedPrompt(
+	session: EditorSession,
+	targetPath: string,
+	title: string,
+): void {
 	openModalLayer("unsaved", 100);
 	applyElementToModalLayer("unsaved", {
 		elementId: "unsaved-prompt",
 		element: UnsavedPrompt,
 		props: {
-			title: "Unsaved changes",
+			title,
 			onSave: () => {
 				const saved = session.save();
 				if (saved.ok) {

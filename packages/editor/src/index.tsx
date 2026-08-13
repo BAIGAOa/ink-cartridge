@@ -8,11 +8,11 @@ import {
   registerComponent,
   ScenarioManagementProvider,
 } from "ink-cartridge";
-import { resources } from "./i18n-resources.js";
+import { resources } from "./utils/view/i18n-resources.js";
 import { settingsStore } from "./core/settings/useSettings.js";
-import { MainMenu } from "./view/main-menu.js";
-import { Editor } from "./view/editor.js";
-import { Settings } from "./view/settings.js";
+import { MainMenu } from "./view/page/main-menu.js";
+import { Editor } from "./view/page/editor.js";
+import { Settings } from "./view/page/settings.js";
 
 registerComponent(MainMenu, {});
 registerComponent(Editor, {}, { parent: MainMenu });

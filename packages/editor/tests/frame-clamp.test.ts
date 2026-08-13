@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampFrame } from "../src/view/frame-clamp.js";
+import { clampFrame } from "../src/utils/view/frame-clamp.js";
 
 describe("clampFrame", () => {
 	it("keeps a position fully inside the terminal unchanged", () => {

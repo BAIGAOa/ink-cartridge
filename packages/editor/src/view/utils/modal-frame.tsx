@@ -1,7 +1,7 @@
 import { Box, Text, useWindowSize } from "ink";
 import { useMouseRegion } from "ink-cartridge";
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
-import { clampFrame } from "./frame-clamp.js";
+import { clampFrame } from "../../utils/view/frame-clamp.js";
 
 type ModalFrameProps = {
 	title: string;

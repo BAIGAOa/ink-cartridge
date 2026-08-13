@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
-import { EditorController, type EditorOptions } from "./editor-controller.js";
+import { EditorController, type EditorOptions } from "../editor-controller.js";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 

@@ -3,8 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { clearRegistry, registerComponent } from "ink-cartridge";
-import { MainMenu } from "../src/view/main-menu.js";
-import { Settings } from "../src/view/settings.js";
+import { MainMenu } from "../src/view/page/main-menu.js";
+import { Settings } from "../src/view/page/settings.js";
 import { settingsStore } from "../src/core/settings/useSettings.js";
 import { flush, press, renderApp, stripAnsi } from "./base/_helpers.js";
 

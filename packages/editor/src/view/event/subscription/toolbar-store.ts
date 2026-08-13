@@ -1,12 +1,11 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Module-level drag position of the floating toolbar.
- *
- * The toolbar element is erased and re-applied whenever its props change
- * (the layer system treats re-applies of an existing element id as no-ops),
- * which would otherwise reset the component's internal position state. An
- * external store survives those remounts, so a dragged bar keeps its spot.
+ * Module-level drag position of the floating toolbar. null = the bar sits
+ * at the bottom-center via flex layout; once the user grabs it, absolute
+ * positioning takes over so it follows the cursor. An external store
+ * survives the layer system's erase/re-apply remounts, so a dragged bar
+ * keeps its spot.
  */
 type BarPosition = { top: number; left: number } | null;
 

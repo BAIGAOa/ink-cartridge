@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import React from "react";
 import { clearRegistry, registerComponent } from "ink-cartridge";
-import { MainMenu } from "../src/view/main-menu.js";
-import { Editor } from "../src/view/editor.js";
+import { MainMenu } from "../src/view/page/main-menu.js";
+import { Editor } from "../src/view/page/editor.js";
 import { flush, press, renderApp, stripAnsi } from "./base/_helpers.js";
 
 function registerAll() {

@@ -1,7 +1,7 @@
-import { readdirSync } from "node:fs";
+import fs from 'node:fs/promises';
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { FileTreeSettings } from "./settings/schema.js";
+import type { FileTreeSettings } from "../settings/schema.js";
 
 /**
  * Scan cache: large directories take a while to recurse, and the file tree
@@ -16,17 +16,38 @@ export function clearFileTreeCache(): void {
 	scanCache.clear();
 }
 
+export type FileTreeState = {
+	ok: true;
+	node: FileNode;
+	path: string
+} | {
+	fail: true
+} | {
+	scanning: true
+}
+
 /** Scan a directory, serving repeat calls for the same root from the cache. */
-export function scanDirectoryCached(root: string): FileNode | null {
+export async function scanDirectoryCached(root: string): Promise<FileTreeState> {
 	const hit = scanCache.get(root);
 	if (hit) {
-		return hit;
+		return {
+			ok: true,
+			node: hit,
+			path: root
+		};
 	}
-	const tree = scanDirectory(root);
+	const tree = await scanDirectory(root);
 	if (tree) {
 		scanCache.set(root, tree);
+		return {
+			ok: true,
+			node: tree,
+			path: root
+		};
 	}
-	return tree;
+	return {
+		fail: true
+	};
 }
 
 /** One entry of the scanned tree. Directories carry their children. */
@@ -69,8 +90,8 @@ export function resolveFileTreeRoot(
  *
  * @returns The root node, or null when the directory cannot be read.
  */
-export function scanDirectory(root: string): FileNode | null {
-	const entries = readDirSafe(root);
+export async function scanDirectory(root: string): Promise<FileNode | null> {
+	const entries = await readDirSafe(root);
 	if (!entries) {
 		return null;
 	}
@@ -85,7 +106,7 @@ export function scanDirectory(root: string): FileNode | null {
 			if (SKIP_DIRS.has(name)) {
 				continue;
 			}
-			nodes.push({ name, path, isDir: true, children: scanChildren(path) });
+			nodes.push({ name, path, isDir: true, children: await scanChildren(path) });
 		} else if (entry.isFile()) {
 			nodes.push({ name, path, isDir: false });
 		}
@@ -98,15 +119,15 @@ export function scanDirectory(root: string): FileNode | null {
 	return { name: root, path: root, isDir: true, children: nodes };
 }
 
-function scanChildren(dir: string): FileNode[] | undefined {
-	const child = scanDirectory(dir);
+async function scanChildren(dir: string): Promise<FileNode[] | undefined> {
+	const child = await scanDirectory(dir);
 	return child?.children;
 }
 
 /** Read a directory without throwing; null when unreadable (EACCES etc.). */
-function readDirSafe(path: string) {
+async function readDirSafe(path: string) {
 	try {
-		return readdirSync(path, { withFileTypes: true });
+		return await fs.readdir(path, { withFileTypes: true });
 	} catch {
 		return null;
 	}

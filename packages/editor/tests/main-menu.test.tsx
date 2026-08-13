@@ -2,9 +2,9 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import React from "react";
 import { clearRegistry } from "ink-cartridge";
 import { registerComponent } from "ink-cartridge";
-import { MainMenu } from "../src/view/main-menu.js";
-import { Editor } from "../src/view/editor.js";
-import { Settings } from "../src/view/settings.js";
+import { MainMenu } from "../src/view/page/main-menu.js";
+import { Editor } from "../src/view/page/editor.js";
+import { Settings } from "../src/view/page/settings.js";
 import { flush, press, renderApp, stripAnsi } from "./base/_helpers.js";
 
 function registerAll() {
