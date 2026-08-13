@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Editor } from "./editor.js";
 import { Settings } from "./settings.js";
 import { gotoScreen } from "ink-cartridge";
-import { getLogo } from "./logo.js";
+import { getLogo } from "../logo.js";
 
 type MenuButtonProps = {
 	label: string;

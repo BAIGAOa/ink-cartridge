@@ -10,7 +10,8 @@ import {
 	scanDirectory,
 	scanDirectoryCached,
 	toggleExpanded,
-} from "../src/core/file-tree-model.js";
+	type FileNode,
+} from "../src/core/io/file-tree-model.js";
 
 function makeTree(): string {
 	const root = mkdtempSync(join(tmpdir(), "blots-tree-"));
@@ -26,50 +27,59 @@ function makeTree(): string {
 	return root;
 }
 
+function treeOf(
+	state: Awaited<ReturnType<typeof scanDirectoryCached>>,
+): FileNode {
+	if (!("node" in state)) {
+		throw new Error("scanDirectoryCached returned a non-ok state");
+	}
+	return state.node;
+}
+
 describe("scanDirectory", () => {
-	it("sorts directories before files, both alphabetically", () => {
+	it("sorts directories before files, both alphabetically", async () => {
 		const root = makeTree();
-		const tree = scanDirectory(root);
+		const tree = await scanDirectory(root);
 		expect(tree?.children?.map((n) => n.name)).toEqual(["src", "README.md", "main.ts"]);
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("skips node_modules, .git, and hidden entries at any depth", () => {
+	it("skips node_modules, .git, and hidden entries at any depth", async () => {
 		const root = makeTree();
-		const tree = scanDirectory(root);
+		const tree = await scanDirectory(root);
 		const src = tree?.children?.find((n) => n.name === "src");
 		expect(src?.children?.map((n) => n.name)).toEqual(["components", "a.ts"]);
 		expect(src?.children?.find((n) => n.name === "components")?.children?.map((n) => n.name)).toEqual(["b.tsx"]);
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("returns null for an unreadable root", () => {
-		expect(scanDirectory(join(tmpdir(), "does-not-exist-xyz"))).toBeNull();
+	it("returns null for an unreadable root", async () => {
+		expect(await scanDirectory(join(tmpdir(), "does-not-exist-xyz"))).toBeNull();
 	});
 
-	it("does not follow symlinked directories", () => {
+	it("does not follow symlinked directories", async () => {
 		const root = makeTree();
 		// Junctions need no admin rights on Windows (plain symlinks do).
 		symlinkSync(root, join(root, "self-loop"), process.platform === "win32" ? "junction" : undefined);
-		const tree = scanDirectory(root);
+		const tree = await scanDirectory(root);
 		expect(tree?.children?.some((n) => n.name === "self-loop")).toBe(false);
 		rmSync(root, { recursive: true, force: true });
 	});
 });
 
 describe("flattenTree / toggleExpanded", () => {
-	it("shows only the root level when everything is collapsed", () => {
+	it("shows only the root level when everything is collapsed", async () => {
 		const root = makeTree();
-		const tree = scanDirectory(root)!;
+		const tree = (await scanDirectory(root))!;
 		const rows = flattenTree(tree, new Set());
 		expect(rows.map((r) => r.node.name)).toEqual(["src", "README.md", "main.ts"]);
 		expect(rows.every((r) => r.depth === 1)).toBe(true);
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("expands and collapses directories", () => {
+	it("expands and collapses directories", async () => {
 		const root = makeTree();
-		const tree = scanDirectory(root)!;
+		const tree = (await scanDirectory(root))!;
 		const expanded = new Set<string>();
 		const src = tree.children!.find((n) => n.name === "src")!;
 		toggleExpanded(expanded, src.path);
@@ -108,26 +118,26 @@ describe("resolveFileTreeRoot / expandHome", () => {
 });
 
 describe("scanDirectoryCached", () => {
-	it("serves a repeat scan from the cache indefinitely", () => {
+	it("serves a repeat scan from the cache indefinitely", async () => {
 		const root = makeTree();
-		const first = scanDirectoryCached(root);
+		const first = treeOf(await scanDirectoryCached(root));
 		// The tree is a snapshot — a new file is invisible until a refresh,
 		// proving the second call did not re-scan.
 		writeFileSync(join(root, "new.txt"), "x", "utf8");
-		const second = scanDirectoryCached(root);
+		const second = treeOf(await scanDirectoryCached(root));
 		expect(second).toBe(first);
-		expect(second?.children?.some((n) => n.name === "new.txt")).toBe(false);
+		expect(second.children?.some((n) => n.name === "new.txt")).toBe(false);
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("clearFileTreeCache forces a re-scan", () => {
+	it("clearFileTreeCache forces a re-scan", async () => {
 		const root = makeTree();
-		const first = scanDirectoryCached(root);
+		const first = treeOf(await scanDirectoryCached(root));
 		writeFileSync(join(root, "new.txt"), "x", "utf8");
 		clearFileTreeCache();
-		const after = scanDirectoryCached(root);
+		const after = treeOf(await scanDirectoryCached(root));
 		expect(after).not.toBe(first);
-		expect(after?.children?.some((n) => n.name === "new.txt")).toBe(true);
+		expect(after.children?.some((n) => n.name === "new.txt")).toBe(true);
 		rmSync(root, { recursive: true, force: true });
 	});
 });

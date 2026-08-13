@@ -1,13 +1,21 @@
 import React from "react";
 import { render } from "ink-testing-library";
 import { vi } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
 	CurrentScreen,
 	KeyboardProvider,
 	LanguageProvider,
 	ScenarioManagementProvider,
 } from "ink-cartridge";
-import { resources } from "../../src/i18n-resources.js";
+import { resources } from "../../src/utils/view/i18n-resources.js";
+import { settingsStore } from "../../src/core/settings/useSettings.js";
+
+// The tree scans its root synchronously on mount; the real persisted
+// settings can point at a huge directory, so pin it to an empty temp dir.
+const treeRoot = mkdtempSync(join(tmpdir(), "blots-test-tree-"));
 
 export function stripAnsi(str: string | undefined): string {
 	return (str ?? "").replace(/\x1b\[[0-9;]*m/g, "");
@@ -30,6 +38,10 @@ export async function press(
 /** Render a registered screen with the full provider chain the app uses. */
 export function renderApp(defaultScreen: React.ComponentType) {
 	vi.spyOn(console, "warn").mockImplementation(() => {});
+	settingsStore.update({
+		...settingsStore.settings,
+		fileTree: { root: "custom", customPath: treeRoot },
+	});
 	return render(
 		<ScenarioManagementProvider defaultScreen={defaultScreen} fullScreen>
 			<LanguageProvider

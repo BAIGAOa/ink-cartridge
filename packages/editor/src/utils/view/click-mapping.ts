@@ -1,4 +1,4 @@
-import type { Document } from "../core/document/document.js";
+import type { Document } from "../../core/document/document.js";
 
 export type ClickTarget = {
 	line: number;

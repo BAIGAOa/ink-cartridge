@@ -10,8 +10,8 @@ import {
 	useMouseRegion,
 } from "ink-cartridge";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { SettingsEntries } from "./settings.js";
-import { ModalFrame } from "./modal-frame.js";
+import { SettingsEntries } from "../page/settings.js";
+import { ModalFrame } from "../utils/modal-frame.js";
 
 /** Layer hosting the settings panel, opened on top of the menu layer. */
 const SETTINGS_PANEL_LAYER_ID = "settings-panel";

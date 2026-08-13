@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from "react";
 
+export type Rect = { x: number; y: number; width: number; height: number };
+
 /**
  * Current width of the file-tree pane, shared with the toolbar.
  *
  * The tree sizes itself to its content, so its width is dynamic; the toolbar
  * must not overlap it, so it reads the live width instead of a constant.
  */
-let width = 32;
+let pos: Rect = { x: 0, y: 0, width: 0, height: 0 };
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void): () => void {
@@ -16,21 +18,17 @@ function subscribe(listener: () => void): () => void {
 	};
 }
 
-/** Imperative read for drag handlers. */
-export function getTreeWidth(): number {
-	return width;
+export function getTreePos(): Rect {
+	return pos;
 }
 
-/** Update the reported pane width (no-op when unchanged). */
-export function setTreeWidth(next: number): void {
-	if (next === width) {
-		return;
+export function setTreePos(newPos: Rect): void {
+	pos = newPos;
+	for (const listener of listeners) {
+		listener();
 	}
-	width = next;
-	listeners.forEach((fn) => fn());
 }
-
 /** Reactive binding: re-renders whenever the pane width changes. */
-export function useTreeWidth(): number {
-	return useSyncExternalStore(subscribe, getTreeWidth, getTreeWidth);
+export function useTree(): Rect {
+	return useSyncExternalStore(subscribe, getTreePos, getTreePos);
 }

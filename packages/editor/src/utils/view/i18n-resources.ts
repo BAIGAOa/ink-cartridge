@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
  * global installs work regardless of cwd — the JSON files ship inside the
  * package via the `asset` entry in `files`.
  */
-const LANGUAGE_DIR = new URL("../asset/language/", import.meta.url);
+const LANGUAGE_DIR = new URL("../../../asset/language/", import.meta.url);
 
 function loadPack(locale: string): Record<string, string> {
   return JSON.parse(

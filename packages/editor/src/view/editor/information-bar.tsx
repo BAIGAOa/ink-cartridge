@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
-import type { EditorSession } from "../core/session.js";
+import type { EditorSession } from "../../core/io/session.js";
 
 export type InformationBarProps = {
 	mode: string;
