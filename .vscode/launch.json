@@ -7,17 +7,20 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Run acorn",
-			"runtimeExecutable": "acorn",
-			"cwd": "${workspaceFolder}",
-			"args": []
-		},
-		{
-			"type": "node",
-			"request": "launch",
-			"name": "启动程序",
-			"skipFiles": ["<node_internals>/**"],
-			"program": "${workspaceFolder}\\dist\\index.js"
+			"name": "Debug blots-editor",
+			// Windows 下 .bin/tsx.cmd 无法直接作为 runtimeExecutable，
+			// node --import tsx（Node >= 20.6）是最稳的 tsx 启动方式。
+			"runtimeExecutable": "node",
+			"runtimeArgs": ["--import", "tsx"],
+			"program": "${workspaceFolder}/packages/editor/src/index.tsx",
+			// 与 npm start -w blots-editor 保持一致的工作目录。
+			"cwd": "${workspaceFolder}/packages/editor",
+			// 必须用 integratedTerminal：Ink 需要 TTY 才能渲染，
+			// internalConsole 下界面不会显示，鼠标追踪（SGR）也不可用。
+			"console": "integratedTerminal",
+			// tsx 生成内联 sourcemap，断点可直接打在 .ts/.tsx 源码上。
+			"sourceMaps": true,
+			"skipFiles": ["<node_internals>/**"]
 		}
 	]
 }

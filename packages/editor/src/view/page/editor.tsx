@@ -352,6 +352,7 @@ export function Editor({
 					{Array.from({ length: effectiveH }, (_, i) => {
 						const vline = visibleStart + i;
 						const seg = doc.visualLineAt(vline);
+						
 						if (!seg) {
 							return null;
 						}
