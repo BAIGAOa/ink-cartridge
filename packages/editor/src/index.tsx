@@ -34,5 +34,4 @@ render(
         <CurrentScreen />
       </KeyboardProvider>
     </LanguageProvider>
-  </ScenarioManagementProvider>,
-);
+  </ScenarioManagementProvider>);

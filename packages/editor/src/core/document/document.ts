@@ -5,6 +5,9 @@ export type DocumentOptions = {
 	indentWidth?: number;
 };
 
+/** One soft-wrap segment: logical span plus tab-expanded display text. */
+type Segment = { start: number; end: number; text: string };
+
 /**
  * Document model: array of lines + cursor + scroll state.
  *
@@ -26,6 +29,23 @@ export class Document {
 	private _viewScrollTop: number | null = null;
 	// Fractional view-scroll remainder, so e.g. 3.5 cells/notch scrolls 3,4,3,4…
 	private _scrollRemainder = 0;
+	/**
+	 * Per-line soft-wrap segment cache. Segments are derived purely from
+	 * `_lines` + `_wrapWidth`, but recomputing them is expensive (binary
+	 * searches + per-character tab expansion), and the render path queries
+	 * them O(viewport) times per frame — so identical inputs must not be
+	 * recomputed. null while invalidated; rebuilt lazily on first use.
+	 */
+	private _segmentCache: Segment[][] | null = null;
+	/**
+	 * Prefix sums of segment counts: `prefix[i]` = visual lines occupied by
+	 * the first `i` logical lines (so `prefix[line]` is the global visual
+	 * line where logical line `line` starts). Lets `visualLineAt` /
+	 * `cursorVisualLine` / `visualLineCount` answer in O(log n)/O(1)
+	 * instead of scanning every line. Invalidated together with
+	 * `_segmentCache`.
+	 */
+	private _segPrefix: number[] | null = null;
 	readonly indentWidth: number;
 
 	constructor(text: string, options: DocumentOptions = {}) {
@@ -68,6 +88,7 @@ export class Document {
 		this._scrollTop = 0;
 		this._viewScrollTop = null;
 		this._scrollRemainder = 0;
+		this.invalidateIndex();
 	}
 
 	get cursor(): CursorState {
@@ -90,48 +111,94 @@ export class Document {
 
 	/** Set the soft-wrap width (clamped to at least 1 cell). */
 	setWrapWidth(width: number): void {
-		this._wrapWidth = Math.max(1, width);
+		const w = Math.max(1, width);
+		// The view calls this on every render with the measured width; only a
+		// real change invalidates the cache, or it would be rebuilt (and
+		// discarded) every frame.
+		if (w !== this._wrapWidth) {
+			this._wrapWidth = w;
+			this.invalidateIndex();
+		}
 	}
 
-	/** The soft-wrap segments of one logical line (an empty line is one empty segment). */
-	private lineSegments(line: number): Array<{
-		start: number;
-		end: number;
-		/** Tab-expanded display text (safe to render verbatim). */
-		text: string;
-	}> {
+	/**
+	 * The soft-wrap segments of one logical line (an empty line is one empty
+	 * segment). Cached: the render path queries these O(viewport) times per
+	 * frame, and every hit would otherwise re-run `segmentFrom` (binary
+	 * search + per-character tab expansion) on unchanged input.
+	 */
+	private lineSegments(line: number): Segment[] {
+		const cached = this._segmentCache?.[line];
+		if (cached) {
+			return cached;
+		}
 		const tl = this._lines[line];
+		const segs: Segment[] = [];
 		if (tl.text.length === 0) {
-			return [{ start: 0, end: 0, text: "" }];
-		}
-		const segs: Array<{ start: number; end: number; text: string }> = [];
-		let segVisual = 0;
-		let segStart = 0;
-		while (segStart < tl.text.length) {
-			const seg = tl.segmentFrom(segVisual, this._wrapWidth);
-			segs.push({ start: segStart, end: seg.endLogical, text: seg.text });
-			if (seg.text === "") {
-				break;
+			segs.push({ start: 0, end: 0, text: "" });
+		} else {
+			let segVisual = 0;
+			let segStart = 0;
+			while (segStart < tl.text.length) {
+				const seg = tl.segmentFrom(segVisual, this._wrapWidth);
+				segs.push({ start: segStart, end: seg.endLogical, text: seg.text });
+				if (seg.text === "") {
+					break;
+				}
+				segStart = seg.endLogical;
+				segVisual = seg.endVisual;
 			}
-			segStart = seg.endLogical;
-			segVisual = seg.endVisual;
 		}
+		if (!this._segmentCache) {
+			this._segmentCache = [];
+		}
+		this._segmentCache[line] = segs;
 		return segs;
+	}
+
+	/**
+	 * Prefix sums of segment counts, built lazily from the segment cache.
+	 * Both caches are invalidated together (see {@link invalidateIndex}), so
+	 * they can never disagree once built.
+	 */
+	private buildSegmentPrefix(): number[] {
+		if (this._segPrefix) {
+			return this._segPrefix;
+		}
+		const prefix: number[] = [0];
+		let total = 0;
+		for (let i = 0; i < this._lines.length; i++) {
+			total += this.lineSegments(i).length;
+			prefix.push(total);
+		}
+		this._segPrefix = prefix;
+		return prefix;
+	}
+
+	/**
+	 * Drop the segment cache and the visual-line index. Every mutation entry
+	 * point (`setText`, `setLine`, `insertLineAt`, `removeLineAt`, and a
+	 * *changed* `setWrapWidth`) must call this, or queries would keep serving
+	 * stale segments. Rebuilding is lazy — the next query pays O(total
+	 * segments) once.
+	 */
+	private invalidateIndex(): void {
+		this._segmentCache = null;
+		this._segPrefix = null;
 	}
 
 	/** Total number of visual (soft-wrapped) lines across the document. */
 	get visualLineCount(): number {
-		let total = 0;
-		for (let i = 0; i < this._lines.length; i++) {
-			total += this.lineSegments(i).length;
-		}
-		return total;
+		return this.buildSegmentPrefix()[this._lines.length];
 	}
 
 	/**
 	 * Map a global visual line to its logical line and the segment's logical
 	 * span. `first` marks the segment that starts at the logical line start
-	 * (the one that carries the line number).
+	 * (the one that carries the line number). Binary search over the segment
+	 * prefix sums keeps this O(log n) — the render loop calls it once per
+	 * visible line, so a linear scan here would be O(viewport × lines) every
+	 * frame.
 	 */
 	visualLineAt(
 		vline: number,
@@ -139,30 +206,34 @@ export class Document {
 		if (vline < 0) {
 			return null;
 		}
-		let remaining = vline;
-		for (let line = 0; line < this._lines.length; line++) {
-			const segs = this.lineSegments(line);
-			if (remaining < segs.length) {
-				return {
-					line,
-					start: segs[remaining].start,
-					end: segs[remaining].end,
-					first: remaining === 0,
-					text: segs[remaining].text,
-				};
-			}
-			remaining -= segs.length;
+		const prefix = this.buildSegmentPrefix();
+		if (vline >= prefix[this._lines.length]) {
+			return null;
 		}
-		return null;
+		// Largest line index whose prefix start is <= vline.
+		let lo = 0;
+		let hi = this._lines.length - 1;
+		while (lo < hi) {
+			const mid = (lo + hi + 1) >> 1;
+			if (prefix[mid] <= vline) {
+				lo = mid;
+			} else {
+				hi = mid - 1;
+			}
+		}
+		const seg = this.lineSegments(lo)[vline - prefix[lo]];
+		return {
+			line: lo,
+			start: seg.start,
+			end: seg.end,
+			first: vline === prefix[lo],
+			text: seg.text,
+		};
 	}
 
 	/** Global visual line the cursor sits on. */
 	get cursorVisualLine(): number {
 		const { line, logical } = this._cursor;
-		let v = 0;
-		for (let i = 0; i < line; i++) {
-			v += this.lineSegments(i).length;
-		}
 		const segs = this.lineSegments(line);
 		let idx = 0;
 		// A cursor exactly on a segment boundary belongs to the segment
@@ -171,7 +242,7 @@ export class Document {
 		while (idx < segs.length - 1 && logical >= segs[idx + 1].start) {
 			idx++;
 		}
-		return v + idx;
+		return this.buildSegmentPrefix()[line] + idx;
 	}
 
 	/** Visual offset of the cursor within its current soft-wrap segment. */
@@ -209,16 +280,20 @@ export class Document {
 
 	setLine(i: number, text: string): void {
 		this._lines[i] = new TextLine(text);
+		this.invalidateIndex();
 	}
 
 	/** Insert a line at index `i` (0 <= i <= lineCount), shifting the rest down. */
 	insertLineAt(i: number, text: string): void {
 		this._lines.splice(i, 0, new TextLine(text));
+		this.invalidateIndex();
 	}
 
 	/** Remove line `i` and return its text. */
 	removeLineAt(i: number): string {
-		return this._lines.splice(i, 1)[0].text;
+		const removed = this._lines.splice(i, 1)[0].text;
+		this.invalidateIndex();
+		return removed;
 	}
 
 	/** Set the cursor, clamping out-of-range values (line to `[0, lineCount-1]`, column to end of line). */

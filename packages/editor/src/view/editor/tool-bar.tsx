@@ -234,7 +234,7 @@ export function ToolBar({
 			}),
 			boundKeyboard(["return"], () => {
 				items[index].onClick();
-			}),
+			}, { mode: "normal" }),
 		];
 		return () => {
 			unbinds.forEach((unbind) => unbind());
