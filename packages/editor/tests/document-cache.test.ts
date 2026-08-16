@@ -94,12 +94,16 @@ describe("Document visual index cache", () => {
 		// Warm-up: the first query builds the segment cache and the prefix.
 		expect(doc.visualLineAt(doc.visualLineCount - 1)).not.toBeNull();
 
+		// Sink for the queried values: makes the reads observable (and the
+		// statements lint-clean) without asserting anything about the values.
+		let sink = 0;
+
 		// 50 render-path query rounds against the cache...
 		const t0 = performance.now();
 		for (let i = 0; i < 50; i++) {
 			doc.visualLineAt(doc.visualLineCount - 1);
-			doc.cursorVisualLine;
-			doc.visualLineCount;
+			sink += doc.cursorVisualLine;
+			sink += doc.visualLineCount;
 		}
 		const cachedMs = performance.now() - t0;
 
@@ -107,9 +111,12 @@ describe("Document visual index cache", () => {
 		doc.setWrapWidth(41);
 		const t1 = performance.now();
 		doc.visualLineAt(doc.visualLineCount - 1);
-		doc.cursorVisualLine;
-		doc.visualLineCount;
+		sink += doc.cursorVisualLine;
+		sink += doc.visualLineCount;
 		const rebuildMs = performance.now() - t1;
+
+		// Touch the sink once after timing so the reads cannot be dropped.
+		expect(sink).toBeGreaterThan(0);
 
 		expect(cachedMs).toBeLessThan(rebuildMs / 5);
 	});
