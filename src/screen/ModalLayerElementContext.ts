@@ -1,4 +1,4 @@
-import React, { createContext } from "react";
+import { createContext, ComponentType } from "react";
 import { ModalLayer } from "./types/layer.js";
 
 /**
@@ -17,9 +17,10 @@ export const ModalLayerElementContext = createContext<{
   /**
    * Host page of the current layer
    */
-  hostPage: React.ComponentType<any> | null;
+  hostPage: ComponentType<any> | null;
   /**
-   * Flag to automatically take over keyboard events
+   * Whether the modal layer automatically takes over keyboard events: `true`
+   * for the host page, or a list of pages scoping the takeover.
    */
-  auto: boolean;
+  auto: boolean | ComponentType<any>[];
 } | null>(null);

@@ -19,7 +19,8 @@ export const LayerElementContext = createContext<{
    */
   hostPage: React.ComponentType<any> | null;
   /**
-   * Flag to automatically take over keyboard events
+   * Whether the layer automatically takes over keyboard events: `true` for
+   * the host page, or a list of pages scoping the takeover.
    */
-  auto: boolean;
+  auto: boolean | React.ComponentType<any>[];
 } | null>(null);

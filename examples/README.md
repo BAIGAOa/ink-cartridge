@@ -38,6 +38,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | shortcut-actions | defineShortcutAction, add/remove/modify, rebindable controls | `npx tsx examples/core/shortcut-actions.demo.tsx` |
 | wildcard | enableWildcardPriority + * binding for text capture mode | `npx tsx examples/core/wildcard.demo.tsx` |
 | layer-system | Layer A/B z-index order, layer broadcast, bubbling, penetration, stop, modal barrier | `npx tsx examples/layer-system/LayerSystem.demo.tsx` |
+| takeover-scope | `automaticTakeoverKeyboard` with a page list (array): layer bindings go dormant only on listed pages and stay active elsewhere | `npx tsx examples/core/takeover-scope.demo.tsx` |
 
 ## Mouse demos
 
