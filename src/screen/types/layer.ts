@@ -29,17 +29,26 @@ export type Layer = {
   createdAt: number;
 
   /**
-   * Whether the layer automatically takes over keyboard events.
-   * When enabled, the layer's keyboard bindings are active only while its
-   * host page is the current page; navigating away pops the keyboard owner
-   * and returning to the host page pushes it again. Typically used together
-   * with `crossPage` so a persistent layer does not intercept keys on other pages.
+   * Whether the layer automatically takes over keyboard events, and the
+   * scope of that takeover.
+   *
+   * - `false` (default): no takeover — the bindings stay active on every page.
+   * - `true`: the bindings are active only while the layer's host page is the
+   *   current page; navigating away pops the keyboard owner and returning to
+   *   the host page pushes it again.
+   * - `ComponentType<any>[]`: scopes the takeover to the listed pages. While
+   *   the current page is one of them, the keyboard owner is popped and the
+   *   bindings go dormant; on any other page they stay active.
+   *
+   * Typically used together with `crossPage` so a persistent layer does not
+   * intercept keys on other pages.
    */
-  automaticTakeoverKeyboard: boolean;
+  automaticTakeoverKeyboard: boolean | ComponentType<any>[];
   /**
    * The screen that was current in the navigation path when the layer opened.
-   * Used with `automaticTakeoverKeyboard` to decide whether the layer's
-   * keyboard bindings stay dormant while its host page is not active.
+   * With `automaticTakeoverKeyboard: true`, the bindings stay dormant while
+   * this page is not the current one; an array scopes the takeover by listed
+   * pages instead.
    */
   hostPage: React.ComponentType<any> | null;
 };
@@ -55,13 +64,21 @@ export type LayerOptions = {
   crossPage?: boolean;
 
   /**
-   * Whether the layer automatically takes over keyboard events.
-   * When enabled, the layer's keyboard bindings are active only while its
-   * host page is the current page; navigating away pops the keyboard owner
-   * and returning to the host page pushes it again. Typically used together
-   * with `crossPage` so a persistent layer does not intercept keys on other pages.
+   * Whether the layer automatically takes over keyboard events, and the
+   * scope of that takeover.
+   *
+   * - `false` (default): no takeover — the bindings stay active on every page.
+   * - `true`: the bindings are active only while the layer's host page is the
+   *   current page; navigating away pops the keyboard owner and returning to
+   *   the host page pushes it again.
+   * - `ComponentType<any>[]`: scopes the takeover to the listed pages. While
+   *   the current page is one of them, the keyboard owner is popped and the
+   *   bindings go dormant; on any other page they stay active.
+   *
+   * Typically used together with `crossPage` so a persistent layer does not
+   * intercept keys on other pages.
    */
-  automaticTakeoverKeyboard?: boolean;
+  automaticTakeoverKeyboard?: boolean | ComponentType<any>[];
 };
 
 /**
@@ -85,6 +102,7 @@ export type OpenLayerAction = {
    * Additional configuration options for this layer:
    * Properties include:
    * 1. crossPage: boolean[default: false]; (allows the layer to persist across pages rather than being automatically cleared)
+   * 2. automaticTakeoverKeyboard: boolean | ComponentType<any>[] [default: false]; (see {@link LayerOptions.automaticTakeoverKeyboard})
    */
   options?: LayerOptions;
 };
@@ -257,18 +275,26 @@ export type ModalLayer = {
   createdAt: number;
 
   /**
-   * Whether the modal layer automatically takes over keyboard events.
-   * When enabled, the layer's keyboard bindings are active only while its
-   * host page is the current page; navigating away pops the keyboard owner
-   * and returning to the host page pushes it again. Typically used together
-   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
+   * Whether the modal layer automatically takes over keyboard events, and
+   * the scope of that takeover.
+   *
+   * - `false` (default): no takeover — the bindings stay active on every page.
+   * - `true`: the bindings are active only while the modal layer's host page
+   *   is the current page; navigating away pops the keyboard owner and
+   *   returning to the host page pushes it again.
+   * - `ComponentType<any>[]`: scopes the takeover to the listed pages. While
+   *   the current page is one of them, the keyboard owner is popped and the
+   *   bindings go dormant; on any other page they stay active.
+   *
+   * Typically used together with `crossPage` so a persistent modal layer does
+   * not intercept keys on other pages.
    */
-  automaticTakeoverKeyboard: boolean;
+  automaticTakeoverKeyboard: boolean | ComponentType<any>[];
   /**
    * The screen that was current in the navigation path when the modal layer
-   * opened. Used with `automaticTakeoverKeyboard` to decide whether the
-   * modal layer's keyboard bindings stay dormant while its host page is
-   * not active.
+   * opened. With `automaticTakeoverKeyboard: true`, the bindings stay dormant
+   * while this page is not the current one; an array scopes the takeover by
+   * listed pages instead.
    */
   hostPage: React.ComponentType<any> | null;
 };
@@ -284,13 +310,21 @@ export type ModalLayerOptions = {
   crossPage?: boolean;
 
   /**
-   * Whether the modal layer automatically takes over keyboard events.
-   * When enabled, the layer's keyboard bindings are active only while its
-   * host page is the current page; navigating away pops the keyboard owner
-   * and returning to the host page pushes it again. Typically used together
-   * with `crossPage` so a persistent modal layer does not intercept keys on other pages.
+   * Whether the modal layer automatically takes over keyboard events, and
+   * the scope of that takeover.
+   *
+   * - `false` (default): no takeover — the bindings stay active on every page.
+   * - `true`: the bindings are active only while the modal layer's host page
+   *   is the current page; navigating away pops the keyboard owner and
+   *   returning to the host page pushes it again.
+   * - `ComponentType<any>[]`: scopes the takeover to the listed pages. While
+   *   the current page is one of them, the keyboard owner is popped and the
+   *   bindings go dormant; on any other page they stay active.
+   *
+   * Typically used together with `crossPage` so a persistent modal layer does
+   * not intercept keys on other pages.
    */
-  automaticTakeoverKeyboard?: boolean;
+  automaticTakeoverKeyboard?: boolean | ComponentType<any>[];
 };
 
 /**
@@ -315,6 +349,7 @@ export type OpenModalLayerAction = {
    * Additional configuration options for this layer:
    * Properties include:
    * 1. crossPage: boolean[default: false]; (allows the layer to persist across pages rather than being automatically cleared)
+   * 2. automaticTakeoverKeyboard: boolean | ComponentType<any>[] [default: false]; (see {@link ModalLayerOptions.automaticTakeoverKeyboard})
    */
   options?: ModalLayerOptions;
 };

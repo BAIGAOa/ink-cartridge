@@ -32,28 +32,55 @@ function toKeyboardLayerState(
   currentPath?: React.ComponentType<any>[],
 ): KeyboardLayer[] {
   return layers.map((layer) => {
-    const hostPage = (layer as any).hostPage as React.ComponentType<any> | undefined;
-    const auto = (layer as any).automaticTakeoverKeyboard as boolean | undefined;
-    // When auto takeover is enabled and we're not on the host page,
-    // exclude all elements from activeElements so the layer's bindings
-    // are dormant until returning to the host page.
-    const awayFromHost =
-      auto &&
-      hostPage &&
-      currentPath &&
-      currentPath.length > 0 &&
-      currentPath[currentPath.length - 1] !== hostPage;
+    const currentPage =
+      currentPath && currentPath.length > 0
+        ? currentPath[currentPath.length - 1]
+        : undefined;
+
+    const activeElements: string[] = [];
+    if (!isLayerDormant(layer, currentPage)) {
+      for (const [id, element] of layer.elements) {
+        if (element.active !== false) {
+          activeElements.push(id);
+        }
+      }
+    }
 
     return {
       layerId: layer.layerId,
       elements: Array.from(layer.elements.keys()),
-      activeElements: awayFromHost
-        ? []
-        : Array.from(layer.elements.entries())
-            .filter(([, element]) => element.active !== false)
-            .map(([id]) => id),
+      activeElements,
     };
   });
+}
+
+/**
+ * Whether the layer's keyboard bindings stay dormant on the current page.
+ *
+ * - `ComponentType<any>[]`: dormant while the current page is listed — the
+ *   list wins even when it contains the host page.
+ * - `true`: dormant on every page except the host page.
+ * - `false`: never dormant.
+ */
+function isLayerDormant(
+  layer: Layer | ModalLayer,
+  currentPage: React.ComponentType<any> | undefined,
+): boolean {
+  const auto = layer.automaticTakeoverKeyboard;
+
+  if (Array.isArray(auto)) {
+    return currentPage !== undefined && auto.includes(currentPage);
+  }
+
+  if (auto === true) {
+    return (
+      layer.hostPage !== null &&
+      currentPage !== undefined &&
+      currentPage !== layer.hostPage
+    );
+  }
+
+  return false;
 }
 
 /** Props for the keyboard provider. */

@@ -107,6 +107,43 @@ function Main() {
         element: ModalEl,
       });
     });
+    const openScopedLayer = boundKeyboard(['q'], () => {
+      openLayer('scoped-layer', 10, {
+        crossPage: true,
+        automaticTakeoverKeyboard: [Combat],
+      });
+      applyElement('scoped-layer', { elementId: 'scoped-el', element: LayerEl });
+    });
+    const openMultiScopedLayer = boundKeyboard(['e'], () => {
+      openLayer('multi-scoped-layer', 10, {
+        crossPage: true,
+        automaticTakeoverKeyboard: [Game, Combat],
+      });
+      applyElement('multi-scoped-layer', {
+        elementId: 'multi-scoped-el',
+        element: LayerEl,
+      });
+    });
+    const openHostScopedLayer = boundKeyboard(['w'], () => {
+      openLayer('host-scoped-layer', 10, {
+        crossPage: true,
+        automaticTakeoverKeyboard: [Main],
+      });
+      applyElement('host-scoped-layer', {
+        elementId: 'host-scoped-el',
+        element: LayerEl,
+      });
+    });
+    const openScopedModal = boundKeyboard(['r'], () => {
+      openModalLayer('scoped-modal', 100, {
+        crossPage: true,
+        automaticTakeoverKeyboard: [Game],
+      });
+      applyElementToModalLayer('scoped-modal', {
+        elementId: 'scoped-modal-el',
+        element: ModalEl,
+      });
+    });
     const toGame = boundKeyboard(['s'], () => skip(Game, {}));
     const toGameViaGoto = boundKeyboard(['g'], () => gotoScreen(Game, {}));
     const pageZ = boundKeyboard(['z'], () => handlers.pageZMain());
@@ -116,6 +153,10 @@ function Main() {
       openCrossLayer();
       openPlainLayer();
       openSmartModal();
+      openScopedLayer();
+      openMultiScopedLayer();
+      openHostScopedLayer();
+      openScopedModal();
       toGame();
       toGameViaGoto();
       pageZ();
@@ -389,6 +430,145 @@ describe('smart persistent layer', () => {
       expect(handlers.layerZ).toHaveBeenCalledTimes(2);
     });
 
+    it('stays active on unlisted pages and goes dormant only on listed ones', async () => {
+      const { stdin, lastFrame } = renderApp();
+      await flush();
+
+      await pressKey(stdin, 'q');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await pressKey(stdin, 's');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(2);
+      expect(handlers.pageZGame).not.toHaveBeenCalled();
+
+      await pressKey(stdin, 'k');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZCombat).toHaveBeenCalledTimes(1);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(2);
+      expect(lastFrame()).toContain('LayerEl');
+
+      await pressKey(stdin, 'b');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(3);
+    });
+
+    it('goes dormant on every listed page and revives only on unlisted ones', async () => {
+      const { stdin } = renderApp();
+      await flush();
+
+      await pressKey(stdin, 'e');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await pressKey(stdin, 's');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZGame).toHaveBeenCalledTimes(1);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await pressKey(stdin, 'k');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZCombat).toHaveBeenCalledTimes(1);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await pressKey(stdin, 'b');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZGame).toHaveBeenCalledTimes(2);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await pressKey(stdin, 'b');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(2);
+    });
+
+    it('listing the host page keeps the keyboard dormant there and active elsewhere', async () => {
+      const { stdin } = renderApp();
+      await flush();
+
+      await pressKey(stdin, 'w');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZMain).toHaveBeenCalledTimes(1);
+      expect(handlers.layerZ).not.toHaveBeenCalled();
+
+      await pressKey(stdin, 's');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+      expect(handlers.pageZGame).not.toHaveBeenCalled();
+
+      await pressKey(stdin, 'b');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZMain).toHaveBeenCalledTimes(2);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+    });
+
+    it('respects the listed pages across gotoScreen jumps', async () => {
+      const { stdin } = renderApp();
+      await flush();
+
+      await pressKey(stdin, 'q');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        moduleGotoScreen(Combat, {});
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.pageZCombat).toHaveBeenCalledTimes(1);
+      expect(handlers.layerZ).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        moduleGotoScreen(Main, {});
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.layerZ).toHaveBeenCalledTimes(2);
+    });
+
     it('removes non-crossPage layers on skip', async () => {
       const { stdin, lastFrame } = renderApp();
       await flush();
@@ -479,6 +659,64 @@ describe('smart persistent layer', () => {
       await flush();
 
       expect(handlers.modalZ).toHaveBeenCalledTimes(2);
+    });
+
+    it('blocks keys on the listed page and stays active elsewhere', async () => {
+      const { stdin } = renderApp();
+      await flush();
+
+      await pressKey(stdin, 'r');
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.modalZ).toHaveBeenCalledTimes(1);
+      expect(handlers.pageZMain).not.toHaveBeenCalled();
+
+      await act(async () => {
+        moduleSkip(Game, {});
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+      await pressKey(stdin, 't');
+      await flush();
+
+      expect(handlers.modalZ).toHaveBeenCalledTimes(1);
+      expect(handlers.pageZGame).not.toHaveBeenCalled();
+      expect(handlers.pageTGame).not.toHaveBeenCalled();
+
+      await act(async () => {
+        moduleSkip(Combat, {});
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.modalZ).toHaveBeenCalledTimes(2);
+      expect(handlers.pageZCombat).not.toHaveBeenCalled();
+
+      await act(async () => {
+        moduleBack();
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+      await pressKey(stdin, 't');
+      await flush();
+
+      expect(handlers.modalZ).toHaveBeenCalledTimes(2);
+      expect(handlers.pageZGame).not.toHaveBeenCalled();
+      expect(handlers.pageTGame).not.toHaveBeenCalled();
+
+      await act(async () => {
+        moduleBack();
+      });
+      await flush();
+      await pressKey(stdin, 'z');
+      await flush();
+
+      expect(handlers.modalZ).toHaveBeenCalledTimes(3);
     });
 
     it('removes non-crossPage modal layers on back', async () => {
