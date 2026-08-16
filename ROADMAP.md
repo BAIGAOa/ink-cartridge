@@ -1,5 +1,8 @@
 # Features currently being implemented or planned
 
+## 5.2.0
+- [ ] The mouse and keyboard interact with each other; the mouse can affect the keyboard's active focus.
+
 ## 5.1.0
 - [x] Supports basic mouse events, allows listening for events such as scrolling, clicking, and dragging, and provides key information.
 
