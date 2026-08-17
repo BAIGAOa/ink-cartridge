@@ -29,14 +29,14 @@ describe('back', () => {
     act(() => {
       ctx.skip(GameLevel, { level: 1 });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
 
     act(() => {
       ctx.back();
     });
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 
   it('returns from a grandchild to its parent', () => {
@@ -49,26 +49,26 @@ describe('back', () => {
     act(() => {
       ctx.skip(Combat, { enemy: 'goblin' });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel, Combat]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel, Combat]);
 
     act(() => {
       ctx.back();
     });
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu, GameLevel]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
   });
 
   it('does nothing when called at the root node', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
-    expect(ctx.currentPath).toEqual([Menu]);
+    expect(ctx.currentPath.map((p) => p.component)).toEqual([Menu]);
 
     // back at the root is rejected by the reducer; the path must not change.
     ctx.back();
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 
   it('works at module level the same as the hook version', () => {
@@ -78,13 +78,13 @@ describe('back', () => {
     act(() => {
       ctx.skip(GameLevel, { level: 1 });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
 
     act(() => {
       back();
     });
 
-    expect(getCapture()!.currentPath).toEqual([Menu]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 
   it('back(2) goes back two levels at once', () => {
@@ -97,13 +97,13 @@ describe('back', () => {
     act(() => {
       ctx.skip(Combat, { enemy: 'goblin' });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel, Combat]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel, Combat]);
 
     act(() => {
       ctx.back(2);
     });
 
-    expect(getCapture()!.currentPath).toEqual([Menu]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 
   it('back(1) is equivalent to back() with no arguments', () => {
@@ -116,13 +116,13 @@ describe('back', () => {
     act(() => {
       ctx.skip(Combat, { enemy: 'goblin' });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel, Combat]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel, Combat]);
 
     act(() => {
       ctx.back(1);
     });
 
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
   });
 
   it('throws when back(0) is called (levels must be >= 1)', () => {
@@ -144,13 +144,13 @@ describe('back', () => {
     act(() => {
       ctx.skip(GameLevel, { level: 1 });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
 
     // back(5) exceeds depth of 2 — the reducer rejects this; path must not change.
     ctx.back(5);
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu, GameLevel]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
   });
 
   it('clears all open overlays when navigating via back', () => {

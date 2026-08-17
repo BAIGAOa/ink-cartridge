@@ -1,5 +1,6 @@
 import { createContext, ComponentType } from "react";
 import { ModalLayer } from "./types/layer.js";
+import { RegionFocusMap } from "./types/region-focus.js";
 
 /**
  * React context for elements rendered inside a modal layer.
@@ -24,5 +25,9 @@ export const ModalLayerElementContext = createContext<{
    */
   auto: boolean | ComponentType<any>[];
 
-  regionFocus: Map<string, boolean>;
+  /**
+   * Map of mouse-region refs inside this modal layer to the keyboard focus
+   * each drives. Persisted on the owning modal layer object.
+   */
+  regionFocus: RegionFocusMap;
 } | null>(null);

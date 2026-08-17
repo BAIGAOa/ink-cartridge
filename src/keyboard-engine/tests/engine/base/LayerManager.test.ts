@@ -135,12 +135,12 @@ describe("LayerManager focus", () => {
     expect(engine.focusCurrent().result?.id).toBe("two");
   });
 
-  it("throws for unknown groups and targets", () => {
+  it("handles unknown groups and targets", () => {
     const engine = createEngine();
     engine.sync({ pagePath: [Root], layers: [], modalLayers: [] });
     engine.boundKeyboard(["a"], () => {}, { focusId: "one" });
     expect(() => engine.focusSet("missing")).toThrow();
-    expect(() => engine.focusCurrent("missing-group")).toThrow();
+    expect(engine.focusCurrent("missing-group")).toEqual({ noFound: true });
     expect(() => engine.focusNext("missing-group")).toThrow();
     expect(() => engine.focusPrev("missing-group")).toThrow();
     expect(() => engine.focusUnregister("missing-group")).not.toThrow();

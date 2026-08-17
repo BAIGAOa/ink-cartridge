@@ -1,6 +1,7 @@
 import { LayerElement } from "./element.js";
 import { LayerElementInput } from "./element.js";
 import { ComponentType } from "react";
+import { RegionFocusMap } from "./region-focus.js";
 
 /**
  * State shape of a normal (non-modal) layer.
@@ -51,6 +52,12 @@ export type Layer = {
    * pages instead.
    */
   hostPage: React.ComponentType<any> | null;
+  /**
+   * Map of mouse-region refs inside this layer to the keyboard focus each
+   * drives. Persisted on the layer object so it survives re-renders of
+   * `CurrentScreen`.
+   */
+  regionFocus: RegionFocusMap;
 };
 
 /**
@@ -297,6 +304,12 @@ export type ModalLayer = {
    * listed pages instead.
    */
   hostPage: React.ComponentType<any> | null;
+  /**
+   * Map of mouse-region refs inside this modal layer to the keyboard focus
+   * each drives. Persisted on the modal layer object so it survives
+   * re-renders of `CurrentScreen`.
+   */
+  regionFocus: RegionFocusMap;
 };
 
 /**

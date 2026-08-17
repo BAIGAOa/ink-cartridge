@@ -63,7 +63,7 @@ describe('ScenarioManagementProvider default screen', () => {
 
   it('initializes currentPath to [defaultScreen]', () => {
     const { getCapture } = renderWithCapture(Menu);
-    expect(getCapture()!.currentPath).toEqual([Menu]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 
   it('uses template defaults when skipping to a child with empty params', () => {

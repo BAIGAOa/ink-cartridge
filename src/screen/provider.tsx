@@ -658,6 +658,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				automaticTakeoverKeyboard:
 					action.options?.automaticTakeoverKeyboard ?? false,
 				hostPage: getPath(state.path)[state.path.length - 1] ?? null,
+				regionFocus: new Map(),
 			};
 
 			const newLayers = sortLayers([...state.allLayers, newLayer]);
@@ -875,6 +876,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				automaticTakeoverKeyboard:
 					action.options?.automaticTakeoverKeyboard ?? false,
 				hostPage: getPath(state.path)[state.path.length - 1] ?? null,
+				regionFocus: new Map(),
 			};
 
 			const newModalLayers = sortLayers([

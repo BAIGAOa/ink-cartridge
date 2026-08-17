@@ -1,23 +1,153 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
-import { measureElement, useBoxMetrics, useWindowSize, type DOMElement } from "ink";
-import { KeyboardContext, KeyboardContextValue } from "./context.js";
+import {
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
+import {
+  measureElement,
+  useBoxMetrics,
+  useWindowSize,
+  type DOMElement,
+} from "ink";
+import {
+  KeyboardContext,
+  KeyboardContextValue,
+  type BoundKeyboardReactOptions,
+} from "./context.js";
 import { LayerElementContext } from "../screen/LayerElementContext.js";
 import { ModalLayerElementContext } from "../screen/ModalLayerElementContext.js";
 import type {
+  RegionFocusEntry,
+  RegionFocusMap,
+} from "../screen/types/region-focus.js";
+import type {
   AllowModalOptions,
-  BoundKeyboardOptions,
   KeyHandler,
   ModalMissCallback,
   ModalMissOptions,
   PenetrationOptions,
   SequenceOptions,
   StopOptions,
+  FocusRef,
   FocusSetOptions,
   MouseRegionCallbacks,
   MouseRegionRect,
 } from "@cartridge-engine/keyboard-engine";
 import { ROOT_MOUSE_LAYER_ID } from "@cartridge-engine/keyboard-engine";
-import { ScreenSystemContext } from "../screen/context.js";
+import {
+  ScreenSystemContext,
+  type ScreenSystemContextValue,
+} from "../screen/context.js";
+
+/** Per-map reference counts, so a ref shared by several bindings is only
+ *  removed when the last binding releases it. */
+const regionFocusRefCounts = new WeakMap<
+  RegionFocusMap,
+  Map<RefObject<DOMElement | null>, number>
+>();
+
+/**
+ * Resolve the regionFocus map that owns the current scope. Priority mirrors
+ * keyboard ownership: a layer element beats a modal element, which beats the
+ * current page root.
+ */
+function resolveRegionFocusMap(
+  layerCtx: { regionFocus: RegionFocusMap } | null,
+  modalCtx: { regionFocus: RegionFocusMap } | null,
+  screenCtx: ScreenSystemContextValue | null,
+): RegionFocusMap | undefined {
+  if (layerCtx) return layerCtx.regionFocus;
+  if (modalCtx) return modalCtx.regionFocus;
+  const topPage = screenCtx?.currentPath[screenCtx.currentPath.length - 1];
+  return topPage?.regionFocus;
+}
+
+/**
+ * Register a mouse-driven focus target in the regionFocus map that owns the
+ * current scope. Priority mirrors keyboard ownership: a layer element beats
+ * a modal element, which beats the current page root.
+ *
+ * A missing ref or focusId is a no-op. Re-registering the same ref keeps the
+ * existing `focused` state (e.g. a hover that already flipped it to `true`)
+ * while refreshing the `focusId` — so a re-bound element never resets to
+ * unfocused.
+ *
+ * @returns A release function that decrements the ref's registration count
+ *          and removes the entry once the last registration is released.
+ *          Returns `undefined` when nothing was registered.
+ */
+function registerRegionFocus(
+  layerCtx: { regionFocus: RegionFocusMap } | null,
+  modalCtx: { regionFocus: RegionFocusMap } | null,
+  screenCtx: ScreenSystemContextValue | null,
+  ref: RefObject<DOMElement | null> | undefined,
+  focusId: string | FocusRef | undefined,
+): (() => void) | undefined {
+  if (!ref || !focusId) return undefined;
+  const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
+  if (!map) return undefined;
+
+  const existing = map.get(ref);
+  map.set(ref, { focusId, focused: existing?.focused ?? false });
+
+  let counts = regionFocusRefCounts.get(map);
+  if (!counts) {
+    counts = new Map();
+    regionFocusRefCounts.set(map, counts);
+  }
+  counts.set(ref, (counts.get(ref) ?? 0) + 1);
+
+  return () => {
+    const count = counts.get(ref) ?? 0;
+    if (count <= 1) {
+      map.delete(ref);
+      counts.delete(ref);
+      if (counts.size === 0) regionFocusRefCounts.delete(map);
+    } else {
+      counts.set(ref, count - 1);
+    }
+  };
+}
+
+/**
+ * Forward keyboard focus to the focusId recorded for a regionFocus entry.
+ * A plain string targets the default focus group; a {@link FocusRef} targets
+ * a named group. Missing ctx or entry is a no-op.
+ */
+function applyRegionFocus(
+  ctx: KeyboardContextValue | null,
+  entry: RegionFocusEntry | undefined,
+): void {
+  if (!ctx || !entry) return;
+  if (typeof entry.focusId === "string") {
+    ctx.focusSet(entry.focusId);
+  } else {
+    ctx.focusSet(entry.focusId.focusId, entry.focusId.group);
+  }
+}
+
+/**
+ * Compose the engine's binding unbind with the regionFocus release so a
+ * single call cleans up both. Guarded so it stays idempotent — the engine
+ * unbind is safe to call repeatedly, and the regionFocus counter must not be
+ * decremented twice for one binding.
+ */
+function composeUnbind(
+  removeRegionFocus: (() => void) | undefined,
+  unbind: () => void,
+): () => void {
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    removeRegionFocus?.();
+    unbind();
+  };
+}
 
 /**
  * Access the keyboard API from within a React component.
@@ -28,6 +158,12 @@ import { ScreenSystemContext } from "../screen/context.js";
  * layer even when it is not the top layer.
  *
  * Must be used inside a {@link KeyboardProvider}.
+ *
+ * When `boundKeyboard` is given both a `ref` (the element also registered via
+ * {@link useMouseRegion}) and a `focusId`, the ref → focusId mapping is
+ * recorded so that clicking the region forwards keyboard focus to that
+ * `focusId` — the mouse and the keyboard then converge on the same focus
+ * target. See {@link BoundKeyboardReactOptions}.
  *
  * @throws If no provider is found in the component tree.
  *
@@ -46,6 +182,22 @@ import { ScreenSystemContext } from "../screen/context.js";
  *   return <Text>Press Ctrl+S to save</Text>;
  * }
  * ```
+ *
+ * @example
+ * Tie a key to a clickable element: clicking the box or pressing its key both
+ * act on the same focus target.
+ * ```tsx
+ * function ClickableButton() {
+ *   const { boundKeyboard } = useKeyboard();
+ *   const ref = useMouseRegion({ onClick: doSomething });
+ *
+ *   useEffect(() => {
+ *     return boundKeyboard(['enter'], doSomething, { ref, focusId: 'save-btn' });
+ *   }, [boundKeyboard]);
+ *
+ *   return <Box ref={ref}>Save</Box>;
+ * }
+ * ```
  */
 export function useKeyboard(): KeyboardContextValue {
   const ctx = useContext(KeyboardContext);
@@ -62,6 +214,7 @@ export function useKeyboard(): KeyboardContextValue {
   const elementId = layerCtx?.id ?? modalCtx?.id;
   const { _pushOwner, _popOwner } = ctx;
   const ownerPushedRef = useRef(false);
+  const screenCtx = useContext(ScreenSystemContext);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -98,28 +251,56 @@ export function useKeyboard(): KeyboardContextValue {
 
     const boundKeyboard = ((
       keysOrActionId: string | string[],
-      handlerOrOptions: KeyHandler | string | BoundKeyboardOptions,
-      maybeOptions?: BoundKeyboardOptions,
+      handlerOrOptions: KeyHandler | string | BoundKeyboardReactOptions,
+      maybeOptions?: BoundKeyboardReactOptions,
     ) => {
       if (
         typeof keysOrActionId === "string" &&
         typeof handlerOrOptions !== "function" &&
         typeof handlerOrOptions !== "string"
       ) {
-        return ctx.boundKeyboard(keysOrActionId, withElement(handlerOrOptions));
+        const removeRegionFocus = registerRegionFocus(
+          layerCtx,
+          modalCtx,
+          screenCtx,
+          handlerOrOptions.ref,
+          handlerOrOptions.focusId,
+        );
+        const unbind = ctx.boundKeyboard(
+          keysOrActionId,
+          withElement(handlerOrOptions),
+        );
+        return composeUnbind(removeRegionFocus, unbind);
       }
       if (typeof handlerOrOptions === "string") {
-        return ctx.boundKeyboard(
+        const removeRegionFocus = registerRegionFocus(
+          layerCtx,
+          modalCtx,
+          screenCtx,
+          maybeOptions?.ref,
+          maybeOptions?.focusId,
+        );
+        const unbind = ctx.boundKeyboard(
           keysOrActionId,
           handlerOrOptions,
           withElement(maybeOptions),
         );
+        return composeUnbind(removeRegionFocus, unbind);
       }
-      return ctx.boundKeyboard(
+
+      const removeRegionFocus = registerRegionFocus(
+        layerCtx,
+        modalCtx,
+        screenCtx,
+        maybeOptions?.ref,
+        maybeOptions?.focusId,
+      );
+      const unbind = ctx.boundKeyboard(
         keysOrActionId,
         handlerOrOptions as KeyHandler,
         withElement(maybeOptions),
       );
+      return composeUnbind(removeRegionFocus, unbind);
     }) as KeyboardContextValue["boundKeyboard"];
 
     const boundSequence = ((
@@ -177,7 +358,7 @@ export function useKeyboard(): KeyboardContextValue {
       kickFocusGroup: (groupOrOptions?: string | FocusSetOptions) =>
         ctx.kickFocusGroup(withFocusOptions(groupOrOptions)),
     };
-  }, [ctx, elementId]);
+  }, [ctx, layerCtx, modalCtx, screenCtx, elementId]);
 
   return wrapped;
 }
@@ -334,6 +515,12 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  *
  * Must be used inside a {@link KeyboardProvider} with `mouse` enabled.
  *
+ * When a `boundKeyboard` call registers this same ref with a `focusId`
+ * (e.g. `boundKeyboard(['a'], fn, { ref, focusId })`), clicking the region
+ * forwards keyboard focus to that focusId before the user's own `onClick`
+ * runs — so a mouse click and a keyboard press converge on the same focus
+ * target, and the component can react via {@link useFocusState}.
+ *
  * @param callbacks - Region callbacks (kept fresh across renders).
  * @param options   - Optional `regionId` (defaults to an auto-generated
  *                    unique id — pass one to control identity, e.g. for
@@ -370,6 +557,7 @@ export function useMouseRegion(
   const ctx = useContext(KeyboardContext);
   const layerCtx = useContext(LayerElementContext);
   const modalCtx = useContext(ModalLayerElementContext);
+  const screenCtx = useContext(ScreenSystemContext);
   const ref = useRef<DOMElement | null>(null);
   const autoId = useId();
 
@@ -401,36 +589,18 @@ export function useMouseRegion(
   // per call site; callers pass `regionId` to control identity explicitly.
   const regionId = options?.regionId ?? `mouse:${autoId}`;
 
-  const screenCtx = useContext(ScreenSystemContext)
-
-  useEffect(() => {
-    if (layerCtx) {
-      layerCtx.regionFocus.set(regionId, false)
-    } else if (modalCtx) {
-      modalCtx.regionFocus.set(regionId, false)
-    } else {
-      if (screenCtx) {
-        const topPage = screenCtx.currentPath[screenCtx.currentPath.length - 1]
-        topPage.regionFocus.set(regionId, false)
-      }
-    }
-
-    return () => {
-      if (layerCtx && layerCtx.regionFocus.has(regionId)) {
-        layerCtx.regionFocus.delete(regionId)
-      } else if (modalCtx && modalCtx.regionFocus.has(regionId)) {
-        modalCtx.regionFocus.delete(regionId)
-      } else {
-        if (screenCtx) {
-          const topPage = screenCtx.currentPath[screenCtx.currentPath.length - 1]
-
-          if (topPage.regionFocus.has(regionId)) {
-            topPage.regionFocus.delete(regionId)
-          }
-        }
-      }
-    }
-  }, [layerCtx, modalCtx, screenCtx])
+  // On click, forward keyboard focus to the focusId that a boundKeyboard
+  // ({ ref, focusId }) registered for this same ref, then run the user's own
+  // handler. Only click participates for now — hover/drag forwarding is
+  // future work.
+  const regionCallbacks: MouseRegionCallbacks = {
+    ...callbacks,
+    onClick: (event, rect) => {
+      const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
+      applyRegionFocus(ctx, map?.get(ref));
+      callbacks.onClick?.(event, rect);
+    },
+  };
 
   // Register synchronously during render so the engine never holds a rect
   // from a previous frame: a resize re-renders this component (via
@@ -443,9 +613,9 @@ export function useMouseRegion(
   if (node && ctx) {
     ctx.registerMouseRegion({
       layerId,
-      regionId,
+      regionId: regionId,
       rect: measureRegion(node),
-      callbacks,
+      callbacks: regionCallbacks,
       priority: options?.priority,
     });
   }
@@ -474,9 +644,9 @@ export function useMouseRegion(
       if (current && ctx) {
         ctx.registerMouseRegion({
           layerId,
-          regionId,
+          regionId: regionId,
           rect: measureRegion(current),
-          callbacks,
+          callbacks: regionCallbacks,
           priority: options?.priority,
         });
       }

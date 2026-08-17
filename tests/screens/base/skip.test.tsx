@@ -25,14 +25,14 @@ describe('skip', () => {
   it('navigates to a child component, extending the path and passing props', () => {
     const { getCapture } = renderWithCapture(Menu);
     const ctx = getCapture()!;
-    expect(ctx.currentPath).toEqual([Menu]);
+    expect(ctx.currentPath.map((p) => p.component)).toEqual([Menu]);
 
     act(() => {
       ctx.skip(GameLevel, { level: 2 });
     });
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu, GameLevel]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
   });
 
   it('navigates to a grandchild via two consecutive skips', () => {
@@ -47,7 +47,7 @@ describe('skip', () => {
     });
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu, GameLevel, Combat]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel, Combat]);
   });
 
   it('rejects navigation to a non-child component, leaving the path unchanged', () => {
@@ -61,7 +61,7 @@ describe('skip', () => {
 
     const updated = getCapture()!;
     expect(updated.currentPath).toEqual(pathBefore);
-    expect(updated.currentPath).not.toContain(Combat);
+    expect(updated.currentPath.map((p) => p.component)).not.toContain(Combat);
   });
 
   it('clears all open overlays when navigating via skip', () => {

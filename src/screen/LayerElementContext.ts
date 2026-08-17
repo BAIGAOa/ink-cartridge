@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import { Layer } from "./types/layer.js";
+import { RegionFocusMap } from "./types/region-focus.js";
 
 /**
  * React context for elements rendered inside a layer.
@@ -24,5 +25,9 @@ export const LayerElementContext = createContext<{
    */
   auto: boolean | React.ComponentType<any>[];
 
-  regionFocus: Map<string, boolean>;
+  /**
+   * Map of mouse-region refs inside this layer to the keyboard focus each
+   * drives. Persisted on the owning layer object.
+   */
+  regionFocus: RegionFocusMap;
 } | null>(null);

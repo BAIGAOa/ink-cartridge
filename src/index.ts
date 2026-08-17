@@ -53,6 +53,7 @@ export { normalizeKeyNames, isNormalCharacter } from "./keyboard/index.js";
 export type {
   KeyHandler,
   BoundKeyboardOptions,
+  BoundKeyboardReactOptions,
   BoundKeyEntry,
   ScreenKeyboardLayer,
   KeyboardProviderProps,
