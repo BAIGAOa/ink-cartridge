@@ -1,11 +1,12 @@
 import { Layer, ModalLayer } from "./layer.js";
+import { Page } from "./page.js";
 
 /**
  * Internal state of the screen management provider.
  */
 export interface ScreenState {
 	/** The full navigation path from the root component to the current screen. */
-	path: React.ComponentType<any>[];
+	path: Page[];
 	/** Parameters for each component along the path, in the same order. */
 	pathParams: Record<string, unknown>[];
 	/**

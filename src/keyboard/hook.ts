@@ -17,6 +17,7 @@ import type {
   MouseRegionRect,
 } from "@cartridge-engine/keyboard-engine";
 import { ROOT_MOUSE_LAYER_ID } from "@cartridge-engine/keyboard-engine";
+import { ScreenSystemContext } from "../screen/context.js";
 
 /**
  * Access the keyboard API from within a React component.
@@ -399,6 +400,37 @@ export function useMouseRegion(
   // later registration overwrites the earlier one). Default to a unique id
   // per call site; callers pass `regionId` to control identity explicitly.
   const regionId = options?.regionId ?? `mouse:${autoId}`;
+
+  const screenCtx = useContext(ScreenSystemContext)
+
+  useEffect(() => {
+    if (layerCtx) {
+      layerCtx.regionFocus.set(regionId, false)
+    } else if (modalCtx) {
+      modalCtx.regionFocus.set(regionId, false)
+    } else {
+      if (screenCtx) {
+        const topPage = screenCtx.currentPath[screenCtx.currentPath.length - 1]
+        topPage.regionFocus.set(regionId, false)
+      }
+    }
+
+    return () => {
+      if (layerCtx && layerCtx.regionFocus.has(regionId)) {
+        layerCtx.regionFocus.delete(regionId)
+      } else if (modalCtx && modalCtx.regionFocus.has(regionId)) {
+        modalCtx.regionFocus.delete(regionId)
+      } else {
+        if (screenCtx) {
+          const topPage = screenCtx.currentPath[screenCtx.currentPath.length - 1]
+
+          if (topPage.regionFocus.has(regionId)) {
+            topPage.regionFocus.delete(regionId)
+          }
+        }
+      }
+    }
+  }, [layerCtx, modalCtx, screenCtx])
 
   // Register synchronously during render so the engine never holds a rect
   // from a previous frame: a resize re-renders this component (via

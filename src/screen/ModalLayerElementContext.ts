@@ -23,4 +23,6 @@ export const ModalLayerElementContext = createContext<{
    * for the host page, or a list of pages scoping the takeover.
    */
   auto: boolean | ComponentType<any>[];
+
+  regionFocus: Map<string, boolean>;
 } | null>(null);

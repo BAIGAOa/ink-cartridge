@@ -22,6 +22,7 @@ import {
   OpenLayerFn,
   OpenModalLayerFn,
 } from './types/layer.js';
+import { Page } from './types/page.js';
 
 /**
  * Value provided by {@link ScenarioManagementProvider} via React context.
@@ -33,7 +34,7 @@ export interface ScreenSystemContextValue {
   /** The rendered React element for the current (top-of-stack) screen. */
   pageLayer: ReactNode;
   /** Full navigation path from root to the current screen. */
-  currentPath: React.ComponentType<any>[];
+  currentPath: Page[];
   /** All layers */
   allLayers: Layer[]
   /** All modal layers */

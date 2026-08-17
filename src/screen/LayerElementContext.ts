@@ -23,4 +23,6 @@ export const LayerElementContext = createContext<{
    * the host page, or a list of pages scoping the takeover.
    */
   auto: boolean | React.ComponentType<any>[];
+
+  regionFocus: Map<string, boolean>;
 } | null>(null);
