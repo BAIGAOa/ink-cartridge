@@ -184,6 +184,134 @@ describe("BindingService penetration/stop/allowModal/sequence", () => {
     engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
     expect(() => engine.boundSequence(["a"], () => {})).toThrow();
   });
+
+  it("binds explicit keys with an action id and fires the action", () => {
+    const engine = createEngine();
+    const handler = vi.fn();
+    engine.defineSequenceAction([
+      { sequenceActionId: "seq", action: handler, keys: ["a", "b"], timeout: 100 },
+    ]);
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    const unbind = engine.boundSequence(["x", "y"], "seq");
+    engine.processKey("x", {});
+    expect(engine.currentScreenHasSequenceWaiting()).toBe(true);
+    engine.processKey("y", {});
+    expect(handler).toHaveBeenCalledWith("y", {});
+    unbind();
+    engine.processKey("x", {});
+    engine.processKey("y", {});
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the explicit keys, ignoring the action's preset keys", () => {
+    const engine = createEngine();
+    const handler = vi.fn();
+    engine.defineSequenceAction([
+      { sequenceActionId: "seq", action: handler, keys: ["a", "b"] },
+    ]);
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    engine.boundSequence(["x", "y"], "seq");
+    engine.processKey("a", {});
+    engine.processKey("b", {});
+    expect(handler).not.toHaveBeenCalled();
+    engine.processKey("x", {});
+    engine.processKey("y", {});
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not require the action to have preset keys", () => {
+    const engine = createEngine();
+    const handler = vi.fn();
+    engine.defineSequenceAction([
+      { sequenceActionId: "no-keys", action: handler },
+    ]);
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    expect(() => engine.boundSequence(["x", "y"], "no-keys")).not.toThrow();
+    engine.processKey("x", {});
+    engine.processKey("y", {});
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when the action id is not registered", () => {
+    const engine = createEngine();
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    expect(() => engine.boundSequence(["x", "y"], "missing")).toThrow(
+      'Sequence action "missing" is not registered',
+    );
+  });
+
+  it("throws when explicit keys are fewer than 2", () => {
+    const engine = createEngine();
+    engine.defineSequenceAction([
+      { sequenceActionId: "seq", action: () => {}, keys: ["a", "b"] },
+    ]);
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    expect(() => engine.boundSequence(["a"], "seq")).toThrow();
+  });
+
+  it("merges the action's preset timeout as a default, overridable per call", () => {
+    vi.useFakeTimers();
+    try {
+      const engine = createEngine();
+      engine.defineSequenceAction([
+        { sequenceActionId: "seq", action: () => {}, keys: ["a", "b"], timeout: 100 },
+      ]);
+      engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+
+      engine.boundSequence(["x", "y"], "seq");
+      engine.processKey("x", {});
+      expect(engine.currentScreenHasSequenceWaiting()).toBe(true);
+      vi.advanceTimersByTime(100);
+      expect(engine.currentScreenHasSequenceWaiting()).toBe(false);
+
+      engine.boundSequence(["m", "n"], "seq", { timeout: 200 });
+      engine.processKey("m", {});
+      vi.advanceTimersByTime(100);
+      expect(engine.currentScreenHasSequenceWaiting()).toBe(true);
+      vi.advanceTimersByTime(100);
+      expect(engine.currentScreenHasSequenceWaiting()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects cover:false global sequence conflicts via action id", () => {
+    const engine = createEngine();
+    engine.defineSequenceAction([
+      { sequenceActionId: "seq", action: () => {}, keys: ["a", "b"] },
+    ]);
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    engine.globalSequence([
+      { keys: ["g", "h"], operate: () => {}, cover: false, category: [Page] },
+    ]);
+    expect(() => engine.boundSequence(["g", "h"], "seq")).toThrow();
+  });
+
+  it("creates and auto-activates the focus target of a focusId-scoped sequence", () => {
+    const engine = createEngine();
+    const handler = vi.fn();
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    engine.boundSequence(["x", "y"], handler, { focusId: "panel-alpha" });
+    expect(engine.focusCurrent().result?.id).toBe("panel-alpha");
+    expect(() => engine.focusSet("panel-alpha")).not.toThrow();
+    engine.processKey("x", {});
+    engine.processKey("y", {});
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts only the sequence of the currently focused target", () => {
+    const engine = createEngine();
+    const handlerA = vi.fn();
+    const handlerB = vi.fn();
+    engine.sync({ pagePath: [Page], layers: [], modalLayers: [] });
+    engine.boundSequence(["x", "y"], handlerA, { focusId: "a" });
+    engine.boundSequence(["x", "y"], handlerB, { focusId: "b" });
+    engine.focusSet("b");
+    engine.processKey("x", {});
+    engine.processKey("y", {});
+    expect(handlerA).not.toHaveBeenCalled();
+    expect(handlerB).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("OperationRegistry", () => {

@@ -1,9 +1,9 @@
 import { stripAnsi, flush, press } from './_helpers.js';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'ink-testing-library';
-import React, { useEffect } from 'react';
-import { Text } from 'ink';
-import { registerComponent, clearRegistry } from 'ink-cartridge';
+import React, { RefObject, useEffect } from 'react';
+import { DOMElement, Text } from 'ink';
+import { registerComponent, clearRegistry, RegionFocusEntry } from 'ink-cartridge';
 import { ScenarioManagementProvider } from 'ink-cartridge';
 import { CurrentScreen } from 'ink-cartridge';
 import { KeyboardProvider } from 'ink-cartridge';
@@ -12,6 +12,7 @@ import { useScreenSystem } from 'ink-cartridge';
 import { KeyboardContext } from 'ink-cartridge';
 import { ModalLayerElementContext } from 'ink-cartridge';
 import { ConfirmDialog } from '../../src/ConfirmDialog.js';
+import { FocusRef } from '@cartridge-engine/keyboard-engine';
 
 const KEYS = {
   enter: '\r',
@@ -100,12 +101,13 @@ function renderDialogDirect(props: {
     createdAt: 0,
     automaticTakeoverKeyboard: false,
     hostPage: null,
+    regionFocus: new Map<RefObject<DOMElement | null>, RegionFocusEntry>()
   };
 
   const { lastFrame, unmount } = render(
     <KeyboardContext.Provider value={mockKeyboard}>
       <ModalLayerElementContext.Provider
-        value={{ id: 'confirm-el', modalLayer, hostPage: null, auto: false }}
+        value={{ id: 'confirm-el', modalLayer, hostPage: null, auto: false, regionFocus: new Map<RefObject<DOMElement | null>, RegionFocusEntry>() }}
       >
         <ConfirmDialog {...props} />
       </ModalLayerElementContext.Provider>

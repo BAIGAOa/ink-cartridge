@@ -1254,9 +1254,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * condition id) is checked at each key press — if it returns `false`, the
    * pending sequence is cancelled.
    *
-   * Supports two calling conventions:
+   * Supports three calling conventions:
    * 1. `boundSequence(keys, handler, options?)` — explicit keys and callback
-   * 2. `boundSequence(actionId, options?)` — uses a registered sequence action's preset
+   * 2. `boundSequence(keys, actionId, options?)` — explicit keys, sequence
+   *    action by id (the action's callback is resolved at registration time)
+   * 3. `boundSequence(actionId, options?)` — uses the action's preset keys
    *
    * The sequence timeout defaults to 500 ms — the timer starts on the first
    * key and resets on each match. Unbinding while a sequence is pending does
@@ -1290,11 +1292,15 @@ export default class KeyboardEngine<TComponent = unknown> {
    *   timeout: 600,
    * }]);
    * engine.boundSequence('vim-goto-top');
+   *
+   * // Via sequence action with explicit keys (the action's callback is used;
+   * // the action's preset timeout acts as a default, overridable per call)
+   * engine.boundSequence(['ctrl+g', 'g'], 'vim-goto-top', { timeout: 800 });
    * ```
    */
   boundSequence(
     keysOrActionId: string[] | string,
-    handlerOrOptions?: KeyHandler | SequenceOptions,
+    handlerOrOptions?: KeyHandler | string | SequenceOptions,
     maybeOptions?: SequenceOptions,
   ): () => void {
     return this.bindings.boundSequence(

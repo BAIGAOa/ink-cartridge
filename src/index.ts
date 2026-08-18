@@ -44,6 +44,9 @@ export type {
   EraseElementInModalLayerFn,
   CloseAllModalLayerFn,
   LayerElement,
+  Page,
+  RegionFocusEntry,
+  RegionFocusMap,
 } from "./screen/index.js";
 
 // Keyboard System
@@ -71,7 +74,9 @@ export type {
   StopOptions,
   LayerKind,
   FocusTarget,
+  FocusRef,
   SequenceOptions,
+  SequenceReactOptions,
   ShortcutOperationEntry,
   SequenceOperationEntry,
   ModalMissEvent,

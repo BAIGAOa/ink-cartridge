@@ -57,3 +57,5 @@ export type {
   DeactivateElementInModalLayerAction,
 } from "./types/layer.js";
 export type { LayerElement, LayerElementInput } from "./types/element.js";
+export type { Page } from "./types/page.js";
+export type { RegionFocusEntry, RegionFocusMap } from "./types/region-focus.js";

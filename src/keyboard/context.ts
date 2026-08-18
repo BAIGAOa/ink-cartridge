@@ -51,6 +51,17 @@ export type BoundKeyboardReactOptions = BoundKeyboardOptions & {
 };
 
 /**
+ * React-side extension of {@link SequenceOptions}: an optional ref to a
+ * DOM element that doubles as a mouse region. When a `ref` and a `focusId`
+ * are both present, `useKeyboard().boundSequence` records the
+ * ref → focusId mapping so that clicking the region (via `useMouseRegion`)
+ * forwards keyboard focus to `focusId`.
+ */
+export type SequenceReactOptions = SequenceOptions & {
+  ref?: RefObject<DOMElement | null>;
+}
+
+/**
  * Value exposed by the keyboard system via React context.
  *
  * Exposes the {@link KeyboardEngine} API bound to the engine instance.
@@ -150,9 +161,14 @@ export interface KeyboardContextValue {
     (
       keys: string | string[],
       handler: KeyHandler,
-      options?: SequenceOptions,
+      options?: SequenceReactOptions,
     ): () => void;
-    (actionId: string, options?: SequenceOptions): () => void;
+    (
+      keys: string[],
+      actionId: string,
+      options?: SequenceReactOptions,
+    ): () => void;
+    (actionId: string, options?: SequenceReactOptions): () => void;
   };
 
   enableWildcardPriority: () => () => void;

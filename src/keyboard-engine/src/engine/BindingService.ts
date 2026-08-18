@@ -171,7 +171,7 @@ export default class BindingService<TComponent = unknown> {
       typeof handlerOrOptions !== "string"
     ) {
       const actionId = keysOrActionId;
-      const options = handlerOrOptions as BoundKeyboardOptions;
+      const options = handlerOrOptions;
       const entry = this.state.shortcutOperationsRef.get(actionId);
       if (!entry) {
         throw new Error(
@@ -382,9 +382,30 @@ export default class BindingService<TComponent = unknown> {
 
   boundSequence(
     keysOrActionId: string[] | string,
-    handlerOrOptions?: KeyHandler | SequenceOptions,
+    handlerOrOptions?: KeyHandler | string | SequenceOptions,
     maybeOptions?: SequenceOptions,
   ): () => void {
+    if (typeof keysOrActionId !== "string" && typeof handlerOrOptions === "string") {
+      const actionId = handlerOrOptions
+      const options = maybeOptions
+      const entry = this.state.sequenceOperationsRef.get(actionId)
+      if (!entry) {
+        throw new Error(
+          `[keyboard-engine] boundSequence(${JSON.stringify(keysOrActionId)}, ${actionId}, ${options ? JSON.stringify(options) : "undefined"}): Sequence action "${actionId}" is not registered.`,
+        );
+      }
+
+      const mergedOptions: SequenceOptions = {
+        ...(entry.timeout === undefined ? {} : { timeout: entry.timeout }),
+        ...options
+      }
+
+      // Because this overload branch does not depend on the preset keys of the action, 
+      // we do not need to check whether their preset keys exist or their lengths.
+
+      return this.boundSequence(keysOrActionId, entry.action, mergedOptions)
+    }
+
     if (
       typeof keysOrActionId === "string" &&
       (typeof handlerOrOptions === "undefined" ||
@@ -395,7 +416,7 @@ export default class BindingService<TComponent = unknown> {
       const entry = this.state.sequenceOperationsRef.get(actionId);
       if (!entry) {
         throw new Error(
-          `[keyboard-engine] Sequence action "${actionId}" is not registered.`,
+          `[keyboard-engine] boundSequence(${JSON.stringify(keysOrActionId)}, ${actionId}, ${options ? JSON.stringify(options) : "undefined"}): Sequence action "${actionId}" is not registered.`,
         );
       }
       if (!entry.keys || entry.keys.length === 0) {
@@ -453,6 +474,20 @@ export default class BindingService<TComponent = unknown> {
     }
 
     const layer = this.getKeyboardInCurrentContext(owner, options?.elementId);
+
+    // A focusId on a sequence binding must create the focus target (and
+    // auto-activate it when it is the layer's first) — otherwise the
+    // sequence's focus filtering never matches: currentFocusIds stays empty
+    // and focusSet/focusCurrent cannot resolve the id. boundKeyboard already
+    // does this via getOrCreateFocusTarget; sequences only referenced the id.
+    if (options?.focusId) {
+      const fid = options.focusId;
+      if (typeof fid === "string") {
+        this.layers.getOrCreateFocusTarget(layer, fid);
+      } else {
+        this.layers.getOrCreateFocusTarget(layer, fid.focusId, fid.group);
+      }
+    }
 
     let binding: BaseSequenceBinding | PageSequenceBinding;
 

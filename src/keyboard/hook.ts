@@ -16,6 +16,7 @@ import {
 import {
   KeyboardContext,
   KeyboardContextValue,
+  SequenceReactOptions,
   type BoundKeyboardReactOptions,
 } from "./context.js";
 import { LayerElementContext } from "../screen/LayerElementContext.js";
@@ -30,7 +31,6 @@ import type {
   ModalMissCallback,
   ModalMissOptions,
   PenetrationOptions,
-  SequenceOptions,
   StopOptions,
   FocusRef,
   FocusSetOptions,
@@ -116,17 +116,23 @@ function registerRegionFocus(
 /**
  * Forward keyboard focus to the focusId recorded for a regionFocus entry.
  * A plain string targets the default focus group; a {@link FocusRef} targets
- * a named group. Missing ctx or entry is a no-op.
+ * a named group. Inside a layer/modal element the owning element id rides
+ * along (focus state is per-element there), mirroring `useKeyboard`'s
+ * `withFocusOptions` injection. Missing ctx or entry is a no-op.
  */
 function applyRegionFocus(
   ctx: KeyboardContextValue | null,
   entry: RegionFocusEntry | undefined,
+  elementId?: string,
 ): void {
   if (!ctx || !entry) return;
   if (typeof entry.focusId === "string") {
-    ctx.focusSet(entry.focusId);
+    ctx.focusSet(entry.focusId, elementId ? { element: elementId } : undefined);
   } else {
-    ctx.focusSet(entry.focusId.focusId, entry.focusId.group);
+    ctx.focusSet(entry.focusId.focusId, {
+      group: entry.focusId.group,
+      ...(elementId ? { element: elementId } : {}),
+    });
   }
 }
 
@@ -305,24 +311,64 @@ export function useKeyboard(): KeyboardContextValue {
 
     const boundSequence = ((
       keysOrActionId: string | string[],
-      handlerOrOptions?: KeyHandler | SequenceOptions,
-      maybeOptions?: SequenceOptions,
+      handlerOrOptions?: KeyHandler | string | SequenceReactOptions,
+      maybeOptions?: SequenceReactOptions,
     ) => {
+      // Form 3: boundSequence(actionId, options?) — uses the action's preset keys
       if (
         typeof keysOrActionId === "string" &&
         (typeof handlerOrOptions === "undefined" ||
           typeof handlerOrOptions === "object")
       ) {
-        return ctx.boundSequence(
-          keysOrActionId,
-          withElement(handlerOrOptions as SequenceOptions | undefined),
+        const removeRegionFocus = registerRegionFocus(
+          layerCtx,
+          modalCtx,
+          screenCtx,
+          handlerOrOptions?.ref,
+          handlerOrOptions?.focusId,
         );
+        const unbind = ctx.boundSequence(
+          keysOrActionId,
+          withElement(handlerOrOptions),
+        );
+        return composeUnbind(removeRegionFocus, unbind);
       }
-      return ctx.boundSequence(
+
+      // Form 2: boundSequence(keys, actionId, options?) — explicit keys,
+      // sequence action by id (the engine resolves the action's callback)
+      if (
+        typeof keysOrActionId !== "string" &&
+        typeof handlerOrOptions === "string"
+      ) {
+        const removeRegionFocus = registerRegionFocus(
+          layerCtx,
+          modalCtx,
+          screenCtx,
+          maybeOptions?.ref,
+          maybeOptions?.focusId,
+        );
+        const unbind = ctx.boundSequence(
+          keysOrActionId,
+          handlerOrOptions,
+          withElement(maybeOptions),
+        );
+        return composeUnbind(removeRegionFocus, unbind);
+      }
+
+      // Form 1: boundSequence(keys, handler, options?) — explicit keys and callback
+      const removeRegionFocus = registerRegionFocus(
+        layerCtx,
+        modalCtx,
+        screenCtx,
+        maybeOptions?.ref,
+        maybeOptions?.focusId,
+      );
+      const unbind = ctx.boundSequence(
         keysOrActionId,
         handlerOrOptions as KeyHandler,
         withElement(maybeOptions),
       );
+      return composeUnbind(removeRegionFocus, unbind);
     }) as KeyboardContextValue["boundSequence"];
 
     return {
@@ -519,14 +565,18 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  * (e.g. `boundKeyboard(['a'], fn, { ref, focusId })`), clicking the region
  * forwards keyboard focus to that focusId before the user's own `onClick`
  * runs — so a mouse click and a keyboard press converge on the same focus
- * target, and the component can react via {@link useFocusState}.
+ * target, and the component can react via {@link useFocusState}. Focus
+ * forwarding is enabled by default; pass `clickOnFocus: false` to keep
+ * clicks purely on the mouse callbacks.
  *
  * @param callbacks - Region callbacks (kept fresh across renders).
  * @param options   - Optional `regionId` (defaults to an auto-generated
  *                    unique id — pass one to control identity, e.g. for
  *                    drag/hover bookkeeping), explicit `layerId` override,
- *                    and hit-test `priority` (higher wins on overlap;
- *                    defaults 0).
+ *                    hit-test `priority` (higher wins on overlap; defaults
+ *                    0), and `clickOnFocus` (whether a click forwards
+ *                    keyboard focus to the region's bound focusId; defaults
+ *                    to `true`).
  * @returns A ref to attach to the Ink `<Box>` to track.
  *
  * @example
@@ -552,7 +602,12 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  */
 export function useMouseRegion(
   callbacks: MouseRegionCallbacks,
-  options?: { layerId?: string; regionId?: string; priority?: number },
+  options?: {
+    layerId?: string;
+    regionId?: string;
+    priority?: number;
+    clickOnFocus?: boolean;
+  },
 ): RefObject<DOMElement | null> {
   const ctx = useContext(KeyboardContext);
   const layerCtx = useContext(LayerElementContext);
@@ -596,8 +651,13 @@ export function useMouseRegion(
   const regionCallbacks: MouseRegionCallbacks = {
     ...callbacks,
     onClick: (event, rect) => {
-      const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
-      applyRegionFocus(ctx, map?.get(ref));
+      // Because in real-world scenarios, 
+      // triggering keyboard focus switching after onClick is usually the most common use case, 
+      // clickOnFocus is enabled by default.
+      if (options?.clickOnFocus === undefined || options.clickOnFocus === true) {
+        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
+        applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id);
+      }
       callbacks.onClick?.(event, rect);
     },
   };
