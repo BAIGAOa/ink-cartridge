@@ -1,15 +1,12 @@
 <div align="center">
         <br>
         <br>
-        <img width="440" alt="cartridge" src="static/cartridge.png">
+        <img width="740" alt="cartridge" src="static/logo.png">
         <br>
-        <br>
-        <br>					 
+        <br>							 
 </div>
 
-<h1 align="center">Cartridge</h1>
-
->A frame for rapidly building complex, multi-page, interaction-heavy terminal applications — filling the critical gaps Ink leaves open.
+>Cartridge for ink
 
 [![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ink-cartridge.svg)](https://www.npmjs.com/package/ink-cartridge)
@@ -32,11 +29,10 @@
 
 Ink gives you `useInput` and `render`. Everything else — screen navigation, layered keyboard events, focus management, cross-component communication — you build yourself. ink-cartridge provides all of that, designed for **multi-page, interaction-dense terminal apps** where a single global `useInput` with `if-else` chains breaks down.
 
-TWO pillars:
+ TWO pillars:
 
 - **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
 - **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modal layers, layers, global keys, and the screen stack. Focus system partitions keys within the same layer.
-- **Mouse regions** — Enable `mouse` on `KeyboardProvider` and mark any `<Box>` with `useMouseRegion` to make it clickable, hoverable, and draggable. The engine hit-tests xterm-mouse events against measured element rectangles, following the same modal > layer > root priority as keyboard events.
 
 
 ## Quick Start
