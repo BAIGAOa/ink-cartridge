@@ -1,5 +1,12 @@
 # @cartridge-engine/key-hint
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [2ad5ef2]
+  - ink-cartridge@5.2.0
+
 ## 1.0.2
 
 ### Patch Changes
