@@ -211,6 +211,23 @@ render(
 <img src="static/quickstart-mouse.gif" width="2040" alt="Mouse controls — clicking Cancel closes a stacked modal, Esc works too" />
 </div>
 
+
+
+Not only that, it also supports full coordination between mouse and keyboard focus.
+This makes terminal interaction smoother. [Demo Example](./examples/xterm-mouse/MouseHoverFocus.demo.tsx)
+
+<div align="center">
+<img src="static/quickstart-mouse-focus.gif" width="2040" alt="mouse-focus" />
+</div>
+
+Drag: [Demo Example](./examples/xterm-mouse/MouseDrag.demo.tsx)
+
+<div align="center">
+<img src="static/quickstart-mouse-drag.gif" width="2040" alt="mouse-drag" />
+</div>
+
+
+
 ## Installation
 
 ```bash

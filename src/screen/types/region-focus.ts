@@ -4,11 +4,10 @@ import type { RefObject } from "react";
 
 /**
  * A mouse-region ref's keyboard focus target: which focusId to activate when
- * the region is clicked, and whether the mouse currently holds the focus.
+ * the region is clicked (or hovered with `enterOnFocus`).
  */
 export type RegionFocusEntry = {
   focusId: string | FocusRef;
-  focused: boolean;
 };
 
 /**

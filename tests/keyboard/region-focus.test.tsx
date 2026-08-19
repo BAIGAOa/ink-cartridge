@@ -843,3 +843,212 @@ describe("region focus reference counting across shared refs", () => {
     unmount();
   });
 });
+
+/* ------------------------------------------------------------------ */
+/* App 7: hover-driven focus — enterOnFocus / leaveOffFocus            */
+/* ------------------------------------------------------------------ */
+
+interface HoverPanelProps {
+  label: string;
+  focusId: string;
+  keyName: string;
+  enterOnFocus?: boolean;
+  leaveOffFocus?: boolean;
+  clickOnFocus?: boolean;
+  group?: string;
+  /** Records focusCurrent() inside the user onEnter — proves ordering. */
+  recordOrderFocus?: boolean;
+}
+
+function HoverFocusPanel({
+  label,
+  focusId,
+  keyName,
+  enterOnFocus,
+  leaveOffFocus,
+  clickOnFocus,
+  group,
+  recordOrderFocus,
+}: HoverPanelProps) {
+  const { boundKeyboard, focusCurrent } = useKeyboard();
+  const focused = useFocusState(focusId, group);
+  const [keys, setKeys] = useState(0);
+  const [enters, setEnters] = useState(0);
+  const [leaves, setLeaves] = useState(0);
+  const [orderFocused, setOrderFocused] = useState("-");
+
+  const ref = useMouseRegion(
+    {
+      onEnter: () => {
+        setEnters((e) => e + 1);
+        if (recordOrderFocus) {
+          setOrderFocused(focusCurrent(group).result?.id ?? "none");
+        }
+      },
+      onLeave: () => setLeaves((l) => l + 1),
+    },
+    { enterOnFocus, leaveOffFocus, clickOnFocus },
+  );
+
+  useEffect(() => {
+    return boundKeyboard([keyName], () => setKeys((k) => k + 1), {
+      ref,
+      focusId: group ? { group, focusId } : focusId,
+    });
+  }, [boundKeyboard, keyName, ref, focusId, group]);
+
+  return (
+    <Box ref={ref} width={20} height={3}>
+      <Text>
+        {label} f{focused ? "1" : "0"} k{keys} e{enters} l{leaves}
+        {recordOrderFocus ? ` of:${orderFocused}` : ""}
+      </Text>
+    </Box>
+  );
+}
+
+/**
+ * H1 hover-focus (leave clears by default); H2 hover-focus with
+ * leaveOffFocus:false; H3 click-only; H4 hover-focus in named group g4
+ * (kicked on mount so only a hover can activate it).
+ */
+function HoverFocusScreen() {
+  const { kickFocusGroup } = useKeyboard();
+  useEffect(() => {
+    kickFocusGroup("g4");
+  }, [kickFocusGroup]);
+
+  return (
+    <Box flexDirection="column" width="100%">
+      <Box position="absolute" top={0} left={0} flexDirection="row" gap={3}>
+        <HoverFocusPanel label="H1" focusId="btn-h1" keyName="h" enterOnFocus />
+        <HoverFocusPanel
+          label="H2"
+          focusId="btn-h2"
+          keyName="h"
+          enterOnFocus
+          leaveOffFocus={false}
+        />
+        <HoverFocusPanel label="H3" focusId="btn-h3" keyName="h" clickOnFocus />
+        <HoverFocusPanel
+          label="H4"
+          focusId="btn-h4"
+          keyName="j"
+          enterOnFocus
+          group="g4"
+          recordOrderFocus
+        />
+      </Box>
+    </Box>
+  );
+}
+
+describe("region focus hover forwarding (enterOnFocus / leaveOffFocus)", () => {
+  it("hover forwards focus; leaving clears it by default", async () => {
+    const { unmount } = renderApp(HoverFocusScreen);
+    await flush();
+
+    // H1 is the first registered default-group target — auto-focused.
+    expect(lastFrameText()).toContain("H1 f1 k0 e0 l0");
+    expect(lastFrameText()).toContain("H4 f0");
+
+    // Move onto H2: H2's enter focuses. H1 shows no leave count — its
+    // initial focus was auto-activated, not mouse-earned, so no hover state
+    // existed to leave; H1's f0 comes from H2's focusSet replacing it.
+    await move(33, 2);
+    expect(lastFrameText()).toContain("H2 f1 k0 e1 l0");
+    expect(lastFrameText()).toContain("H1 f0 k0 e0 l0");
+
+    await press("h");
+    expect(lastFrameText()).toContain("H2 f1 k1 e1 l0");
+
+    // A repeated move on the same region does not re-fire enter (the hover
+    // state machine fires boundary crossings exactly once).
+    await move(33, 2);
+    expect(lastFrameText()).toContain("H2 f1 k1 e1 l0");
+
+    // Move back onto H1: its enter re-focuses it, replacing H2. H2's own
+    // leave does NOT clear (leaveOffFocus:false) — H2's f0 is replacement,
+    // not a kick.
+    await move(10, 2);
+    expect(lastFrameText()).toContain("H1 f1 k0 e1 l0");
+    expect(lastFrameText()).toContain("H2 f0 k1 e1 l1");
+
+    // Move into the gap: nothing is hovered, H1's leave clears the focus —
+    // the default leaveOffFocus:true behavior.
+    await move(44, 2);
+    expect(lastFrameText()).toContain("H1 f0 k0 e1 l1");
+    expect(lastFrameText()).toContain("H2 f0 k1 e1 l1");
+
+    // With no focus anywhere, the focus-scoped 'h' key is silent.
+    await press("h");
+    expect(lastFrameText()).toContain("H1 f0 k0 e1 l1");
+    expect(lastFrameText()).toContain("H2 f0 k1 e1 l1");
+
+    unmount();
+  });
+
+  it("leaveOffFocus:false keeps the focus when the cursor leaves", async () => {
+    const { unmount } = renderApp(HoverFocusScreen);
+    await flush();
+
+    // Move onto H2, then off it into the gap: H2 keeps focus.
+    await move(33, 2);
+    expect(lastFrameText()).toContain("H2 f1");
+    await move(44, 2);
+    expect(lastFrameText()).toContain("H2 f1 k0 e1 l1");
+
+    await press("h");
+    expect(lastFrameText()).toContain("H2 f1 k1 e1 l1");
+
+    unmount();
+  });
+
+  it("a click-only region never loses focus by the cursor leaving it", async () => {
+    const { unmount } = renderApp(HoverFocusScreen);
+    await flush();
+
+    // Hovering H3 does nothing (enterOnFocus is off); focus stays on H1.
+    await move(56, 2);
+    expect(lastFrameText()).toContain("H3 f0 k0 e1 l0");
+    expect(lastFrameText()).toContain("H1 f1 k0 e0 l0");
+
+    // A click focuses H3.
+    await click(56, 2);
+    expect(lastFrameText()).toContain("H3 f1 k0 e1 l0");
+    expect(lastFrameText()).toContain("H1 f0");
+
+    // Leaving H3 must NOT clear the click-earned focus.
+    await move(44, 2);
+    expect(lastFrameText()).toContain("H3 f1 k0 e1 l1");
+
+    await press("h");
+    expect(lastFrameText()).toContain("H3 f1 k1 e1 l1");
+
+    unmount();
+  });
+
+  it("hover activates a named group via a FocusRef entry and leave kicks it", async () => {
+    const { unmount } = renderApp(HoverFocusScreen);
+    await flush();
+    expect(lastFrameText()).toContain("H4 f0");
+
+    // Hover onto H4: the FocusRef entry activates group g4, and the
+    // forwarding ran BEFORE the user's onEnter (recorded focus is btn-h4).
+    await move(79, 2);
+    expect(lastFrameText()).toContain("H4 f1 k0 e1 l0 of:btn-h4");
+
+    // 'j' is H4's own key (the default group still holds H1 in parallel,
+    // so a shared key would hit H1 first) — pressing it fires H4 only.
+    await press("j");
+    expect(lastFrameText()).toContain("H4 f1 k1 e1 l0");
+    expect(lastFrameText()).toContain("H1 f1 k0 e0 l0");
+
+    // Leaving H4 kicks its named group; H1's default-group focus stays.
+    await move(67, 2);
+    expect(lastFrameText()).toContain("H4 f0 k1 e1 l1");
+    expect(lastFrameText()).toContain("H1 f1 k0 e0 l0");
+
+    unmount();
+  });
+});

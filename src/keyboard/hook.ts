@@ -71,10 +71,9 @@ function resolveRegionFocusMap(
  * current scope. Priority mirrors keyboard ownership: a layer element beats
  * a modal element, which beats the current page root.
  *
- * A missing ref or focusId is a no-op. Re-registering the same ref keeps the
- * existing `focused` state (e.g. a hover that already flipped it to `true`)
- * while refreshing the `focusId` — so a re-bound element never resets to
- * unfocused.
+ * A missing ref or focusId is a no-op. Re-registering the same ref overwrites
+ * its entry — the entry holds no transient mouse state, so a re-bound
+ * element needs no state to preserve.
  *
  * @returns A release function that decrements the ref's registration count
  *          and removes the entry once the last registration is released.
@@ -91,8 +90,7 @@ function registerRegionFocus(
   const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
   if (!map) return undefined;
 
-  const existing = map.get(ref);
-  map.set(ref, { focusId, focused: existing?.focused ?? false });
+  map.set(ref, { focusId });
 
   let counts = regionFocusRefCounts.get(map);
   if (!counts) {
@@ -569,14 +567,23 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  * forwarding is enabled by default; pass `clickOnFocus: false` to keep
  * clicks purely on the mouse callbacks.
  *
+ * Hover can drive focus too: with `enterOnFocus: true` the region's focusId
+ * is activated on mouse enter, and deactivated on leave (via
+ * `kickFocusGroup`) — unless `leaveOffFocus: false` keeps it. Note
+ * `leaveOffFocus` only takes effect when `enterOnFocus` is set, so a
+ * click-only region never loses focus by the cursor leaving it.
+ *
  * @param callbacks - Region callbacks (kept fresh across renders).
  * @param options   - Optional `regionId` (defaults to an auto-generated
  *                    unique id — pass one to control identity, e.g. for
  *                    drag/hover bookkeeping), explicit `layerId` override,
  *                    hit-test `priority` (higher wins on overlap; defaults
- *                    0), and `clickOnFocus` (whether a click forwards
- *                    keyboard focus to the region's bound focusId; defaults
- *                    to `true`).
+ *                    0), `clickOnFocus` (whether a click forwards keyboard
+ *                    focus to the region's bound focusId; defaults `true`),
+ *                    `enterOnFocus` (whether a hover enter forwards focus;
+ *                    defaults `false`), and `leaveOffFocus` (whether a hover
+ *                    leave clears the focus; only applies when
+ *                    `enterOnFocus` is set; defaults `true`).
  * @returns A ref to attach to the Ink `<Box>` to track.
  *
  * @example
@@ -607,6 +614,8 @@ export function useMouseRegion(
     regionId?: string;
     priority?: number;
     clickOnFocus?: boolean;
+    enterOnFocus?: boolean;
+    leaveOffFocus?: boolean;
   },
 ): RefObject<DOMElement | null> {
   const ctx = useContext(KeyboardContext);
@@ -644,12 +653,44 @@ export function useMouseRegion(
   // per call site; callers pass `regionId` to control identity explicitly.
   const regionId = options?.regionId ?? `mouse:${autoId}`;
 
-  // On click, forward keyboard focus to the focusId that a boundKeyboard
+  // Forward keyboard focus to the focusId that a boundKeyboard/boundSequence
   // ({ ref, focusId }) registered for this same ref, then run the user's own
-  // handler. Only click participates for now — hover/drag forwarding is
-  // future work.
+  // handler. Click forwards by default; hover forwards only when
+  // enterOnFocus is set, and clears on leave unless leaveOffFocus: false.
   const regionCallbacks: MouseRegionCallbacks = {
     ...callbacks,
+    onEnter: (event, rect) => {
+      if (options?.enterOnFocus === true) {
+        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx)
+        applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id)
+      }
+
+      callbacks.onEnter?.(event, rect)
+    },
+    onLeave: (event) => {
+      // Only when enterOnFocus is declared will the focus be cleared by default when the mouse leaves; 
+      // otherwise, if the user has not enabled enterOnFocus but is using clickOnFocus, 
+      // the focus set after a mouse click will be incorrectly cleared.
+      if (options?.enterOnFocus === true && (options?.leaveOffFocus === undefined || options.leaveOffFocus === true)) {
+        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx)
+        if (map) {
+          const entry = map.get(ref)
+          if (entry) {
+            const focusRef = entry.focusId
+            if (typeof focusRef === "string") {
+              ctx?.kickFocusGroup()
+            } else {
+              ctx?.kickFocusGroup({
+                group: focusRef.group,
+                element: layerCtx?.id ?? modalCtx?.id
+              })
+            }
+          }
+        }
+      }
+
+      callbacks.onLeave?.(event)
+    },
     onClick: (event, rect) => {
       // Because in real-world scenarios, 
       // triggering keyboard focus switching after onClick is usually the most common use case, 
