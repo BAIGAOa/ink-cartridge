@@ -53,21 +53,21 @@ export type SequenceIdentity =
  *
  * Mirrors {@link SequenceIdentity}: the two related fields are linked so they
  * are either both present (an active listener registered via
- * {@link useModalMissListener}) or both null (no listener has been registered,
+ * `useModalMissListener`) or both null (no listener has been registered,
  * or the previous one has been unregistered). The two variants cannot drift
- * apart — {@link onMissOptions} being defined implies {@link onMiss} is also
+ * apart — `onMissOptions` being defined implies `onMiss` is also
  * defined, and `onMiss: null` implies `onMissOptions: null`.
  */
 export type MissListener =
 	| {
 			/**
 			 * Callback invoked when the active modal receives a key that was not
-			 * handled by any binding (registered via {@link useModalMissListener}).
+			 * handled by any binding (registered via `useModalMissListener`).
 			 */
 			onMiss: ModalMissCallback;
 			/**
 			 * Options controlling the granularity of miss detection.
-			 * Always a real object when {@link onMiss} is present — `useModalMissListener`
+			 * Always a real object when `onMiss` is present — `useModalMissListener`
 			 * defaults it to `{}` when called without an options argument.
 			 */
 			onMissOptions: ModalMissOptions;
@@ -78,7 +78,7 @@ export type MissListener =
 			 */
 			onMiss: null;
 			/**
-			 * Always null when {@link onMiss} is null.
+			 * Always null when `onMiss` is null.
 			 */
 			onMissOptions: null;
 	  };

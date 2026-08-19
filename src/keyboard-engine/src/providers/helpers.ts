@@ -12,7 +12,7 @@ import type {
 type KeyboardLayerWithBindings = PageKeyboardLayer | ElementKeyboard;
 
 /**
- * Remove keys from {@link ScreenKeyboardLayer.globalKeyOverrides} when no
+ * Remove keys from `ScreenKeyboardLayer.globalKeyOverrides` when no
  * bindings (screen-level or focus-target) still reference them.
  * Keeps the override set consistent after unbind operations.
  */
@@ -88,7 +88,7 @@ export interface KeyRuleContainer {
  * name, and return a cleanup function that removes exactly the entries that
  * were added by this call.
  *
- * Used by {@link allowModal}, {@link penetration}, and {@link stop} to
+ * Used by `allowModal`, `penetration`, and `stop` to
  * eliminate the repeated bookkeeping pattern across focus-target and
  * layer-level branches.
  *
@@ -239,7 +239,7 @@ export function clearShortcutOperations(): void {
  * focus‑target and layer‑level branches.
  *
  * @param bindingsArray  The array the entry was pushed into
- *                       ({@link ScreenKeyboardLayer.bindings} or
+ *                       (`ScreenKeyboardLayer.bindings` or
  *                       focus‑target bindings).
  * @param actionKeysMap  The corresponding action‑keys map.
  * @param layer          The enclosing screen keyboard layer.

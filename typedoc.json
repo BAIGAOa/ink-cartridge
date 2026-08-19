@@ -4,5 +4,30 @@
 	"out": "documents/framework",
 	"tsconfig": "tsconfig.json",
 	"readme": "none",
-	"githubPages": true
+	"githubPages": true,
+	"externalSymbolLinkMappings": {
+		"ink-cartridge": {
+			"deactivateElement": "#",
+			"deactivateElementInModalLayer": "#",
+			"LanguageProviderProps": "#"
+		},
+		"@cartridge-engine/keyboard-engine": {
+			"default.registryCompositionKey": "#",
+			"default.removeCompositionKey": "#",
+			"default.setValueSchema": "#",
+			"default.undo": "#",
+			"default.subscribe": "#",
+			"default.getLastEvent": "#",
+			"default.addMapping": "#",
+			"default.removeMappingKey": "#",
+			"default.removeMapping": "#",
+			"default.subscribeMapping": "#",
+			"default.getLastMappingEvent": "#",
+			"default.updateCompositionKey": "#",
+			"BaseBoundKeyEntry": "#",
+			"PageKeyboardLayer": "#",
+			"CompositionEvent": "#",
+			"CompositioKey.KeyReleaseWhenChainInterrupted": "#"
+		}
+	}
 }

@@ -6,7 +6,7 @@ import { SequenceOptions } from "./options.js";
  * Internal representation of a sequence that is currently being matched.
  *
  * Created when the first key of a registered `SequenceBinding` is pressed
- * and stored on the layer's {@link ScreenKeyboardLayer.pendingSequence}.
+ * and stored on the layer's `ScreenKeyboardLayer.pendingSequence`.
  * Tracked by a `timer` that cancels the pending state if the next key
  * does not arrive within `timeout` milliseconds.
  */

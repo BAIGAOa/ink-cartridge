@@ -28,8 +28,8 @@ export function createEventBus<T extends EventMap>(): EventBus<T> {
  * The caller owns the bus lifecycle — create it outside the component tree
  * or with `useRef`, then pass it as the `bus` prop.
  *
- * @param props.bus      - The EventBus instance to provide.
- * @param props.children - React children.
+ * @param props - Component props: `bus` (the EventBus instance to provide)
+ *                and `children` (React children).
  * @example
  * ```tsx
  * const bus = createEventBus<MyEvents>();

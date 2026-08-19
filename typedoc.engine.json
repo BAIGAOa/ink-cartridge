@@ -4,5 +4,19 @@
 	"out": "documents/engine",
 	"tsconfig": "src/keyboard-engine/tsconfig.json",
 	"readme": "none",
-	"githubPages": true
+	"githubPages": true,
+	"externalSymbolLinkMappings": {
+		"@cartridge-engine/keyboard-engine": {
+			"default.undo": "#",
+			"default": "#",
+			"KeyboardLayerWithBindings": "#",
+			"resolveCompositionKey": "#",
+			"affectOverlay": "#"
+		},
+		"@types/node": {
+			"\"net\".Socket.write": "https://nodejs.org/api/net.html#netsocketwrite",
+			"\"net\".Socket.end": "https://nodejs.org/api/net.html#socketenddata-encoding-callback",
+			"EventEmitter.defaultMaxListeners": "https://nodejs.org/api/events.html#eventsdefaultmaxlisteners"
+		}
+	}
 }

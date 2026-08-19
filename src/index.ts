@@ -36,6 +36,10 @@ export type {
   CloseLayerFn,
   EraseElementFn,
   CloseAllLayerFn,
+  ActivateElementFn,
+  DeactivateElementFn,
+  ActivateElementInModalLayerFn,
+  DeactivateElementInModalLayerFn,
   ModalLayer,
   ModalLayerOptions,
   OpenModalLayerFn,
@@ -44,14 +48,17 @@ export type {
   EraseElementInModalLayerFn,
   CloseAllModalLayerFn,
   LayerElement,
+  LayerElementInput,
   Page,
   RegionFocusEntry,
   RegionFocusMap,
+  ScreenSystemContextValue,
 } from "./screen/index.js";
 
 // Keyboard System
 export { KeyboardProvider, useKeyboard, KeyboardEngine, KeyboardContext } from "./keyboard/index.js";
-export { normalizeKeyNames, isNormalCharacter } from "./keyboard/index.js";
+export { normalizeKeyNames, isInkSpecialKey, isNormalCharacter } from "./keyboard/index.js";
+export { defaultTargetsSymbol } from "./keyboard/index.js";
 
 export type {
   KeyHandler,
@@ -66,6 +73,7 @@ export type {
   BuiltinProcessorId,
   PipelineProcessor,
   EngineProps,
+  KeyboardContextValue,
 } from "./keyboard/index.js";
 
 export type {
@@ -75,6 +83,7 @@ export type {
   LayerKind,
   FocusTarget,
   FocusRef,
+  FocusSetOptions,
   SequenceOptions,
   SequenceReactOptions,
   ShortcutOperationEntry,

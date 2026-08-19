@@ -177,7 +177,7 @@ export interface StopOptions {
 }
 
 /**
- * Options for {@link useModalMissListener}.
+ * Options for `useModalMissListener`.
  *
  * Each option defaults to `false`, meaning only explicit `boundKeyboard`
  * / `boundSequence` matches (and built-in Tab navigation) count as

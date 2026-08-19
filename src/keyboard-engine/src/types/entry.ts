@@ -88,7 +88,7 @@ export interface GlobalKeyEntry {
    * Restrict this global key to a specific mode.
    *
    * When set, the processor skips this entry unless
-   * {@link PipelineContext.currentMode} matches. Checked before `when`,
+   * `currentMode` matches. Checked before `when`,
    * `affectLayer`, `category`, and `cover` evaluation. When omitted,
    * the global key fires in all modes (including no-mode).
    *
@@ -192,7 +192,7 @@ export interface GlobalSequenceEntry {
    * Restrict this global sequence to a specific mode.
    *
    * When set, the processor skips this entry unless
-   * {@link PipelineContext.currentMode} matches. Checked before `when`,
+   * `currentMode` matches. Checked before `when`,
    * `affectLayer`, `category`, and `cover` evaluation. When omitted,
    * the sequence is active in all modes (including no-mode).
    *

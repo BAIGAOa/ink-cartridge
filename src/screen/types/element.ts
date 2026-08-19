@@ -19,7 +19,7 @@ export type LayerElement = {
 
     /**
      * Whether this element is currently active. Defaults to `true` when
-     * omitted. Toggled via {@link activateElement}/{@link deactivateElement}
+     * omitted. Toggled via `activateElement`/`deactivateElement`
      * (or their modal equivalents).
      *
      * This flag has nothing to do with React rendering — the element stays

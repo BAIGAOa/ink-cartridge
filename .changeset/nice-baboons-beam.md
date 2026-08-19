@@ -1,7 +1,7 @@
 ---
 "ink-cartridge": minor
-"@cartridge-engine/confirm-dialog": patch
 "@cartridge-engine/keyboard-engine": patch
+"@cartridge-engine/confirm-dialog": patch
 ---
 
 ### boundSequence: third calling convention — explicit keys + sequence action id
@@ -30,3 +30,7 @@ Clicking a mouse region (`useMouseRegion`) now forwards keyboard focus to the `f
 ### confirm-dialog
 
 Test mocks updated for the `regionFocus` field on layer/modal state.
+
+### keyboard-engine: additional public type exports
+
+`BaseBoundKeyEntry`, `PageBoundKeyEntry`, `PageKeyboardLayer`, `ElementKeyboard`, `LayerKeyboardLayer`, `MissListener`, `FocusSetOptions`, `MouseEventBase`, `SGRMouseEvent`, `ESCMouseEvent`, `undo`, `ListenerFor`, `TypedEventListener`, `ErrorEventListener`, `EventByAction`, `ButtonType`, and `NoneButton` are now exported (previously reachable only through star re-exports); typedoc warnings resolved.

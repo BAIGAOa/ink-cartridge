@@ -64,7 +64,7 @@ export interface PageBoundKeyEntry extends BaseBoundKeyEntry {
 /**
  * A registered multi-key sequence binding.
  *
- * Stored in {@link ScreenKeyboardLayer.sequences}, keyed by the first
+ * Stored in `ScreenKeyboardLayer.sequences`, keyed by the first
  * key in the sequence. When that key is pressed and no other sequence
  * is already pending, the layer enters a pending state waiting for the
  * remaining keys.

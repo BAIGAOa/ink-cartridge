@@ -9,9 +9,18 @@ export { Mouse } from './core/Mouse.js';
 export type {
   MouseEvent,
   MouseEventAction,
+  MouseEventBase,
   MouseOptions,
   MousePosition,
   MouseStreamEvent,
   ReadableStreamWithEncoding,
+  SGRMouseEvent,
+  ESCMouseEvent,
+  ListenerFor,
+  TypedEventListener,
+  ErrorEventListener,
+  EventByAction,
+  ButtonType,
+  NoneButton,
 } from './types/index.js';
 export { MouseError } from './types/index.js';
