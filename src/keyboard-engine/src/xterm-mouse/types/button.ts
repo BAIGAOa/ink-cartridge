@@ -1,4 +1,4 @@
-type NoneButton = 'none';
+export type NoneButton = 'none';
 
 /**
  * Represents a mouse button identifier.

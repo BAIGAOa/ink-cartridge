@@ -34,6 +34,6 @@ export interface ModalMissUnhandledEvent {
 export type ModalMissEvent = ModalMissHandledEvent | ModalMissUnhandledEvent;
 
 /**
- * Callback signature for {@link useModalMissListener}.
+ * Callback signature for `useModalMissListener`.
  */
 export type ModalMissCallback = (evt: ModalMissEvent) => void;

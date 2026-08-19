@@ -679,6 +679,8 @@ export default class LayerManager<TComponent = unknown> {
    * Return the currently active focus target, or a tagged-union result
    * when there is no owner (`{ noOwner: true }`), no layer for the owner
    * (`{ noLayer: true }`), or no active focus target (`{ noFound: true }`).
+   * An unregistered group also yields `{ noFound: true }`, so reads are safe
+   * before any binding registers the group.
    * Check `.result?.id` for the active focus id.
    */
   focusCurrent(group?: string): FocusCurrentResult;
@@ -706,10 +708,7 @@ export default class LayerManager<TComponent = unknown> {
     if (group) {
       const g = layer.focusTargets.get(group);
       if (!g) {
-        throw new Error(
-          `[keyboard-engine] focusCurrent(${group}): The focus group passed to the current method is not registered. ` +
-            "Please call methods such as boundKeyboard, which handle registration automatically.",
-        );
+        return { noFound: true };
       }
 
       const index = layer.currentFocusIds.findIndex(

@@ -1,5 +1,5 @@
 export type { MouseEventAction } from './action.js';
-export type { ButtonType } from './button.js';
+export type { ButtonType, NoneButton } from './button.js';
 export { MouseError } from './error.js';
 export type {
   ESCMouseEvent,

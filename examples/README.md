@@ -50,6 +50,8 @@ Mouse support is built on the `xterm-mouse` fork shipped inside `@cartridge-engi
 | mouse-layer-stack | Mouse hit priority across stacked layers (layer beats page, root fallback); `applyElement` with typed props | `npx tsx examples/xterm-mouse/MouseLayerStack.demo.tsx` |
 | mouse-controls | Clickable `[x]`/`[OK]` buttons on a panel (child regions win via `priority`) | `npx tsx examples/xterm-mouse/MouseControls.demo.tsx` |
 | mouse-drag | Drag a window via the press→drag→release capture lifecycle | `npx tsx examples/xterm-mouse/MouseDrag.demo.tsx` |
+| mouse-sequence | Click-to-focus fire panels driven by all three `boundSequence` calling conventions (explicit keys + actionId, explicit keys + callback, actionId with preset keys) | `npx tsx examples/xterm-mouse/SequenceMouse.demo.tsx` |
+| mouse-hover-focus | `enterOnFocus` / `leaveOffFocus` / `clickOnFocus` hover-driven focus with a leave-clears vs leave-keeps comparison | `npx tsx examples/xterm-mouse/MouseHoverFocus.demo.tsx` |
 
 ## Component demos
 

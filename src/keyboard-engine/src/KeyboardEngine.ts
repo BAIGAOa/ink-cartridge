@@ -584,7 +584,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * focus independently, so multiple groups can hold focus simultaneously.
    *
    * @param focusId The focus target id to activate.
-   * @param group   Optional focus group name. Defaults to the default group.
+   * @param groupOrOptions   Optional focus group name (or {@link FocusSetOptions}).
    * @throws If the current owner has no layer, the group is not registered,
    *         or the focus target is not found within the group.
    */
@@ -599,7 +599,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Cycle to the next focus target within a group (Tab semantics).
    *
    * Wraps around. When `group` is omitted, cycles the default group's
-   * {@link ScreenKeyboardLayer.defaultFocusOrder}; otherwise cycles the named
+   * `defaultFocusOrder`; otherwise cycles the named
    * group's registration order. Only switches the active target — does not
    * activate a group that has no current focus.
    */
@@ -630,7 +630,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * guessing. Check `.result?.id` for the active focus id, or one of
    * `.noOwner` / `.noLayer` / `.noFound` for the empty cases.
    *
-   * @param group Optional focus group name. Defaults to the default group.
+   * @param groupOrOptions Optional focus group name (or {@link FocusSetOptions}).
    */
   focusCurrent(groupOrOptions?: string | FocusSetOptions) {
     if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
@@ -651,7 +651,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * (which `cleanLayers()` removes shortly after).
    *
    * @param focusId The focus target id to remove.
-   * @param group   Optional focus group name. Defaults to the default group.
+   * @param groupOrOptions   Optional focus group name (or {@link FocusSetOptions}).
    */
   focusUnregister(focusId: string, groupOrOptions?: string | FocusSetOptions) {
     if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
@@ -676,7 +676,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * regardless of its current state.
    *
    * @param focusId The focus target id to activate.
-   * @param group   Optional focus group name. Defaults to the default group.
+   * @param groupOrOptions   Optional focus group name (or {@link FocusSetOptions}).
    * @returns `true` if the target was activated, `false` if the group already
    *          had an active target or the target/group/layer could not be found.
    */
@@ -699,7 +699,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * or the group is not currently active. Does not unregister the group's
    * focus targets — bindings remain intact.
    *
-   * @param group Optional focus group name. Defaults to the default group.
+   * @param groupOrOptions Optional focus group name (or {@link FocusSetOptions}).
    * @returns `true` if the group was removed from active focus,
    *          `false` if the group was not active or could not be found.
    */
@@ -1254,9 +1254,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * condition id) is checked at each key press — if it returns `false`, the
    * pending sequence is cancelled.
    *
-   * Supports two calling conventions:
+   * Supports three calling conventions:
    * 1. `boundSequence(keys, handler, options?)` — explicit keys and callback
-   * 2. `boundSequence(actionId, options?)` — uses a registered sequence action's preset
+   * 2. `boundSequence(keys, actionId, options?)` — explicit keys, sequence
+   *    action by id (the action's callback is resolved at registration time)
+   * 3. `boundSequence(actionId, options?)` — uses the action's preset keys
    *
    * The sequence timeout defaults to 500 ms — the timer starts on the first
    * key and resets on each match. Unbinding while a sequence is pending does
@@ -1290,11 +1292,15 @@ export default class KeyboardEngine<TComponent = unknown> {
    *   timeout: 600,
    * }]);
    * engine.boundSequence('vim-goto-top');
+   *
+   * // Via sequence action with explicit keys (the action's callback is used;
+   * // the action's preset timeout acts as a default, overridable per call)
+   * engine.boundSequence(['ctrl+g', 'g'], 'vim-goto-top', { timeout: 800 });
    * ```
    */
   boundSequence(
     keysOrActionId: string[] | string,
-    handlerOrOptions?: KeyHandler | SequenceOptions,
+    handlerOrOptions?: KeyHandler | string | SequenceOptions,
     maybeOptions?: SequenceOptions,
   ): () => void {
     return this.bindings.boundSequence(

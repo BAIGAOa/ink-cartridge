@@ -1,57 +1,55 @@
 import React, {
-  ComponentType,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
+	ComponentType,
+	ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
 } from "react";
 import { useInput } from "ink";
 import { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
 import type {
-  KeyboardLayer,
-  KeyboardProcessorProps,
-  ValueSchema,
+	KeyboardLayer,
+	KeyboardProcessorProps,
+	ValueSchema,
 } from "@cartridge-engine/keyboard-engine";
 import {
-  clearShortcutOperations,
-  Mouse,
-  type MouseOptions,
-  type XtermMouseEvent,
+	clearShortcutOperations,
+	Mouse,
+	type MouseOptions,
+	type XtermMouseEvent,
 } from "@cartridge-engine/keyboard-engine";
 import { KeyboardContext, KeyboardContextValue } from "../context.js";
 import { MouseReportFilter } from "../mouse-report-filter.js";
 import { useScreenSystem } from "../../screen/hook.js";
 import { isInkSpecialKey, normalizeKeyNames } from "../keyNormalizer.js";
-import type {
-  Layer,
-  ModalLayer,
-} from "../../screen/types/layer.js";
+import type { Layer, ModalLayer } from "../../screen/types/layer.js";
+import { getPath } from "../../screen/provider.js";
 
 function toKeyboardLayerState(
-  layers: Array<Layer | ModalLayer>,
-  currentPath?: React.ComponentType<any>[],
+	layers: Array<Layer | ModalLayer>,
+	currentPath?: React.ComponentType<any>[]
 ): KeyboardLayer[] {
-  return layers.map((layer) => {
-    const currentPage =
-      currentPath && currentPath.length > 0
-        ? currentPath[currentPath.length - 1]
-        : undefined;
+	return layers.map((layer) => {
+		const currentPage =
+			currentPath && currentPath.length > 0
+				? currentPath[currentPath.length - 1]
+				: undefined;
 
-    const activeElements: string[] = [];
-    if (!isLayerDormant(layer, currentPage)) {
-      for (const [id, element] of layer.elements) {
-        if (element.active !== false) {
-          activeElements.push(id);
-        }
-      }
-    }
+		const activeElements: string[] = [];
+		if (!isLayerDormant(layer, currentPage)) {
+			for (const [id, element] of layer.elements) {
+				if (element.active !== false) {
+					activeElements.push(id);
+				}
+			}
+		}
 
-    return {
-      layerId: layer.layerId,
-      elements: Array.from(layer.elements.keys()),
-      activeElements,
-    };
-  });
+		return {
+			layerId: layer.layerId,
+			elements: Array.from(layer.elements.keys()),
+			activeElements,
+		};
+	});
 }
 
 /**
@@ -63,100 +61,100 @@ function toKeyboardLayerState(
  * - `false`: never dormant.
  */
 function isLayerDormant(
-  layer: Layer | ModalLayer,
-  currentPage: React.ComponentType<any> | undefined,
+	layer: Layer | ModalLayer,
+	currentPage: React.ComponentType<any> | undefined
 ): boolean {
-  const auto = layer.automaticTakeoverKeyboard;
+	const auto = layer.automaticTakeoverKeyboard;
 
-  if (Array.isArray(auto)) {
-    return currentPage !== undefined && auto.includes(currentPage);
-  }
+	if (Array.isArray(auto)) {
+		return currentPage !== undefined && auto.includes(currentPage);
+	}
 
-  if (auto === true) {
-    return (
-      layer.hostPage !== null &&
-      currentPage !== undefined &&
-      currentPage !== layer.hostPage
-    );
-  }
+	if (auto === true) {
+		return (
+			layer.hostPage !== null &&
+			currentPage !== undefined &&
+			currentPage !== layer.hostPage
+		);
+	}
 
-  return false;
+	return false;
 }
 
 /** Props for the keyboard provider. */
 export interface KeyboardProviderProps {
-  /** The app tree rendered inside the provider. */
-  children: ReactNode;
+	/** The app tree rendered inside the provider. */
+	children: ReactNode;
 
-  /**
-   * Here you can pre-insert the custom processors you want,
-   * and they will be inserted into the pipeline based on their index and ID.
-   * @example
-   * ```tsx
-   * <KeyboardProvider
-   *   processors={[
-   *     { id: "uppercase", index: 0, processor: MyUppercaseProcessor },
-   *     { id: "logger", index: 1, processor: MyLoggerProcessor },
-   *   ]}
-   * >
-   * ```
-   *
-   */
-  processors?: KeyboardProcessorProps<ComponentType<any>>[];
+	/**
+	 * Here you can pre-insert the custom processors you want,
+	 * and they will be inserted into the pipeline based on their index and ID.
+	 * @example
+	 * ```tsx
+	 * <KeyboardProvider
+	 *   processors={[
+	 *     { id: "uppercase", index: 0, processor: MyUppercaseProcessor },
+	 *     { id: "logger", index: 1, processor: MyLoggerProcessor },
+	 *   ]}
+	 * >
+	 * ```
+	 *
+	 */
+	processors?: KeyboardProcessorProps<ComponentType<any>>[];
 
-  /**
-   * Please enter the mode flag you wish to register directly.
-   *
-   * @example
-   * ```tsx
-   * <KeyboardProvider modes={["insert", "editor"]}>
-   * ```
-   */
-  modes?: string[];
+	/**
+	 * Please enter the mode flag you wish to register directly.
+	 *
+	 * @example
+	 * ```tsx
+	 * <KeyboardProvider modes={["insert", "editor"]}>
+	 * ```
+	 */
+	modes?: string[];
 
-  /**
-   * The default mode must be pre-registered in the modes list.
-   */
-  defaultMode?: string | null;
+	/**
+	 * The default mode must be pre-registered in the modes list.
+	 */
+	defaultMode?: string | null;
 
-  /**
-   * Optional runtime type schema for composition chain value validation.
-   *
-   * @example
-   * ```tsx
-   * <KeyboardProvider valueSchema={{
-   *   times: (v): v is number => typeof v === 'number',
-   *   action: (v): v is number => typeof v === 'number',
-   * }}>
-   * ```
-   */
-  valueSchema?: ValueSchema;
-  /**
-   * Whether the engine automatically handles Tab / Shift+Tab for focus
-   * rotation. Defaults to `false`.
-   *
-   * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
-   * automatically. When `false` or omitted, developers must call
-   * `focusNext` / `focusPrev` manually.
-   */
-  autoTab?: boolean;
+	/**
+	 * Optional runtime type schema for composition chain value validation.
+	 *
+	 * @example
+	 * ```tsx
+	 * <KeyboardProvider valueSchema={{
+	 *   times: (v): v is number => typeof v === 'number',
+	 *   action: (v): v is number => typeof v === 'number',
+	 * }}>
+	 * ```
+	 */
+	valueSchema?: ValueSchema;
+	/**
+	 * Whether the engine automatically handles Tab / Shift+Tab for focus
+	 * rotation. Defaults to `false`.
+	 *
+	 * When `true`, the engine intercepts Tab/Shift+Tab and cycles focus
+	 * automatically. When `false` or omitted, developers must call
+	 * `focusNext` / `focusPrev` manually.
+	 */
+	autoTab?: boolean;
 
-  /**
-   * Enables terminal mouse tracking (wires xterm-mouse into the engine).
-   *
-   * Mouse escape sequences are filtered out of the keyboard stream
-   * automatically, so they never reach `useInput` handlers as garbage
-   * text. Mark any `<Box>` with {@link useMouseRegion} to receive click,
-   * wheel, hover, and drag callbacks.
-   */
-  mouse?: boolean;
+	/**
+	 * Enables terminal mouse tracking (wires xterm-mouse into the engine).
+	 *
+	 * Mouse escape sequences are filtered out of the keyboard stream
+	 * automatically, so they never reach `useInput` handlers as garbage
+	 * text. Mark any `<Box>` with {@link useMouseRegion} to receive click,
+	 * wheel, hover, and drag callbacks.
+	 */
+	mouse?: boolean;
 
-  /**
-   * Options passed to the internal xterm-mouse `Mouse` instance when `mouse`
-   * is enabled. See `MouseOptions` (e.g. `clickDistanceThreshold`,
-   * `pressStormThreshold`, `degradedDedupDistance`).
-   */
-  mouseOptions?: MouseOptions;
+	/**
+	 * Options passed to the internal xterm-mouse `Mouse` instance when `mouse`
+	 * is enabled. See `MouseOptions` (e.g. `clickDistanceThreshold`,
+	 * `pressStormThreshold`, `degradedDedupDistance`).
+	 */
+	mouseOptions?: MouseOptions;
 }
 
 /**
@@ -189,191 +187,187 @@ export interface KeyboardProviderProps {
  * ```
  */
 export function KeyboardProvider({
-  children,
-  processors,
-  modes,
-  defaultMode,
-  valueSchema,
-  autoTab,
-  mouse,
-  mouseOptions,
+	children,
+	processors,
+	modes,
+	defaultMode,
+	valueSchema,
+	autoTab,
+	mouse,
+	mouseOptions,
 }: KeyboardProviderProps) {
-  const {
-    currentPath,
-    allLayers,
-    allModalLayers,
-  } = useScreenSystem();
+	const { currentPath, allLayers, allModalLayers } = useScreenSystem();
 
-  const engineRef = useRef<KeyboardEngine | null>(null);
-  if (!engineRef.current) {
-    engineRef.current = new KeyboardEngine({
-      modes,
-      defaultMode: defaultMode ?? undefined,
-      processors,
-      normalizeKeyNames,
-      isNormalChar: isInkSpecialKey,
-      valueSchema,
-      autoTab,
-    });
-  }
-  const engine = engineRef.current;
+	const engineRef = useRef<KeyboardEngine | null>(null);
+	if (!engineRef.current) {
+		engineRef.current = new KeyboardEngine({
+			modes,
+			defaultMode: defaultMode ?? undefined,
+			processors,
+			normalizeKeyNames,
+			isNormalChar: isInkSpecialKey,
+			valueSchema,
+			autoTab,
+		});
+	}
+	const engine = engineRef.current;
 
-  engine.sync({
-    pagePath: currentPath,
-    layers: toKeyboardLayerState(allLayers, currentPath),
-    modalLayers: toKeyboardLayerState(allModalLayers, currentPath),
-  });
+	engine.sync({
+		pagePath: getPath(currentPath),
+		layers: toKeyboardLayerState(allLayers, getPath(currentPath)),
+		modalLayers: toKeyboardLayerState(allModalLayers, getPath(currentPath)),
+	});
 
-  useEffect(() => {
-    engine.cleanLayers();
-  }, [currentPath, engine]);
-  useEffect(() => {
-    engine.cleanOverlayLayers();
-  }, [allLayers, engine]);
-  useEffect(() => {
-    engine.cleanModalLayers();
-  }, [allModalLayers, engine]);
+	useEffect(() => {
+		engine.cleanLayers();
+	}, [currentPath, engine]);
+	useEffect(() => {
+		engine.cleanOverlayLayers();
+	}, [allLayers, engine]);
+	useEffect(() => {
+		engine.cleanModalLayers();
+	}, [allModalLayers, engine]);
 
-  // Mouse event feed: when `mouse` is enabled, listen with xterm-mouse and
-  // push events into the engine's mouse region hit-testing.
-  useEffect(() => {
-    if (!mouse) return;
-    if (!Mouse.isSupported()) {
-      console.warn(
-        "[ink-cartridge] Mouse tracking requires a TTY input stream — mouse events disabled.",
-      );
-      return;
-    }
-    const mouseInstance = new Mouse(mouseOptions);
-    try {
-      mouseInstance.enable();
-    } catch (err) {
-      console.warn(
-        "[ink-cartridge] Failed to enable mouse tracking:",
-        err instanceof Error ? err.message : err,
-      );
-      return;
-    }
-    const handle = (event: XtermMouseEvent): void => {
-      engine.processMouseEvent(event);
-    };
-    mouseInstance.on("click", handle);
-    mouseInstance.on("wheel", handle);
-    mouseInstance.on("move", handle);
-    mouseInstance.on("press", handle);
-    mouseInstance.on("drag", handle);
-    mouseInstance.on("release", handle);
-    return () => {
-      mouseInstance.off("click", handle);
-      mouseInstance.off("wheel", handle);
-      mouseInstance.off("move", handle);
-      mouseInstance.off("press", handle);
-      mouseInstance.off("drag", handle);
-      mouseInstance.off("release", handle);
-      mouseInstance.destroy();
-    };
-  }, [mouse, engine, mouseOptions]);
+	// Mouse event feed: when `mouse` is enabled, listen with xterm-mouse and
+	// push events into the engine's mouse region hit-testing.
+	useEffect(() => {
+		if (!mouse) return;
+		if (!Mouse.isSupported()) {
+			console.warn(
+				"[ink-cartridge] Mouse tracking requires a TTY input stream — mouse events disabled."
+			);
+			return;
+		}
+		const mouseInstance = new Mouse(mouseOptions);
+		try {
+			mouseInstance.enable();
+		} catch (err) {
+			console.warn(
+				"[ink-cartridge] Failed to enable mouse tracking:",
+				err instanceof Error ? err.message : err
+			);
+			return;
+		}
+		const handle = (event: XtermMouseEvent): void => {
+			engine.processMouseEvent(event);
+		};
+		mouseInstance.on("click", handle);
+		mouseInstance.on("wheel", handle);
+		mouseInstance.on("move", handle);
+		mouseInstance.on("press", handle);
+		mouseInstance.on("drag", handle);
+		mouseInstance.on("release", handle);
+		return () => {
+			mouseInstance.off("click", handle);
+			mouseInstance.off("wheel", handle);
+			mouseInstance.off("move", handle);
+			mouseInstance.off("press", handle);
+			mouseInstance.off("drag", handle);
+			mouseInstance.off("release", handle);
+			mouseInstance.destroy();
+		};
+	}, [mouse, engine, mouseOptions]);
 
-  const value: KeyboardContextValue = useMemo(
-    () => ({
-      boundKeyboard: engine.boundKeyboard.bind(engine) as any,
-      penetration: engine.penetration.bind(engine),
-      stop: engine.stop.bind(engine),
-      globalKeys: engine.globalKeys.bind(engine),
-      getGlobalKeys: engine.getGlobalKeys.bind(engine),
-      globalSequence: engine.globalSequence.bind(engine),
-      getGlobalSequences: engine.getGlobalSequences.bind(engine),
-      getGlobalPendingSequence: engine.getGlobalPendingSequence.bind(engine),
-      thereGlobalQueueWaiting: engine.thereGlobalQueueWaiting.bind(engine),
-      currentScreenHasSequenceWaiting:
-        engine.currentScreenHasSequenceWaiting.bind(engine),
-      focusSet: engine.focusSet.bind(engine),
-      focusNext: engine.focusNext.bind(engine),
-      focusPrev: engine.focusPrev.bind(engine),
-      focusCurrent: engine.focusCurrent.bind(engine),
-      focusUnregister: engine.focusUnregister.bind(engine),
-      subscribeFocus: engine.subscribeFocus.bind(engine),
-      defineShortcutAction: engine.defineShortcutAction.bind(engine),
-      addAction: engine.addAction.bind(engine),
-      hasAction: engine.hasAction.bind(engine),
-      removeAction: engine.removeAction.bind(engine),
-      modifyAction: engine.modifyAction.bind(engine),
-      clearShortcutOperations: engine.clearShortcutOperations.bind(engine),
-      defineSequenceAction: engine.defineSequenceAction.bind(engine),
-      addSequenceAction: engine.addSequenceAction.bind(engine),
-      hasSequenceAction: engine.hasSequenceAction.bind(engine),
-      removeSequenceAction: engine.removeSequenceAction.bind(engine),
-      modifySequenceAction: engine.modifySequenceAction.bind(engine),
-      clearSequenceOperations: engine.clearSequenceOperations.bind(engine),
-      _pushOwner: engine.pushOwner.bind(engine),
-      _popOwner: engine.popOwner.bind(engine),
-      boundSequence: engine.boundSequence.bind(engine) as any,
-      enableWildcardPriority: engine.enableWildcardPriority.bind(engine),
-      useModalMissListener: engine.useModalMissListener.bind(engine),
-      allowModal: engine.allowModal.bind(engine),
-      readLayer: engine.readLayer.bind(engine),
-      getCurrentMode: engine.getCurrentMode.bind(engine),
-      addMode: engine.addMode.bind(engine),
-      removeMode: engine.removeMode.bind(engine),
-      setMode: engine.setMode.bind(engine),
-      nextMode: engine.nextMode.bind(engine),
-      prevMode: engine.prevMode.bind(engine),
-      addCondition: engine.addCondition.bind(engine),
-      setCondition: engine.setCondition.bind(engine),
-      removeCondition: engine.removeCondition.bind(engine),
-      addProcessor: engine.addProcessor.bind(engine),
-      removeProcessor: engine.removeProcessor.bind(engine),
-      getProcessors: engine.getProcessors.bind(engine),
-      resetProcessors: engine.resetProcessors.bind(engine),
-      registryCompositionKey: engine.registryCompositionKey.bind(engine),
-      removeCompositionKey: engine.removeCompositionKey.bind(engine),
-      clearAllCompositionKeys: engine.clearAllCompositionKeys.bind(engine),
-      hasPendingComposition: engine.hasPendingComposition.bind(engine),
-      getCompositionContext: engine.getCompositionContext.bind(engine),
-      abortComposition: engine.abortComposition.bind(engine),
-      updateCompositionKey: engine.updateCompositionKey.bind(engine),
-      setValueSchema: engine.setValueSchema.bind(engine),
-      undoComposition: engine.undoComposition.bind(engine),
-      bufferedCompositionCount: engine.bufferedCompositionCount.bind(engine),
-      clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
-      subscribeComposition: engine.subscribeComposition.bind(engine),
-      getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
-      addMapping: engine.addMapping.bind(engine),
-      removeMappingKey: engine.removeMappingKey.bind(engine),
-      removeMapping: engine.removeMapping.bind(engine),
-      subscribeMapping: engine.subscribeMapping.bind(engine),
-      getLastMappingEvent: engine.getLastMappingEvent.bind(engine),
-      activateFocusGroup: engine.activateFocusGroup.bind(engine),
-      kickFocusGroup: engine.kickFocusGroup.bind(engine),
-      kickProcessor: engine.kickProcessor.bind(engine),
-      activeProcessor: engine.activeProcessor.bind(engine),
-      registerMouseRegion: engine.registerMouseRegion.bind(engine),
-      unregisterMouseRegion: engine.unregisterMouseRegion.bind(engine),
-      getHoveredMouseRegion: engine.getHoveredMouseRegion.bind(engine),
-    }),
-    [engine],
-  );
+	const value: KeyboardContextValue = useMemo(
+		() => ({
+			boundKeyboard: engine.boundKeyboard.bind(engine) as any,
+			penetration: engine.penetration.bind(engine),
+			stop: engine.stop.bind(engine),
+			globalKeys: engine.globalKeys.bind(engine),
+			getGlobalKeys: engine.getGlobalKeys.bind(engine),
+			globalSequence: engine.globalSequence.bind(engine),
+			getGlobalSequences: engine.getGlobalSequences.bind(engine),
+			getGlobalPendingSequence: engine.getGlobalPendingSequence.bind(engine),
+			thereGlobalQueueWaiting: engine.thereGlobalQueueWaiting.bind(engine),
+			currentScreenHasSequenceWaiting:
+				engine.currentScreenHasSequenceWaiting.bind(engine),
+			focusSet: engine.focusSet.bind(engine),
+			focusNext: engine.focusNext.bind(engine),
+			focusPrev: engine.focusPrev.bind(engine),
+			focusCurrent: engine.focusCurrent.bind(engine),
+			focusUnregister: engine.focusUnregister.bind(engine),
+			subscribeFocus: engine.subscribeFocus.bind(engine),
+			defineShortcutAction: engine.defineShortcutAction.bind(engine),
+			addAction: engine.addAction.bind(engine),
+			hasAction: engine.hasAction.bind(engine),
+			removeAction: engine.removeAction.bind(engine),
+			modifyAction: engine.modifyAction.bind(engine),
+			clearShortcutOperations: engine.clearShortcutOperations.bind(engine),
+			defineSequenceAction: engine.defineSequenceAction.bind(engine),
+			addSequenceAction: engine.addSequenceAction.bind(engine),
+			hasSequenceAction: engine.hasSequenceAction.bind(engine),
+			removeSequenceAction: engine.removeSequenceAction.bind(engine),
+			modifySequenceAction: engine.modifySequenceAction.bind(engine),
+			clearSequenceOperations: engine.clearSequenceOperations.bind(engine),
+			_pushOwner: engine.pushOwner.bind(engine),
+			_popOwner: engine.popOwner.bind(engine),
+			boundSequence: engine.boundSequence.bind(engine) as any,
+			enableWildcardPriority: engine.enableWildcardPriority.bind(engine),
+			useModalMissListener: engine.useModalMissListener.bind(engine),
+			allowModal: engine.allowModal.bind(engine),
+			readLayer: engine.readLayer.bind(engine),
+			getCurrentMode: engine.getCurrentMode.bind(engine),
+			addMode: engine.addMode.bind(engine),
+			removeMode: engine.removeMode.bind(engine),
+			setMode: engine.setMode.bind(engine),
+			nextMode: engine.nextMode.bind(engine),
+			prevMode: engine.prevMode.bind(engine),
+			addCondition: engine.addCondition.bind(engine),
+			setCondition: engine.setCondition.bind(engine),
+			removeCondition: engine.removeCondition.bind(engine),
+			addProcessor: engine.addProcessor.bind(engine),
+			removeProcessor: engine.removeProcessor.bind(engine),
+			getProcessors: engine.getProcessors.bind(engine),
+			resetProcessors: engine.resetProcessors.bind(engine),
+			registryCompositionKey: engine.registryCompositionKey.bind(engine),
+			removeCompositionKey: engine.removeCompositionKey.bind(engine),
+			clearAllCompositionKeys: engine.clearAllCompositionKeys.bind(engine),
+			hasPendingComposition: engine.hasPendingComposition.bind(engine),
+			getCompositionContext: engine.getCompositionContext.bind(engine),
+			abortComposition: engine.abortComposition.bind(engine),
+			updateCompositionKey: engine.updateCompositionKey.bind(engine),
+			setValueSchema: engine.setValueSchema.bind(engine),
+			undoComposition: engine.undoComposition.bind(engine),
+			bufferedCompositionCount: engine.bufferedCompositionCount.bind(engine),
+			clearCompositionBuffers: engine.clearCompositionBuffers.bind(engine),
+			subscribeComposition: engine.subscribeComposition.bind(engine),
+			getLastCompositionEvent: engine.getLastCompositionEvent.bind(engine),
+			addMapping: engine.addMapping.bind(engine),
+			removeMappingKey: engine.removeMappingKey.bind(engine),
+			removeMapping: engine.removeMapping.bind(engine),
+			subscribeMapping: engine.subscribeMapping.bind(engine),
+			getLastMappingEvent: engine.getLastMappingEvent.bind(engine),
+			activateFocusGroup: engine.activateFocusGroup.bind(engine),
+			kickFocusGroup: engine.kickFocusGroup.bind(engine),
+			kickProcessor: engine.kickProcessor.bind(engine),
+			activeProcessor: engine.activeProcessor.bind(engine),
+			registerMouseRegion: engine.registerMouseRegion.bind(engine),
+			unregisterMouseRegion: engine.unregisterMouseRegion.bind(engine),
+			getHoveredMouseRegion: engine.getHoveredMouseRegion.bind(engine),
+		}),
+		[engine]
+	);
 
-  // When mouse tracking is on, Ink still receives the same raw bytes as the
-  // mouse parser. Mouse reports must never reach the keyboard pipeline —
-  // otherwise SGR sequences get typed into the app as garbage text.
-  const mouseReportFilterRef = useRef<MouseReportFilter | null>(null);
-  if (mouse && !mouseReportFilterRef.current) {
-    mouseReportFilterRef.current = new MouseReportFilter();
-  }
+	// When mouse tracking is on, Ink still receives the same raw bytes as the
+	// mouse parser. Mouse reports must never reach the keyboard pipeline —
+	// otherwise SGR sequences get typed into the app as garbage text.
+	const mouseReportFilterRef = useRef<MouseReportFilter | null>(null);
+	if (mouse && !mouseReportFilterRef.current) {
+		mouseReportFilterRef.current = new MouseReportFilter();
+	}
 
-  useInput((input, key) => {
-    if (mouseReportFilterRef.current?.consume(input)) {
-      return;
-    }
-    engine.processKey(input, key);
-  });
+	useInput((input, key) => {
+		if (mouseReportFilterRef.current?.consume(input)) {
+			return;
+		}
+		engine.processKey(input, key);
+	});
 
-  return (
-    <KeyboardContext.Provider value={value}>
-      {children}
-    </KeyboardContext.Provider>
-  );
+	return (
+		<KeyboardContext.Provider value={value}>
+			{children}
+		</KeyboardContext.Provider>
+	);
 }
 
 export { clearShortcutOperations };

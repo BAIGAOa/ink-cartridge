@@ -54,6 +54,7 @@ export type {
   MappingKeyBrokenEvent,
   MappingKeyConsumedEvent,
   MappingKeyEntry,
+  undo,
 } from "./CompositionEngine.js";
 export { defaultTargetsSymbol } from "./types/default-targets-symbol.js";
 
@@ -68,11 +69,31 @@ export { Mouse, MouseError } from "./xterm-mouse/index.js";
 export type {
   MouseEvent as XtermMouseEvent,
   MouseEventAction,
+  MouseEventBase,
   MouseOptions,
   MousePosition,
   MouseStreamEvent,
   ReadableStreamWithEncoding,
+  SGRMouseEvent,
+  ESCMouseEvent,
+  ListenerFor,
+  TypedEventListener,
+  ErrorEventListener,
+  EventByAction,
+  ButtonType,
+  NoneButton,
 } from "./xterm-mouse/index.js";
+export type {
+  BaseBoundKeyEntry,
+  PageBoundKeyEntry,
+} from "./types/binding.js";
+export type {
+  PageKeyboardLayer,
+  ElementKeyboard,
+  LayerKeyboardLayer,
+  MissListener,
+} from "./types/page-layer.js";
+export type { FocusSetOptions } from "./types/focus.js";
 export type {
   HoveredRegion,
   MouseRegionEntry,

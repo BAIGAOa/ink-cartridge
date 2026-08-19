@@ -51,6 +51,7 @@ export function CurrentScreen(): React.ReactNode {
               layer: layer,
               hostPage: layer.hostPage,
               auto: layer.automaticTakeoverKeyboard,
+              regionFocus: layer.regionFocus
             };
 
             return (
@@ -84,6 +85,7 @@ export function CurrentScreen(): React.ReactNode {
               modalLayer: modalLayer,
               hostPage: modalLayer.hostPage,
               auto: modalLayer.automaticTakeoverKeyboard,
+              regionFocus: modalLayer.regionFocus
             };
 
             return (

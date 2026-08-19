@@ -1,4 +1,5 @@
-import { ComponentType, createContext } from "react";
+import { ComponentType, createContext, type RefObject } from "react";
+import type { DOMElement } from "ink";
 import type {
   KeyHandler,
   BoundKeyboardOptions,
@@ -39,6 +40,28 @@ import { defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
 export type LayerOwner = unknown | string;
 
 /**
+ * React-side extension of {@link BoundKeyboardOptions}: an optional ref to a
+ * DOM element that doubles as a mouse region. When a `ref` and a `focusId`
+ * are both present, `useKeyboard().boundKeyboard` records the
+ * ref → focusId mapping so that clicking the region (via `useMouseRegion`)
+ * forwards keyboard focus to `focusId`.
+ */
+export type BoundKeyboardReactOptions = BoundKeyboardOptions & {
+  ref?: RefObject<DOMElement | null>;
+};
+
+/**
+ * React-side extension of {@link SequenceOptions}: an optional ref to a
+ * DOM element that doubles as a mouse region. When a `ref` and a `focusId`
+ * are both present, `useKeyboard().boundSequence` records the
+ * ref → focusId mapping so that clicking the region (via `useMouseRegion`)
+ * forwards keyboard focus to `focusId`.
+ */
+export type SequenceReactOptions = SequenceOptions & {
+  ref?: RefObject<DOMElement | null>;
+}
+
+/**
  * Value exposed by the keyboard system via React context.
  *
  * Exposes the {@link KeyboardEngine} API bound to the engine instance.
@@ -50,14 +73,14 @@ export interface KeyboardContextValue {
     (
       keys: string | string[],
       handler: KeyHandler,
-      options?: BoundKeyboardOptions,
+      options?: BoundKeyboardReactOptions,
     ): () => void;
     (
       keys: string | string[],
       actionId: string,
-      options?: BoundKeyboardOptions,
+      options?: BoundKeyboardReactOptions,
     ): () => void;
-    (actionId: string, options?: BoundKeyboardOptions): () => void;
+    (actionId: string, options?: BoundKeyboardReactOptions): () => void;
   };
 
   penetration: (keys: string[], options?: PenetrationOptions) => () => void;
@@ -138,9 +161,14 @@ export interface KeyboardContextValue {
     (
       keys: string | string[],
       handler: KeyHandler,
-      options?: SequenceOptions,
+      options?: SequenceReactOptions,
     ): () => void;
-    (actionId: string, options?: SequenceOptions): () => void;
+    (
+      keys: string[],
+      actionId: string,
+      options?: SequenceReactOptions,
+    ): () => void;
+    (actionId: string, options?: SequenceReactOptions): () => void;
   };
 
   enableWildcardPriority: () => () => void;

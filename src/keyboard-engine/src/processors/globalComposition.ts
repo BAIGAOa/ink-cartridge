@@ -6,7 +6,7 @@ import type {
 /**
  * Create a processor for composition key chains.
  *
- * Two instances are created by {@link PipelineManager} — one for the
+ * Two instances are created by `PipelineManager` — one for the
  * layer phase ({@link affectOverlay} = `true`) and one for the page
  * phase ({@link affectOverlay} = `false`). Both read the shared
  * {@link CompositionEngine} instance from {@link PipelineContext.compositionEngine}.

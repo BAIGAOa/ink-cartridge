@@ -1,5 +1,10 @@
 export { KeyboardProvider } from "./provider/KeyboardProvider.js";
 export { KeyboardContext } from "./context.js";
+export type {
+  BoundKeyboardReactOptions,
+  KeyboardContextValue,
+  SequenceReactOptions,
+} from "./context.js";
 export {
   useKeyboard,
   useFocusState,
@@ -25,7 +30,7 @@ export function isNormalCharacter(input: string, key: unknown): boolean {
 }
 export { isInkSpecialKey, normalizeKeyNames } from "./keyNormalizer.js";
 
-export { KeyboardEngine } from "@cartridge-engine/keyboard-engine";
+export { KeyboardEngine, defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
 export {
   checkWhen,
   checkGlobalKey,
@@ -63,6 +68,8 @@ export type {
   ScreenKeyboardLayer,
   LayerKind,
   FocusTarget,
+  FocusRef,
+  FocusSetOptions,
   GlobalKeyEntry,
   GlobalSequenceEntry,
   SequenceOptions,

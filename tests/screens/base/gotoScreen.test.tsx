@@ -33,14 +33,14 @@ describe('gotoScreen', () => {
     act(() => {
       ctx.skip(Combat, { enemy: 'goblin' });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel, Combat]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel, Combat]);
 
     act(() => {
       ctx.gotoScreen(Settings, { theme: 'light' });
     });
 
     const updated = getCapture()!;
-    expect(updated.currentPath).toEqual([Menu, Settings]);
+    expect(updated.currentPath.map((p) => p.component)).toEqual([Menu, Settings]);
   });
 
   it('throws when the target component is not registered', () => {
@@ -63,13 +63,13 @@ describe('gotoScreen', () => {
     act(() => {
       ctx.skip(GameLevel, { level: 1 });
     });
-    expect(getCapture()!.currentPath).toEqual([Menu, GameLevel]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, GameLevel]);
 
     act(() => {
       gotoScreen(Settings, { theme: 'solarized' });
     });
 
-    expect(getCapture()!.currentPath).toEqual([Menu, Settings]);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu, Settings]);
   });
 
   it('clears all open overlays when navigating via gotoScreen', () => {
