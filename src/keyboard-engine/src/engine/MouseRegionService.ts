@@ -294,13 +294,17 @@ export default class MouseRegionService {
     layers: KeyboardLayer[],
     modalLayers: KeyboardLayer[],
   ): { layerId: string; regionId: string } | null {
+    // Only the topmost modal layer can receive responses. 
+    // This is a design trade-off; otherwise, you can choose to use a regular layer instead.
     if (modalLayers.length > 0) {
-      for (let i = modalLayers.length - 1; i >= 0; i--) {
-        const hit = this.hitLayer(modalLayers[i], x, y);
-        if (hit) return hit;
-      }
+      const topModal = modalLayers[modalLayers.length - 1];
+      const hit = this.hitLayer(topModal, x, y);
+      if (hit) {
+        return hit;
+      } 
       return null;
     }
+
     for (let i = layers.length - 1; i >= 0; i--) {
       const hit = this.hitLayer(layers[i], x, y);
       if (hit) return hit;
