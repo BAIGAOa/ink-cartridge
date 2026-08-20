@@ -950,6 +950,12 @@ export default class CompositionEngine<TComponent = unknown> {
 		steps: number = 1,
 		options?: { isolated?: boolean; byKey?: boolean },
 	): CompositionContext | null {
+		// Cancel any in-flight composition before undoing. Leaving a pending
+		// chain (or pending mapping sequence) alive would keep startPending()
+		// from beginning a new chain until the stale timeout fires.
+		this.clearPending();
+		this.clearMappingPending();
+
 		if (this.buffers.length === 0) return null;
 
 		const byKey = options?.byKey === true;

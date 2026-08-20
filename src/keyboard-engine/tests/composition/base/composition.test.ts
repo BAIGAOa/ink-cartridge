@@ -64,6 +64,23 @@ describe("CompositionEngine", () => {
     expect(engine.hasPendingComposition()).toBe(false);
   });
 
+  it("clears a pending chain when undo runs mid-composition", () => {
+    vi.useFakeTimers();
+    const engine = engineWithChain();
+    engine.processKey("3", {});
+    expect(engine.hasPendingComposition()).toBe(true);
+    // undo while the chain is still pending: the pending entry must be
+    // cleared, otherwise startPending() stays blocked until the stale
+    // timeout fires.
+    expect(engine.undoComposition()).toBeNull();
+    expect(engine.hasPendingComposition()).toBe(false);
+    // a fresh chain must be able to start immediately afterwards.
+    expect(engine.processKey("3", {})).toBe(true);
+    expect(engine.hasPendingComposition()).toBe(true);
+    vi.advanceTimersByTime(600);
+    expect(engine.hasPendingComposition()).toBe(false);
+  });
+
   it("publishes composition events", () => {
     const engine = engineWithChain();
     const subscriber = vi.fn();

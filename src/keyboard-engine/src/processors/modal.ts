@@ -46,6 +46,16 @@ function isAllowed(
 			const target = getFocusTarget(layer, each);
 			if (target) allFt.push(target);
 		}
+		// A focus target's own when-disabled keys must be treated as blocked
+		// by the modal barrier too, otherwise a key the focused element
+		// disabled would still count as "allowed" and penetrate the modal.
+		for (const ft of allFt) {
+			for (const rule of ft.allowedKeys) {
+				if (!checkWhen(rule.when, conditions)) {
+					blockedKeys.push(rule.key);
+				}
+			}
+		}
 		const allAllowedKeys = [
 			...new Set(allFt.flatMap((each) => each.allowedKeys)),
 		];
