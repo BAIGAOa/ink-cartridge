@@ -27,7 +27,7 @@ function pointInRect(x: number, y: number, rect: MouseRegionRect): boolean {
  *
  * Owns no framework-specific state — the engine feeds it the current synced
  * layers/modal layers so hit priority matches keyboard events
- * (modal layers > regular layers > root regions, later entries win).
+ * (topmost modal layer > regular layers > root regions, later entries win).
  *
  * Also tracks the currently hovered region (from move events) so enter/leave
  * transitions can be fired exactly once per boundary crossing.
@@ -280,13 +280,15 @@ export default class MouseRegionService {
   }
 
   /**
-   * Find the highest-priority region containing the point: modal layers
-   * (reverse order) → regular layers (reverse order) → root regions.
+   * Find the highest-priority region containing the point: the topmost modal
+   * layer (while any modal is open) → regular layers (reverse order) → root
+   * regions.
    *
    * While any modal layer is open it takes over mouse hit-testing just like
-   * it takes over the keyboard: events never fall through to regular layers
-   * or root regions, so clicking "through" a modal cannot trigger the UI
-   * underneath.
+   * it takes over the keyboard: only the topmost modal is consulted, and a
+   * miss on it is dead — events never fall through to lower modals, regular
+   * layers, or root regions, so clicking "through" a modal cannot trigger
+   * the UI underneath.
    */
   private hitTest(
     x: number,
@@ -294,14 +296,16 @@ export default class MouseRegionService {
     layers: KeyboardLayer[],
     modalLayers: KeyboardLayer[],
   ): { layerId: string; regionId: string } | null {
-    // Only the topmost modal layer can receive responses. 
-    // This is a design trade-off; otherwise, you can choose to use a regular layer instead.
+    // A modal takes over mouse input exactly as it takes over the keyboard:
+    // only the topmost one is hit-tested, and a miss stays dead instead of
+    // falling through. Want regions under a modal to stay clickable? Use a
+    // regular layer instead.
     if (modalLayers.length > 0) {
       const topModal = modalLayers[modalLayers.length - 1];
       const hit = this.hitLayer(topModal, x, y);
       if (hit) {
         return hit;
-      } 
+      }
       return null;
     }
 

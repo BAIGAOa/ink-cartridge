@@ -1430,10 +1430,12 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Register a mouse region for hit-testing.
    *
    * The region's `layerId` must match a synced layer id so hit priority
-   * follows the same modal > layer > root order as keyboard events. `regionId`
-   * is a caller-chosen unique identifier for the region within that layer —
-   * it is independent of keyboard element ids. `rect` must be in 1-based
-   * terminal coordinates.
+   * follows the same modal > layer > root order as keyboard events: while
+   * any modal is open, only the topmost modal layer is hit-tested, and a
+   * miss on it is dead (no fall-through). `regionId` is a caller-chosen
+   * unique identifier for the region within that layer — it is independent
+   * of keyboard element ids. `rect` must be in 1-based terminal
+   * coordinates.
    *
    * Within a layer, later registrations win; a `priority` in the region entry
    * overrides registration order (used for child controls like buttons).
