@@ -1,6 +1,6 @@
 {
   "name": "@cartridge-engine/event",
-  "version": "0.9.9",
+  "version": "1.0.0",
   "description": "A typed event bus for decoupled communication between Ink components",
   "type": "module",
   "main": "./dist/index.js",
