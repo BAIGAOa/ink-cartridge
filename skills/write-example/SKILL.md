@@ -182,7 +182,7 @@ And on the provider:
 - All text **must** be in English — comments, UI strings, key descriptions
 - **Must** use JSX; `React.createElement` is forbidden
 - Overlay/modal components **must** use `position="absolute"` + `useWindowSize()` centering + `backgroundColor="black"` + `fullScreen` on provider
-- Single-API showcase only. Multi-system stress tests go to `ink-blots/`
+- Single-API showcase only. Multi-system stress scenarios belong in test suites, not in examples
 - **Must** add a keyboard shortcut to exit (`q` → `process.exit(0)`) in every interactive demo
 - **Must** update `examples/README.md` when adding a new demo
 - **Must not** write test files under `examples/`

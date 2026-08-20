@@ -18,7 +18,7 @@ Each component lives in its own directory: `examples/<component-name>/<Demo>.dem
 - One demo file per component variant. Split different modes into separate files (e.g. single vs. multi).
 - All text (labels, descriptions, UI strings) must be in English. No Chinese characters.
 - Prefer JSX over `React.createElement`.
-- Demos are single-API showcases. For multi-system stress tests, use `ink-blots/`.
+- Demos are single-API showcases. Multi-system stress scenarios live in the package/engine test suites, not in examples.
 
 ## Overlays and modals
 
