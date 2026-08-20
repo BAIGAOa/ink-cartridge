@@ -125,6 +125,47 @@ describe("modal processor", () => {
     expect(page).toHaveBeenCalled();
   });
 
+  it("passes a focus target's enabled allowModal key through to the page", () => {
+    const engine = createEngine();
+    const page = vi.fn();
+    engine.sync({
+      pagePath: [Root],
+      layers: [],
+      modalLayers: [makeSyncLayer("M", ["m1"])],
+    });
+    engine.boundKeyboard(["x"], page);
+    engine.pushOwner("M");
+    engine.allowModal(["x"], {
+      elementId: "m1",
+      focusId: { group: "g1", focusId: "ft1" },
+    });
+    engine.popOwner("M");
+
+    expect(engine.processKey("x", {})).toBe(false);
+    expect(page).toHaveBeenCalled();
+  });
+
+  it("blocks a focus target's when-disabled allowModal key from penetrating", () => {
+    const engine = createEngine();
+    const page = vi.fn();
+    engine.sync({
+      pagePath: [Root],
+      layers: [],
+      modalLayers: [makeSyncLayer("M", ["m1"])],
+    });
+    engine.boundKeyboard(["x"], page);
+    engine.pushOwner("M");
+    engine.allowModal(["x"], {
+      elementId: "m1",
+      focusId: { group: "g1", focusId: "ft1" },
+      when: () => false,
+    });
+    engine.popOwner("M");
+
+    expect(engine.processKey("x", {})).toBe(true);
+    expect(page).not.toHaveBeenCalled();
+  });
+
   it("reports modal misses through miss listeners", () => {
     const engine = createEngine();
     const onMiss = vi.fn();
