@@ -21,9 +21,9 @@ import {
   useScreenSystem,
   skip,
   back,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 
 const MODAL_W = 40;
 const CONFIRM_H = 8;

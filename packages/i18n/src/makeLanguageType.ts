@@ -26,7 +26,7 @@ export interface MakeLanguageTypeOptions {
   packageName: string;
 }
 
-// JSON flattening (must match src/language/provider.tsx)
+// JSON flattening (must match ./provider.tsx in this package)
 
 /** @internal Exported for testing only. */
 export function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<string, string> {

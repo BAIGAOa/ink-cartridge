@@ -8,8 +8,7 @@
 	"externalSymbolLinkMappings": {
 		"ink-cartridge": {
 			"deactivateElement": "#",
-			"deactivateElementInModalLayer": "#",
-			"LanguageProviderProps": "#"
+			"deactivateElementInModalLayer": "#"
 		},
 		"@cartridge-engine/keyboard-engine": {
 			"default.registryCompositionKey": "#",

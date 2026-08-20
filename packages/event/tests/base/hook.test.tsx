@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import React, { useRef } from 'react';
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
-import { EventBus } from '../../../src/event/EventBus.js';
-import { EventProvider, createEventBus } from '../../../src/event/EventProvider.js';
-import { useEventBus, useEmitter, useSubscribe } from '../../../src/event/hook.js';
+import { EventBus } from '../../src/EventBus.js';
+import { EventProvider, createEventBus } from '../../src/EventProvider.js';
+import { useEventBus, useEmitter, useSubscribe } from '../../src/hook.js';
 
 interface TestEvents {
   'test:event': string;

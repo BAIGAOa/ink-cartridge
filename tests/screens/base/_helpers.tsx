@@ -33,6 +33,18 @@ export function Notification({ message }: { message: string }) {
   return <Text>{message}</Text>;
 }
 
+// Mount counter for StatefulScreen — external so tests can read it without
+// relying on a re-render; reset to 0 in each test's beforeEach.
+export const statefulMountCount: { current: number } = { current: 0 };
+
+// Mount-counting screen used to observe remount vs props-only updates.
+export function StatefulScreen({ label }: { label: string }) {
+  useEffect(() => {
+    statefulMountCount.current += 1;
+  }, []);
+  return <Text>label:{label}</Text>;
+}
+
 export async function flush(): Promise<void> {
   await new Promise((r) => setTimeout(r, 10));
 }
@@ -73,6 +85,7 @@ export function setupBaseScreenTests() {
   registerComponent(Settings, { theme: 'dark' }, { parent: Menu });
   registerComponent(GameLevel, { level: 1 }, { parent: Menu });
   registerComponent(Combat, { enemy: 'goblin' }, { parent: GameLevel });
+  registerComponent(StatefulScreen, { label: 'init' }, { parent: Menu });
   registerComponent(Notification, { message: '' });
 }
 

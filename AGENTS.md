@@ -12,7 +12,7 @@ Project conventions for AI coding agents working on `ink-cartridge` — a React 
 ## Commands
 
 ```bash
-npm run build          # keyboard-engine → core (tsc) → 14 component packages (explicit order)
+npm run build          # keyboard-engine → core (tsc) → 14 component packages → i18n/theme/event/init (explicit order)
 npm run watch          # tsc --watch (core only); per-package watch: npm run watch -w @cartridge-engine/<pkg>
 npm test               # vitest run (all workspace projects)
 npm run test:watch     # vitest --watch
@@ -20,9 +20,10 @@ npm run test:coverage  # vitest run --coverage
 npm run lint           # eslint src/ packages/
 npm run lint:fix       # eslint --fix src/ packages/
 npm run lint:quick     # eslint src/ packages/ --quiet --cache
-npm run demo:dev       # tsx examples/dev/dev.tsx (BROKEN: file no longer exists; per-demo: npx tsx examples/<pkg>/<Demo>.tsx)
 npm run clean          # rm -rf dist
 ```
+
+Per-demo: `npx tsx examples/<pkg>/<Demo>.demo.tsx` (see `examples/README.md`).
 
 ## Done
 
@@ -41,7 +42,7 @@ A task is not complete until:
 
 `packages/editor/` is NOT a component package — it's `blots-editor`, a standalone Markdown-editor app (bin `blots-editor`) depending on `ink-cartridge`. It has its own `tests/` and vitest project and is built separately in the release workflow, but is absent from the root `build` script.
 
-**Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType` — entry `src/cli/index.ts`).
+**Standalone packages**: `@cartridge-engine/i18n` (LanguageProvider + useI18n + `make-language-type`), `@cartridge-engine/theme` (ThemeProvider + useTheme + `make-theme-type`/`init-theme`), `@cartridge-engine/event` (EventBus + EventProvider + hooks), `@cartridge-engine/init` (project scaffold, bin `ink-cartridge-init`). Imported on demand; not part of the core barrel.
 
 ### examples
 
@@ -97,7 +98,7 @@ Explain **why**, not what. No decorative separators. See `docs-agents/comment-co
 Core system tests go in `tests/` (NOT `src/__tests__/`). Component tests live inside each package (`packages/<pkg>/tests/`). Environment is `node` (configured in `vitest.config.ts`).
 
 ```
-tests/<subsystem>/            # core: screens, keyboard, theme, language, event
+tests/<subsystem>/            # core: screens, keyboard
 ├── base/                     # basic logic tests
 │   ├── _helpers.tsx          # shared utilities
 │   └── *.test.ts(x)
@@ -107,6 +108,7 @@ packages/<pkg>/tests/base/    # per-package tests (own _helpers.tsx copy)
 ```
 
 - Black-box, concise, precise, non-redundant.
+- New behavior tests must be proven effective with a manual mutation test: temporarily break the implementation (revert a guard, flip a branch, change a value), run the test and confirm it FAILS, then restore the implementation and confirm the test passes again.
 - Must compile (`tsc` passes under `tests/tsconfig.json` and each `packages/<pkg>/tests/tsconfig.json`).
 - `clearRegistry()` in `beforeEach`; `clearDispatchers()` for module-level isolation.
 - `ink-testing-library`: synchronous `render()`, effects need `flush()` (50ms), `stdin.write()` wrapped in `act()`.
@@ -140,5 +142,6 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## CI/CD
 
-- GitHub CI (`ci.yml`): `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, keyboard-engine/tests/, editor/tests/, all 14 package tests/) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main`.
+- GitHub CI (`ci.yml`): `npm ci` → `npm run build` → `npm run lint` → tsc check (tests/, examples/, keyboard-engine/tests/, editor/tests/, all 14 package tests/, i18n/theme/event package tests) → `npx vitest run --coverage` on Node 22 & 24 for pushes/PRs to `main`.
 - Release (`release.yml`): `npm run build` + `npm run build -w blots-editor`, then `changesets/action` opens a version PR and publishes on merge (`createGithubReleases: true`).
+- The user generates changesets themselves — never create or edit `.changeset/*.md` files.

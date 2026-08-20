@@ -21,9 +21,9 @@ import {
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 
 function EditorScreen() {
   const [mode, setMode] = useState('viewing');

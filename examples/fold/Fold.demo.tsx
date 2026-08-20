@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { Fold } from '@cartridge-engine/fold';
+import { TextInput } from '@cartridge-engine/text-input';
+import { NumberInput } from '@cartridge-engine/number-input';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
-  Fold,
-  TextInput,
-  NumberInput,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
 
 function Demo() {

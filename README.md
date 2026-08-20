@@ -27,12 +27,14 @@
 
 ## Design Philosophy
 
-Ink gives you `useInput` and `render`. Everything else — screen navigation, layered keyboard events, focus management, cross-component communication — you build yourself. ink-cartridge provides all of that, designed for **multi-page, interaction-dense terminal apps** where a single global `useInput` with `if-else` chains breaks down.
+ink-cartridge aims to enhance Ink, not replace it. It makes the interaction and development experience of Ink apps more comfortable, and the apps themselves more deterministic and stable, by providing the foundational capabilities for building interaction-dense, multi-page applications.
 
- TWO pillars:
+ink-cartridge is not an all-in-one framework. Most business logic is implemented by you or composed from other libraries; ink-cartridge only provides the foundational capabilities for building complex applications.
 
-- **Screen as component** — Every React component is a screen. Register them into a tree, navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
-- **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modal layers, layers, global keys, and the screen stack. Focus system partitions keys within the same layer.
+- **Screen as component** — Any React component *can be* a screen. Register it into a tree and navigate with `skip` / `back` / `gotoScreen`. No hand-written conditional rendering.
+- **Layered keyboard engine** — Each screen owns its key bindings. A 9-stage pipeline resolves conflicts between modal layers, layers, global keys, and the screen stack. The focus system partitions keys within the same layer.
+
+> **Note:** The standalone component packages under `packages/` (`@cartridge-engine/*`) are deprecated and will no longer be maintained. A rewritten component set will replace them.
 
 
 ## Quick Start
@@ -240,27 +242,29 @@ For the standalone keyboard engine (framework-agnostic):
 npm install @cartridge-engine/keyboard-engine
 ```
 
-Components are published as individual packages — install only what you need:
+Standalone packages — import only what you need:
 
 ```bash
-npm install @cartridge-engine/select @cartridge-engine/text-input @cartridge-engine/form
+npm install @cartridge-engine/i18n @cartridge-engine/theme @cartridge-engine/event
 ```
 
-| Package | Exports |
-|---------|---------|
-| `@cartridge-engine/select` | SelectInput, SelectRow, MultiSelectInput |
-| `@cartridge-engine/text-input` | TextInput, UncontrolledTextInput |
-| `@cartridge-engine/form` | Form, Field, useFormContext |
-| `@cartridge-engine/confirm-dialog` | ConfirmDialog |
-| `@cartridge-engine/badge`, `divider`, `fold`, `key-hint`, `number-input`, `progress-bar`, `search-bar`, `search-input`, `spinner`, `tabs` | matching component |
+| Package | Exports | CLI bin |
+|---------|---------|---------|
+| `@cartridge-engine/i18n` | LanguageProvider, useI18n | `make-language-type` |
+| `@cartridge-engine/theme` | ThemeProvider, useTheme | `make-theme-type`, `init-theme` |
+| `@cartridge-engine/event` | EventBus, EventProvider, createEventBus, useEventBus, useEmitter, useSubscribe | — |
+| `@cartridge-engine/init` | project scaffold | `ink-cartridge-init` |
 
 
 ## Documentation
 
 API docs are auto-published to GitHub Pages on every push to `main`:
 
-- [ink-cartridge API docs](https://baigaoa.github.io/ink-cartridge/framework/) — keyboard, screen, event, theme, language, cli
+- [ink-cartridge API docs](https://baigaoa.github.io/ink-cartridge/framework/) — screen, keyboard
 - [keyboard-engine API docs](https://baigaoa.github.io/ink-cartridge/engine/) — standalone engine APIs (framework-agnostic)
+- [i18n API docs](https://baigaoa.github.io/ink-cartridge/i18n/) — @cartridge-engine/i18n (LanguageProvider, useI18n)
+- [theme API docs](https://baigaoa.github.io/ink-cartridge/theme/) — @cartridge-engine/theme (ThemeProvider, useTheme)
+- [event API docs](https://baigaoa.github.io/ink-cartridge/event/) — @cartridge-engine/event (EventBus, EventProvider)
 
 ## For AI
 

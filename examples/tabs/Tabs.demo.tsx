@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { Tabs } from '@cartridge-engine/tabs';
+import { TextInput } from '@cartridge-engine/text-input';
+import { NumberInput } from '@cartridge-engine/number-input';
+import { SelectInput } from '@cartridge-engine/select';
+import { Badge } from '@cartridge-engine/badge';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
-  Tabs,
-  TextInput,
-  NumberInput,
-  SelectInput,
-  Badge,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
 
 const difficultyItems = [

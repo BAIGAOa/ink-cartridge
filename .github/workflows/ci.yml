@@ -23,6 +23,7 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npx tsc --project tests/tsconfig.json --noEmit
+      - run: npx tsc --project examples/tsconfig.json --noEmit
       - run: npx tsc --project src/keyboard-engine/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/editor/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/badge/tests/tsconfig.json --noEmit
@@ -39,5 +40,8 @@ jobs:
       - run: npx tsc --project packages/spinner/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/tabs/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/text-input/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/i18n/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/theme/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/event/tests/tsconfig.json --noEmit
 
       - run: npx vitest run --coverage

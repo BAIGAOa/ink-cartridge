@@ -12,8 +12,17 @@ export interface RegisterOptions {
 /** Options for {@link skip} — navigation flags when moving to a child screen. */
 export interface SkipOptions {
 	/**
-	 * When true, only the component's props are updated without remounting the component.
-	 * This is useful for performance or when preserving internal state.
+	 * Only meaningful when the skip target is the CURRENT screen (refreshing
+	 * it in place):
+	 *
+	 * - `true` — only the component's props are updated; the component is not
+	 *   remounted, so its internal state and mouse regionFocus survive. Useful
+	 *   for performance or when preserving internal state.
+	 * - `false` (default) — the current screen is remounted with the new props,
+	 *   resetting its internal state.
+	 *
+	 * Ignored (silently) when skipping to a different child screen. In either
+	 * case, non-crossPage layers are filtered out, same as any navigation.
 	 */
 	onlyAttribute?: boolean;
 }
@@ -26,7 +35,7 @@ export interface SkipAction {
 	component: React.ComponentType<any>;
 	/** Props to merge with the component's registered template. */
 	params: Record<string, unknown>;
-	/** Whether to only update props without remounting. */
+	/** When skipping to the current screen: true keeps the instance (props-only update), false remounts it. */
 	onlyAttribute: boolean;
 }
 

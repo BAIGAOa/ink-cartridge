@@ -1,3 +1,4 @@
+import { LanguageProvider } from "@cartridge-engine/i18n";
 import React from "react";
 import { render } from "ink-testing-library";
 import { vi } from "vitest";
@@ -7,7 +8,6 @@ import { join } from "node:path";
 import {
 	CurrentScreen,
 	KeyboardProvider,
-	LanguageProvider,
 	ScenarioManagementProvider,
 } from "ink-cartridge";
 import { resources } from "../../src/utils/view/i18n-resources.js";

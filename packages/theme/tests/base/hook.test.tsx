@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
-import { useTheme } from '../../../src/theme/hook.js';
+import { useTheme } from '../../src/hook.js';
 
 describe('useTheme', () => {
   it('throws when called outside ThemeProvider', () => {

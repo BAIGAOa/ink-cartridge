@@ -83,7 +83,9 @@ function sortLayers<T extends Layer | ModalLayer>(layers: T[]): T[] {
 }
 
 /**
- * Navigate down the tree to a direct child of the current screen.
+ * Navigate down the tree to a direct child of the current screen, or refresh
+ * the current screen in place by passing it as the target (see
+ * {@link SkipOptions.onlyAttribute}).
  */
 export function skip<C extends React.ComponentType<any>>(
 	component: C,
@@ -497,7 +499,10 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 		case "skip": {
 			const current = state.path[state.path.length - 1];
 
-			if (!isChildOf(action.component, current.component)) {
+			// Skipping to the current screen refreshes it in place; any other
+			// target must be a direct child.
+			const isSelf = action.component === current.component;
+			if (!isSelf && !isChildOf(action.component, current.component)) {
 				throw new Error(
 					`[Ink-Cartridge] "${
 						action.component.displayName || action.component.name || "anonymous"
@@ -509,22 +514,8 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				);
 			}
 
-			const sameComponent = action.component === current.component;
-			const counter =
-				sameComponent && action.onlyAttribute
-					? state.counter
-					: state.counter + 1;
-
 			const template = getTemplate(action.component) ?? {};
 			const mergedParams = { ...template, ...action.params };
-
-			const newPath: Page[] = [
-				...state.path,
-				{
-					component: action.component,
-					regionFocus: new Map(),
-				},
-			];
 
 			const crossPageLayers = state.allLayers.filter(
 				(each) => each.crossPage === true
@@ -534,10 +525,37 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 				(each) => each.crossPage === true
 			);
 
+			if (isSelf) {
+				// Replace the top entry instead of pushing: path depth is
+				// unchanged so back() returns to the real parent. With
+				// onlyAttribute the existing Page object is kept by reference
+				// (regionFocus map survives) and the counter stays put, so the
+				// mounted instance is not remounted — only its props change.
+				const newTopPage: Page = action.onlyAttribute
+					? current
+					: { component: action.component, regionFocus: new Map() };
+
+				return {
+					path: [...state.path.slice(0, -1), newTopPage],
+					pathParams: [...state.pathParams.slice(0, -1), mergedParams],
+					counter: action.onlyAttribute ? state.counter : state.counter + 1,
+					allLayers: crossPageLayers,
+					allModalLayers: crossPageModalLayers,
+				};
+			}
+
+			const newPath: Page[] = [
+				...state.path,
+				{
+					component: action.component,
+					regionFocus: new Map(),
+				},
+			];
+
 			return {
 				path: newPath,
 				pathParams: [...state.pathParams, mergedParams],
-				counter,
+				counter: state.counter + 1,
 				allLayers: crossPageLayers,
 				allModalLayers: crossPageModalLayers,
 			};

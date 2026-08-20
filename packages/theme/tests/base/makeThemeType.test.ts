@@ -13,7 +13,7 @@ import {
   generateTypesContent,
   generateRuntimeContent,
   makeThemeType,
-} from '../../../src/cli/makeThemeType.js';
+} from '../../src/makeThemeType.js';
 
 let tmpDir: string;
 
@@ -109,8 +109,8 @@ describe('generateTypesContent', () => {
 
 describe('generateRuntimeContent', () => {
   it('imports from the given package name', () => {
-    const content = generateRuntimeContent('ink-cartridge');
-    expect(content).toContain("import { useTheme as rawUseTheme } from 'ink-cartridge'");
+    const content = generateRuntimeContent('@cartridge-engine/theme');
+    expect(content).toContain("import { useTheme as rawUseTheme } from '@cartridge-engine/theme'");
     expect(content).toContain("import type { ThemeColorKey, ThemeStyleKey } from './theme-types.js'");
   });
 
@@ -157,7 +157,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -195,7 +195,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -215,7 +215,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -240,7 +240,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -261,7 +261,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');
@@ -285,7 +285,7 @@ describe('makeThemeType integration', () => {
       outputDir: outDir,
       watch: false,
       debounceMs: 500,
-      packageName: 'ink-cartridge',
+      packageName: '@cartridge-engine/theme',
     });
 
     const typesFile = path.join(outDir, 'theme-types.d.ts');

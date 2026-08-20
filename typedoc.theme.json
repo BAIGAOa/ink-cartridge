@@ -1,0 +1,8 @@
+{
+	"name": "@cartridge-engine/theme",
+	"entryPoints": ["packages/theme/src/index.ts"],
+	"out": "documents/theme",
+	"tsconfig": "packages/theme/tsconfig.json",
+	"readme": "none",
+	"githubPages": true
+}

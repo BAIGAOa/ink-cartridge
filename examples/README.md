@@ -27,6 +27,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | conditions | addCondition, setCondition, removeCondition + when: string | `npx tsx examples/core/conditions.demo.tsx` |
 | navigation | skip, back, gotoScreen with multi-level tree | `npx tsx examples/core/navigation.demo.tsx` |
 | overlay | openLayer/applyElement/closeLayer + activateElement/deactivateElement + crossPage | `npx tsx examples/core/overlay.demo.tsx` |
+| skip-layer | same-component skip (onlyAttribute vs remount) with crossPage/non-crossPage layers | `npx tsx examples/core/skip-layer.demo.tsx` |
 | propagation | penetration and stop with layer-screen interaction | `npx tsx examples/core/propagation.demo.tsx` |
 | focus-management | focusId, Tab navigation, useFocusState, programmatic focus | `npx tsx examples/core/focus-management.demo.tsx` |
 | modal | openModalLayer/applyElementToModalLayer, closeModalLayer/closeAllModalLayer, crossPage, modal stacking | `npx tsx examples/core/modal.demo.tsx` |

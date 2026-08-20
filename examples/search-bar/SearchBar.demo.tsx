@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import SearchBar from '@cartridge-engine/search-bar';
+import { SearchBar } from '@cartridge-engine/search-bar';
 import type { SearchBarItem } from '@cartridge-engine/search-bar';
+import { SelectInput } from '@cartridge-engine/select';
 import { render, Box, Text } from "ink";
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
-  SelectInput,
 } from "../../src/index.js";
 
 const SAMPLE_ITEMS: SearchBarItem<string>[] = [

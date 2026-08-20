@@ -1,0 +1,8 @@
+{
+	"name": "@cartridge-engine/event",
+	"entryPoints": ["packages/event/src/index.ts"],
+	"out": "documents/event",
+	"tsconfig": "packages/event/tsconfig.json",
+	"readme": "none",
+	"githubPages": true
+}

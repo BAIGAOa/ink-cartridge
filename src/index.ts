@@ -97,25 +97,3 @@ export type {
 } from "./keyboard/index.js";
 export { useFocusState, useModalMissListener, useMouseRegion } from "./keyboard/index.js";
 
-// I18n — Language
-export { LanguageProvider } from "./language/index.js";
-export { useI18n } from "./language/index.js";
-export type { LanguageProviderProps, I18nContextValue } from "./language/index.js";
-
-// Theme System
-export { ThemeProvider } from "./theme/index.js";
-export { useTheme } from "./theme/index.js";
-export type { ThemeProviderProps, ThemeContextValue, ThemeDefinition } from "./theme/index.js";
-
-// Event System
-export { EventBus, EventProvider, createEventBus } from "./event/index.js";
-export { useEventBus, useEmitter, useSubscribe } from "./event/index.js";
-export type {
-  EventMap,
-  EventKey,
-  Listener,
-  Unsubscribe,
-  EventProviderProps,
-} from "./event/index.js";
-
-

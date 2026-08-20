@@ -1,5 +1,6 @@
+import { useI18n } from "@cartridge-engine/i18n";
 import { Box, Text } from "ink";
-import { useI18n, useMouseRegion } from "ink-cartridge";
+import { useMouseRegion } from "ink-cartridge";
 import React from "react";
 
 export const SENSITIVITY_MIN = 1;

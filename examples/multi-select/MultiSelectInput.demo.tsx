@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { render, Box, Text } from 'ink';
+import { MultiSelectInput } from '@cartridge-engine/select';
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
-  MultiSelectInput,
   useKeyboard,
 } from '../../src/index.js';
 

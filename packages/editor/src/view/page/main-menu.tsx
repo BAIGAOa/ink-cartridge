@@ -1,5 +1,6 @@
+import { useI18n } from "@cartridge-engine/i18n";
 import { Box, Text, useWindowSize } from "ink";
-import { useI18n, useKeyboard, useMouseRegion } from "ink-cartridge";
+import { useKeyboard, useMouseRegion } from "ink-cartridge";
 import React, { useEffect, useState } from "react";
 import { Editor } from "./editor.js";
 import { Settings } from "./settings.js";
