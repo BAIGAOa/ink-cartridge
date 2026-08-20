@@ -1,8 +1,8 @@
+import { useI18n } from "@cartridge-engine/i18n";
 import { Box, Text } from "ink";
 import {
 	back,
 	ModalLayerElementContext,
-	useI18n,
 	useKeyboard,
 	useScreenSystem,
 } from "ink-cartridge";

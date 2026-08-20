@@ -1,0 +1,53 @@
+{
+  "name": "@cartridge-engine/init",
+  "version": "0.9.9",
+  "description": "Scaffold a new ink-cartridge project",
+  "type": "module",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "bin": {
+    "ink-cartridge-init": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
+  },
+  "keywords": [
+    "ink",
+    "react",
+    "tui",
+    "cli",
+    "terminal",
+    "scaffold"
+  ],
+  "author": "BAIGAO",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "echo \"no tests\" && exit 0",
+    "test:watch": "echo \"no tests\" && exit 0"
+  },
+  "bugs": {
+    "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
+  },
+  "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme"
+}

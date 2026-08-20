@@ -51,6 +51,7 @@
 		"react": ">=18"
 	},
 	"dependencies": {
+		"@cartridge-engine/i18n": "*",
 		"cfonts": "^3.3.1",
 		"chalk": "^4.1.2",
 		"gradient-string": "^2.0.2",

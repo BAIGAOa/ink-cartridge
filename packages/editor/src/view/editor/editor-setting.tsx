@@ -1,3 +1,4 @@
+import { useI18n } from "@cartridge-engine/i18n";
 import { Box, Text } from "ink";
 import {
 	applyElement,
@@ -5,7 +6,6 @@ import {
 	closeLayer,
 	LayerElementContext,
 	openLayer,
-	useI18n,
 	useKeyboard,
 	useMouseRegion,
 } from "ink-cartridge";

@@ -5,9 +5,6 @@
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "bin": {
-        "ink-cartridge": "./dist/cli/index.js"
-    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -24,7 +21,7 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w @cartridge-engine/badge -w @cartridge-engine/confirm-dialog -w @cartridge-engine/divider -w @cartridge-engine/fold -w @cartridge-engine/form -w @cartridge-engine/key-hint -w @cartridge-engine/number-input -w @cartridge-engine/progress-bar -w @cartridge-engine/text-input -w @cartridge-engine/search-bar -w @cartridge-engine/search-input -w @cartridge-engine/select -w @cartridge-engine/spinner -w @cartridge-engine/tabs",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w @cartridge-engine/badge -w @cartridge-engine/confirm-dialog -w @cartridge-engine/divider -w @cartridge-engine/fold -w @cartridge-engine/form -w @cartridge-engine/key-hint -w @cartridge-engine/number-input -w @cartridge-engine/progress-bar -w @cartridge-engine/text-input -w @cartridge-engine/search-bar -w @cartridge-engine/search-input -w @cartridge-engine/select -w @cartridge-engine/spinner -w @cartridge-engine/tabs -w @cartridge-engine/i18n -w @cartridge-engine/theme -w @cartridge-engine/event -w @cartridge-engine/init",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",
@@ -33,10 +30,12 @@
         "lint": "eslint src/ packages/",
         "lint:fix": "eslint --fix src/ packages/",
         "lint:quick": "eslint src/ packages/ --quiet --cache",
-        "demo:dev": "tsx examples/dev/dev.tsx",
-        "docs": "npm run docs:framework && npm run docs:engine",
+        "docs": "npm run docs:framework && npm run docs:engine && npm run docs:i18n && npm run docs:theme && npm run docs:event",
         "docs:framework": "typedoc --options typedoc.json",
-        "docs:engine": "typedoc --options typedoc.engine.json"
+        "docs:engine": "typedoc --options typedoc.engine.json",
+        "docs:i18n": "typedoc --options typedoc.i18n.json",
+        "docs:theme": "typedoc --options typedoc.theme.json",
+        "docs:event": "typedoc --options typedoc.event.json"
     },
     "keywords": [
         "ink",

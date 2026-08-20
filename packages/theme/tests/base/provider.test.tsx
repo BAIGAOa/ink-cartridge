@@ -5,8 +5,8 @@ import { render } from 'ink-testing-library';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { ThemeProvider } from '../../../src/theme/provider.js';
-import { useTheme } from '../../../src/theme/hook.js';
+import { ThemeProvider } from '../../src/provider.js';
+import { useTheme } from '../../src/hook.js';
 
 function renderThemeHook(opts: { themes?: any[]; path?: string; defaultTheme?: string }) {
   const resultRef: { current: any } = { current: null };

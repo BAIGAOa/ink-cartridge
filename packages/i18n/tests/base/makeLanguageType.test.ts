@@ -16,7 +16,7 @@ import {
   generateTypesContent,
   generateRuntimeContent,
   makeLanguageType,
-} from '../../../src/cli/makeLanguageType.js';
+} from '../../src/makeLanguageType.js';
 
 let tmpDir: string;
 
@@ -272,8 +272,8 @@ describe('generateTypesContent', () => {
 
 describe('generateRuntimeContent', () => {
   it('imports from the given package', () => {
-    const content = generateRuntimeContent('ink-cartridge');
-    expect(content).toContain("import { useI18n as rawUseI18n } from 'ink-cartridge'");
+    const content = generateRuntimeContent('@cartridge-engine/i18n');
+    expect(content).toContain("import { useI18n as rawUseI18n } from '@cartridge-engine/i18n'");
   });
 
   it('imports from custom package', () => {
@@ -282,7 +282,7 @@ describe('generateRuntimeContent', () => {
   });
 
   it('imports i18n-types from relative path', () => {
-    const content = generateRuntimeContent('ink-cartridge');
+    const content = generateRuntimeContent('@cartridge-engine/i18n');
     expect(content).toContain("import type { TranslationKey, TranslationParams } from './i18n-types.js'");
   });
 
@@ -313,7 +313,7 @@ describe('makeLanguageType integration', () => {
     const outDir = path.join(tmpDir, 'out');
     makeLanguageType({
       sourceDir: srcDir, outputDir: outDir,
-      watch: false, debounceMs: 500, packageName: 'ink-cartridge',
+      watch: false, debounceMs: 500, packageName: '@cartridge-engine/i18n',
     });
 
     const typesFile = path.join(outDir, 'i18n-types.d.ts');
@@ -341,7 +341,7 @@ describe('makeLanguageType integration', () => {
     const outDir = path.join(tmpDir, 'out');
     makeLanguageType({
       sourceDir: srcDir, outputDir: outDir,
-      watch: false, debounceMs: 500, packageName: 'ink-cartridge',
+      watch: false, debounceMs: 500, packageName: '@cartridge-engine/i18n',
     });
 
     const typesContent = fs.readFileSync(path.join(outDir, 'i18n-types.d.ts'), 'utf-8');
@@ -356,7 +356,7 @@ describe('makeLanguageType integration', () => {
     const outDir = path.join(tmpDir, 'out');
     makeLanguageType({
       sourceDir: srcDir, outputDir: outDir,
-      watch: false, debounceMs: 500, packageName: 'ink-cartridge',
+      watch: false, debounceMs: 500, packageName: '@cartridge-engine/i18n',
     });
 
     const typesFile = path.join(outDir, 'i18n-types.d.ts');
@@ -375,7 +375,7 @@ describe('makeLanguageType integration', () => {
     const outDir = path.join(tmpDir, 'out');
     makeLanguageType({
       sourceDir: srcDir, outputDir: outDir,
-      watch: false, debounceMs: 500, packageName: 'ink-cartridge',
+      watch: false, debounceMs: 500, packageName: '@cartridge-engine/i18n',
     });
 
     const typesContent = fs.readFileSync(path.join(outDir, 'i18n-types.d.ts'), 'utf-8');
@@ -408,7 +408,7 @@ describe('makeLanguageType integration', () => {
     const outDir = path.join(tmpDir, 'out');
     makeLanguageType({
       sourceDir: srcDir, outputDir: outDir,
-      watch: false, debounceMs: 500, packageName: 'ink-cartridge',
+      watch: false, debounceMs: 500, packageName: '@cartridge-engine/i18n',
     });
 
     expect(fs.existsSync(path.join(outDir, 'i18n-types.d.ts'))).toBe(true);

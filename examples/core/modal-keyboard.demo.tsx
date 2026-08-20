@@ -21,9 +21,9 @@ import {
   useKeyboard,
   useModalMissListener,
   useScreenSystem,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import type { ModalMissEvent } from '../../src/index.js';
 
 const MODAL_W = 46;

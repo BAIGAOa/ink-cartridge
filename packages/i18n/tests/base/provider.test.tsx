@@ -5,7 +5,7 @@ import { Text } from 'ink';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { LanguageProvider, useI18n } from '../../../src/language/index.js';
+import { LanguageProvider, useI18n } from '../../src/index.js';
 
 let tmpDir: string;
 

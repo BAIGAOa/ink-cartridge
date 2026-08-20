@@ -1,0 +1,8 @@
+{
+	"name": "@cartridge-engine/i18n",
+	"entryPoints": ["packages/i18n/src/index.ts"],
+	"out": "documents/i18n",
+	"tsconfig": "packages/i18n/tsconfig.json",
+	"readme": "none",
+	"githubPages": true
+}

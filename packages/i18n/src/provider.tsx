@@ -1,8 +1,8 @@
-import React, { ReactNode, useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { LanguageContext } from './context.js';
-import type { I18nContextValue } from './types.js';
+import type { I18nContextValue, LanguageProviderProps } from './types.js';
 
 function loadFromPath(dirPath: string): Record<string, Record<string, string>> {
   const resources: Record<string, Record<string, string>> = {};
@@ -61,15 +61,6 @@ function flatJSON(obj: Record<string, unknown>, prefix = ''): Record<string, str
 function interpolate(template: string, params?: Record<string, string | number>): string {
   if (!params) return template;
   return template.replace(/\{(\w+)\}/g, (_, key) => String(params[key] ?? `{${key}}`));
-}
-
-interface LanguageProviderProps {
-  children: ReactNode;
-  resources?: Record<string, Record<string, string>>;
-  path?: string;
-  defaultLanguage?: string;
-  fallbackLanguage?: string;
-  defaultContext?: string;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EventBus } from '../../../src/event/EventBus.js';
+import { EventBus } from '../../src/EventBus.js';
 
 interface TestEvents {
   'test:event': string;

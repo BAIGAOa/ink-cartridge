@@ -11,6 +11,9 @@
  */
 import React, { useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { TextInput } from '@cartridge-engine/text-input';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import {
   registerComponent,
   ScenarioManagementProvider,
@@ -18,9 +21,6 @@ import {
   KeyboardProvider,
   useKeyboard,
   useScreenSystem,
-  TextInput,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
 
 function MainScreen() {

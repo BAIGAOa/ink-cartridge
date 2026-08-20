@@ -8,6 +8,8 @@
  */
 import React, { useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import {
   registerComponent,
   ScenarioManagementProvider,
@@ -17,8 +19,6 @@ import {
   skip,
   back,
   gotoScreen,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
 
 function HomeScreen() {
@@ -58,10 +58,22 @@ function DetailScreen({ from = '' }: { from?: string }) {
       back();
     });
     const unbindS = boundKeyboard(['s'], () => {
-      setLastAction('Pressed s → going to Settings');
-      skip(SettingsScreen, { from: 'Detail' });
+      setLastAction('Pressed s → jumping to Settings via gotoScreen');
+      gotoScreen(SettingsScreen, { from: 'Detail' });
     });
-    return () => { unbindB(); unbindS(); };
+    // Skipping to the current screen with onlyAttribute: true updates the
+    // props without remounting — the lastAction line below survives.
+    const unbindR = boundKeyboard(['r'], () => {
+      setLastAction('Pressed r → props refreshed, state preserved');
+      skip(DetailScreen, { from: 'Detail (refreshed)' }, { onlyAttribute: true });
+    });
+    // Without onlyAttribute the current screen is remounted, so the
+    // lastAction state resets to empty.
+    const unbindM = boundKeyboard(['m'], () => {
+      setLastAction('Pressed m → remounted, state will reset');
+      skip(DetailScreen, { from: 'Detail (remounted)' });
+    });
+    return () => { unbindB(); unbindS(); unbindR(); unbindM(); };
   }, [boundKeyboard]);
 
   return (
@@ -77,7 +89,9 @@ function DetailScreen({ from = '' }: { from?: string }) {
       <Divider />
       <KeyHint keys={[
         { key: 'b', desc: 'Back to Home' },
-        { key: 's', desc: 'Skip to Settings' },
+        { key: 's', desc: 'gotoScreen → Settings' },
+        { key: 'r', desc: 'Refresh self, keep state (onlyAttribute)' },
+        { key: 'm', desc: 'Remount self, reset state' },
         { key: 'q', desc: 'Quit' },
       ]} />
     </Box>

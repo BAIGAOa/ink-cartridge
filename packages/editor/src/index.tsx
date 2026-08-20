@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { render } from "ink";
 import React from "react";
+import { LanguageProvider } from "@cartridge-engine/i18n";
 import {
   CurrentScreen,
   KeyboardProvider,
-  LanguageProvider,
   registerComponent,
   ScenarioManagementProvider,
 } from "ink-cartridge";

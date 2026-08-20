@@ -17,6 +17,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: npm install
       - run: npm ci
       - run: npm run build
       - run: npm run docs
@@ -36,8 +37,11 @@ jobs:
           </head>
           <body>
             <h1>ink-cartridge API docs</h1>
-            <a href="framework/"><strong>Framework</strong><small>Core ink-cartridge framework — screen, keyboard, theme, language, CLI</small></a>
+            <a href="framework/"><strong>Framework</strong><small>Core ink-cartridge framework — screen, keyboard</small></a>
             <a href="engine/"><strong>Keyboard Engine</strong><small>Framework-agnostic keyboard event engine</small></a>
+            <a href="i18n/"><strong>i18n</strong><small>@cartridge-engine/i18n — LanguageProvider, useI18n</small></a>
+            <a href="theme/"><strong>Theme</strong><small>@cartridge-engine/theme — ThemeProvider, useTheme</small></a>
+            <a href="event/"><strong>Event</strong><small>@cartridge-engine/event — EventBus, EventProvider</small></a>
           </body>
           </html>
           HTML

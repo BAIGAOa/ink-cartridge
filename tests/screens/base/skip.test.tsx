@@ -5,6 +5,8 @@ import {
   Menu,
   GameLevel,
   Combat,
+  StatefulScreen,
+  statefulMountCount,
   renderWithCapture,
   setupBaseScreenTests,
   teardownBaseScreenTests,
@@ -88,5 +90,99 @@ describe('skip', () => {
     expect(() => skip(Menu, {})).toThrow(
       /called before Provider is mounted/,
     );
+  });
+});
+
+describe('skip same-component refresh', () => {
+  beforeEach(() => {
+    statefulMountCount.current = 0;
+  });
+
+  it('refreshes props without remounting when onlyAttribute is true', async () => {
+    const { getCapture, lastFrame } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'a' });
+    });
+    expect(statefulMountCount.current).toBe(1);
+    expect(lastFrame()).toContain('label:a');
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'b' }, { onlyAttribute: true });
+    });
+
+    expect(statefulMountCount.current).toBe(1);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([
+      Menu,
+      StatefulScreen,
+    ]);
+    expect(lastFrame()).toContain('label:b');
+  });
+
+  it('remounts the current screen by default, resetting internal state', async () => {
+    const { getCapture, lastFrame } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'a' });
+    });
+    expect(statefulMountCount.current).toBe(1);
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'b' });
+    });
+
+    expect(statefulMountCount.current).toBe(2);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([
+      Menu,
+      StatefulScreen,
+    ]);
+    expect(lastFrame()).toContain('label:b');
+  });
+
+  it('merges registered template params with caller params', async () => {
+    const { getCapture, lastFrame } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    await act(async () => {
+      // Empty params intentionally exercise the registered template fallback ({ label: 'init' }).
+      ctx.skip(StatefulScreen, {} as React.ComponentProps<typeof StatefulScreen>);
+    });
+    expect(lastFrame()).toContain('label:init');
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'x' });
+    });
+    expect(lastFrame()).toContain('label:x');
+  });
+
+  it('returns to the real parent with back() after a same-component skip', async () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'a' });
+    });
+    await act(async () => {
+      ctx.skip(StatefulScreen, { label: 'b' }, { onlyAttribute: true });
+    });
+    await act(async () => {
+      ctx.back();
+    });
+
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
+  });
+
+  it('still rejects navigation to a non-child component', () => {
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+    const pathBefore = [...getCapture()!.currentPath];
+
+    // The reducer rejects this; the path must not change.
+    ctx.skip(Combat, {} as React.ComponentProps<typeof Combat>);
+
+    expect(getCapture()!.currentPath).toEqual(pathBefore);
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
   });
 });

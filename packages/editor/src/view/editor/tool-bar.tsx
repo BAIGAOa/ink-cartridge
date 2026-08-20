@@ -1,5 +1,6 @@
+import { useI18n } from "@cartridge-engine/i18n";
 import { XtermMouseEvent } from "@cartridge-engine/keyboard-engine";
-import { useI18n, useKeyboard, useMouseRegion } from "ink-cartridge";
+import { useKeyboard, useMouseRegion } from "ink-cartridge";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import { Box, DOMElement, measureElement, Text, useWindowSize } from "ink";

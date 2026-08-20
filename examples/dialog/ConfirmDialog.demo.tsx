@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { ConfirmDialog } from '@cartridge-engine/confirm-dialog';
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
-  ConfirmDialog,
   useScreenSystem,
   useKeyboard,
 } from '../../src/index.js';

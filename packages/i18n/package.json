@@ -1,0 +1,62 @@
+{
+  "name": "@cartridge-engine/i18n",
+  "version": "0.9.9",
+  "description": "Type-safe internationalization (i18n) for Ink apps — LanguageProvider, useI18n, and the make-language-type CLI",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "make-language-type": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
+  },
+  "keywords": [
+    "ink",
+    "react",
+    "tui",
+    "cli",
+    "terminal",
+    "i18n",
+    "internationalization"
+  ],
+  "author": "BAIGAO",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "@types/react": "^19.2.14",
+    "ink": "^7.1.1",
+    "ink-testing-library": "^4.0.0",
+    "react": "^19.2.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "bugs": {
+    "url": "https://github.com/BAIGAOa/ink-cartridge/issues"
+  },
+  "homepage": "https://github.com/BAIGAOa/ink-cartridge#readme"
+}

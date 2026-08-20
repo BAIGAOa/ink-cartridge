@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { render, Box, Text } from 'ink';
+import { Form, Field } from '@cartridge-engine/form';
+import { TextInput } from '@cartridge-engine/text-input';
+import { NumberInput } from '@cartridge-engine/number-input';
+import { SelectInput, MultiSelectInput } from '@cartridge-engine/select';
+import { Badge } from '@cartridge-engine/badge';
+import { Divider } from '@cartridge-engine/divider';
+import { KeyHint } from '@cartridge-engine/key-hint';
 import {
   registerComponent,
   ScenarioManagementProvider,
   CurrentScreen,
   KeyboardProvider,
   useKeyboard,
-  Form,
-  Field,
-  TextInput,
-  NumberInput,
-  SelectInput,
-  MultiSelectInput,
-  Badge,
-  Divider,
-  KeyHint,
 } from '../../src/index.js';
 import type { Validator } from '@cartridge-engine/form';
 import type { Item } from '@cartridge-engine/select';

@@ -43,6 +43,9 @@ export default defineConfig({
       "./packages/spinner",
       "./packages/tabs",
       "./packages/text-input",
+      "./packages/i18n",
+      "./packages/theme",
+      "./packages/event",
     ],
   },
 });
