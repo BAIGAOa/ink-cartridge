@@ -146,7 +146,8 @@ describe('skip same-component refresh', () => {
     const ctx = getCapture()!;
 
     await act(async () => {
-      ctx.skip(StatefulScreen, {});
+      // Empty params intentionally exercise the registered template fallback ({ label: 'init' }).
+      ctx.skip(StatefulScreen, {} as React.ComponentProps<typeof StatefulScreen>);
     });
     expect(lastFrame()).toContain('label:init');
 
@@ -179,7 +180,7 @@ describe('skip same-component refresh', () => {
     const pathBefore = [...getCapture()!.currentPath];
 
     // The reducer rejects this; the path must not change.
-    ctx.skip(Combat, {});
+    ctx.skip(Combat, {} as React.ComponentProps<typeof Combat>);
 
     expect(getCapture()!.currentPath).toEqual(pathBefore);
     expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
