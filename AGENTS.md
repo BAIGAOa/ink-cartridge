@@ -43,9 +43,8 @@ A task is not complete until:
 
 **Supporting**: Theme (`ThemeProvider` + `useTheme`), I18n (`LanguageProvider` + `useI18n` + `t()`), CLI (`init`, `initTheme`, `makeLanguageType`, `makeThemeType` — entry `src/cli/index.ts`).
 
-### ink-blots vs examples
+### examples
 
-- `ink-blots/` — multi-system stress-test TUI apps. "Does SelectInput work inside a layer with a modal layer open and a global sequence pending?" Each app's README logs bugs found.
 - `examples/` — single-API demos. "Here's how SelectInput works."
 
 ## Watch out for

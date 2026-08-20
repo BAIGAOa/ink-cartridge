@@ -266,6 +266,8 @@ API docs are auto-published to GitHub Pages on every push to `main`:
 
 AI-friendly project — see [AGENTS.md](AGENTS.md) for coding conventions, [agents/rules/](agents/rules/) for conditional rules, and [docs-agents/](docs-agents/) for reference material. AI writes, humans review and sign off.
 
+Skills live in [`skills/`](skills/) (SKILL.md per agent tool); install them for an agent with `script/install-skill/<agent>.sh`, e.g. `script/install-skill/claude-code.sh`.
+
 ## Examples
 
 Runnable demos for every component. See [examples/README.md](examples/README.md) for the full list and run commands.
