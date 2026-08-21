@@ -2,7 +2,7 @@ import { defineProject } from 'vitest/config';
 
 export default defineProject({
   test: {
-    name: 'event',
+    name: 'ui',
     environment: 'node',
     include: ['tests/**/*.test.{ts,tsx}'],
     globals: true,

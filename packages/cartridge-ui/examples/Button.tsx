@@ -1,18 +1,16 @@
 /**
  * Button Demo — one action entry point for mouse and keyboard.
  *
- * Three focus-scoped buttons (Enter / d / e) plus one un-focused button
- * whose key always fires:
- *   Save   — focusId 'save',   activates on Enter
- *   Delete — focusId 'delete', activates on d
- *   Edit   — focusId 'edit',   activates on e
- *   Copy   — no focusId,       activates on c — no focus constraint
+ * Four buttons, each with its own key that fires onClick:
+ *   Save   — activates on Enter
+ *   Delete — activates on d
+ *   Edit   — activates on e
+ *   Copy   — activates on c
  *
  * Controls:
- *   click a button — fires its onClick and forwards keyboard focus to it
- *   Enter / d / e  — fire the focused button's onClick (others stay silent)
- *   c              — always fires Copy
- *   q              — quit
+ *   press a button's key — fires its onClick
+ *   click a button — fires its onClick
+ *   q — quit
  *
  * Run:
  *   npx tsx packages/cartridge-ui/examples/Button.tsx
@@ -24,7 +22,6 @@ import {
   KeyboardProvider,
   registerComponent,
   ScenarioManagementProvider,
-  useFocusState,
   useKeyboard,
 } from "ink-cartridge";
 import { Button } from "../src/index.js";
@@ -37,16 +34,11 @@ function Demo() {
     return boundKeyboard(["q"], () => process.exit(0));
   }, [boundKeyboard]);
 
-  // Focus markers: ● = the button currently holding keyboard focus.
-  const saveFocused = useFocusState("save");
-  const deleteFocused = useFocusState("delete");
-  const editFocused = useFocusState("edit");
-
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>Button demo — click a button, or press the focused key</Text>
+      <Text bold>Button demo — click a button, or press its key</Text>
       <Text dimColor>
-        Enter: save · d: delete · e: edit · c: copy (always) · q: quit
+        Enter: save · d: delete · e: edit · c: copy · q: quit
       </Text>
 
       <Box flexDirection="column" marginTop={1} width={40}>
