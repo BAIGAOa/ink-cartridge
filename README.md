@@ -254,6 +254,7 @@ npm install @cartridge-engine/i18n @cartridge-engine/theme @cartridge-engine/eve
 | `@cartridge-engine/theme` | ThemeProvider, useTheme | `make-theme-type`, `init-theme` |
 | `@cartridge-engine/event` | EventBus, EventProvider, createEventBus, useEventBus, useEmitter, useSubscribe | — |
 | `@cartridge-engine/init` | project scaffold | `ink-cartridge-init` |
+| `@cartridge-engine/ui` | Button (in progress) | — |
 
 
 ## Documentation
