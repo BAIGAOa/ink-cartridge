@@ -1,14 +1,10 @@
 /**
- * Button Demo — one action entry point for mouse and keyboard.
+ * Button Demo — mouse click fires each button's onClick.
  *
- * Four buttons, each with its own key that fires onClick:
- *   Save   — activates on Enter
- *   Delete — activates on d
- *   Edit   — activates on e
- *   Copy   — activates on c
+ * Four buttons:
+ *   Save, Delete, Edit, Copy — click to fire its onClick
  *
  * Controls:
- *   press a button's key — fires its onClick
  *   click a button — fires its onClick
  *   q — quit
  *
@@ -36,16 +32,12 @@ function Demo() {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold>Button demo — click a button, or press its key</Text>
-      <Text dimColor>
-        Enter: save · d: delete · e: edit · c: copy · q: quit
-      </Text>
+      <Text bold>Button demo — click a button</Text>
 
       <Box flexDirection="column" marginTop={1} width={40}>
         <Box>
-          <Box borderStyle="round">
+          <Box borderStyle="round" width={10}>
             <Button
-              keys={["return"]}
               callbacks={{ onClick: () => setLast("Save") }}
             >
               <Text>Save</Text>
@@ -53,9 +45,8 @@ function Demo() {
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Box borderStyle="round">
+          <Box borderStyle="round" width={10}>
             <Button
-              keys={["d"]}
               callbacks={{ onClick: () => setLast("Delete") }}
             >
               <Text>Delete</Text>
@@ -63,9 +54,8 @@ function Demo() {
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Box borderStyle="round">
+          <Box borderStyle="round" width={10}>
             <Button
-              keys={["e"]}
               callbacks={{ onClick: () => setLast("Edit") }}
             >
               <Text>Edit</Text>
@@ -73,9 +63,8 @@ function Demo() {
           </Box>
         </Box>
         <Box marginTop={1}>
-          <Box borderStyle="round">
+          <Box borderStyle="round" width={10}>
             <Button
-              keys={["c"]}
               callbacks={{ onClick: () => setLast("Copy") }}
             >
               <Text>Copy</Text>

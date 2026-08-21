@@ -8,24 +8,20 @@ export type ButtonProps = {
    */
   children?: React.ReactNode;
   /**
-   * Mouse region callbacks. `onClick` is the single action entry point:
-   * keyboard activation (pressing `keys`) fires it too, without event args.
+   * Mouse region callbacks. `onClick` is the primary action entry point,
+   * fired on a mouse click; hover, wheel, and drag callbacks are forwarded
+   * as-is.
    */
   callbacks: MouseRegionCallbacks;
   /** Hit-test priority vs overlapping regions — child controls beat containers. */
   priority?: number;
-  /** Click forwards keyboard focus to the button's focusId (default true). */
+  /**
+   * Click forwards keyboard focus to a focusId bound on the same (forwarded)
+   * ref — e.g. via `boundKeyboard(..., { ref, focusId })`. Default true.
+   */
   clickOnFocus?: boolean;
-  /** Hover enter forwards keyboard focus. */
+  /** Hover enter forwards keyboard focus to a focusId bound on the same ref. */
   enterOnFocus?: boolean;
   /** Hover leave clears focus; only applies when enterOnFocus is set. */
   leaveOffFocus?: boolean;
-  /** Keys that activate the button like a click. */
-  keys: string | string[];
-  /**
-   * Optional keyboard focus target. When set, the key binding is scoped to
-   * the focus target and clicks forward focus to it; when omitted, the keys
-   * fire on every press (no focus constraint).
-   */
-  focusId?: string;
 };

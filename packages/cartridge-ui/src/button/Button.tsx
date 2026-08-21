@@ -1,16 +1,19 @@
-import React, { forwardRef, useCallback, useEffect, useRef } from "react";
+import React, { forwardRef, useCallback } from "react";
 import { Box } from "ink";
 import type { DOMElement } from "ink";
-import { useKeyboard, useMouseRegion } from "ink-cartridge";
+import { useMouseRegion } from "ink-cartridge";
 import { ButtonProps } from "./button-types.js";
 
 /**
- * A clickable button: mouse click and key press both fire
- * `callbacks.onClick` — one action entry point for both input channels.
+ * A clickable button for mouse input: a click fires `callbacks.onClick`, the
+ * primary action entry point; hover, wheel, and drag callbacks are forwarded
+ * as-is from `useMouseRegion`.
  *
- * Without `focusId` the keys fire on every press; with `focusId` the key
- * binding is scoped to that focus target and clicks forward focus to it
- * (`clickOnFocus`, default true), so mouse and keyboard converge.
+ * The button forwards its ref so an external keyboard binding can share the
+ * same region — e.g. `boundKeyboard(["return"], onSave, { ref, focusId })`
+ * makes a key press and a click converge on one action/focus target. The
+ * `clickOnFocus` / `enterOnFocus` / `leaveOffFocus` options then control
+ * whether mouse interaction forwards keyboard focus to that binding.
  *
  * The button fills its parent (100% × 100%) — wrap it in a sized Box
  * (e.g. with `borderStyle` or a fixed width/height) to control its
@@ -24,38 +27,15 @@ export const Button = forwardRef<DOMElement, ButtonProps>(function Button(
     clickOnFocus,
     enterOnFocus,
     leaveOffFocus,
-    keys,
-    focusId,
   },
   ref,
 ) {
-  const { boundKeyboard } = useKeyboard();
   const buttonRef = useMouseRegion(callbacks, {
     priority,
     clickOnFocus,
     enterOnFocus,
     leaveOffFocus,
   });
-
-  // Keyboard activation reuses onClick (no mouse event/rect — the handler
-  // is expected to ignore the args). Read it through a ref so the binding
-  // below never needs the changing callback in its deps.
-  const onClickRef = useRef<(() => void) | undefined>(undefined);
-  onClickRef.current = callbacks.onClick as unknown as (() => void) | undefined;
-
-  // Register the key binding once per (keys, focusId) — never per render.
-  // Inline key arrays change identity every render, so depend on the joined
-  // string instead (key names never contain spaces). focusId wires the
-  // ref -> focusId mapping that makes clicks forward keyboard focus to
-  // this button.
-  const keyList = (Array.isArray(keys) ? keys : [keys]).join(" ");
-  useEffect(() => {
-    return boundKeyboard(
-      keyList.split(" "),
-      () => onClickRef.current?.(),
-      focusId ? { ref: buttonRef, focusId } : undefined,
-    );
-  }, [boundKeyboard, focusId, keyList, buttonRef]);
 
   // Merge the internal region ref (used for measuring + focus forwarding)
   // with the forwarded ref. The callback MUST keep a stable identity —
