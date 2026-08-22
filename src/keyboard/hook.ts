@@ -519,6 +519,24 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
   return findRootNode(node.parentNode);
 }
 
+export type MouseRegionOptions = {
+  layerId?: string;
+  regionId?: string;
+  priority?: number;
+  clickOnFocus?: boolean;
+  enterOnFocus?: boolean;
+  leaveOffFocus?: boolean;
+  /**
+   * Ref to register the region under and key the region-focus map with,
+   * instead of a hook-created ref. Pass the same ref object you give to
+   * `boundKeyboard(..., { ref, focusId })` so a click on the region forwards
+   * focus to that binding. Only object refs can key the focus map — a
+   * callback ref is rejected (falls back to an internal ref, losing the
+   * focus link).
+   */
+  ref?: RefObject<DOMElement | null>;
+};
+
 /**
  * Register an Ink element as a mouse region.
  *
@@ -581,9 +599,12 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  *                    0), `clickOnFocus` (whether a click forwards keyboard
  *                    focus to the region's bound focusId; defaults `true`),
  *                    `enterOnFocus` (whether a hover enter forwards focus;
- *                    defaults `false`), and `leaveOffFocus` (whether a hover
+ *                    defaults `false`), `leaveOffFocus` (whether a hover
  *                    leave clears the focus; only applies when
- *                    `enterOnFocus` is set; defaults `true`).
+ *                    `enterOnFocus` is set; defaults `true`), and `ref`
+ *                    (an object ref to register the region under instead of a
+ *                    hook-created one — share it with `boundKeyboard` for
+ *                    focus forwarding).
  * @returns A ref to attach to the Ink `<Box>` to track.
  *
  * @example
@@ -609,20 +630,18 @@ function findRootNode(node: DOMElement | null): DOMElement | undefined {
  */
 export function useMouseRegion(
   callbacks: MouseRegionCallbacks,
-  options?: {
-    layerId?: string;
-    regionId?: string;
-    priority?: number;
-    clickOnFocus?: boolean;
-    enterOnFocus?: boolean;
-    leaveOffFocus?: boolean;
-  },
+  options?: MouseRegionOptions,
 ): RefObject<DOMElement | null> {
   const ctx = useContext(KeyboardContext);
   const layerCtx = useContext(LayerElementContext);
   const modalCtx = useContext(ModalLayerElementContext);
   const screenCtx = useContext(ScreenSystemContext);
-  const ref = useRef<DOMElement | null>(null);
+  const internalRef = useRef<DOMElement | null>(null);
+  // An external ref (e.g. one forwarded through a wrapper component) becomes
+  // the region ref itself, so a `boundKeyboard({ ref, focusId })` sharing
+  // that same ref object keys the same entry in the focus map and
+  // focus-forwarding hits. Fall back to a hook-created ref otherwise.
+  const ref = options?.ref ?? internalRef;
   const autoId = useId();
 
   // Ink's terminal-resize path only re-lays-out and redraws the yoga tree —
@@ -661,41 +680,47 @@ export function useMouseRegion(
     ...callbacks,
     onEnter: (event, rect) => {
       if (options?.enterOnFocus === true) {
-        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx)
-        applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id)
+        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
+        applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id);
       }
 
-      callbacks.onEnter?.(event, rect)
+      callbacks.onEnter?.(event, rect);
     },
     onLeave: (event) => {
-      // Only when enterOnFocus is declared will the focus be cleared by default when the mouse leaves; 
-      // otherwise, if the user has not enabled enterOnFocus but is using clickOnFocus, 
+      // Only when enterOnFocus is declared will the focus be cleared by default when the mouse leaves;
+      // otherwise, if the user has not enabled enterOnFocus but is using clickOnFocus,
       // the focus set after a mouse click will be incorrectly cleared.
-      if (options?.enterOnFocus === true && (options?.leaveOffFocus === undefined || options.leaveOffFocus === true)) {
-        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx)
+      if (
+        options?.enterOnFocus === true &&
+        (options?.leaveOffFocus === undefined || options.leaveOffFocus === true)
+      ) {
+        const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
         if (map) {
-          const entry = map.get(ref)
+          const entry = map.get(ref);
           if (entry) {
-            const focusRef = entry.focusId
+            const focusRef = entry.focusId;
             if (typeof focusRef === "string") {
-              ctx?.kickFocusGroup()
+              ctx?.kickFocusGroup();
             } else {
               ctx?.kickFocusGroup({
                 group: focusRef.group,
-                element: layerCtx?.id ?? modalCtx?.id
-              })
+                element: layerCtx?.id ?? modalCtx?.id,
+              });
             }
           }
         }
       }
 
-      callbacks.onLeave?.(event)
+      callbacks.onLeave?.(event);
     },
     onClick: (event, rect) => {
-      // Because in real-world scenarios, 
-      // triggering keyboard focus switching after onClick is usually the most common use case, 
+      // Because in real-world scenarios,
+      // triggering keyboard focus switching after onClick is usually the most common use case,
       // clickOnFocus is enabled by default.
-      if (options?.clickOnFocus === undefined || options.clickOnFocus === true) {
+      if (
+        options?.clickOnFocus === undefined ||
+        options.clickOnFocus === true
+      ) {
         const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
         applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id);
       }

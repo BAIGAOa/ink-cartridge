@@ -56,8 +56,17 @@ export type {
 } from "./screen/index.js";
 
 // Keyboard System
-export { KeyboardProvider, useKeyboard, KeyboardEngine, KeyboardContext } from "./keyboard/index.js";
-export { normalizeKeyNames, isInkSpecialKey, isNormalCharacter } from "./keyboard/index.js";
+export {
+  KeyboardProvider,
+  useKeyboard,
+  KeyboardEngine,
+  KeyboardContext,
+} from "./keyboard/index.js";
+export {
+  normalizeKeyNames,
+  isInkSpecialKey,
+  isNormalCharacter,
+} from "./keyboard/index.js";
 export { defaultTargetsSymbol } from "./keyboard/index.js";
 
 export type {
@@ -74,6 +83,8 @@ export type {
   PipelineProcessor,
   EngineProps,
   KeyboardContextValue,
+  MouseRegionOptions,
+  MouseRegionCallbacks,
 } from "./keyboard/index.js";
 
 export type {
@@ -95,5 +106,8 @@ export type {
   MappingKeyEvent,
   MappingKeyEntry,
 } from "./keyboard/index.js";
-export { useFocusState, useModalMissListener, useMouseRegion } from "./keyboard/index.js";
-
+export {
+  useFocusState,
+  useModalMissListener,
+  useMouseRegion,
+} from "./keyboard/index.js";

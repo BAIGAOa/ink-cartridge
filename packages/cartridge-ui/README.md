@@ -6,6 +6,11 @@ A UI kit for [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — a coh
 
 Early scaffold. Components are implemented in-tree; the index below is filled in alongside the source. APIs are not stable until a 1.0.0 release.
 
+## Design philosophy
+
+Atomic, minimal, composable, controllable — each component is a thin wrapper over
+one framework mechanism, passing Ink props straight through.
+
 ## Installation
 
 ```bash
@@ -18,7 +23,7 @@ Peer dependencies: `react >= 18`, `ink >= 5`, and `ink-cartridge` for the framew
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| in progress | | |
+| [Button](src/button/Button.tsx) | Declarative `useMouseRegion` wrapper — fills its parent, forwards its ref for external `boundKeyboard` linkage | ✓ |
 
 ## Usage
 
