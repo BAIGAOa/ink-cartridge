@@ -305,7 +305,7 @@ describe("Button", () => {
     const { unmount } = renderApp(CallbackProbe);
     await flush();
 
-    expect(seen?.nodeName).toBe("box");
+    expect(seen?.nodeName).toBe("ink-box");
     seen = undefined;
     unmount();
     expect(seen).toBeNull();
