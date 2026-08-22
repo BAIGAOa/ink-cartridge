@@ -18,7 +18,7 @@ Peer dependencies: `react >= 18`, `ink >= 5`, and `ink-cartridge` for the framew
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| `Button` | Clickable control — mouse click and key press both fire `onClick`; optional `focusId` scopes the keys and forwards click focus | implemented |
+| in progress | | |
 
 ## Usage
 
