@@ -44,5 +44,6 @@ jobs:
       - run: npx tsc --project packages/i18n/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/theme/tests/tsconfig.json --noEmit
       - run: npx tsc --project packages/event/tests/tsconfig.json --noEmit
+      - run: npx tsc --project packages/cartridge-ui/tests/tsconfig.json --noEmit
 
       - run: npx vitest run --coverage

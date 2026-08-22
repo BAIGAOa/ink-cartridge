@@ -1,7 +1,7 @@
 {
     "name": "ink-cartridge",
     "version": "5.2.1",
-    "description": "Ready-to-use Ink components and screen management system for building terminal UIs.",
+    "description": "Enhances Ink without replacing it — foundational screen management and layered keyboard engine for building interaction-dense terminal UIs.",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -21,7 +21,7 @@
         "url": "git+https://github.com/BAIGAOa/ink-cartridge.git"
     },
     "scripts": {
-        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w @cartridge-engine/badge -w @cartridge-engine/confirm-dialog -w @cartridge-engine/divider -w @cartridge-engine/fold -w @cartridge-engine/form -w @cartridge-engine/key-hint -w @cartridge-engine/number-input -w @cartridge-engine/progress-bar -w @cartridge-engine/text-input -w @cartridge-engine/search-bar -w @cartridge-engine/search-input -w @cartridge-engine/select -w @cartridge-engine/spinner -w @cartridge-engine/tabs -w @cartridge-engine/i18n -w @cartridge-engine/theme -w @cartridge-engine/event -w @cartridge-engine/init",
+        "build": "npm run build -w @cartridge-engine/keyboard-engine && tsc --locale zh-CN && npm run build -w @cartridge-engine/badge -w @cartridge-engine/confirm-dialog -w @cartridge-engine/divider -w @cartridge-engine/fold -w @cartridge-engine/form -w @cartridge-engine/key-hint -w @cartridge-engine/number-input -w @cartridge-engine/progress-bar -w @cartridge-engine/text-input -w @cartridge-engine/search-bar -w @cartridge-engine/search-input -w @cartridge-engine/select -w @cartridge-engine/spinner -w @cartridge-engine/tabs -w @cartridge-engine/i18n -w @cartridge-engine/theme -w @cartridge-engine/event -w @cartridge-engine/init -w @cartridge-engine/ui",
         "watch": "tsc --watch --locale zh-CN",
         "clean": "rm -rf dist",
         "test": "vitest run",

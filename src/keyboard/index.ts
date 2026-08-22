@@ -10,6 +10,7 @@ export {
   useFocusState,
   useModalMissListener,
   useMouseRegion,
+  MouseRegionOptions,
 } from "./hook.js";
 
 import { isNormalCharacter as engineIsNormalCharacter } from "@cartridge-engine/keyboard-engine";
@@ -30,7 +31,10 @@ export function isNormalCharacter(input: string, key: unknown): boolean {
 }
 export { isInkSpecialKey, normalizeKeyNames } from "./keyNormalizer.js";
 
-export { KeyboardEngine, defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
+export {
+  KeyboardEngine,
+  defaultTargetsSymbol,
+} from "@cartridge-engine/keyboard-engine";
 export {
   checkWhen,
   checkGlobalKey,

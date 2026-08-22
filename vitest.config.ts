@@ -46,6 +46,7 @@ export default defineConfig({
       "./packages/i18n",
       "./packages/theme",
       "./packages/event",
+      "./packages/cartridge-ui",
     ],
   },
 });
