@@ -21,6 +21,13 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run docs
+      - run: npm ci
+        working-directory: website
+      - run: npm run docs:build
+        working-directory: website
+        env:
+          DOCS_BASE: /ink-cartridge/guide/
+      - run: mkdir -p documents/guide && cp -r website/.vitepress/dist/. documents/guide/
       - run: |
           cat > documents/index.html << 'HTML'
           <!DOCTYPE html>
@@ -42,6 +49,7 @@ jobs:
             <a href="i18n/"><strong>i18n</strong><small>@cartridge-engine/i18n — LanguageProvider, useI18n</small></a>
             <a href="theme/"><strong>Theme</strong><small>@cartridge-engine/theme — ThemeProvider, useTheme</small></a>
             <a href="event/"><strong>Event</strong><small>@cartridge-engine/event — EventBus, EventProvider</small></a>
+            <a href="guide/" style="border-color:#06f;background:#06f;color:#fff;margin-top:28px;"><strong>📘 Hand-written Guides</strong><small style="color:#cfe3ff;">How to use each API</small></a>
           </body>
           </html>
           HTML
