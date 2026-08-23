@@ -213,12 +213,20 @@ export function useKeyboard(): KeyboardContextValue {
     );
   }
 
+  const screenCtx = useContext(ScreenSystemContext);
+  const topPageComponent =
+    screenCtx?.currentPath[screenCtx.currentPath.length - 1]?.component ?? null;
+
+  // Inside a layer/modal element the owner is the layer id; on a plain page
+  // it is the page component itself. With the page in the stack, page-level
+  // bindings never land on whatever layer element happens to be on top.
   const ownerId =
-    layerCtx?.layer.layerId ?? modalCtx?.modalLayer.layerId ?? null;
+    layerCtx?.layer.layerId ??
+    modalCtx?.modalLayer.layerId ??
+    topPageComponent;
   const elementId = layerCtx?.id ?? modalCtx?.id;
   const { _pushOwner, _popOwner } = ctx;
   const ownerPushedRef = useRef(false);
-  const screenCtx = useContext(ScreenSystemContext);
 
   useEffect(() => {
     if (!ownerId) return;
@@ -233,6 +241,33 @@ export function useKeyboard(): KeyboardContextValue {
   }, [_popOwner, _pushOwner, ownerId]);
 
   const wrapped = useMemo<KeyboardContextValue>(() => {
+    // Bindings and focus calls resolve their target through the engine's
+    // owner stack. The mount-time effect above pushes this element's owner
+    // once, but sibling layer elements coexist: after a re-render forces a
+    // re-bind (e.g. a layer reorder), the stack top belongs to the LAST
+    // mounted sibling, not necessarily to this element. Re-push our own
+    // owner for the duration of each call so registration always lands on
+    // our own layer.
+    // The try/finally pairing is load-bearing, not defensive polish: engine
+    // registrations throw on user errors (unknown actionId, times < 1,
+    // cover:false global-key conflicts), and the host often SURVIVES those
+    // throws (user try/catch, error boundaries, expect().toThrow()). A throw
+    // must not strand our owner on the stack top — the leftover would
+    // silently reroute every later rebind, hiding the real error behind
+    // "bindings landed on the wrong layer". finally rather than catch keeps
+    // the cleanup unconditional while letting the original error propagate
+    // untouched — a catch here would swallow it.
+    // @2026-08-23 v5.2.2
+    const withOwner = <T>(run: () => T): T => {
+      if (!ownerId) return run();
+      _pushOwner(ownerId);
+      try {
+        return run();
+      } finally {
+        _popOwner(ownerId);
+      }
+    };
+
     const withElement = <T extends { elementId?: string }>(
       options?: T,
     ): T | undefined => {
@@ -270,9 +305,8 @@ export function useKeyboard(): KeyboardContextValue {
           handlerOrOptions.ref,
           handlerOrOptions.focusId,
         );
-        const unbind = ctx.boundKeyboard(
-          keysOrActionId,
-          withElement(handlerOrOptions),
+        const unbind = withOwner(() =>
+          ctx.boundKeyboard(keysOrActionId, withElement(handlerOrOptions)),
         );
         return composeUnbind(removeRegionFocus, unbind);
       }
@@ -284,10 +318,12 @@ export function useKeyboard(): KeyboardContextValue {
           maybeOptions?.ref,
           maybeOptions?.focusId,
         );
-        const unbind = ctx.boundKeyboard(
-          keysOrActionId,
-          handlerOrOptions,
-          withElement(maybeOptions),
+        const unbind = withOwner(() =>
+          ctx.boundKeyboard(
+            keysOrActionId,
+            handlerOrOptions,
+            withElement(maybeOptions),
+          ),
         );
         return composeUnbind(removeRegionFocus, unbind);
       }
@@ -299,10 +335,12 @@ export function useKeyboard(): KeyboardContextValue {
         maybeOptions?.ref,
         maybeOptions?.focusId,
       );
-      const unbind = ctx.boundKeyboard(
-        keysOrActionId,
-        handlerOrOptions as KeyHandler,
-        withElement(maybeOptions),
+      const unbind = withOwner(() =>
+        ctx.boundKeyboard(
+          keysOrActionId,
+          handlerOrOptions as KeyHandler,
+          withElement(maybeOptions),
+        ),
       );
       return composeUnbind(removeRegionFocus, unbind);
     }) as KeyboardContextValue["boundKeyboard"];
@@ -325,9 +363,8 @@ export function useKeyboard(): KeyboardContextValue {
           handlerOrOptions?.ref,
           handlerOrOptions?.focusId,
         );
-        const unbind = ctx.boundSequence(
-          keysOrActionId,
-          withElement(handlerOrOptions),
+        const unbind = withOwner(() =>
+          ctx.boundSequence(keysOrActionId, withElement(handlerOrOptions)),
         );
         return composeUnbind(removeRegionFocus, unbind);
       }
@@ -345,10 +382,12 @@ export function useKeyboard(): KeyboardContextValue {
           maybeOptions?.ref,
           maybeOptions?.focusId,
         );
-        const unbind = ctx.boundSequence(
-          keysOrActionId,
-          handlerOrOptions,
-          withElement(maybeOptions),
+        const unbind = withOwner(() =>
+          ctx.boundSequence(
+            keysOrActionId,
+            handlerOrOptions,
+            withElement(maybeOptions),
+          ),
         );
         return composeUnbind(removeRegionFocus, unbind);
       }
@@ -361,10 +400,12 @@ export function useKeyboard(): KeyboardContextValue {
         maybeOptions?.ref,
         maybeOptions?.focusId,
       );
-      const unbind = ctx.boundSequence(
-        keysOrActionId,
-        handlerOrOptions as KeyHandler,
-        withElement(maybeOptions),
+      const unbind = withOwner(() =>
+        ctx.boundSequence(
+          keysOrActionId,
+          handlerOrOptions as KeyHandler,
+          withElement(maybeOptions),
+        ),
       );
       return composeUnbind(removeRegionFocus, unbind);
     }) as KeyboardContextValue["boundSequence"];
@@ -373,36 +414,45 @@ export function useKeyboard(): KeyboardContextValue {
       ...ctx,
       boundKeyboard,
       penetration: (keys: string[], options?: PenetrationOptions) =>
-        ctx.penetration(keys, withElement(options)),
+        withOwner(() => ctx.penetration(keys, withElement(options))),
       stop: (keys: string[], options?: StopOptions) =>
-        ctx.stop(keys, withElement(options)),
+        withOwner(() => ctx.stop(keys, withElement(options))),
       allowModal: (keys: string[], options?: AllowModalOptions) =>
-        ctx.allowModal(keys, withElement(options)),
+        withOwner(() => ctx.allowModal(keys, withElement(options))),
       boundSequence,
       useModalMissListener: (
         cb: ModalMissCallback,
         options?: ModalMissOptions,
-      ) => ctx.useModalMissListener(cb, withElement(options)),
+      ) =>
+        withOwner(() =>
+          ctx.useModalMissListener(cb, withElement(options)),
+        ),
       focusSet: (focusId: string, groupOrOptions?: string | FocusSetOptions) =>
-        ctx.focusSet(focusId, withFocusOptions(groupOrOptions)),
+        withOwner(() => ctx.focusSet(focusId, withFocusOptions(groupOrOptions))),
       focusNext: (groupOrOptions?: string | FocusSetOptions) =>
-        ctx.focusNext(withFocusOptions(groupOrOptions)),
+        withOwner(() => ctx.focusNext(withFocusOptions(groupOrOptions))),
       focusPrev: (groupOrOptions?: string | FocusSetOptions) =>
-        ctx.focusPrev(withFocusOptions(groupOrOptions)),
+        withOwner(() => ctx.focusPrev(withFocusOptions(groupOrOptions))),
       focusCurrent: (groupOrOptions?: string | FocusSetOptions) =>
-        ctx.focusCurrent(withFocusOptions(groupOrOptions)),
+        withOwner(() => ctx.focusCurrent(withFocusOptions(groupOrOptions))),
       focusUnregister: (
         focusId: string,
         groupOrOptions?: string | FocusSetOptions,
-      ) => ctx.focusUnregister(focusId, withFocusOptions(groupOrOptions)),
+      ) =>
+        withOwner(() =>
+          ctx.focusUnregister(focusId, withFocusOptions(groupOrOptions)),
+        ),
       activateFocusGroup: (
         focusId: string,
         groupOrOptions?: string | FocusSetOptions,
-      ) => ctx.activateFocusGroup(focusId, withFocusOptions(groupOrOptions)),
+      ) =>
+        withOwner(() =>
+          ctx.activateFocusGroup(focusId, withFocusOptions(groupOrOptions)),
+        ),
       kickFocusGroup: (groupOrOptions?: string | FocusSetOptions) =>
-        ctx.kickFocusGroup(withFocusOptions(groupOrOptions)),
+        withOwner(() => ctx.kickFocusGroup(withFocusOptions(groupOrOptions))),
     };
-  }, [ctx, layerCtx, modalCtx, screenCtx, elementId]);
+  }, [ctx, layerCtx, modalCtx, screenCtx, elementId, ownerId, _pushOwner, _popOwner]);
 
   return wrapped;
 }
@@ -480,18 +530,21 @@ export function useModalMissListener(
   cb: ModalMissCallback,
   options?: ModalMissOptions,
 ): () => void {
-  const ctx = useContext(KeyboardContext);
   const modalCtx = useContext(ModalLayerElementContext);
   const modalId = modalCtx?.id ?? null;
+  // The wrapped useModalMissListener carries the withOwner/withElement
+  // handling so the listener registers on THIS modal element even when other
+  // elements sit above it on the owner stack.
+  const { useModalMissListener: subscribe } = useKeyboard();
 
   useEffect(() => {
-    if (!ctx || !modalId) return;
-    const unsub = ctx.useModalMissListener(cb, {
+    if (!modalId) return;
+    const unsub = subscribe(cb, {
       ...options,
       elementId: modalId,
     });
     return unsub;
-  }, [ctx, modalId, cb, options]);
+  }, [subscribe, modalId, cb, options]);
 
   return () => {};
 }
@@ -535,6 +588,44 @@ export type MouseRegionOptions = {
    * focus link).
    */
   ref?: RefObject<DOMElement | null>;
+
+  /**
+   * When `true`, clicking this region raises the surrounding regular layer
+   * above all other layers via `bringLayerToFront` (zIndex = max + 1), before
+   * the user's own `onClick` runs. Ineffective on modal layers — while a
+   * modal is open it owns all mouse hit-testing, and regular layers never
+   * rise above modals — and outside any layer.
+   */
+  clickOnRise?: boolean;
+
+  /**
+   * When `true`, starting a drag on this region raises the surrounding
+   * regular layer above all other layers, before the user's own
+   * `onDragStart` runs. Same modal/root exclusions as `clickOnRise`.
+   */
+  dragOnRise?: boolean;
+
+  /**
+   * When `true`, a wheel event over this region raises the surrounding
+   * regular layer above all other layers, before the user's own `onWheel`
+   * runs. Same modal/root exclusions as `clickOnRise`.
+   */
+  wheelOnRise?: boolean;
+
+  /**
+   * When `true`, the mouse entering this region raises the surrounding
+   * regular layer above all other layers, before the user's own `onEnter`
+   * runs. Combine with `leaveOffRise` to lower the layer again on leave.
+   * Same modal/root exclusions as `clickOnRise`.
+   */
+  enterOnRise?: boolean;
+
+  /**
+   * Whether leaving the region restores the layer's initial zIndex (undoes
+   * the `enterOnRise` raise). Only applies when `enterOnRise` is set;
+   * defaults to `true`.
+   */
+  leaveOffRise?: boolean;
 };
 
 /**
@@ -591,6 +682,12 @@ export type MouseRegionOptions = {
  * `leaveOffFocus` only takes effect when `enterOnFocus` is set, so a
  * click-only region never loses focus by the cursor leaving it.
  *
+ * With `clickOnRise: true`, clicking the region also raises the surrounding
+ * regular layer above all other layers (see `bringLayerToFront`) before the
+ * user's own `onClick` runs. Modal layers are unaffected — while a modal is
+ * open it owns all mouse hit-testing, and regular layers never rise above
+ * modals — and regions outside any layer do nothing.
+ *
  * @param callbacks - Region callbacks (kept fresh across renders).
  * @param options   - Optional `regionId` (defaults to an auto-generated
  *                    unique id — pass one to control identity, e.g. for
@@ -598,6 +695,12 @@ export type MouseRegionOptions = {
  *                    hit-test `priority` (higher wins on overlap; defaults
  *                    0), `clickOnFocus` (whether a click forwards keyboard
  *                    focus to the region's bound focusId; defaults `true`),
+ *                    `clickOnRise` / `dragOnRise` / `wheelOnRise` /
+ *                    `enterOnRise` (whether the matching mouse gesture
+ *                    raises the surrounding regular layer to the top;
+ *                    defaults `false`), `leaveOffRise` (whether a hover
+ *                    leave restores the layer's initial zIndex; only applies
+ *                    when `enterOnRise` is set; defaults `true`),
  *                    `enterOnFocus` (whether a hover enter forwards focus;
  *                    defaults `false`), `leaveOffFocus` (whether a hover
  *                    leave clears the focus; only applies when
@@ -676,12 +779,33 @@ export function useMouseRegion(
   // ({ ref, focusId }) registered for this same ref, then run the user's own
   // handler. Click forwards by default; hover forwards only when
   // enterOnFocus is set, and clears on leave unless leaveOffFocus: false.
+  // Every *OnRise trigger shares the same two guards: only regular layers
+  // participate (modal elements and page regions have no layerCtx), and the
+  // zIndex change must go through the screen reducer — mutating the context
+  // value directly would bypass useReducer and never reach the keyboard
+  // engine.
+  const raiseSurroundingLayer = (): void => {
+    const layer = layerCtx?.layer;
+    if (layer) {
+      screenCtx?.bringLayerToFront(layer.layerId);
+    }
+  };
+  const lowerSurroundingLayer = (): void => {
+    const layer = layerCtx?.layer;
+    if (layer) {
+      screenCtx?.restoreLayerZIndex(layer.layerId);
+    }
+  };
   const regionCallbacks: MouseRegionCallbacks = {
     ...callbacks,
     onEnter: (event, rect) => {
       if (options?.enterOnFocus === true) {
         const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
         applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id);
+      }
+
+      if (options?.enterOnRise === true) {
+        raiseSurroundingLayer();
       }
 
       callbacks.onEnter?.(event, rect);
@@ -711,6 +835,15 @@ export function useMouseRegion(
         }
       }
 
+      // Undo the enterOnRise raise on leave by default — mirroring the
+      // leaveOffFocus rule above (a click-only region never lowers).
+      if (
+        options?.enterOnRise === true &&
+        (options?.leaveOffRise === undefined || options.leaveOffRise === true)
+      ) {
+        lowerSurroundingLayer();
+      }
+
       callbacks.onLeave?.(event);
     },
     onClick: (event, rect) => {
@@ -724,7 +857,26 @@ export function useMouseRegion(
         const map = resolveRegionFocusMap(layerCtx, modalCtx, screenCtx);
         applyRegionFocus(ctx, map?.get(ref), layerCtx?.id ?? modalCtx?.id);
       }
+
+      if (options?.clickOnRise === true) {
+        raiseSurroundingLayer();
+      }
+
       callbacks.onClick?.(event, rect);
+    },
+    onWheel: (event, rect) => {
+      if (options?.wheelOnRise === true) {
+        raiseSurroundingLayer();
+      }
+
+      callbacks.onWheel?.(event, rect);
+    },
+    onDragStart: (event, rect) => {
+      if (options?.dragOnRise === true) {
+        raiseSurroundingLayer();
+      }
+
+      callbacks.onDragStart?.(event, rect);
     },
   };
 

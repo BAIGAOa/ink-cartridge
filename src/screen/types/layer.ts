@@ -16,6 +16,13 @@ export type Layer = {
    */
   zIndex: number;
   /**
+   * The zIndex the layer was opened with. `bringLayerToFront` raises
+   * `zIndex` above every other layer but never touches this field, so
+   * {@link RestoreLayerZIndexFn} can always put the layer back where it
+   * started.
+   */
+  initialZIndex: number;
+  /**
    * Elements included in this layer
    */
   elements: Map<string, LayerElement>;
@@ -205,10 +212,11 @@ export type ActivateElementAction = {
 };
 
 /**
- * Marks a layer element as active (`active: true`). The element will render on
- * the next pass and the keyboard adapter will re-push its owner — effectively
- * reactivating the corresponding keyboard layer without the screen system
- * touching the keyboard engine directly.
+ * Marks a layer element as active (`active: true`). The element stays mounted
+ * either way — the flag is purely keyboard-side: on the next sync the keyboard
+ * adapter puts the element's ID back into the layer's `activeElements` set, so
+ * the keyboard engine resumes dispatching key events to the element's bindings
+ * without the screen system touching the keyboard engine directly.
  */
 export type ActivateElementFn = (
   targetLayerId: string,
@@ -224,10 +232,13 @@ export type DeactivateElementAction = {
 };
 
 /**
- * Marks a layer element as inactive (`active: false`). The element is removed
- * from the rendered tree, which triggers the keyboard adapter's owner-stack
- * cleanup (`_popOwner`) — the corresponding keyboard layer goes dormant but
- * its bindings are retained for later reactivation via {@link ActivateElementFn}.
+ * Marks a layer element as inactive (`active: false`). The element stays
+ * mounted — the flag is purely keyboard-side: on the next sync the keyboard
+ * adapter drops the element's ID from the layer's `activeElements` set, so the
+ * keyboard engine stops dispatching key events to that element's bindings
+ * while keeping all registration data intact for a later reactivation via
+ * {@link ActivateElementFn}. When this was the layer's last active element,
+ * the layer stops intercepting keys and they fall through to lower layers.
  */
 export type DeactivateElementFn = (
   targetLayerId: string,
@@ -245,6 +256,51 @@ export type CloseAllLayerAction = {
  * Closes all layers at once.
  */
 export type CloseAllLayerFn = () => void;
+
+/**
+ * Action dispatched by {@link bringLayerToFront}.
+ */
+export type BringLayerToFrontAction = {
+	type: "bringLayerToFront";
+	/** ID of the registered regular layer to raise above all other layers. */
+	targetLayerId: string;
+};
+
+/**
+ * Raise a regular layer above all other layers.
+ *
+ * Sets the layer's zIndex to the current maximum zIndex plus 1 and re-sorts
+ * `allLayers`, moving the layer to the top of the visual stack and giving it
+ * keyboard and mouse priority. The layer object is replaced via spread, so
+ * its `elements`, `regionFocus`, `hostPage` and `crossPage` references are
+ * kept — element components do not remount and user state survives.
+ *
+ * No-op when the layer is already the top layer. Modal layers are unaffected:
+ * they live in a separate array that always renders above regular layers, so
+ * a raised regular layer never overtakes a modal.
+ */
+export type BringLayerToFrontFn = (targetLayerId: string) => void;
+
+/**
+ * Action dispatched by {@link restoreLayerZIndex}.
+ */
+export type RestoreLayerZIndexAction = {
+	type: "restoreLayerZIndex";
+	/** ID of the registered regular layer to restore to its initial zIndex. */
+	targetLayerId: string;
+};
+
+/**
+ * Undo {@link BringLayerToFrontFn}: put a regular layer's zIndex back to the
+ * value it was opened with ({@link Layer.initialZIndex}) and re-sort
+ * `allLayers`. The layer object is replaced via spread — `elements`,
+ * `regionFocus`, `hostPage` and `crossPage` references are kept, so element
+ * components do not remount.
+ *
+ * No-op when the layer's zIndex already equals its initial value. Modal
+ * layers are unaffected, mirroring {@link BringLayerToFrontFn}.
+ */
+export type RestoreLayerZIndexFn = (targetLayerId: string) => void;
 
 /**
  * State shape of a modal layer.
@@ -267,6 +323,12 @@ export type ModalLayer = {
    * Only the modal layer with the highest zIndex will receive keyboard events.
    */
   zIndex: number;
+  /**
+   * The zIndex the modal layer was opened with. Kept for symmetry with
+   * {@link Layer.initialZIndex} — modal layers are not raised by
+   * {@link BringLayerToFrontFn}, so the two stay equal.
+   */
+  initialZIndex: number;
   /**
    * Elements included in this layer
    */
@@ -457,8 +519,8 @@ export type ActivateElementInModalLayerAction = {
 
 /**
  * Modal-layer counterpart of {@link ActivateElementFn}. Marks a modal-layer
- * element as active so the keyboard adapter re-pushes the modal's owner and
- * restores keyboard handling.
+ * element as active (`active: true`) so the keyboard adapter restores it to
+ * the modal's `activeElements` set and key dispatch to its bindings resumes.
  */
 export type ActivateElementInModalLayerFn = (
   targetModalLayerId: string,
@@ -475,8 +537,11 @@ export type DeactivateElementInModalLayerAction = {
 
 /**
  * Modal-layer counterpart of {@link DeactivateElementFn}. Marks a modal-layer
- * element as inactive so it unmounts, triggering the keyboard adapter's
- * `_popOwner` cleanup and putting the modal's keyboard layer dormant.
+ * element as inactive (`active: false`); the element stays mounted and only
+ * its keyboard bindings go dormant, with registration data retained for
+ * reactivation via {@link ActivateElementInModalLayerFn}. Note that the modal
+ * layer's keyboard takeover persists even with no active elements — the
+ * barrier only lifts when the modal layer itself is closed.
  */
 export type DeactivateElementInModalLayerFn = (
   targetModalLayerId: string,

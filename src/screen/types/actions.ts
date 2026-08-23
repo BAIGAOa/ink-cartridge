@@ -8,6 +8,7 @@ import {
 	ActivateElementInModalLayerAction,
 	ApplyElementAction,
 	ApplyElementToModalLayerAction,
+	BringLayerToFrontAction,
 	CloseAllLayerAction,
 	CloseAllModalLayerAction,
 	CloseLayerAction,
@@ -18,6 +19,7 @@ import {
 	EraseElementInModalLayerAction,
 	OpenLayerAction,
 	OpenModalLayerAction,
+	RestoreLayerZIndexAction,
 } from "./layer.js";
 
 /**
@@ -32,6 +34,8 @@ export type ScreenAction =
 	| CloseLayerAction
 	| EraseElementAction
 	| CloseAllLayerAction
+	| BringLayerToFrontAction
+	| RestoreLayerZIndexAction
 	| OpenModalLayerAction
 	| CloseModalLayerAction
 	| ApplyElementToModalLayerAction
@@ -54,6 +58,8 @@ export type ScreenActionType =
 	| "closeLayer"
 	| "eraseElement"
 	| "closeAllLayer"
+	| "bringLayerToFront"
+	| "restoreLayerZIndex"
 	| "openModalLayer"
 	| "closeModalLayer"
 	| "applyElementToModalLayer"
