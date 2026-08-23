@@ -26,7 +26,7 @@ jobs:
       - run: npm run docs:build
         working-directory: website
         env:
-          DOCS_BASE: /ink-cartridge/guide/
+          DOCS_BASE: /guide/
       - run: mkdir -p documents/guide && cp -r website/.vitepress/dist/. documents/guide/
       - run: |
           cat > documents/index.html << 'HTML'
