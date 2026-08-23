@@ -40,6 +40,7 @@ Screen navigation and keyboard system demos. Each demo is a self-contained file 
 | wildcard | enableWildcardPriority + * binding for text capture mode | `npx tsx examples/core/wildcard.demo.tsx` |
 | layer-system | Layer A/B z-index order, layer broadcast, bubbling, penetration, stop, modal barrier | `npx tsx examples/layer-system/LayerSystem.demo.tsx` |
 | takeover-scope | `automaticTakeoverKeyboard` with a page list (array): layer bindings go dormant only on listed pages and stay active elsewhere | `npx tsx examples/core/takeover-scope.demo.tsx` |
+| bring-to-front | `clickOnRise` + `bringLayerToFront`: raise regular layers by click or keyboard, topmost key routing, modal barrier comparison | `npx tsx examples/core/bring-to-front.demo.tsx` |
 
 ## Mouse demos
 

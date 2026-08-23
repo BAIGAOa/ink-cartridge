@@ -10,8 +10,8 @@ export {
   useFocusState,
   useModalMissListener,
   useMouseRegion,
-  MouseRegionOptions,
 } from "./hook.js";
+export type { MouseRegionOptions } from "./hook.js";
 
 import { isNormalCharacter as engineIsNormalCharacter } from "@cartridge-engine/keyboard-engine";
 import { isInkSpecialKey } from "./keyNormalizer.js";

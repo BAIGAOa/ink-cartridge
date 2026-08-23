@@ -27,6 +27,8 @@ const mockContextValue: ScreenSystemContextValue = {
   closeLayer: noop,
   eraseElement: noop,
   closeAllLayer: noop,
+  bringLayerToFront: noop,
+  restoreLayerZIndex: noop,
   activateElement: noop,
   deactivateElement: noop,
   openModalLayer: noop,

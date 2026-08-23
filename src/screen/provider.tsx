@@ -8,6 +8,8 @@ import {
 	ActivateElementInModalLayerFn,
 	ApplyElementFn,
 	ApplyElementToModalLayerFn,
+	BringLayerToFrontFn,
+	RestoreLayerZIndexFn,
 	CloseAllLayerFn,
 	CloseAllModalLayerFn,
 	CloseLayerFn,
@@ -255,6 +257,50 @@ export function eraseElement(
  */
 export function closeAllLayer(): void {
 	getDispatch()({ type: "closeAllLayer" });
+}
+
+/**
+ * Raise a regular layer above all other layers.
+ *
+ * Sets the layer's zIndex to the current maximum zIndex plus 1 and re-sorts
+ * `allLayers`, so the layer moves to the top visually and wins keyboard and
+ * mouse priority. The layer object is replaced via spread — its `elements`,
+ * `regionFocus`, `hostPage` and `crossPage` references are kept, so the
+ * layer's element components do not remount and no user state is lost.
+ *
+ * No-op when the layer is already the top layer. Modal layers are
+ * unaffected: they live in a separate array that always renders (and takes
+ * keyboard/mouse priority) above regular layers, so a raised regular layer
+ * never overtakes a modal.
+ *
+ * @example
+ * ```tsx
+ * const { bringLayerToFront } = useScreenSystem();
+ * bringLayerToFront('edit-panel');
+ * ```
+ */
+export function bringLayerToFront(targetLayerId: string): void {
+	getDispatch()({ type: "bringLayerToFront", targetLayerId });
+}
+
+/**
+ * Undo {@link bringLayerToFront}: put a regular layer's zIndex back to the
+ * value it was opened with and re-sort `allLayers`. The layer object is
+ * replaced via spread — `elements`, `regionFocus`, `hostPage` and
+ * `crossPage` references are kept, so element components do not remount and
+ * no user state is lost.
+ *
+ * No-op when the layer's zIndex already equals its initial value. Modal
+ * layers are unaffected, mirroring {@link bringLayerToFront}.
+ *
+ * @example
+ * ```tsx
+ * const { restoreLayerZIndex } = useScreenSystem();
+ * restoreLayerZIndex('edit-panel');
+ * ```
+ */
+export function restoreLayerZIndex(targetLayerId: string): void {
+	getDispatch()({ type: "restoreLayerZIndex", targetLayerId });
 }
 
 /**
@@ -668,6 +714,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 			const newLayer: Layer = {
 				layerId: action.layerId,
 				zIndex: action.zIndex,
+				initialZIndex: action.zIndex,
 				elements: new Map(),
 				crossPage: action.options?.crossPage ?? false,
 				// Use the current timestamp as the creation time to ensure no errors occur,
@@ -802,6 +849,89 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 			};
 		}
 
+		case "bringLayerToFront": {
+			const targetLayerIndex = state.allLayers.findIndex(
+				(each) => each.layerId === action.targetLayerId
+			);
+
+			// Modal layers live in a separate array and always stay above
+			// regular layers, so an ID that is not in allLayers — unknown,
+			// already closed, or a modal layer ID — is a no-op, mirroring the
+			// closeLayer race handling.
+			if (targetLayerIndex === -1) {
+				warnInDev(
+					`[ink-cartridge] bringLayerToFront("${action.targetLayerId}") ignored: no regular layer with this ID is registered. Modal layers are unaffected by bringLayerToFront.`
+				);
+				return state;
+			}
+
+			// Already the top layer — returning the identical state skips the
+			// re-render and keeps zIndex from drifting.
+			if (targetLayerIndex === state.allLayers.length - 1) {
+				return state;
+			}
+
+			const targetLayer = state.allLayers[targetLayerIndex];
+			const maxZIndex = state.allLayers[state.allLayers.length - 1].zIndex;
+
+			// Spread keeps elements/regionFocus/hostPage/crossPage references
+			// intact, so element components do not remount and user state
+			// survives — never close+reopen to simulate this.
+			const raisedLayer: Layer = { ...targetLayer, zIndex: maxZIndex + 1 };
+
+			const newAllLayers = sortLayers([
+				...state.allLayers.slice(0, targetLayerIndex),
+				raisedLayer,
+				...state.allLayers.slice(targetLayerIndex + 1),
+			]);
+
+			return {
+				...state,
+				allLayers: newAllLayers,
+			};
+		}
+
+		case "restoreLayerZIndex": {
+			const targetLayerIndex = state.allLayers.findIndex(
+				(each) => each.layerId === action.targetLayerId
+			);
+
+			// Mirrors bringLayerToFront: an unknown, closed, or modal layer
+			// ID is a no-op — modal layers live in a separate array.
+			if (targetLayerIndex === -1) {
+				warnInDev(
+					`[ink-cartridge] restoreLayerZIndex("${action.targetLayerId}") ignored: no regular layer with this ID is registered.`
+				);
+				return state;
+			}
+
+			const targetLayer = state.allLayers[targetLayerIndex];
+
+			// Nothing to restore — returning the identical state skips the
+			// re-render entirely.
+			if (targetLayer.zIndex === targetLayer.initialZIndex) {
+				return state;
+			}
+
+			// Spread keeps elements/regionFocus/hostPage/crossPage references
+			// intact — the same no-remount guarantee as bringLayerToFront.
+			const restoredLayer: Layer = {
+				...targetLayer,
+				zIndex: targetLayer.initialZIndex,
+			};
+
+			const newAllLayers = sortLayers([
+				...state.allLayers.slice(0, targetLayerIndex),
+				restoredLayer,
+				...state.allLayers.slice(targetLayerIndex + 1),
+			]);
+
+			return {
+				...state,
+				allLayers: newAllLayers,
+			};
+		}
+
 		case "activateElement": {
 			const targetLayerIndex = state.allLayers.findIndex(
 				(each) => each.layerId === action.targetLayerId
@@ -886,6 +1016,7 @@ function screenReducer(state: ScreenState, action: ScreenAction): ScreenState {
 			const newModalLayer: ModalLayer = {
 				layerId: action.layerId,
 				zIndex: action.zIndex,
+				initialZIndex: action.zIndex,
 				elements: new Map(),
 				crossPage: action.options?.crossPage ?? false,
 				// Use the current timestamp as the creation time to ensure no errors occur,
@@ -1255,6 +1386,20 @@ export function ScenarioManagementProvider({
 		[]
 	);
 
+	const bringLayerToFrontInContext: BringLayerToFrontFn = useMemo(
+		() => (targetLayerId: string) => {
+			dispatch({ type: "bringLayerToFront", targetLayerId });
+		},
+		[]
+	);
+
+	const restoreLayerZIndexInContext: RestoreLayerZIndexFn = useMemo(
+		() => (targetLayerId: string) => {
+			dispatch({ type: "restoreLayerZIndex", targetLayerId });
+		},
+		[]
+	);
+
 	const activateElementInContext: ActivateElementFn = useMemo(
 		() => (targetLayerId: string, targetElementId: string) => {
 			dispatch({ type: "activateElement", targetLayerId, targetElementId });
@@ -1359,6 +1504,8 @@ export function ScenarioManagementProvider({
 			closeLayer: closeLayerInContext,
 			eraseElement: eraseElementInContext,
 			closeAllLayer: closeAllLayerInContext,
+			bringLayerToFront: bringLayerToFrontInContext,
+			restoreLayerZIndex: restoreLayerZIndexInContext,
 			activateElement: activateElementInContext,
 			deactivateElement: deactivateElementInContext,
 			openModalLayer: openModalLayerInContext,
@@ -1383,6 +1530,8 @@ export function ScenarioManagementProvider({
 			closeLayerInContext,
 			eraseElementInContext,
 			closeAllLayerInContext,
+			bringLayerToFrontInContext,
+			restoreLayerZIndexInContext,
 			activateElementInContext,
 			deactivateElementInContext,
 			openModalLayerInContext,

@@ -9,6 +9,8 @@ import {
   ActivateElementInModalLayerFn,
   ApplyElementFn,
   ApplyElementToModalLayerFn,
+  BringLayerToFrontFn,
+  RestoreLayerZIndexFn,
   CloseAllLayerFn,
   CloseAllModalLayerFn,
   CloseLayerFn,
@@ -58,9 +60,13 @@ export interface ScreenSystemContextValue {
   eraseElement: EraseElementFn
   /** Closes all layers at once. */
   closeAllLayer: CloseAllLayerFn
+  /** Raises a regular layer above all other layers (no-op for the top layer; modal layers unaffected). */
+  bringLayerToFront: BringLayerToFrontFn
+  /** Restores a raised regular layer to the zIndex it was opened with (no-op when already restored; modal layers unaffected). */
+  restoreLayerZIndex: RestoreLayerZIndexFn
   /** Reactivates a previously deactivated layer element. */
   activateElement: ActivateElementFn
-  /** Deactivates a layer element (it unmounts, releasing its keyboard owner). */
+  /** Deactivates a layer element (its keyboard bindings stop receiving keys; the element stays mounted). */
   deactivateElement: DeactivateElementFn
 
   /** Opens a new modal layer with a unique ID and z-index. */
@@ -75,7 +81,7 @@ export interface ScreenSystemContextValue {
   closeAllModalLayer: CloseAllModalLayerFn
   /** Reactivates a previously deactivated modal-layer element. */
   activateElementInModalLayer: ActivateElementInModalLayerFn
-  /** Deactivates a modal-layer element (it unmounts, releasing its keyboard owner). */
+  /** Deactivates a modal-layer element (its keyboard bindings stop receiving keys; the element stays mounted). */
   deactivateElementInModalLayer: DeactivateElementInModalLayerFn
 }
 
