@@ -1,5 +1,13 @@
 # @cartridge-engine/search-input
 
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [44dfa6a]
+  - ink-cartridge@5.3.0
+  - @cartridge-engine/text-input@3.0.0
+
 ## 2.0.0
 
 ### Patch Changes
