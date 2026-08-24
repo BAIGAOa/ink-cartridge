@@ -20,6 +20,23 @@ Main Menu
 - `Settings` and `About` both have `Main Menu` as their parent;
 - navigation only moves between parents and children, or along the tree (`skip` down, `back` up, `gotoScreen` across branches).
 
+## Prerequisites
+
+After screens are registered into the tree, they still need to be actually rendered, which is done by two components working together:
+
+- **`ScenarioManagementProvider`** — the context provider of the screen system, wrapping the whole app: it maintains the screen tree state (current path, layers, modal layers, etc.). `defaultScreen` specifies the initial screen at startup (must be a registered component, otherwise it throws), and `fullScreen` makes the screen fill the terminal height.
+- **`CurrentScreen`** — reads the provider's state and renders the **currently active screen**. The provider itself renders nothing — the two must be used together.
+
+```tsx
+<ScenarioManagementProvider defaultScreen={Home} fullScreen>
+  <CurrentScreen />
+</ScenarioManagementProvider>
+```
+
+> If you need the keyboard system, `KeyboardProvider` must be nested inside `ScenarioManagementProvider`, otherwise keyboard bindings will not work.
+
+This is only a brief introduction — their full details will be covered in a **later article**.
+
 ## Registering your first screen
 
 Registering a screen takes one line of code:

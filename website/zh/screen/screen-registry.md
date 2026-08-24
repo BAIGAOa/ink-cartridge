@@ -20,6 +20,23 @@ ink-cartridge 使用一棵**屏幕树**来组织你的页面结构：每个屏�
 - `设置`、`关于` 的父屏幕都是 `主菜单`；
 - 导航时只能在父子之间或沿着树跳转（`skip` 向下、`back` 向上、`gotoScreen` 跨分支）。
 
+## 前置知识
+
+屏幕注册进树之后，需要把它真正渲染出来，这由两个组件配合完成：
+
+- **`ScenarioManagementProvider`** —— 屏幕系统的上下文 Provider，包裹整个应用：维护屏幕树的状态（当前路径、图层、模态层等）。`defaultScreen` 指定应用启动时的初始屏幕（必须是已注册的组件，否则会抛错），`fullScreen` 让屏幕占满终端高度。
+- **`CurrentScreen`** —— 读取 Provider 的状态并渲染**当前激活的屏幕**。Provider 本身不渲染任何页面，两者必须搭配使用。
+
+```tsx
+<ScenarioManagementProvider defaultScreen={Home} fullScreen>
+  <CurrentScreen />
+</ScenarioManagementProvider>
+```
+
+> 如果你需要使用键盘系统，`KeyboardProvider` 必须嵌套在 `ScenarioManagementProvider` 内部，否则键盘绑定会失效。
+
+这里只作简要介绍，两者的完整细节将在**后续文章**详细讲解。
+
 ## 注册你的第一个屏幕
 
 注册一个屏幕只需要一行代码：
