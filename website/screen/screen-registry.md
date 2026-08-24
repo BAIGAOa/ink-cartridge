@@ -176,10 +176,5 @@ Organizing screens is not enough — without an entry point the screens are dead
 
 Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail, {})` to enter a child screen, press `Esc` → `back()` to return home.
 
-You can learn along the following path:
-
-1. **Organizing screens** (this chapter) — build the screen tree with `registerComponent`;
-2. **`boundKeyboard`** — learn how to bind keys to a screen (the "Keyboard System" section);
-3. **`skip` / `back` / `gotoScreen`** — perform page switching inside key callbacks (the "Screen Navigation" section).
-
-The concrete usage of these methods is covered in detail in the "Keyboard System" and "Screen Navigation" sections respectively.
+Next, you can learn the following:
+- `boundKeyboard` — learn how to bind keys to a screen — [Basic Binding](/keyboard/base-bind.md);

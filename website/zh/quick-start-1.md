@@ -78,7 +78,7 @@ render(
 ```
 
 <div align="center">
-<img src="/docs-quick-start.gif" width="2040" alt="windous-rise" />
+<img src="/zh/docs-quick-start.gif" width="2040" alt="quick-start" />
 </div>
 
 ### 发生了什么
@@ -94,5 +94,4 @@ render(
 
 ### 下一步
 
-- 了解 `gotoScreen`、层级系统等更多导航能力 —— 屏幕系统
-- 深入了解按键管道优先级与聚焦机制 —— 键盘引擎
+- 了解如何使用`registerComponent`方法组织你自己的屏幕 [组织屏幕](/zh/screen/screen-registry.md)

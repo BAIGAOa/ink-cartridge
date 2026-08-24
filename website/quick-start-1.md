@@ -77,6 +77,12 @@ render(
 );
 ```
 
+Result:
+
+<div align="center">
+<img src="/en/docs-quick-start.gif" width="2040" alt="quick-start" />
+</div>
+
 ### What just happened
 
 - `ScenarioManagementProvider` wraps the whole app and drives the screen system & routing; `defaultScreen={Home}` sets the first screen, `fullScreen` makes Home fill the terminal.
@@ -90,5 +96,4 @@ render(
 
 ### Next steps
 
-- Learn more navigation capabilities like `gotoScreen` and the layer system — Screen System
-- Dig into the keyboard pipeline priority and focus system — Keyboard Engine
+- Learn how to use `registerComponent` to organize your own screens — [Organize Your Screen](/screen/screen-registry.md)
