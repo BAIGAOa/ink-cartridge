@@ -1,0 +1,168 @@
+# 使用 `registerComponent` 组织屏幕
+
+ink-cartridge 使用一棵**屏幕树**来组织你的页面结构：每个屏幕只能有一个父屏幕，但可以有多个子屏幕。通过 `skip`、`gotoScreen` 等方法可以在树中不断切换当前屏幕（本章只讲"如何把屏幕注册进树"，导航方法见"屏幕导航"一章）。
+
+这一章会了解 ink-cartridge 最核心的方法之一：`registerComponent`。
+
+## 屏幕树：父子关系
+
+在 ink-cartridge 中，**每一个 React 组件都可以是一个屏幕**。屏幕之间的关系由你声明，`registerComponent` 的 `parent` 参数决定了"这个屏幕的父亲是谁"。
+
+例如下面的树：
+
+```
+主菜单
+├── 设置
+└── 关于
+```
+
+- `主菜单` 没有父屏幕，它是**根屏幕**；
+- `设置`、`关于` 的父屏幕都是 `主菜单`；
+- 导航时只能在父子之间或沿着树跳转（`skip` 向下、`back` 向上、`gotoScreen` 跨分支）。
+
+## 注册你的第一个屏幕
+
+注册一个屏幕只需要一行代码：
+
+```tsx
+import React from 'react';
+import { Box, Text, render } from 'ink';
+import {
+  CurrentScreen,
+  ScenarioManagementProvider,
+  registerComponent,
+} from 'ink-cartridge';
+
+function Home() {
+  return (
+    <Box flexDirection="column">
+      <Text bold>🏠 主页</Text>
+    </Box>
+  );
+}
+
+// 把 Home 注册为屏幕：没有声明 parent，所以它是根屏幕
+registerComponent(Home, {});
+```
+
+`registerComponent` 是模块级函数，可以在 `.ts` 或 `.tsx` 的任意位置调用（通常紧跟组件定义）。
+
+注册之后，用 `ScenarioManagementProvider` 指定默认屏幕并渲染：
+
+```tsx
+render(
+  <ScenarioManagementProvider defaultScreen={Home} fullScreen>
+    <CurrentScreen />
+  </ScenarioManagementProvider>
+);
+```
+
+运行后终端会显示 `🏠 主页`。其中：
+
+- `component`（第一个参数）：当前屏幕是哪个组件。**组件本身作为注册的唯一标识**，同一个组件只能注册一次。
+- `template`（第二个参数）：初始模板，用作屏幕的**默认 props**。导航时传入的 props 会与它合并。`Home` 不需要 props，所以传 `{}`。
+
+## 构建一棵分支树
+
+下面注册一棵"主菜单 → 设置 / 关于"的树，演示**一父多子**：
+
+```tsx
+import React from 'react';
+import { Box, Text, render } from 'ink';
+import {
+  CurrentScreen,
+  ScenarioManagementProvider,
+  registerComponent,
+} from 'ink-cartridge';
+
+function MainMenu() {
+  return (
+    <Box flexDirection="column">
+      <Text bold>🏠 主菜单</Text>
+      <Text>设置 / 关于 都是我的子屏幕</Text>
+    </Box>
+  );
+}
+registerComponent(MainMenu, {});
+
+function Settings() {
+  return <Text>⚙️ 设置</Text>;
+}
+// parent 指向 MainMenu：Settings 成为 MainMenu 的子屏幕
+registerComponent(Settings, {}, { parent: MainMenu });
+
+function About() {
+  return <Text>ℹ️ 关于</Text>;
+}
+// About 同样挂在 MainMenu 下面
+registerComponent(About, {}, { parent: MainMenu });
+
+render(
+  <ScenarioManagementProvider defaultScreen={MainMenu} fullScreen>
+    <CurrentScreen />
+  </ScenarioManagementProvider>
+);
+```
+
+注册完成后，屏幕树长这样：
+
+```
+MainMenu（根屏幕）
+├── Settings
+└── About
+```
+
+注意注册顺序：**先注册父屏幕，再注册子屏幕**。如果 `parent` 尚未注册，`registerComponent` 会直接抛错（见下文注意事项第 2 条）。
+
+## API 参考
+
+`registerComponent` 的函数签名：
+
+```typescript
+function registerComponent<C extends React.ComponentType<any>>(
+  component: C,
+  template: React.ComponentProps<C>,
+  options?: RegisterOptions,
+): void
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `component` | `React.ComponentType<any>` | 是 | 注册为屏幕的 React 组件，同时作为注册的唯一标识 |
+| `template` | `React.ComponentProps<C>` | 是 | 初始模板，即屏幕的默认 props；导航时与传入的 props 合并 |
+| `options.parent` | `React.ComponentType<any>` | 否 | 父屏幕组件；不声明则该屏幕是根屏幕（候选） |
+
+`RegisterOptions` 的完整定义：
+
+```typescript
+interface RegisterOptions {
+    parent?: ComponentType<any> | undefined;
+}
+```
+
+## 注意事项
+
+1. **同一个组件只能注册一次。** 重复调用 `registerComponent` 会抛出错误：`[Ink-Cartridge] Component "xxx" is already registered. Duplicate registration is not allowed.`（避免在热更新、循环等场景中重复注册。）
+2. **`parent` 必须先注册。** 声明 `parent` 时，该父组件必须已经注册过，否则抛错并提示你先注册父组件：`Register the parent first with registerComponent(...)`。
+3. **不声明 `parent` 即根屏幕。** 根屏幕没有父节点，通常作为 `defaultScreen` 传入 `ScenarioManagementProvider`，作为应用的默认页和主页。
+4. **可以有多个根屏幕。** 每个没有 `parent` 的组件都是一棵独立树的根，彼此互不影响，各自拥有自己的子树。
+5. **`template` 是默认 props，不是"当前值"。** 它只描述屏幕被创建时的默认属性；导航时传入的 props 会与之合并，`template` 本身不会被修改。
+
+## 下一步：给树一个"入口"
+
+组织完屏幕还不够，那样屏幕是死的——`registerComponent` 只负责把页面注册成树，真正"切换页面"还需要一个**入口**。因此需要使用 `boundKeyboard` 把按键绑定到当前屏幕，在回调里调用导航方法。
+
+- `boundKeyboard` —— 键盘系统的基础方法（来自 `useKeyboard()`），把按键事件绑定到当前屏幕；
+- `skip` —— 从当前屏幕向下跳到某个子屏幕；
+- `back` —— 返回父屏幕（支持 `levels` 指定返回层数）；
+- `gotoScreen` —— 跨分支直接跳转到任意已注册屏幕。
+
+组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail, {})` 进入子屏幕，按 `Esc` → `back()` 返回主页。
+
+你可以以下面的路径学习：
+
+1. **组织屏幕**（本章）—— 用 `registerComponent` 建立屏幕树；
+2. **`boundKeyboard`** —— 学会把按键绑定到屏幕（"键盘系统"一章）；
+3. **`skip` / `back` / `gotoScreen`** —— 在按键回调里执行页面切换（"屏幕导航"一章）。
+
+上述方法的具体用法分别在"键盘系统"与"屏幕导航"两部分内容中详细介绍。

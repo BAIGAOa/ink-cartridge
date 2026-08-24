@@ -77,6 +77,10 @@ render(
 );
 ```
 
+<div align="center">
+<img src="/docs-quick-start.gif" width="2040" alt="windous-rise" />
+</div>
+
 ### 发生了什么
 
 - `ScenarioManagementProvider` 包裹整个应用，负责屏幕系统与路由；`defaultScreen={Home}` 指定首屏，`fullScreen` 让 Home 占满终端。

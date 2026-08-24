@@ -27,6 +27,12 @@ export default defineConfig({
             items: [
               { text: 'Quick Start', link: '/quick-start-1' }
             ]
+          },
+          {
+            text: 'Screen System',
+            items: [
+              { text: 'Use registerComponent', link: '/screen/screen-registry'}
+            ]
           }
         ]
       }
@@ -45,6 +51,12 @@ export default defineConfig({
             text: '指南',
             items: [
               { text: '快速开始', link: '/zh/quick-start-1' }
+            ]
+          },
+          {
+            text: '屏幕系统',
+            items: [
+              { text: '使用 registerComponent', link: '/zh/screen/screen-registry'}
             ]
           }
         ]

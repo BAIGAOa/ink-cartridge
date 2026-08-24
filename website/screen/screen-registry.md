@@ -1,0 +1,168 @@
+# Organizing screens with `registerComponent`
+
+ink-cartridge organizes your app with a **screen tree**: every screen has exactly one parent but can have many children. You switch between screens with methods such as `skip` and `gotoScreen` (this chapter only covers how to register screens into the tree — navigation is covered in the "Screen Navigation" chapter).
+
+This chapter covers one of ink-cartridge's most core methods: `registerComponent`.
+
+## The screen tree: parent and children
+
+In ink-cartridge, **every React component can be a screen**. The relationships between screens are declared by you — the `parent` option of `registerComponent` decides "who is this screen's parent".
+
+For example, the following tree:
+
+```
+Main Menu
+├── Settings
+└── About
+```
+
+- `Main Menu` has no parent — it is a **root screen**;
+- `Settings` and `About` both have `Main Menu` as their parent;
+- navigation only moves between parents and children, or along the tree (`skip` down, `back` up, `gotoScreen` across branches).
+
+## Registering your first screen
+
+Registering a screen takes one line of code:
+
+```tsx
+import React from 'react';
+import { Box, Text, render } from 'ink';
+import {
+  CurrentScreen,
+  ScenarioManagementProvider,
+  registerComponent,
+} from 'ink-cartridge';
+
+function Home() {
+  return (
+    <Box flexDirection="column">
+      <Text bold>🏠 Home</Text>
+    </Box>
+  );
+}
+
+// Register Home as a screen: no parent declared, so it is a root screen
+registerComponent(Home, {});
+```
+
+`registerComponent` is a module-level function — you can call it anywhere in a `.ts` or `.tsx` file (usually right after the component definition).
+
+After registering, point `ScenarioManagementProvider` at the default screen and render:
+
+```tsx
+render(
+  <ScenarioManagementProvider defaultScreen={Home} fullScreen>
+    <CurrentScreen />
+  </ScenarioManagementProvider>
+);
+```
+
+The terminal will show `🏠 Home`. Here:
+
+- `component` (first argument): which component is the screen. **The component itself acts as the unique registration key** — the same component can only be registered once.
+- `template` (second argument): the initial template, used as the screen's **default props**. Props passed during navigation are merged with it. `Home` needs no props, so pass `{}`.
+
+## Building a branching tree
+
+Let's register a "Main Menu → Settings / About" tree to demonstrate **one parent, many children**:
+
+```tsx
+import React from 'react';
+import { Box, Text, render } from 'ink';
+import {
+  CurrentScreen,
+  ScenarioManagementProvider,
+  registerComponent,
+} from 'ink-cartridge';
+
+function MainMenu() {
+  return (
+    <Box flexDirection="column">
+      <Text bold>🏠 Main Menu</Text>
+      <Text>Settings and About are my child screens</Text>
+    </Box>
+  );
+}
+registerComponent(MainMenu, {});
+
+function Settings() {
+  return <Text>⚙️ Settings</Text>;
+}
+// parent points to MainMenu: Settings becomes a child screen of MainMenu
+registerComponent(Settings, {}, { parent: MainMenu });
+
+function About() {
+  return <Text>ℹ️ About</Text>;
+}
+// About hangs under MainMenu as well
+registerComponent(About, {}, { parent: MainMenu });
+
+render(
+  <ScenarioManagementProvider defaultScreen={MainMenu} fullScreen>
+    <CurrentScreen />
+  </ScenarioManagementProvider>
+);
+```
+
+Once registered, the screen tree looks like this:
+
+```
+MainMenu (root screen)
+├── Settings
+└── About
+```
+
+Note the registration order: **register the parent screen first, then the children**. If `parent` is not registered yet, `registerComponent` throws right away (see caveat #2 below).
+
+## API reference
+
+The function signature of `registerComponent`:
+
+```typescript
+function registerComponent<C extends React.ComponentType<any>>(
+  component: C,
+  template: React.ComponentProps<C>,
+  options?: RegisterOptions,
+): void
+```
+
+| Argument | Type | Required | Description |
+| --- | --- | --- | --- |
+| `component` | `React.ComponentType<any>` | Yes | The React component registered as a screen; also serves as the unique registration key |
+| `template` | `React.ComponentProps<C>` | Yes | The initial template, i.e. the screen's default props; merged with props passed during navigation |
+| `options.parent` | `React.ComponentType<any>` | No | The parent screen component; when omitted, the screen is a root screen (candidate) |
+
+The full definition of `RegisterOptions`:
+
+```typescript
+interface RegisterOptions {
+    parent?: ComponentType<any> | undefined;
+}
+```
+
+## Caveats
+
+1. **A component can only be registered once.** Calling `registerComponent` again throws: `[Ink-Cartridge] Component "xxx" is already registered. Duplicate registration is not allowed.` (Avoid duplicate registration in hot-reload or loop scenarios.)
+2. **`parent` must be registered first.** When you declare a `parent`, that component must already be registered, otherwise it throws and tells you to register the parent first: `Register the parent first with registerComponent(...)`.
+3. **No `parent` means a root screen.** A root screen has no parent node and is usually passed to `ScenarioManagementProvider` as `defaultScreen`, serving as the app's default page and home page.
+4. **There can be multiple root screens.** Every component without a `parent` is the root of its own independent tree; they don't affect each other and each has its own subtree.
+5. **`template` is default props, not "current values".** It only describes the default attributes used when the screen is created; props passed during navigation are merged with it, and `template` itself is never modified.
+
+## Next: give the tree an "entry point"
+
+Organizing screens is not enough — without an entry point the screens are dead. `registerComponent` only registers pages into the tree; to actually "switch pages" you need an **entry point**. So you bind keys to the current screen with `boundKeyboard` and call navigation methods inside the callbacks.
+
+- `boundKeyboard` — a foundational method of the keyboard system (from `useKeyboard()`), which binds key events to the current screen;
+- `skip` — navigate down from the current screen to a child screen;
+- `back` — return to the parent screen (supports `levels` to go back multiple levels);
+- `gotoScreen` — jump across branches to any registered screen.
+
+Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail, {})` to enter a child screen, press `Esc` → `back()` to return home.
+
+You can learn along the following path:
+
+1. **Organizing screens** (this chapter) — build the screen tree with `registerComponent`;
+2. **`boundKeyboard`** — learn how to bind keys to a screen (the "Keyboard System" section);
+3. **`skip` / `back` / `gotoScreen`** — perform page switching inside key callbacks (the "Screen Navigation" section).
+
+The concrete usage of these methods is covered in detail in the "Keyboard System" and "Screen Navigation" sections respectively.
