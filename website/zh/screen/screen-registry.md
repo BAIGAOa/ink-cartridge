@@ -176,10 +176,6 @@ interface RegisterOptions {
 
 组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail, {})` 进入子屏幕，按 `Esc` → `back()` 返回主页。
 
-你可以以下面的路径学习：
+下一步，你可以学习以下内容。
+- `boundKeyboard` —— 学会把按键绑定到屏幕 [基本绑定](/zh/keyboard/base-bind.md)；
 
-1. **组织屏幕**（本章）—— 用 `registerComponent` 建立屏幕树；
-2. **`boundKeyboard`** —— 学会把按键绑定到屏幕（"键盘系统"一章）；
-3. **`skip` / `back` / `gotoScreen`** —— 在按键回调里执行页面切换（"屏幕导航"一章）。
-
-上述方法的具体用法分别在"键盘系统"与"屏幕导航"两部分内容中详细介绍。

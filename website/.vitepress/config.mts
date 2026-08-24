@@ -29,9 +29,10 @@ export default defineConfig({
             ]
           },
           {
-            text: 'Screen System',
+            text: 'Base',
             items: [
-              { text: 'Use registerComponent', link: '/screen/screen-registry'}
+              { text: 'Organize Your Screen', link: '/screen/screen-registry'},
+              { text: 'Basic Binding', link: '/keyboard/base-bind'}
             ]
           }
         ]
@@ -54,9 +55,10 @@ export default defineConfig({
             ]
           },
           {
-            text: '屏幕系统',
+            text: '基础',
             items: [
-              { text: '使用 registerComponent', link: '/zh/screen/screen-registry'}
+              { text: '组织屏幕', link: '/zh/screen/screen-registry'},
+              { text: '基本绑定', link: '/zh/keyboard/base-bind'}
             ]
           }
         ]
