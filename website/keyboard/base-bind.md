@@ -204,4 +204,4 @@ Therefore, the recommended practice is: **always return the unbind function from
 
 ## Next steps
 
-- Learn how to use the `skip` and `gotoScreen` methods together with `boundKeyboard`.
+- Learn how to use the `skip` and `gotoScreen` methods together with `boundKeyboard` — [Navigation](/screen/navigation).

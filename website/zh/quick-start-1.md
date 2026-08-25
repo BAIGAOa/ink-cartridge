@@ -94,4 +94,4 @@ render(
 
 ### 下一步
 
-- 了解如何使用`registerComponent`方法组织你自己的屏幕 [组织屏幕](/zh/screen/screen-registry.md)
+- 了解如何使用`registerComponent`方法组织你自己的屏幕 [组织屏幕](/zh/screen/screen-registry)

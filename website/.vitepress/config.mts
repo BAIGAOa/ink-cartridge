@@ -32,7 +32,8 @@ export default defineConfig({
             text: 'Base',
             items: [
               { text: 'Organize Your Screen', link: '/screen/screen-registry'},
-              { text: 'Basic Binding', link: '/keyboard/base-bind'}
+              { text: 'Basic Binding', link: '/keyboard/base-bind'},
+              { text: 'Navigation', link: '/screen/navigation'}
             ]
           }
         ]
@@ -58,7 +59,8 @@ export default defineConfig({
             text: '基础',
             items: [
               { text: '组织屏幕', link: '/zh/screen/screen-registry'},
-              { text: '基本绑定', link: '/zh/keyboard/base-bind'}
+              { text: '基本绑定', link: '/zh/keyboard/base-bind'},
+              { text: '屏幕导航', link: '/zh/screen/navigation'}
             ]
           }
         ]
