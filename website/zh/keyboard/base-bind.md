@@ -203,4 +203,4 @@ boundKeyboard('x', () => confirm(), { times: 3 })
 
 ## 下一步
 
-- 了解如何使用 `skip` , `gotoScreen` 方法并配合 `boundKeyboard` 使用。
+- 了解如何使用 `skip` , `gotoScreen` 方法并配合 `boundKeyboard` 使用。[屏幕导航](/zh/screen/navigation)

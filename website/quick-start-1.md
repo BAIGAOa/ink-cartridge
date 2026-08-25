@@ -96,4 +96,4 @@ Result:
 
 ### Next steps
 
-- Learn how to use `registerComponent` to organize your own screens — [Organize Your Screen](/screen/screen-registry.md)
+- Learn how to use `registerComponent` to organize your own screens — [Organize Your Screen](/screen/screen-registry)

@@ -177,5 +177,5 @@ interface RegisterOptions {
 组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail, {})` 进入子屏幕，按 `Esc` → `back()` 返回主页。
 
 下一步，你可以学习以下内容。
-- `boundKeyboard` —— 学会把按键绑定到屏幕 [基本绑定](/zh/keyboard/base-bind.md)；
+- `boundKeyboard` —— 学会把按键绑定到屏幕 [基本绑定](/zh/keyboard/base-bind)；
 

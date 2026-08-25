@@ -177,4 +177,4 @@ Organizing screens is not enough — without an entry point the screens are dead
 Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail, {})` to enter a child screen, press `Esc` → `back()` to return home.
 
 Next, you can learn the following:
-- `boundKeyboard` — learn how to bind keys to a screen — [Basic Binding](/keyboard/base-bind.md);
+- `boundKeyboard` — learn how to bind keys to a screen — [Basic Binding](/keyboard/base-bind);
