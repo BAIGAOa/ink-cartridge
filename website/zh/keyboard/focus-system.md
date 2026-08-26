@@ -371,9 +371,13 @@ function Menu() {
 
   return (
     <Box flexDirection="column">
-      <Text bold>偏好设置</Text>
-      <SelectInput focusId="select-a" items={['选项 1', '选项 2', '选项 3']} />
-      <SelectInput focusId="select-b" items={['选项 A', '选项 B']} />
+      <Box flexDirection="row">  
+        <Text bold>偏好设置</Text>
+      </Box>
+      <Box flexDirection="row">  
+        <SelectInput focusId="select-a" items={['选项 1', '选项 2', '选项 3']} />
+        <SelectInput focusId="select-b" items={['选项 A', '选项 B']} />
+      </Box>
       <Text dimColor>按 Tab 切换焦点，按上下箭头操作当前选择栏</Text>
     </Box>
   );

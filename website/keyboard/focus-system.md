@@ -373,10 +373,14 @@ function Menu() {
   }, [boundKeyboard, focusNext, focusPrev]);
 
   return (
-    <Box flexDirection="column">
-      <Text bold>Preferences</Text>
-      <SelectInput focusId="select-a" items={['Option 1', 'Option 2', 'Option 3']} />
-      <SelectInput focusId="select-b" items={['Option A', 'Option B']} />
+     <Box flexDirection="column">
+      <Box flexDirection="row">  
+        <Text bold>Preferences</Text>
+      </Box>
+      <Box flexDirection="row">  
+        <SelectInput focusId="select-a" items={['Item 1', 'Item 2', 'Item 3']} />
+        <SelectInput focusId="select-b" items={['Item A', 'Item B']} />
+      </Box>
       <Text dimColor>Press Tab to switch focus, use up/down arrows in the focused list</Text>
     </Box>
   );
