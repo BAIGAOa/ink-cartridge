@@ -34,7 +34,8 @@ export default defineConfig({
               { text: 'Organize Your Screen', link: '/screen/screen-registry'},
               { text: 'Basic Binding', link: '/keyboard/base-bind'},
               { text: 'Navigation', link: '/screen/navigation'},
-              { text: 'Intermediate Binding', link: '/keyboard/boundKeyboard-advanced'}
+              { text: 'Intermediate Binding', link: '/keyboard/boundKeyboard-advanced'},
+              { text: 'Focus System', link: '/keyboard/focus-system'}
             ]
           }
         ]
@@ -62,7 +63,8 @@ export default defineConfig({
               { text: '组织屏幕', link: '/zh/screen/screen-registry'},
               { text: '基本绑定', link: '/zh/keyboard/base-bind'},
               { text: '屏幕导航', link: '/zh/screen/navigation'},
-              { text: '中级绑定', link: '/zh/keyboard/boundKeyboard-advanced'}
+              { text: '中级绑定', link: '/zh/keyboard/boundKeyboard-advanced'},
+              { text: '焦点系统', link: '/zh/keyboard/focus-system'}
             ]
           }
         ]
