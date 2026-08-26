@@ -59,7 +59,8 @@ function Home() {
 }
 
 // Register Home as a screen: no parent declared, so it is a root screen
-registerComponent(Home, {});
+// `Home` takes no props, so the template can be omitted (defaults to {})
+registerComponent(Home);
 ```
 
 `registerComponent` is a module-level function — you can call it anywhere in a `.ts` or `.tsx` file (usually right after the component definition).
@@ -77,7 +78,7 @@ render(
 The terminal will show `🏠 Home`. Here:
 
 - `component` (first argument): which component is the screen. **The component itself acts as the unique registration key** — the same component can only be registered once.
-- `template` (second argument): the initial template, used as the screen's **default props**. Props passed during navigation are merged with it. `Home` needs no props, so pass `{}`.
+- `template` (second argument, optional): the initial template, used as the screen's **default props**. Props passed during navigation are merged with it. `Home` needs no props, so it can be omitted (defaults to `{}`).
 
 ## Building a branching tree
 
@@ -138,7 +139,7 @@ The function signature of `registerComponent`:
 ```typescript
 function registerComponent<C extends React.ComponentType<any>>(
   component: C,
-  template: React.ComponentProps<C>,
+  template?: React.ComponentProps<C>,
   options?: RegisterOptions,
 ): void
 ```
@@ -146,7 +147,7 @@ function registerComponent<C extends React.ComponentType<any>>(
 | Argument | Type | Required | Description |
 | --- | --- | --- | --- |
 | `component` | `React.ComponentType<any>` | Yes | The React component registered as a screen; also serves as the unique registration key |
-| `template` | `React.ComponentProps<C>` | Yes | The initial template, i.e. the screen's default props; merged with props passed during navigation |
+| `template` | `React.ComponentProps<C>` | No | The initial template, i.e. the screen's default props; merged with props passed during navigation. When omitted, defaults to `{}` |
 | `options.parent` | `React.ComponentType<any>` | No | The parent screen component; when omitted, the screen is a root screen (candidate) |
 
 The full definition of `RegisterOptions`:
@@ -163,7 +164,7 @@ interface RegisterOptions {
 2. **`parent` must be registered first.** When you declare a `parent`, that component must already be registered, otherwise it throws and tells you to register the parent first: `Register the parent first with registerComponent(...)`.
 3. **No `parent` means a root screen.** A root screen has no parent node and is usually passed to `ScenarioManagementProvider` as `defaultScreen`, serving as the app's default page and home page.
 4. **There can be multiple root screens.** Every component without a `parent` is the root of its own independent tree; they don't affect each other and each has its own subtree.
-5. **`template` is default props, not "current values".** It only describes the default attributes used when the screen is created; props passed during navigation are merged with it, and `template` itself is never modified.
+5. **`template` is default props, not "current values".** It only describes the default attributes used when the screen is created; props passed during navigation are merged with it, and `template` itself is never modified. It is optional — omitting it is equivalent to passing `{}`.
 
 ## Next: give the tree an "entry point"
 
@@ -174,7 +175,7 @@ Organizing screens is not enough — without an entry point the screens are dead
 - `back` — return to the parent screen (supports `levels` to go back multiple levels);
 - `gotoScreen` — jump across branches to any registered screen.
 
-Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail, {})` to enter a child screen, press `Esc` → `back()` to return home.
+Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail)` to enter a child screen, press `Esc` → `back()` to return home.
 
 Next, you can learn the following:
 - `boundKeyboard` — learn how to bind keys to a screen — [Basic Binding](/keyboard/base-bind);

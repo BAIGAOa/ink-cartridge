@@ -56,17 +56,38 @@ export interface GotoScreenAction {
 }
 
 /**
+ * Navigation-args rest-tuple for {@link skip}.
+ *
+ * The `params` element is optional only when the target component declares no
+ * required props, so `skip(Child)` compiles for prop-less screens while
+ * `skip(ChildWithRequiredProps)` still requires passing props.
+ *
+ * @typeParam C - The target component type.
+ */
+export type SkipArgs<C extends React.ComponentType<any>> =
+	{} extends React.ComponentProps<C>
+		? [params?: React.ComponentProps<C>, options?: SkipOptions]
+		: [params: React.ComponentProps<C>, options?: SkipOptions];
+
+/** Same optionality rule as {@link SkipArgs}, without the trailing options element. */
+export type GotoScreenArgs<C extends React.ComponentType<any>> =
+	{} extends React.ComponentProps<C>
+		? [params?: React.ComponentProps<C>]
+		: [params: React.ComponentProps<C>];
+
+/**
  * Function signature for navigating to a direct child of the current screen.
+ *
+ * The trailing arguments follow {@link SkipArgs}: `params` is optional when
+ * the target declares no required props, and `options` carries navigation
+ * flags such as {@link SkipOptions.onlyAttribute}.
  *
  * @typeParam C - The component type (must be a React component).
  * @param component - The child component (must be registered and a direct child).
- * @param params - Props to pass to the component.
- * @param options - Optional navigation flags.
  */
 export type SkipFn = <C extends React.ComponentType<any>>(
 	component: C,
-	params: React.ComponentProps<C>,
-	options?: SkipOptions
+	...args: SkipArgs<C>
 ) => void;
 
 /** Function signature for navigating back to the parent screen. */
@@ -75,13 +96,15 @@ export type BackFn = (levels?: number) => void;
 /**
  * Function signature for jumping to any registered screen across branches.
  *
+ * The trailing arguments follow {@link GotoScreenArgs}: `params` is optional
+ * when the target declares no required props.
+ *
  * @typeParam C - The target component type.
  * @param component - The target component (must be registered).
- * @param params - Props to pass to the component.
  */
 export type GotoScreenFn = <C extends React.ComponentType<any>>(
 	component: C,
-	params: React.ComponentProps<C>
+	...args: GotoScreenArgs<C>
 ) => void;
 
 

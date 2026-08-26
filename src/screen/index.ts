@@ -31,8 +31,10 @@ export { LayerElementContext } from "./LayerElementContext.js";
 export type {
   SkipOptions,
   SkipFn,
+  SkipArgs,
   BackFn,
   GotoScreenFn,
+  GotoScreenArgs,
   RegisterOptions,
 } from "./types.js";
 export type {
