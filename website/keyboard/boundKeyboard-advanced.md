@@ -210,5 +210,5 @@ How it runs: the first press of `b` calls `observer(2)` and the screen shows "2 
 
 ## Next steps
 
-- Understand the focus system and combine `boundKeyboard` with `focusId` — [unfinished doc](/todo)
+- Understand the focus system and combine `boundKeyboard` with `focusId` — when focus is created and unregistered, and how to control it with `focusSet`, `focusNext`, `focusPrev`, `focusCurrent` — [Focus System](/keyboard/focus-system)
 - Learn how to use the screen system's layer system — [unfinished doc](/todo)

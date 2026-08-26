@@ -207,5 +207,5 @@ function Game() {
 
 ## 下一步
 
-- 理解焦点系统并配合 `boundKeyboard` 与 `focusId` -[未完成文档](/zh/todo.md)
+- 理解焦点系统并配合 `boundKeyboard` 与 `focusId`，学习焦点在何时创建、何时注销，以及如何使用 `focusSet`、`focusNext`、`focusPrev`、`focusCurrent` 控制焦点。[焦点系统](/zh/keyboard/focus-system)
 - 学习如何运用屏幕系统的图层系统 -[未完成文档](/zh/todo.md)
