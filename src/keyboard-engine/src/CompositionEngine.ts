@@ -28,7 +28,7 @@ export type ValueGuard = (value: unknown) => boolean;
 export type ValueSchema = Record<string, ValueGuard>;
 
 /**
- * Select the best-matching {@link CompositioKey} by looking up every name
+ * Select the best-matching {@link CompositionKey} by looking up every name
  * in `eventNames` against the given mapping table.
  *
  * Resolution priority (highest first):
@@ -43,9 +43,9 @@ export type ValueSchema = Record<string, ValueGuard>;
  * @returns The resolved entry, or `null` if no entry matches any name in `eventNames`.
  */
 export function resolveCompositionKey<TComponent = unknown>(
-	candidates: CompositioKey<TComponent>[],
+	candidates: CompositionKey<TComponent>[],
 	lastFlag: string | null,
-): CompositioKey<TComponent> | null {
+): CompositionKey<TComponent> | null {
 	if (candidates.length === 0) return null;
 
 	// Round 1 — filter by needs / lastFlag compatibility
@@ -272,7 +272,7 @@ export type MappingKeyEvent =
 /**
  * State of an active composition chain waiting for the next key.
  */
-export interface CompositionPneding {
+export interface CompositionPending {
 	timeout: number;
 	timer: ReturnType<typeof setTimeout>;
 	/** When true, mismatched keys in mid-sequence are silently consumed. */
@@ -306,10 +306,10 @@ export interface CompositionContext<T = unknown> {
  * A registered composition key: the trigger key, its flags, and how it
  * transforms the {@link CompositionContext}.
  */
-export interface CompositioKey<
-	TComponet,
+export interface CompositionKey<
+	TComponent,
 	TValue = unknown,
-> extends PrimitiveTypeKeys<TComponet> {
+> extends PrimitiveTypeKeys<TComponent> {
 	/**
 	 * Trigger key name(s), e.g. `a`, `B`, `3`, or `"ctrl+s"`.
 	 */
@@ -417,8 +417,8 @@ export interface MappingPendingEntry<TComponent> {
  * a target composition chain (`target`) when fully typed.
  */
 export interface MappingKeyEntry<
-	TComponet,
-> extends PrimitiveTypeKeys<TComponet> {
+	TComponent,
+> extends PrimitiveTypeKeys<TComponent> {
 	/**
 	 * External key sequence the user must type (e.g. `["g", "i"]`).
 	 */
@@ -444,7 +444,7 @@ export interface MappingKeyEntry<
 	 * When `true`, if the target composition chain is interrupted (any
 	 * target key fails to resolve / execute), the final key that broke
 	 * the sequence is swallowed silently instead of being released to
-	 * lower pipeline stages. Mirrors {@link CompositioKey.KeyReleaseWhenChainInterrupted}.
+	 * lower pipeline stages. Mirrors {@link CompositionKey.KeyReleaseWhenChainInterrupted}.
 	 */
 	KeyReleaseWhenChainInterrupted?: boolean;
 }
@@ -452,7 +452,7 @@ export interface MappingKeyEntry<
 /**
  * Fields shared by composition keys and mapping keys.
  */
-export interface PrimitiveTypeKeys<TComponet> {
+export interface PrimitiveTypeKeys<TComponent> {
 	/**
 	 * Which pipeline phase this entry fires in: `true` = layer phase
 	 * (before the layer broadcast), `false` = page phase (after the
@@ -469,7 +469,7 @@ export interface PrimitiveTypeKeys<TComponet> {
 	 * no screens (effectively disabled); `[A, B]` = only when the
 	 * stack top is exactly A or B.
 	 */
-	category?: TComponet[] | "*";
+	category?: TComponent[] | "*";
 	/**
 	 * When `true`, an overlay-phase entry (`affectOverlay: true`) fires
 	 * even while no layer is open. With the default `false`, the entry
@@ -480,7 +480,7 @@ export interface PrimitiveTypeKeys<TComponet> {
 }
 
 function compositionFingerprint<TComponent>(
-	entry: CompositioKey<TComponent>,
+	entry: CompositionKey<TComponent>,
 ): string {
 	return JSON.stringify({
 		key: entry.key,
@@ -519,7 +519,7 @@ function compositionFingerprint<TComponent>(
  */
 export default class CompositionEngine<TComponent = unknown> {
 	private currentKey: string[] = [];
-	private keyMappingTable: Map<string, Set<CompositioKey<TComponent>>> =
+	private keyMappingTable: Map<string, Set<CompositionKey<TComponent>>> =
 		new Map();
 
 	private defaultTimeout: number;
@@ -548,7 +548,7 @@ export default class CompositionEngine<TComponent = unknown> {
 	// ordinary composition chains are easier to distinguish and manage. The
 	// two kinds of pending sequence cannot coexist.
 	private mappingPendingEntry: MappingPendingEntry<TComponent> | null = null;
-	private pendingEntry: CompositionPneding | null = null;
+	private pendingEntry: CompositionPending | null = null;
 
 	private context: CompositionContext = {
 		value: undefined,
@@ -798,7 +798,7 @@ export default class CompositionEngine<TComponent = unknown> {
 	 * entry's `needs` are satisfied by the preceding `lastFlag`) or starts
 	 * a new chain (if the entry is a head key — `optional: true` or empty
 	 * `needs`). Multiple entries can share the same `key` name; they are
-	 * stored in a `Map<string, Set<CompositioKey>>` (duplicate identities
+	 * stored in a `Map<string, Set<CompositionKey>>` (duplicate identities
 	 * are not added twice) and the best match is resolved at runtime via
 	 * {@link resolveCompositionKey}.
 	 *
@@ -829,7 +829,7 @@ export default class CompositionEngine<TComponent = unknown> {
 	 * });
 	 * ```
 	 */
-	registryCompositionKey(entry: CompositioKey<TComponent>) {
+	registryCompositionKey(entry: CompositionKey<TComponent>) {
 		const key = entry.key;
 		const set = this.keyMappingTable.get(key);
 
@@ -916,7 +916,7 @@ export default class CompositionEngine<TComponent = unknown> {
 	 *
 	 * Each completed chain is stored as a separate entry in the undo buffer.
 	 * Passing `steps` undoes that many sequences, executing every key's
-	 * {@link CompositioKey#undoAction} in reverse order.
+	 * {@link CompositionKey#undoAction} in reverse order.
 	 *
 	 * @param steps - Number of past sequences to undo. Defaults to 1.
 	 *   When `options.byKey` is `true`, `steps` counts individual keys instead.
@@ -1204,7 +1204,7 @@ export default class CompositionEngine<TComponent = unknown> {
 	updateCompositionKey(
 		key: string,
 		flags: Flags,
-		updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flags">>,
+		updates: Partial<Omit<CompositionKey<TComponent>, "key" | "flags">>,
 	): boolean {
 		const set = this.keyMappingTable.get(key);
 		if (!set) return false;
@@ -1212,7 +1212,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		for (const entry of set) {
 			if (this.areFlagsEqual(flags, entry.flags)) {
 				set.delete(entry);
-				const merged: CompositioKey<TComponent> = {
+				const merged: CompositionKey<TComponent> = {
 					...entry,
 					...updates,
 					key,
@@ -1369,7 +1369,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		return [...this.mapping.keys()];
 	}
 
-	private checkResult(result: CompositioKey<TComponent>, context: CompositionContext) {
+	private checkResult(result: CompositionKey<TComponent>, context: CompositionContext) {
 		const nextCtx = result.execute?.(context);
 		if (!nextCtx) {
 			return null;
@@ -1745,7 +1745,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		this.context = nextCtx;
 		this.state.compositionEngineHandle = true;
 
-		const pending: CompositionPneding = {
+		const pending: CompositionPending = {
 			timeout: result.timeout ?? this.defaultTimeout,
 			timer: undefined as unknown as ReturnType<typeof setTimeout>,
 			exclusive: result.exclusive ?? false,

@@ -20,7 +20,7 @@ import type {
   ElementKeyboard,
   LayerKeyboardLayer,
   PipelineProcessor,
-  CompositioKey,
+  CompositionKey,
   CompositionContext,
   ValueSchema,
   Flags,
@@ -214,7 +214,7 @@ export interface KeyboardContextValue {
 
   resetProcessors: () => void;
 
-  registryCompositionKey: (entry: CompositioKey<ComponentType<any>>) => void;
+  registryCompositionKey: (entry: CompositionKey<ComponentType<any>>) => void;
   removeCompositionKey: (key: string) => boolean;
   clearAllCompositionKeys: () => void;
   hasPendingComposition: () => boolean;
@@ -223,7 +223,7 @@ export interface KeyboardContextValue {
   updateCompositionKey: (
     key: string,
     flags: Flags,
-    updates: Partial<Omit<CompositioKey<ComponentType<any>>, "key" | "flags">>,
+    updates: Partial<Omit<CompositionKey<ComponentType<any>>, "key" | "flags">>,
   ) => boolean;
 
   setValueSchema: (schema: ValueSchema) => void;

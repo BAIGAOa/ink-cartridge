@@ -88,7 +88,7 @@ export type {
   KeyboardProcessorProps,
   PipelineProcessor,
   MutableRef,
-  CompositioKey,
+  CompositionKey,
   CompositionContext,
   ValueGuard,
   ValueSchema,
