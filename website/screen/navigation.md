@@ -27,7 +27,7 @@ function Main() {
 
 	useEffect(() => {
 		// With this, pressing s while on the Main screen jumps to the Game screen
-		return boundKeyboard(["s"], () => skip(Game, {}))
+		return boundKeyboard(["s"], () => skip(Game))
 	}, [boundKeyboard, skip])
 
 	return (
@@ -84,7 +84,7 @@ function Game() {
 
 ### Using `skip` to pass props
 
-The second argument of `skip` is used to pass props to the target screen. `skip` merges the passed props with the template registered for the screen. The snippet below shows how to pass props with `skip`.
+The second argument of `skip` is used to pass props to the target screen. `skip` merges the passed props with the template registered for the screen. It is optional when the target screen declares no required props — omitting it is equivalent to passing `{}`. The snippet below shows how to pass props with `skip`.
 ```tsx
 // Declare a Game component whose props require a playerName
 function Game({ playerName }: { playerName: string }) {
@@ -179,7 +179,7 @@ function Game() {
 
 `gotoScreen` finds the **lowest common ancestor** of the current screen and the target screen, then rebuilds the path from that ancestor. Therefore, when you press `back` after jumping, you return to that common ancestor rather than back to the screen you jumped from. In the example above, after jumping from Game to Settings, calling `back` returns to the Main screen, not the Game screen.
 
-The second argument of `gotoScreen` works like `skip`'s — it passes props to the target screen, and they are merged with the template registered for the screen.
+The second argument of `gotoScreen` works like `skip`'s — it passes props to the target screen, and they are merged with the template registered for the screen. Like `skip`, it is optional when the target screen declares no required props.
 
 ::: Note
 The target of `gotoScreen` must already be registered, otherwise it throws the error **xxx is not registered. Please call registerComponent() first.**.

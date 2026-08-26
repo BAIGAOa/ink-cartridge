@@ -2,7 +2,14 @@ import React, { useReducer, useMemo, useEffect, ReactNode } from "react";
 import { ScreenSystemContext, ScreenSystemContextValue } from "./context.js";
 import { getTemplate, hasComponent, isChildOf, getParent } from "./registry.js";
 import { ScreenAction } from "./types/actions.js";
-import { BackFn, GotoScreenFn, SkipFn, SkipOptions } from "./types.js";
+import {
+	BackFn,
+	GotoScreenArgs,
+	GotoScreenFn,
+	SkipArgs,
+	SkipFn,
+	SkipOptions,
+} from "./types.js";
 import {
 	ActivateElementFn,
 	ActivateElementInModalLayerFn,
@@ -91,8 +98,7 @@ function sortLayers<T extends Layer | ModalLayer>(layers: T[]): T[] {
  */
 export function skip<C extends React.ComponentType<any>>(
 	component: C,
-	params: React.ComponentProps<C>,
-	options?: SkipOptions
+	...args: SkipArgs<C>
 ): void {
 	if (!hasComponent(component)) {
 		throw new Error(
@@ -101,6 +107,7 @@ export function skip<C extends React.ComponentType<any>>(
 			}" is not registered. Please call registerComponent() first.`
 		);
 	}
+	const [params = {}, options] = args;
 	getDispatch()({
 		type: "skip",
 		component,
@@ -124,7 +131,7 @@ export function back(levels: number = 1): void {
  */
 export function gotoScreen<C extends React.ComponentType<any>>(
 	component: C,
-	params: React.ComponentProps<C>
+	...args: GotoScreenArgs<C>
 ): void {
 	if (!hasComponent(component)) {
 		throw new Error(
@@ -133,6 +140,7 @@ export function gotoScreen<C extends React.ComponentType<any>>(
 			}" is not registered. Please call registerComponent() first.`
 		);
 	}
+	const [params = {}] = args;
 	getDispatch()({
 		type: "gotoScreen",
 		component,
@@ -1295,7 +1303,7 @@ export function ScenarioManagementProvider({
 
 	// Navigation methods provided via context.
 	const skipInContext: SkipFn = useMemo(
-		() => (component, params, options) => {
+		() => (component, ...args) => {
 			if (!hasComponent(component)) {
 				throw new Error(
 					`[Ink-Cartridge] Component "${
@@ -1303,6 +1311,7 @@ export function ScenarioManagementProvider({
 					}" is not registered.`
 				);
 			}
+			const [params = {}, options] = args;
 			dispatch({
 				type: "skip",
 				component,
@@ -1325,7 +1334,7 @@ export function ScenarioManagementProvider({
 	);
 
 	const gotoScreenInContext: GotoScreenFn = useMemo(
-		() => (component, params) => {
+		() => (component, ...args) => {
 			if (!hasComponent(component)) {
 				throw new Error(
 					`[Ink-Cartridge] Component "${
@@ -1333,6 +1342,7 @@ export function ScenarioManagementProvider({
 					}" is not registered.`
 				);
 			}
+			const [params = {}] = args;
 			dispatch({
 				type: "gotoScreen",
 				component,

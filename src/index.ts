@@ -27,8 +27,10 @@ export {
 export type {
   SkipOptions,
   SkipFn,
+  SkipArgs,
   BackFn,
   GotoScreenFn,
+  GotoScreenArgs,
   RegisterOptions,
   ScenarioManagementProviderProps,
   Layer,

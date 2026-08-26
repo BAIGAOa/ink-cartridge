@@ -27,7 +27,7 @@ function Main() {
 
 	useEffect(() => {
 		// 这样的话，在 Main 屏幕的时候，按下 s 键则会跳转到 Game 屏幕
-		return boundKeyboard(["s"], () => skip(Game, {}))
+		return boundKeyboard(["s"], () => skip(Game))
 	}, [boundKeyboard, skip])
 
 	return (
@@ -83,7 +83,7 @@ function Game() {
 ```
 ### 使用 `skip` 来传递属性
 
-`skip` 的第二个参数用来传递目标屏幕的属性。`skip` 会把传进去的属性与屏幕注册时的模板进行合并。例如下面的片段代码，展示了如何使用 `skip` 方法传递属性。
+`skip` 的第二个参数用来传递目标屏幕的属性。`skip` 会把传进去的属性与屏幕注册时的模板进行合并。当目标屏幕没有必填 props 时，该参数可以省略——省略等同于传 `{}`。例如下面的片段代码，展示了如何使用 `skip` 方法传递属性。
 ```tsx
 // 声明一个 Game 组件，它的属性需要一个 playerName
 function Game({ playerName }: { playerName: string }) {
@@ -178,7 +178,7 @@ function Game() {
 
 `gotoScreen` 会寻找到当前屏幕与目标屏幕的**最近公共祖先**，然后从这个祖先重新构建路径。因此跳转之后使用 `back` 返回时，你会回到这个公共祖先，而不是回退到跳转前的屏幕。还是上面的例子，从 Game 跳转到 Settings 后调用 `back`，会回到 Main 屏幕，而不是 Game 屏幕。
 
-`gotoScreen` 的第二个参数与 `skip` 一样，用来向目标屏幕传递属性，它同样会与屏幕注册时的模板进行合并。
+`gotoScreen` 的第二个参数与 `skip` 一样，用来向目标屏幕传递属性，它同样会与屏幕注册时的模板进行合并。与 `skip` 一样，当目标屏幕没有必填 props 时，该参数也可以省略。
 
 ::: Note
 `gotoScreen` 的跳转目标必须已经注册过，否则会报出错误 **xxx is not registered. Please call registerComponent() first.**。
