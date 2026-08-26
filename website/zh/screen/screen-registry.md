@@ -59,7 +59,8 @@ function Home() {
 }
 
 // 把 Home 注册为屏幕：没有声明 parent，所以它是根屏幕
-registerComponent(Home, {});
+// `Home` 不需要 props，所以模板可以省略（默认为 {}）
+registerComponent(Home);
 ```
 
 `registerComponent` 是模块级函数，可以在 `.ts` 或 `.tsx` 的任意位置调用（通常紧跟组件定义）。
@@ -77,7 +78,7 @@ render(
 运行后终端会显示 `🏠 主页`。其中：
 
 - `component`（第一个参数）：当前屏幕是哪个组件。**组件本身作为注册的唯一标识**，同一个组件只能注册一次。
-- `template`（第二个参数）：初始模板，用作屏幕的**默认 props**。导航时传入的 props 会与它合并。`Home` 不需要 props，所以传 `{}`。
+- `template`（第二个参数，可选）：初始模板，用作屏幕的**默认 props**。导航时传入的 props 会与它合并。`Home` 不需要 props，所以可以省略（默认为 `{}`）。
 
 ## 构建一棵分支树
 
@@ -138,7 +139,7 @@ MainMenu（根屏幕）
 ```typescript
 function registerComponent<C extends React.ComponentType<any>>(
   component: C,
-  template: React.ComponentProps<C>,
+  template?: React.ComponentProps<C>,
   options?: RegisterOptions,
 ): void
 ```
@@ -146,7 +147,7 @@ function registerComponent<C extends React.ComponentType<any>>(
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `component` | `React.ComponentType<any>` | 是 | 注册为屏幕的 React 组件，同时作为注册的唯一标识 |
-| `template` | `React.ComponentProps<C>` | 是 | 初始模板，即屏幕的默认 props；导航时与传入的 props 合并 |
+| `template` | `React.ComponentProps<C>` | 否 | 初始模板，即屏幕的默认 props；导航时与传入的 props 合并。省略时默认为 `{}` |
 | `options.parent` | `React.ComponentType<any>` | 否 | 父屏幕组件；不声明则该屏幕是根屏幕（候选） |
 
 `RegisterOptions` 的完整定义：
@@ -163,7 +164,7 @@ interface RegisterOptions {
 2. **`parent` 必须先注册。** 声明 `parent` 时，该父组件必须已经注册过，否则抛错并提示你先注册父组件：`Register the parent first with registerComponent(...)`。
 3. **不声明 `parent` 即根屏幕。** 根屏幕没有父节点，通常作为 `defaultScreen` 传入 `ScenarioManagementProvider`，作为应用的默认页和主页。
 4. **可以有多个根屏幕。** 每个没有 `parent` 的组件都是一棵独立树的根，彼此互不影响，各自拥有自己的子树。
-5. **`template` 是默认 props，不是"当前值"。** 它只描述屏幕被创建时的默认属性；导航时传入的 props 会与之合并，`template` 本身不会被修改。
+5. **`template` 是默认 props，不是"当前值"。** 它只描述屏幕被创建时的默认属性；导航时传入的 props 会与之合并，`template` 本身不会被修改。它是可选的——省略等同于传 `{}`。
 
 ## 下一步：给树一个"入口"
 
@@ -174,7 +175,7 @@ interface RegisterOptions {
 - `back` —— 返回父屏幕（支持 `levels` 指定返回层数）；
 - `gotoScreen` —— 跨分支直接跳转到任意已注册屏幕。
 
-组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail, {})` 进入子屏幕，按 `Esc` → `back()` 返回主页。
+组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail)` 进入子屏幕，按 `Esc` → `back()` 返回主页。
 
 下一步，你可以学习以下内容。
 - `boundKeyboard` —— 学会把按键绑定到屏幕 [基本绑定](/zh/keyboard/base-bind)；

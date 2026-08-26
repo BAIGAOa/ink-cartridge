@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { skip } from '../../../src/screen/provider.js';
+import { registerComponent } from '../../../src/screen/registry.js';
 import {
   Menu,
   GameLevel,
@@ -86,10 +87,54 @@ describe('skip', () => {
     expect(getCapture()!.allLayers.length).toBe(0);
   });
 
+  it('navigates to a prop-less child screen without passing params', () => {
+    function About() {
+      return <Text>About</Text>;
+    }
+    registerComponent(About, {}, { parent: Menu });
+
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.skip(About);
+    });
+
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([
+      Menu,
+      About,
+    ]);
+  });
+
+  it('refreshes the current screen in place without params when it has no required props', () => {
+    const { getCapture, lastFrame } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.skip(Menu);
+    });
+
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([Menu]);
+    expect(lastFrame()).toContain('Menu');
+  });
+
   it('throws when called at module level without a mounted Provider', () => {
     expect(() => skip(Menu, {})).toThrow(
       /called before Provider is mounted/,
     );
+  });
+});
+
+describe('skip param optionality (type-level)', () => {
+  it('requires params for a target with required props', () => {
+    // Type-only assertion: never invoked, so nothing navigates at runtime.
+    // tsc (tests/tsconfig.json) verifies the line compiles as expected.
+    const neverCalled = () => {
+      // GameLevel requires `level` — omitting params must be a type error.
+      // @ts-expect-error params is required when the target has required props
+      skip(GameLevel);
+    };
+    expect(neverCalled).toBeDefined();
   });
 });
 

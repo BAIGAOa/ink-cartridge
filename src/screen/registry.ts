@@ -18,7 +18,8 @@ const registry = new Map<React.ComponentType<any>, RegistryEntry>();
  * Register a component as a screen in the navigation tree.
  *
  * @param component  The React component (used as the unique token).
- * @param template   Default props for the component.
+ * @param template   Default props for the component. Optional — when omitted,
+ *                   the screen registers with no default props (equivalent to `{}`).
  * @param options    Optional registration options (e.g. `parent` to attach
  *                   the component under an existing node in the tree).
  *
@@ -26,7 +27,10 @@ const registry = new Map<React.ComponentType<any>, RegistryEntry>();
  */
 export function registerComponent<C extends React.ComponentType<any>>(
   component: C,
-  template: React.ComponentProps<C>,
+  // An omitted template is stored as an empty record; a component with required
+  // props still receives them at navigation time, so the cast only silences the
+  // generic default — the empty template is valid for every registration.
+  template: React.ComponentProps<C> = {} as React.ComponentProps<C>,
   options?: RegisterOptions,
 ): void {
   if (registry.has(component)) {

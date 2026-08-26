@@ -46,6 +46,16 @@ describe('registerComponent', () => {
     expect(getTemplate(Settings)).toEqual({ theme: 'dark' });
   });
 
+  it('defaults the template to an empty object when omitted', () => {
+    registerComponent(Menu);
+    expect(getTemplate(Menu)).toEqual({});
+  });
+
+  it('allows omitting the template even when the component has required props', () => {
+    registerComponent(GameLevel);
+    expect(getTemplate(GameLevel)).toEqual({});
+  });
+
   it('throws when registering the same component twice', () => {
     registerComponent(Menu, {});
     expect(() => registerComponent(Menu, {})).toThrow(

@@ -41,7 +41,7 @@ function Home() {
 
   useEffect(() => {
     // 按 Enter 进入详情页
-    const enter = boundKeyboard(['return'], () => skip(Detail, {}));
+    const enter = boundKeyboard(['return'], () => skip(Detail));
     return () => enter();
   }, [boundKeyboard, skip]);
 
@@ -52,7 +52,7 @@ function Home() {
     </Box>
   );
 }
-registerComponent(Home, {});
+registerComponent(Home);
 
 function Detail() {
   const { back } = useScreenSystem();

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { gotoScreen } from '../../../src/screen/provider.js';
+import { registerComponent } from '../../../src/screen/registry.js';
 import {
   Menu,
   GameLevel,
@@ -120,5 +121,37 @@ describe('gotoScreen', () => {
     expect(() => gotoScreen(Menu, {})).toThrow(
       /called before Provider is mounted/,
     );
+  });
+});
+
+describe('gotoScreen param optionality', () => {
+  it('jumps to a prop-less screen without passing params', () => {
+    function About() {
+      return <Text>About</Text>;
+    }
+    registerComponent(About, {}, { parent: Menu });
+
+    const { getCapture } = renderWithCapture(Menu);
+    const ctx = getCapture()!;
+
+    act(() => {
+      ctx.gotoScreen(About);
+    });
+
+    expect(getCapture()!.currentPath.map((p) => p.component)).toEqual([
+      Menu,
+      About,
+    ]);
+  });
+
+  it('requires params for a target with required props', () => {
+    // Type-only assertion: never invoked, so nothing navigates at runtime.
+    // tsc (tests/tsconfig.json) verifies the line compiles as expected.
+    const neverCalled = () => {
+      // GameLevel requires `level` — omitting params must be a type error.
+      // @ts-expect-error params is required when the target has required props
+      gotoScreen(GameLevel);
+    };
+    expect(neverCalled).toBeDefined();
   });
 });
