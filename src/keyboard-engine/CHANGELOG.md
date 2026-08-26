@@ -1,5 +1,12 @@
 # @cartridge-engine/keyboard-engine
 
+## 2.1.11
+
+### Patch Changes
+
+- 64c9985: - **fix**(keyboard-engine): correct misspelled public type names — `CompositioKey` is now `CompositionKey`, `CompositionPneding` is now `CompositionPending`, and the `TComponet` generic parameter on `CompositionKey`/`MappingKeyEntry`/`PrimitiveTypeKeys` is now `TComponent`
+  - **fix**(ink-cartridge): re-export the corrected `CompositionKey` type
+
 ## 2.1.10
 
 ### Patch Changes
