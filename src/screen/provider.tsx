@@ -8,7 +8,6 @@ import {
 	GotoScreenFn,
 	SkipArgs,
 	SkipFn,
-	SkipOptions,
 } from "./types.js";
 import {
 	ActivateElementFn,

@@ -32,7 +32,7 @@ export type {
 
 export { default as CompositionEngine } from "./CompositionEngine.js";
 export type {
-  CompositioKey,
+  CompositionKey,
   CompositionContext,
   ValueGuard,
   ValueSchema,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   resolveCompositionKey,
-  type CompositioKey,
+  type CompositionKey,
 } from "../../../src/CompositionEngine.js";
 import { createEngine } from "../../_helpers/factories.js";
 
@@ -20,7 +20,7 @@ function syncEngine(options: Parameters<typeof createEngine>[0] = {}) {
 function head(
   engine: ReturnType<typeof createEngine>,
   key = "3",
-  extra: Partial<CompositioKey<unknown>> = {},
+  extra: Partial<CompositionKey<unknown>> = {},
 ) {
   engine.registryCompositionKey({
     key,
@@ -33,13 +33,13 @@ function head(
       steps: [...ctx.steps, key],
     }),
     ...extra,
-  } as CompositioKey<unknown>);
+  } as CompositionKey<unknown>);
 }
 
 function chain(
   engine: ReturnType<typeof createEngine>,
   key = "w",
-  extra: Partial<CompositioKey<unknown>> = {},
+  extra: Partial<CompositionKey<unknown>> = {},
 ) {
   engine.registryCompositionKey({
     key,
@@ -52,7 +52,7 @@ function chain(
       steps: [...ctx.steps, key],
     }),
     ...extra,
-  } as CompositioKey<unknown>);
+  } as CompositionKey<unknown>);
 }
 
 describe("resolveCompositionKey", () => {
@@ -62,7 +62,7 @@ describe("resolveCompositionKey", () => {
       flags: [],
       alternativeFlag: "x",
       needs: ["p"],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     expect(resolveCompositionKey([], null)).toBeNull();
     expect(resolveCompositionKey([entry], null)).toBeNull();
     expect(resolveCompositionKey([entry], "other")).toBeNull();
@@ -75,13 +75,13 @@ describe("resolveCompositionKey", () => {
       alternativeFlag: "x",
       needs: ["p"],
       optional: true,
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     const needless = {
       key: "b",
       flags: [],
       alternativeFlag: "y",
       needs: [],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     expect(resolveCompositionKey([optional, needless], null)?.key).toBe("a");
 
     const shorter = {
@@ -89,13 +89,13 @@ describe("resolveCompositionKey", () => {
       flags: [],
       alternativeFlag: "z",
       needs: ["p"],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     const longer = {
       key: "c",
       flags: [],
       alternativeFlag: "q",
       needs: ["p", "q"],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     expect(resolveCompositionKey([shorter, longer], "p")?.key).toBe("c");
   });
 
@@ -105,13 +105,13 @@ describe("resolveCompositionKey", () => {
       flags: [],
       alternativeFlag: "x",
       needs: ["p"],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     const ctrl = {
       key: "ctrl+s",
       flags: [],
       alternativeFlag: "y",
       needs: ["p"],
-    } as CompositioKey<unknown>;
+    } as CompositionKey<unknown>;
     expect(resolveCompositionKey([plain, ctrl], "p")?.key).toBe("ctrl+s");
   });
 });
@@ -199,7 +199,7 @@ describe("mapping execution", () => {
       alternativeFlag: "times",
       needs: [],
       execute: () => null,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     expect(engine.addMapping(["g"], ["bad"])).toBe(true);
     expect(engine.processKey("g", {})).toBe(false);
     expect(engine.getLastMappingEvent()?.type).toBe("broken");
@@ -210,7 +210,7 @@ describe("mapping execution", () => {
       alternativeFlag: "times",
       needs: [],
       execute: () => null,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     expect(
       engine.addMapping(["h"], ["bad2"], {
         KeyReleaseWhenChainInterrupted: true,
@@ -226,7 +226,7 @@ describe("mapping execution", () => {
       needs: [],
       category: ["other"],
       execute: () => ({ value: 1, lastFlag: "times", steps: [] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     expect(engine.addMapping(["x"], ["filtered"])).toBe(true);
     expect(engine.processKey("x", {})).toBe(false);
   });
@@ -326,14 +326,14 @@ describe("composition events and registration", () => {
       alternativeFlag: "times",
       needs: [],
       execute: first,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     engine.registryCompositionKey({
       key: "3",
       flags: [],
       alternativeFlag: "times",
       needs: [],
       execute: second,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     engine.processKey("3", {});
     expect(first).toHaveBeenCalled();
     expect(second).not.toHaveBeenCalled();
@@ -440,7 +440,7 @@ describe("composition lifecycle", () => {
         lastFlag: null,
         steps: [...ctx.steps, "w"],
       }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     engine.processKey("3", {});
     engine.processKey("w", {});
     expect(engine.getCompositionContext().lastFlag).toBe("chained");
@@ -631,7 +631,7 @@ describe("composition branch coverage", () => {
         steps: [...ctx.steps, "w"],
       }),
       undoAction: () => ({ value: "bad", lastFlag: "action", steps: [] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     head(engine);
     engine.processKey("3", {});
     engine.processKey("w", {});
@@ -664,7 +664,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "times",
       needs: [],
       execute: (ctx) => ({ value: 1, lastFlag: null, steps: [...ctx.steps, "3"] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     auto.addMapping(["g"], ["3"]);
     expect(auto.processKey("g", {})).toBe(true);
 
@@ -676,7 +676,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "times",
       needs: [],
       execute: () => ({ value: 1, lastFlag: "times", steps: [] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     invalid.addMapping(["g"], ["3"]);
     expect(invalid.processKey("g", {})).toBe(false);
   });
@@ -695,7 +695,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "x",
       needs: ["p"],
       execute: (ctx) => ({ value: 1, lastFlag: "x", steps: [...ctx.steps, "a"] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     incompatible.addMapping(["g"], ["a"]);
     expect(incompatible.processKey("g", {})).toBe(false);
 
@@ -707,7 +707,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "other",
       needs: ["other"],
       execute: (ctx) => ({ value: 1, lastFlag: "other", steps: [...ctx.steps, "q"] }),
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     secondMismatch.addMapping(["g", "h"], ["3", "q"]);
     expect(secondMismatch.processKey("g", {})).toBe(true);
     expect(secondMismatch.processKey("h", {})).toBe(false);
@@ -723,7 +723,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "other",
       needs: ["times"],
       execute: () => null,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     engine.addMapping(["g", "h"], ["3", "q"]);
     expect(engine.processKey("g", {})).toBe(true);
     expect(engine.processKey("h", {})).toBe(false);
@@ -754,7 +754,7 @@ describe("composition branch coverage", () => {
       alternativeFlag: "times",
       needs: [],
       execute: () => null,
-    } as CompositioKey<unknown>);
+    } as CompositionKey<unknown>);
     expect(engine.processKey("a", {})).toBe(false);
 
     head(engine, "b", {

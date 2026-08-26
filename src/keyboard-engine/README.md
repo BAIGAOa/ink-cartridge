@@ -146,7 +146,7 @@ Beyond simple key→action and key-sequence→action mappings, the engine suppor
 This creates a grammar-based key dispatch model: keys declare their identity and their dependencies, and the engine resolves valid combinations by matching flag chains.
 
 ```ts
-interface CompositioKey<TComponent = unknown, TValue = unknown> {
+interface CompositionKey<TComponent = unknown, TValue = unknown> {
   key: string;                   // Trigger key name (e.g. "a", "ctrl+x")
   flags: { need: string; become: string }[]; // Dependent flag table
   needs: string[];               // Required preceding flag(s)
@@ -176,7 +176,7 @@ interface CompositionContext<T = unknown> {
 
 The engine resolves flag chains in three phases:
 
-1. **Resolution** — `resolveCompositionKey()` selects the best-matching `CompositioKey` from the mapping table, preferring entries whose `needs` match `lastFlag`, then by modifier specificity (`ctrl+s` over `s`), then by stricter contracts (longer `needs` lists).
+1. **Resolution** — `resolveCompositionKey()` selects the best-matching `CompositionKey` from the mapping table, preferring entries whose `needs` match `lastFlag`, then by modifier specificity (`ctrl+s` over `s`), then by stricter contracts (longer `needs` lists).
 
 2. **Pending chains** — When a head key matches, the engine enters a pending state (`CompositionPending`) with a configurable timeout. Subsequent keys advance the chain; the first non-matching key either cancels the chain (default) or is silently consumed (when `exclusive: true`).
 

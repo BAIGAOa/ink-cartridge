@@ -5,7 +5,7 @@ import BindingService from "./engine/BindingService.js";
 import OperationRegistry from "./engine/OperationRegistry.js";
 import MouseRegionService from "./engine/MouseRegionService.js";
 import CompositionEngine, {
-  CompositioKey,
+  CompositionKey,
   ValueSchema,
   Flags,
   CompositionEvent,
@@ -287,7 +287,7 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Register a composition key entry.
    * See {@link CompositionEngine#registryCompositionKey}.
    */
-  registryCompositionKey(entry: CompositioKey<TComponent>) {
+  registryCompositionKey(entry: CompositionKey<TComponent>) {
     return this.state.compositionEngine.registryCompositionKey(entry);
   }
 
@@ -427,7 +427,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   updateCompositionKey(
     key: string,
     flags: Flags,
-    updates: Partial<Omit<CompositioKey<TComponent>, "key" | "flags">>,
+    updates: Partial<Omit<CompositionKey<TComponent>, "key" | "flags">>,
   ) {
     return this.state.compositionEngine.updateCompositionKey(
       key,
