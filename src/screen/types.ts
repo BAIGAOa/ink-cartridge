@@ -65,12 +65,14 @@ export interface GotoScreenAction {
  * @typeParam C - The target component type.
  */
 export type SkipArgs<C extends React.ComponentType<any>> =
+	// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{}` probes "no required props" ({} assignable to ComponentProps), not an empty-object type
 	{} extends React.ComponentProps<C>
 		? [params?: React.ComponentProps<C>, options?: SkipOptions]
 		: [params: React.ComponentProps<C>, options?: SkipOptions];
 
 /** Same optionality rule as {@link SkipArgs}, without the trailing options element. */
 export type GotoScreenArgs<C extends React.ComponentType<any>> =
+	// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{}` probes "no required props" ({} assignable to ComponentProps), not an empty-object type
 	{} extends React.ComponentProps<C>
 		? [params?: React.ComponentProps<C>]
 		: [params: React.ComponentProps<C>];
