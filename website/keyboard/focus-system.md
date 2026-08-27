@@ -406,4 +406,4 @@ Result:
 
 ## Next steps
 
-- Learn the multi-focus feature and named groups, so multiple groups can each hold focus at the same time — [unfinished doc](/todo)
+- Learn about ink-cartridge's layer system and some common patterns. [Layer Basics](/screen/layer-base)

@@ -37,6 +37,12 @@ export default defineConfig({
               { text: 'Intermediate Binding', link: '/keyboard/boundKeyboard-advanced'},
               { text: 'Focus System', link: '/keyboard/focus-system'}
             ]
+          },
+          {
+            text: 'Intermediate',
+            items: [
+              { text: 'Layer Basics', link: '/screen/layer-base'}
+            ]
           }
         ]
       }
@@ -65,6 +71,12 @@ export default defineConfig({
               { text: '屏幕导航', link: '/zh/screen/navigation'},
               { text: '中级绑定', link: '/zh/keyboard/boundKeyboard-advanced'},
               { text: '焦点系统', link: '/zh/keyboard/focus-system'}
+            ]
+          },
+          {
+            text: '中阶',
+            items: [
+              { text: '普通图层', link: '/zh/screen/layer-base'}
             ]
           }
         ]
