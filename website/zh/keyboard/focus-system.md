@@ -403,4 +403,4 @@ render(
 
 ## 下一步
 
-- 学习多焦点特性与命名组，让多个组在同一时刻各自持有焦点。[未完成文档](/zh/todo.md)
+- 学习 ink-cartridge 的图层系统并了解一些常用模式。[普通图层](/zh/screen/layer-base)

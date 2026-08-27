@@ -232,4 +232,4 @@ function Setting() {
 ## 下一步
 
 - 你可以学习如何使用 `boundKeyboard` 的中级特性，并了解它们该什么时候使用并熟知它们的用处。[boundKeyboard 中级特性](/zh/keyboard/boundKeyboard-advanced)
-- 你也可以选择学习ink-cartridge的图层系统并了解一些常用模式。 [文档未完成](/zh/todo)
+- 你也可以选择学习ink-cartridge的图层系统并了解一些常用模式。[普通图层](/zh/screen/layer-base)
