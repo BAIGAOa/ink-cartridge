@@ -255,4 +255,4 @@ closeAllLayer();
 
 ## 下一步
 
-- 学习键盘事件流是怎么对待图层的 [未完成文档](/zh/todo)
+- 学习键盘事件流是怎么对待图层的：[键盘事件在图层之间的行为](/zh/screen/layer-keyboard)

@@ -41,7 +41,8 @@ export default defineConfig({
           {
             text: 'Intermediate',
             items: [
-              { text: 'Layer Basics', link: '/screen/layer-base'}
+              { text: 'Layer Basics', link: '/screen/layer-base'},
+              { text: 'Keyboard Events Between Layers', link: '/screen/layer-keyboard'}
             ]
           }
         ]
@@ -76,7 +77,8 @@ export default defineConfig({
           {
             text: '中阶',
             items: [
-              { text: '普通图层', link: '/zh/screen/layer-base'}
+              { text: '普通图层', link: '/zh/screen/layer-base'},
+              { text: '图层间的键盘事件', link: '/zh/screen/layer-keyboard'}
             ]
           }
         ]
