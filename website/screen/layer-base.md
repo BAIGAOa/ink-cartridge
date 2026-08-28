@@ -256,4 +256,4 @@ When several layers are open at the same time, `closeAllLayer` quickly clears th
 
 ## Next steps
 
-- Learn how the keyboard event flow treats layers — [unfinished doc](/todo)
+- Learn how the keyboard event flow treats layers: [how keyboard events behave between layers](/screen/layer-keyboard)
