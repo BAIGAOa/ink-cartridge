@@ -491,4 +491,4 @@ That's the fundamental difference between "stop on hit" between layers and "broa
 
 ## Next steps
 
-- Learn how to control keyboard reception for a specific element inside its layer — [unfinished doc](/todo)
+- Learn how to control keyboard reception for a specific element inside its layer: [control keyboard reception of a layer element](/screen/layer-element-keyboard)

@@ -491,4 +491,4 @@ render(
 
 ## 下一步
 
-- 学习控制对应图层内某个元素的键盘接收 [未完成文档](/zh/todo)
+- 学习控制图层内元素的键盘接收：[控制图层内元素的键盘接收](/zh/screen/layer-element-keyboard)
