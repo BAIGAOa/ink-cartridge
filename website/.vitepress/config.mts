@@ -49,7 +49,8 @@ export default defineConfig({
               { text: 'Modal Layer Element Keyboard', link: '/screen/modal-layer-element-keyboard'},
               { text: 'Passing Keys with allowModal', link: '/screen/allow-modal'},
               { text: 'Modal Missed Keys', link: '/screen/modal-miss-listener'},
-              { text: 'Binding Attribution & the Owner Stack', link: '/screen/binding-attribution'}
+              { text: 'Binding Attribution & the Owner Stack', link: '/screen/binding-attribution'},
+              { text: 'Focus Groups', link: '/keyboard/focus-group'}
             ]
           }
         ]
@@ -92,7 +93,8 @@ export default defineConfig({
               { text: '模态层内元素的键盘响应', link: '/zh/screen/modal-layer-element-keyboard'},
               { text: 'allowModal 放行键盘事件', link: '/zh/screen/allow-modal'},
               { text: '监听模态层的丢失键', link: '/zh/screen/modal-miss-listener'},
-              { text: '绑定方法的归属与所有者栈', link: '/zh/screen/binding-attribution'}
+              { text: '绑定方法的归属与所有者栈', link: '/zh/screen/binding-attribution'},
+              { text: '默认组与命名组', link: '/zh/keyboard/focus-group'}
             ]
           }
         ]
