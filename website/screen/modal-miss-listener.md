@@ -145,4 +145,4 @@ Run it:
 
 ## Next steps
 
-- Learn about binding attribution and the owner stack: how `boundKeyboard` and friends perceive pages, elements, and layers, and the rules for where they land when called. [unfinished doc](/todo)
+- Learn about binding attribution and the owner stack: how `boundKeyboard` and friends perceive pages, elements, and layers, and the rules for where they land when called: [binding attribution and the owner stack](/screen/binding-attribution)
