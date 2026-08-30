@@ -50,7 +50,8 @@ export default defineConfig({
               { text: 'Passing Keys with allowModal', link: '/screen/allow-modal'},
               { text: 'Modal Missed Keys', link: '/screen/modal-miss-listener'},
               { text: 'Binding Attribution & the Owner Stack', link: '/screen/binding-attribution'},
-              { text: 'Focus Groups', link: '/keyboard/focus-group'}
+              { text: 'Focus Groups', link: '/keyboard/focus-group'},
+              { text: 'Shortcuts & Actions', link: '/keyboard/shortcuts-actions'}
             ]
           }
         ]
@@ -94,7 +95,8 @@ export default defineConfig({
               { text: 'allowModal 放行键盘事件', link: '/zh/screen/allow-modal'},
               { text: '监听模态层的丢失键', link: '/zh/screen/modal-miss-listener'},
               { text: '绑定方法的归属与所有者栈', link: '/zh/screen/binding-attribution'},
-              { text: '默认组与命名组', link: '/zh/keyboard/focus-group'}
+              { text: '默认组与命名组', link: '/zh/keyboard/focus-group'},
+              { text: '快捷键与动作', link: '/zh/keyboard/shortcuts-actions'}
             ]
           }
         ]
