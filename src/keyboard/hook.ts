@@ -302,8 +302,8 @@ export function useKeyboard(): KeyboardContextValue {
           layerCtx,
           modalCtx,
           screenCtx,
-          handlerOrOptions.ref,
-          handlerOrOptions.focusId,
+          handlerOrOptions?.ref,
+          handlerOrOptions?.focusId,
         );
         const unbind = withOwner(() =>
           ctx.boundKeyboard(keysOrActionId, withElement(handlerOrOptions)),

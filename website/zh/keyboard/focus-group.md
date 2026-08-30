@@ -387,3 +387,7 @@ render(
 
 4. **整组熄灭与唤醒**：按 `b` 熄灭 `settings` 组——右侧面板变暗、字段提示消失，此时 `←` / `→` 与 `Tab` 全部失效，但左侧 `devices` 组依然正常工作；再按 `b` 重新点亮，一切恢复。
 
+## 下一步
+
+- 学习 ink-cartridge 的快捷键动作系统与 `boundKeyboard` 的三种重载，把回调与按键解耦。[快捷键与动作](/zh/keyboard/shortcuts-actions)
+

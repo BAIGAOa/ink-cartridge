@@ -392,3 +392,7 @@ When the program starts, you'll see a "dual-core" console: the left device list 
 3. **Independent operations**: press `↑` / `↓` to move the device selection — the right settings panel doesn't move at all; press `←` / `→` to adjust a value — the left devices stay unchanged. Whatever key you press is answered by the group holding that microphone — you can operate the two regions interchangeably with no "mode switching".
 
 4. **Turning an entire group off and on**: press `b` to turn off the `settings` group — the right panel dims, the field hint disappears, `←` / `→` and `Tab` all stop working, but the left `devices` group keeps working normally; press `b` again to light it back up and everything resumes.
+
+## Next steps
+
+- Learn ink-cartridge's shortcut action system and the three `boundKeyboard` overloads, which decouple callbacks from keys — [Shortcuts & Actions](/keyboard/shortcuts-actions)
