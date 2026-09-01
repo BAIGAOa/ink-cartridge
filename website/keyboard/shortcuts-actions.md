@@ -216,3 +216,7 @@ render(
 2. **Preset keys aren't required**: `toggle` was registered without a `keys` field, so `boundKeyboard('toggle')` would throw; the code binds it with explicit keys via `boundKeyboard(['t'], 'toggle')` and it works.
 
 3. **The registry is independent**: an action is registered once and can be referenced by many keys and bindings; `hasAction` queries, `removeAction` removes, and `modifyAction` changes preset keys (only affecting later bindings).
+
+## Next steps
+
+- Learn ink-cartridge's multi-key sequences with `boundSequence`, which replace a single key with a whole sequence of keys — [Multi-key Sequences](/keyboard/boundSequence)
