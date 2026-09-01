@@ -216,3 +216,7 @@ render(
 2. **预设键不是必须的**：`toggle` 注册时没带 `keys`，所以 `boundKeyboard('toggle')` 会抛错；代码里用显式键 `boundKeyboard(['t'], 'toggle')` 绑定它，运行正常。
 
 3. **注册表是独立的**：动作注册一次即可被多个键、多个绑定引用；`hasAction` 判断、`removeAction` 移除、`modifyAction` 改预设键（只影响之后的绑定）。
+
+## 下一步
+
+- 学习 ink-cartridge 的多键序列 `boundSequence`，把"单键"替换成"一串键"。[多键序列](/zh/keyboard/boundSequence)
