@@ -77,6 +77,15 @@ describe('registerComponent', () => {
   it('returns undefined from getTemplate for an unregistered component', () => {
     expect(getTemplate(Combat)).toBeUndefined();
   });
+
+  it('names the component via displayName in the duplicate-registration error', () => {
+    function TabScreen() {
+      return <div />;
+    }
+    TabScreen.displayName = 'TabScreen';
+    registerComponent(TabScreen, {});
+    expect(() => registerComponent(TabScreen, {})).toThrow(/TabScreen/);
+  });
 });
 
 describe('component tree', () => {
@@ -164,5 +173,28 @@ describe('component tree', () => {
     expect(() => {
       registerComponent(Child, {}, { parent: UnregisteredParent });
     }).toThrow(/parent component.*is not registered/);
+  });
+
+  it('returns an empty children list for an unregistered component', () => {
+    function Ghost() {
+      return <div />;
+    }
+    expect(getChildren(Ghost)).toEqual([]);
+  });
+
+  it('reports isChildOf false when the child is not registered', () => {
+    registerComponent(Menu, {});
+    function Ghost() {
+      return <div />;
+    }
+    expect(isChildOf(Ghost, Menu)).toBe(false);
+  });
+
+  it('excludes non-root components from getRoots', () => {
+    registerComponent(Menu, {});
+    registerComponent(GameLevel, { level: 1 }, { parent: Menu });
+    const roots = getRoots();
+    expect(roots).toContain(Menu);
+    expect(roots).not.toContain(GameLevel);
   });
 });
