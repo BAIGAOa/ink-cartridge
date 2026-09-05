@@ -1,7 +1,7 @@
-import type { PipelineContext, PipelineProcessor } from '../types/processor.js';
-import type { ResolvedGlobalSequenceEntry } from '../types/entry.js';
-import type { GlobalPendingSequence } from '../types/pending-sequence.js';
-import { checkWhen } from '../checkWhen.js';
+import type { PipelineContext, ProcessorInput } from "../types/processor.js";
+import type { ResolvedGlobalSequenceEntry } from "../types/entry.js";
+import type { GlobalPendingSequence } from "../types/pending-sequence.js";
+import { checkWhen } from "../checkWhen.js";
 
 const DEFAULT_SEQUENCE_TIMEOUT = 500;
 
@@ -32,13 +32,18 @@ function tryStartGlobalSequence<TComponent>(
     if ((entry.affectLayer ?? false) !== affectOverlay) continue;
     if (entry.mode && entry.mode !== ctx.currentMode) continue;
 
-    if (!checkWhen(entry.when, ctx.conditions)) continue
+    if (!checkWhen(entry.when, ctx.conditions)) continue;
 
-    if (affectOverlay && ctx.allLayers.length === 0 && !entry.executeWhenNoOverlay) continue;
+    if (
+      affectOverlay &&
+      ctx.allLayers.length === 0 &&
+      !entry.executeWhenNoOverlay
+    )
+      continue;
     if (!ctx.topComponent) continue;
 
     const cat = entry.category;
-    if (cat !== undefined && cat !== '*') {
+    if (cat !== undefined && cat !== "*") {
       if (Array.isArray(cat) && cat.length === 0) continue;
       if (Array.isArray(cat) && !cat.includes(ctx.topComponent)) continue;
     }
@@ -82,12 +87,13 @@ function tryStartGlobalSequence<TComponent>(
   // boundSequence in layer-handler.ts.
   const selected = matching[0];
   const timeout = selected.timeout ?? DEFAULT_SEQUENCE_TIMEOUT;
-  const candidates = selected.exclusive === true
-    ? undefined
-    : (() => {
-        const nonExclusive = matching.filter(c => c.exclusive !== true);
-        return nonExclusive.length <= 1 ? undefined : nonExclusive;
-      })();
+  const candidates =
+    selected.exclusive === true
+      ? undefined
+      : (() => {
+          const nonExclusive = matching.filter((c) => c.exclusive !== true);
+          return nonExclusive.length <= 1 ? undefined : nonExclusive;
+        })();
 
   const pending: GlobalPendingSequence = {
     sequences: selected.keys,
@@ -124,7 +130,10 @@ function tryStartGlobalSequence<TComponent>(
  * @param ctx  Full pipeline context.
  * @returns true when the event was consumed by the pending sequence.
  */
-function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affectOverlay: boolean): boolean {
+function processGlobalPending<TComponent>(
+  ctx: PipelineContext<TComponent>,
+  affectOverlay: boolean,
+): boolean {
   const pending = ctx.pendingSeqRef.current;
   if (pending === null) return false;
 
@@ -135,7 +144,11 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
   // layer broadcast.
   if (pending.affectOverlay !== affectOverlay) return false;
 
-  if (pending.affectOverlay && ctx.allLayers.length === 0 && !pending.executeWhenNoOverlay) {
+  if (
+    pending.affectOverlay &&
+    ctx.allLayers.length === 0 &&
+    !pending.executeWhenNoOverlay
+  ) {
     clearTimeout(pending.timer);
     ctx.pendingSeqRef.current = null;
     return false;
@@ -157,7 +170,8 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
     if (pending.candidates && pending.candidates.length > 1) {
       const nextIdx = pending.nextIndex - 1;
       const narrowed = pending.candidates.filter(
-        c => c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
+        (c) =>
+          c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
       );
       pending.candidates = narrowed.length <= 1 ? undefined : narrowed;
     }
@@ -187,7 +201,8 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
     // Same pattern as layer-handler.ts.
     const nextIdx = pending.nextIndex;
     const stillPossible = pending.candidates.filter(
-      c => c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
+      (c) =>
+        c.keys.length > nextIdx && ctx.eventNames.includes(c.keys[nextIdx]),
     );
     if (stillPossible.length === 0) {
       // No candidate matches — cancel all and let the key fall through.
@@ -251,19 +266,21 @@ function processGlobalPending<TComponent>(ctx: PipelineContext<TComponent>, affe
  * `affectLayer` field.
  *
  * @param config.affectOverlay - Which priority group this processor serves.
- * @returns A PipelineProcessor for the global sequence stage.
+ * @returns A {@link ProcessorInput} for the global sequence stage, to be
+ *          registered with {@link KeyboardEngine.addProcessor}.
  */
 export function createGlobalSequenceProcessor<TComponent>(config: {
   affectOverlay: boolean;
-}): PipelineProcessor<TComponent> {
+}): ProcessorInput<TComponent> {
   const { affectOverlay } = config;
   return {
+    active: true,
     process(ctx: PipelineContext<TComponent>): boolean {
-      if (ctx.noActiveProcessor.includes(this.id)) return false
       if (processGlobalPending(ctx, affectOverlay)) return true;
-      if (tryStartGlobalSequence(ctx.globalSequences, affectOverlay, ctx)) return true;
+      if (tryStartGlobalSequence(ctx.globalSequences, affectOverlay, ctx))
+        return true;
       return false;
     },
-    id: `global-sequence-${affectOverlay ? 'overlay' : 'screen'}`,
+    id: `global-sequence-${affectOverlay ? "overlay" : "screen"}`,
   };
 }

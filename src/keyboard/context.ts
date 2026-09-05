@@ -20,6 +20,7 @@ import type {
   ElementKeyboard,
   LayerKeyboardLayer,
   PipelineProcessor,
+  ProcessorInput,
   CompositionKey,
   CompositionContext,
   ValueSchema,
@@ -30,7 +31,6 @@ import type {
   MappingKeyEntry,
   MouseRegionEntry,
 } from "@cartridge-engine/keyboard-engine";
-import type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 import { defaultTargetsSymbol } from "@cartridge-engine/keyboard-engine";
 
 /**
@@ -201,10 +201,11 @@ export interface KeyboardContextValue {
   removeCondition: (target: string) => boolean;
 
   addProcessor: (
-    processor: PipelineProcessor<ComponentType<any>>,
+    processor: ProcessorInput<ComponentType<any>>,
     options?:
-      | { before?: BuiltinProcessorId | (string & {}) }
-      | { after?: BuiltinProcessorId | (string & {}) }
+      | { weight?: number }
+      | { before?: string }
+      | { after?: string }
       | { index?: number },
   ) => void;
 
@@ -253,8 +254,9 @@ export interface KeyboardContextValue {
   ) => boolean;
   kickFocusGroup: (groupOrOptions?: string | FocusSetOptions) => boolean;
 
-  kickProcessor: (id: BuiltinProcessorId) => boolean;
-  activeProcessor: (id: BuiltinProcessorId) => boolean;
+  kickProcessor: (id: string) => boolean;
+  activeProcessor: (id: string) => boolean;
+  setProcessorWeight: (id: string, weight: number) => boolean;
 
   registerMouseRegion: (entry: MouseRegionEntry) => () => void;
   unregisterMouseRegion: (layerId: string, regionId: string) => void;

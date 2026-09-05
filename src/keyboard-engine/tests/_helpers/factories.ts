@@ -131,7 +131,6 @@ export function makeContext(
     compositionEngine:
       undefined as unknown as PipelineContext<unknown>["compositionEngine"],
     autoTab: false,
-    noActiveProcessor: [],
     autoTabKey: "tab",
     ...overrides,
   };

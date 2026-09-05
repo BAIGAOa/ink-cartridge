@@ -120,19 +120,6 @@ export default class EngineState<TComponent> {
 	/** The composition engine instance, assigned by KeyboardEngine after construction. */
 	compositionEngine!: CompositionEngine<TComponent>;
 
-	/**
-	 * Ids of built-in processors currently kicked (disabled) at runtime,
-	 * managed by `kickProcessor` / `activeProcessor`.
-	 *
-	 * `buildPipelineContext` passes this array to every processor as
-	 * `ctx.noActiveProcessor`; each built-in processor factory checks
-	 * `ctx.noActiveProcessor.includes(this.id)` as the first guard in its
-	 * `process()` method and returns `false` immediately when kicked.
-	 * `resetProcessors` rebuilds the pipeline array but does NOT clear this
-	 * list — kicked processors stay disabled until re-activated.
-	 */
-	noActiveProcessor: string[] = [];
-
 	constructor(props: EngineProps<TComponent>) {
 		this.modesRef = new Set(props.modes ?? []);
 		this.currentModeRef = props.defaultMode ?? null;

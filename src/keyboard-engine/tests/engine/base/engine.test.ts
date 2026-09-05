@@ -397,6 +397,24 @@ describe("PipelineManager", () => {
     expect(engine.activeProcessor("screen-stack")).toBe(true);
     expect(engine.activeProcessor("screen-stack")).toBe(false);
   });
+
+  it("re-weights a processor to reorder the pipeline", () => {
+    const engine = createEngine();
+    const order = () => engine.getProcessors().map((p) => p.id);
+    expect(order()[0]).toBe("modal");
+
+    // lower modal below screen-stack (weight 0) -> it sinks to the back
+    expect(engine.setProcessorWeight("modal", -1)).toBe(true);
+    const lowered = order();
+    expect(lowered[lowered.length - 1]).toBe("modal");
+
+    // restore it above everything else
+    expect(engine.setProcessorWeight("modal", 8000)).toBe(true);
+    expect(order()[0]).toBe("modal");
+
+    // unknown id -> false, no throw
+    expect(engine.setProcessorWeight("missing", 0)).toBe(false);
+  });
 });
 
 describe("LayerManager", () => {
