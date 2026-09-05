@@ -341,6 +341,7 @@ export function KeyboardProvider({
 			kickFocusGroup: engine.kickFocusGroup.bind(engine),
 			kickProcessor: engine.kickProcessor.bind(engine),
 			activeProcessor: engine.activeProcessor.bind(engine),
+			setProcessorWeight: engine.setProcessorWeight.bind(engine),
 			registerMouseRegion: engine.registerMouseRegion.bind(engine),
 			unregisterMouseRegion: engine.unregisterMouseRegion.bind(engine),
 			getHoveredMouseRegion: engine.getHoveredMouseRegion.bind(engine),

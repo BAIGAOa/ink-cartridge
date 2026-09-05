@@ -133,7 +133,7 @@ Focus targets allow multiple controls on the same screen (inputs, lists, menus) 
 
 ### Custom Processors
 
-Insert custom processors into a specific engine instance's pipeline via `addProcessor`. Supports positioning by index, or before/after a named built-in processor.
+The pipeline is ordered by processor `weight` — higher runs first, ties keep registration order. Built-in stages use the default weights exported as `builtinProcessorWeights`. Insert custom processors via `addProcessor` with an explicit `weight`, or position them by index / before/after a named processor as convenience sugar. Stages can be reordered at runtime with `setProcessorWeight`.
 
 ### Composition Engine (Flag-Preposition Key Combinations)
 
@@ -310,10 +310,13 @@ Processes a single keyboard event through the pipeline. Returns `true` if consum
 
 | Method | Description |
 |--------|-------------|
-| `addProcessor(processor, options?)` | Insert a custom processor |
+| `addProcessor(processor, options?)` | Insert a custom processor (by weight, or index/before/after sugar) |
 | `removeProcessor(processorId)` | Remove a processor |
 | `getProcessors()` | Get the processor list |
 | `resetProcessors()` | Reset to the default pipeline |
+| `kickProcessor(id)` | Temporarily disable a processor (`active: false`) |
+| `activeProcessor(id)` | Re-enable a disabled processor |
+| `setProcessorWeight(id, weight)` | Reassign a processor's weight and re-sort the pipeline |
 
 #### Modal Hooks
 

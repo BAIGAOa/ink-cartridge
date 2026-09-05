@@ -12,9 +12,6 @@ export {
   keyMatchesRule,
 } from "./layerHandler.js";
 
-export { _insertRelative } from "./pipeline/chain.js";
-export type { BuiltinProcessorId } from "./pipeline/chain.js";
-
 export {
   cleanupGlobalKeyOverrides,
   removeKeysFromActionMap,
@@ -64,6 +61,7 @@ export { createGlobalSequenceProcessor } from "./processors/globalSequence.js";
 export { createGlobalKeyProcessor } from "./processors/globalKey.js";
 export { createLayerProcessor } from "./processors/layer.js";
 export { createScreenStackProcessor } from "./processors/screenStack.js";
+export { builtinProcessorWeights } from "./processors/weights.js";
 
 export { Mouse, MouseError } from "./xterm-mouse/index.js";
 export type {

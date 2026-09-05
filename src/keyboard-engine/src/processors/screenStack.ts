@@ -1,8 +1,5 @@
-import type {
-	PipelineContext,
-	PipelineProcessor,
-} from '../types/processor.js';
-import { handleLayer } from '../layerHandler.js';
+import type { PipelineContext, ProcessorInput } from "../types/processor.js";
+import { handleLayer } from "../layerHandler.js";
 
 /**
  * Create a processor for the screen stack stage.
@@ -12,13 +9,15 @@ import { handleLayer } from '../layerHandler.js';
  * {@link handleLayer}. The first page that returns `true` stops the
  * iteration.
  *
- * @returns A PipelineProcessor for the screen stack stage.
+ * @returns A {@link ProcessorInput} for the screen stack stage, to be
+ *          registered with {@link KeyboardEngine.addProcessor}.
  */
-export function createScreenStackProcessor<TComponent>(): PipelineProcessor<TComponent> {
+export function createScreenStackProcessor<
+  TComponent,
+>(): ProcessorInput<TComponent> {
   return {
+    active: true,
     process(ctx: PipelineContext<TComponent>): boolean {
-      if (ctx.noActiveProcessor.includes(this.id)) return false
-
       const path = ctx.pagePath;
       for (let i = path.length - 1; i >= 0; i--) {
         const comp = path[i];
@@ -28,6 +27,6 @@ export function createScreenStackProcessor<TComponent>(): PipelineProcessor<TCom
       }
       return false;
     },
-    id: 'screen-stack',
+    id: "screen-stack",
   };
 }

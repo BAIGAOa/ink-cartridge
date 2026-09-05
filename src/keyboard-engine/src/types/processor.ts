@@ -1,5 +1,4 @@
 import CompositionEngine from "../CompositionEngine.js";
-import { BuiltinProcessorId } from "../pipeline/chain.js";
 import {
   ResolvedGlobalKeyEntry,
   ResolvedGlobalSequenceEntry,
@@ -71,29 +70,32 @@ export interface PipelineContext<TComponent> {
   readonly compositionEngine: CompositionEngine;
   /** Whether the engine auto-handles Tab/Shift+Tab for focus rotation. */
   readonly autoTab: boolean;
-  /** Processor ids deactivated for this event. */
-  readonly noActiveProcessor: string[];
   /** Key name used for Tab auto-focus rotation. */
-  readonly autoTabKey: string
+  readonly autoTabKey: string;
 }
 
 /**
  * A single stage in the keyboard event pipeline.
  *
- * Each processor evaluates whether it should handle the current event.
- * If it consumes the event it returns `true` and the chain stops;
- * otherwise it returns `false` to pass the event to the next processor.
+ * This is the runtime shape the engine stores: the fields beyond `id` and
+ * `process` are stamped by the engine when a processor is registered, so
+ * callers never construct one of these directly — use {@link ProcessorInput}
+ * with {@link KeyboardEngine.addProcessor} and let the engine fill the rest.
+ *
+ * Each processor evaluates whether it should handle the current event. If it
+ * consumes the event it returns `true` and the chain stops; otherwise it
+ * returns `false` to pass the event to the next processor.
  *
  * @example
  * ```ts
- * // A minimal custom processor — return true to consume, false to pass through
- * engine.addProcessor({
+ * // A stored processor after addProcessor has stamped the runtime fields
+ * const p: PipelineProcessor<Comp> = {
  *   id: 'keystroke-logger',
- *   process(ctx) {
- *     console.log(`[key] input=${ctx.input} names=${ctx.eventNames}`);
- *     return false; // don't consume — let the chain continue
- *   },
- * }, { index: 0 });
+ *   process(ctx) { return false; },
+ *   active: true,
+ *   weight: 0,
+ *   createAt: 3,
+ * };
  * ```
  */
 export interface PipelineProcessor<TComponent> {
@@ -105,26 +107,56 @@ export interface PipelineProcessor<TComponent> {
    *          `false` to pass it to the next processor.
    */
   process(ctx: PipelineContext<TComponent>): boolean;
-  /**
-   * Builtin processor id or custom name, used for positioning,
-   * deactivation, and as a target for insertions.
-   */
+  /** Built-in processor id or custom name, unique in the pipeline and usable
+   *  as an insertion target or for kick/activate toggles. */
   id: string;
+  /** Whether the stage runs. `processKey` skips stages with `active: false`. */
+  active: boolean;
+  /** Priority — higher runs first; equal weights are ordered by registration time. */
+  weight: number;
+  /** Registration order, stamped by the engine; breaks weight ties (earlier first). */
+  createAt: number;
+}
+
+/**
+ * What a caller hands to {@link KeyboardEngine.addProcessor} before the engine
+ * stamps runtime state.
+ *
+ * Only `id` and `process` are required. Priority is expressed through
+ * `addProcessor`'s `options` (`weight`, or a `before`/`after`/`index` sugar),
+ * and `createAt` is injected by the engine as the registration order used to
+ * break weight ties. The engine normalizes this into a full
+ * {@link PipelineProcessor}, so stored processors always carry `weight`,
+ * `createAt`, and `active`.
+ */
+export interface ProcessorInput<TComponent> {
+  /**
+   * Process one key event.
+   *
+   * @param ctx - Snapshot of the engine state for this event.
+   * @returns `true` to consume the event and stop the pipeline,
+   *          `false` to pass it to the next processor.
+   */
+  process(ctx: PipelineContext<TComponent>): boolean;
+  /** Processor id (built-in or custom); must be unique in the pipeline. */
+  id: string;
+  /** Whether the processor runs. Defaults to `true`. */
+  active?: boolean;
 }
 
 /**
  * Per-instance custom processor injection for the engine.
  *
  * Supports the same positioning as {@link KeyboardEngine.addProcessor}:
- * - `{ processor, target, position }` — insert before/after a built-in processor
- * - `{ processor, index }`              — insert at a 0-based position
- * - `{ processor }`                      — append to the end of the chain
+ * - `{ processor, target, position }` — insert before/after a named processor (built-in or custom)
+ * - `{ processor, index }`             — insert at a 0-based position
+ * - `{ processor }`                     — append to the end of the chain
  */
 export interface KeyboardProcessorProps<TComponent> {
   /** The custom processor to inject into the pipeline. */
-  processor: PipelineProcessor<TComponent>;
-  /** Target built-in processor ID. Use with {@link position}. */
-  target?: BuiltinProcessorId;
+  processor: ProcessorInput<TComponent>;
+  /** Target processor ID to insert relative to. Use with {@link position}. */
+  target?: string;
   /** Insert before or after {@link target}. */
   position?: "before" | "after";
   /** Insert at this 0-based index. Overrides target/position. */

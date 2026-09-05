@@ -74,6 +74,7 @@ export {
   isNormalCharacter,
 } from "./keyboard/index.js";
 export { defaultTargetsSymbol } from "./keyboard/index.js";
+export { builtinProcessorWeights } from "./keyboard/index.js";
 
 export type {
   KeyHandler,
@@ -85,8 +86,8 @@ export type {
   GlobalKeyEntry,
   GlobalSequenceEntry,
   KeyboardProcessorProps,
-  BuiltinProcessorId,
   PipelineProcessor,
+  ProcessorInput,
   EngineProps,
   KeyboardContextValue,
   MouseRegionOptions,

@@ -42,7 +42,6 @@ export {
   tryMatchBindings,
   handleTabNavigation,
   keyMatchesRule,
-  _insertRelative,
   cleanupGlobalKeyOverrides,
   removeKeysFromActionMap,
   pushKeyEntries,
@@ -57,10 +56,10 @@ export {
   createGlobalKeyProcessor,
   createLayerProcessor,
   createScreenStackProcessor,
+  builtinProcessorWeights,
 } from "@cartridge-engine/keyboard-engine";
 
 export type { EngineProps } from "@cartridge-engine/keyboard-engine";
-export type { BuiltinProcessorId } from "@cartridge-engine/keyboard-engine";
 export type { KeyRuleContainer } from "@cartridge-engine/keyboard-engine";
 export type {
   KeyHandler,
@@ -87,6 +86,7 @@ export type {
   ResolvedGlobalKeyEntry,
   KeyboardProcessorProps,
   PipelineProcessor,
+  ProcessorInput,
   MutableRef,
   CompositionKey,
   CompositionContext,

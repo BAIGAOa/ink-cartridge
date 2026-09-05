@@ -12,7 +12,6 @@ import CompositionEngine, {
   MappingKeyEvent,
   MappingKeyEntry,
 } from "./CompositionEngine.js";
-import { BuiltinProcessorId } from "./pipeline/chain.js";
 import { SyncState } from "./types/state-sync.js";
 import { HoveredRegion, MouseRegionEntry } from "./types/mouse-region.js";
 import type { MouseEvent as XtermMouseEvent } from "./xterm-mouse/types/index.js";
@@ -29,6 +28,7 @@ import {
   KeyboardProcessorProps,
   PipelineContext,
   PipelineProcessor,
+  ProcessorInput,
 } from "./types/processor.js";
 import { KeyHandler } from "./types/binding.js";
 import { FocusSetOptions } from "./types/focus.js";
@@ -151,7 +151,7 @@ export interface EngineProps<TComponent> {
    * });
    * ```
    */
-  tabKey?: string
+  tabKey?: string;
 }
 
 /**
@@ -680,7 +680,10 @@ export default class KeyboardEngine<TComponent = unknown> {
    * @returns `true` if the target was activated, `false` if the group already
    *          had an active target or the target/group/layer could not be found.
    */
-  activateFocusGroup(focusId: string, groupOrOptions?: string | FocusSetOptions) {
+  activateFocusGroup(
+    focusId: string,
+    groupOrOptions?: string | FocusSetOptions,
+  ) {
     if (typeof groupOrOptions === "string" || groupOrOptions === undefined) {
       return this.layers.activateFocusGroup(focusId, groupOrOptions);
     }
@@ -1035,18 +1038,27 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
-   * Insert a processor into this instance's pipeline at a specified position.
+   * Insert a processor into this instance's pipeline.
    *
-   * Options (checked in order):
-   * - `{ index: n }` — insert at 0-based index
-   * - `{ before: "id" }` / `{ after: "id" }` — insert relative to a named processor
-   * - omitted — append to the end
+   * The pipeline stays sorted by weight — higher weight runs first; equal
+   * weights follow registration order (`createAt` is stamped by the engine on
+   * insert). `active` defaults to `true`.
+   *
+   * Priority is expressed through `options`:
+   * - `{ weight: n }` — explicit priority, higher runs first
+   * - `{ index: n }` — place at that sorted slot
+   * - `{ before: "id" }` / `{ after: "id" }` — resolve relative to a named processor
+   * - omitted — weight `0`, i.e. after all built-in stages
    *
    * @throws If the processor id duplicates an existing one or the target is not found.
    */
   addProcessor(
-    processor: PipelineProcessor<TComponent>,
-    options?: { before?: string } | { after?: string } | { index?: number },
+    processor: ProcessorInput<TComponent>,
+    options?:
+      | { weight?: number }
+      | { before?: string }
+      | { after?: string }
+      | { index?: number },
   ): void {
     this.pipeline.addProcessor(processor, options);
   }
@@ -1349,7 +1361,6 @@ export default class KeyboardEngine<TComponent = unknown> {
           ]
         : null;
     const compositionEngineHandler = this.state.compositionEngineHandle;
-    const noActiveProcessor = this.state.noActiveProcessor;
     const state = this.state;
 
     return {
@@ -1382,48 +1393,66 @@ export default class KeyboardEngine<TComponent = unknown> {
       compositionEngineHandler,
       compositionEngine: this.state.compositionEngine,
       autoTab: this.state.autoTab,
-      noActiveProcessor,
     };
   }
 
   /**
-   * Re-activate a previously kicked built-in processor by removing it from
-   * the disabled list. The processor resumes normal operation on the next
-   * {@link processKey} call.
+   * Re-activate a processor in this instance's pipeline by flipping its
+   * `active` flag back on. The processor resumes normal operation on the
+   * next {@link processKey} call.
    *
-   * When a processor is actively processing events (i.e. not in the disabled
-   * list), calling `activeProcessor` is a no-op that returns `false`.
+   * When the processor is already active, this is a no-op that returns
+   * `false`.
    *
-   * @param id - The built-in processor ID to re-enable.
+   * @param id - The processor id to re-enable (built-in or custom).
    * @returns `true` if the processor was re-activated, `false` if it was
-   *          already active or the id was not found in the disabled list.
+   *          already active or no processor with that id exists.
    */
-  activeProcessor(id: BuiltinProcessorId) {
+  activeProcessor(id: string): boolean {
     return this.pipeline.activeProcessor(id);
   }
 
   /**
-   * De-activate a built-in processor by adding it to a disabled list.
-   * The processor is skipped on the next {@link processKey} call —
-   * its `process()` method returns `false` immediately without running
-   * any logic. Later pipeline stages receive key events as if the
-   * kicked stage did not exist.
+   * De-activate a processor in this instance's pipeline by flipping its
+   * `active` flag off. The processor is skipped on the next
+   * {@link processKey} call — it is excluded before `process()` runs, so
+   * later pipeline stages receive key events as if the disabled stage did
+   * not exist.
    *
    * This does NOT remove the processor from the pipeline — it only
    * disables its runtime behavior. The processor still appears in
-   * {@link getProcessors}. A kicked processor can be re-enabled at any
-   * time via {@link activeProcessor}.
+   * {@link getProcessors} with `active: false`, and can be re-enabled at
+   * any time via {@link activeProcessor}.
    *
-   * Use this for temporarily suppressing a pipeline stage (e.g.
-   * disable the modal barrier, mute global keys) without permanently
-   * altering the pipeline structure.
+   * Works on both built-in stages and custom processors added via
+   * {@link addProcessor}.
    *
-   * @param id - The built-in processor ID to de-activate.
-   * @returns `true` if the processor was kicked, `false` if it was
-   *          already in the disabled list.
+   * @param id - The processor id to de-activate (built-in or custom).
+   * @returns `true` if the processor was kicked, `false` if it was already
+   *          inactive or no processor with that id exists.
    */
-  kickProcessor(id: BuiltinProcessorId) {
+  kickProcessor(id: string): boolean {
     return this.pipeline.kickProcessor(id);
+  }
+
+  /**
+   * Reassign a processor's priority weight at runtime and re-sort the
+   * pipeline, letting applications reorder stages without removing and
+   * re-adding them.
+   *
+   * Higher weight runs first; ties keep the original registration order.
+   * Works on both built-in stages and custom processors. Use
+   * {@link builtinProcessorWeights} as a reference when choosing a weight
+   * (e.g. `builtinProcessorWeights.modal - 1` to run just after the modal
+   * barrier).
+   *
+   * @param id - The processor id to re-weight (built-in or custom).
+   * @param weight - The new weight.
+   * @returns `true` if the processor was found and updated, `false` if no
+   *          processor with that id exists.
+   */
+  setProcessorWeight(id: string, weight: number): boolean {
+    return this.pipeline.setProcessorWeight(id, weight);
   }
 
   /**
@@ -1485,8 +1514,10 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Process a keyboard event through the full processor pipeline.
    *
    * Builds a snapshot context from the engine's current state, then runs
-   * each processor in order. The first processor that returns `true`
-   * (event consumed) stops the chain. The pipeline order is:
+   * each processor in order — by descending `weight` (ties broken by
+   * registration order), skipping stages whose `active` is `false`. The
+   * first processor that returns `true` (event consumed) stops the chain.
+   * The default built-in pipeline runs in this order:
    *
    * `modal` → composition (`affectOverlay: true`) → global sequence
    * (`affectLayer: true`) → global keys (`affectLayer: true`) → layer
@@ -1519,6 +1550,7 @@ export default class KeyboardEngine<TComponent = unknown> {
   processKey(input: string, key: unknown): boolean {
     const ctx = this.buildPipelineContext(input, key);
     for (const processor of this.state._processors) {
+      if (!processor.active) continue;
       if (processor.process(ctx)) {
         this.notifyPendingSyncs();
         return true;
