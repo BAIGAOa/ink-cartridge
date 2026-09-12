@@ -1040,17 +1040,20 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * Insert a processor into this instance's pipeline.
    *
-   * The pipeline stays sorted by weight — higher weight runs first; equal
-   * weights follow registration order (`createAt` is stamped by the engine on
-   * insert). `active` defaults to `true`.
+   * The pipeline is a list of stages kept sorted by weight — higher weight
+   * runs first, and processors sharing a weight form one stage, running in
+   * insertion order within it. `active` defaults to `true`.
    *
    * Priority is expressed through `options`:
    * - `{ weight: n }` — explicit priority, higher runs first
-   * - `{ index: n }` — place at that sorted slot
-   * - `{ before: "id" }` / `{ after: "id" }` — resolve relative to a named processor
+   * - `{ index: n }` — insert as a new stage at that 0-based stage slot
+   *   (`0` to the stage count, the latter being the append slot)
+   * - `{ before: "id" }` / `{ after: "id" }` — insert as a new stage just
+   *   before/after the stage holding the named processor
    * - omitted — weight `0`, i.e. after all built-in stages
    *
-   * @throws If the processor id duplicates an existing one or the target is not found.
+   * @throws If the processor id duplicates an existing one, the target is not
+   *         found, or the index is out of range.
    */
   addProcessor(
     processor: ProcessorInput<TComponent>,
@@ -1415,9 +1418,9 @@ export default class KeyboardEngine<TComponent = unknown> {
   /**
    * De-activate a processor in this instance's pipeline by flipping its
    * `active` flag off. The processor is skipped on the next
-   * {@link processKey} call — it is excluded before `process()` runs, so
-   * later pipeline stages receive key events as if the disabled stage did
-   * not exist.
+   * {@link processKey} call — it is excluded before `process()` runs, so the
+   * rest of its stage and every later stage receive key events as if the
+   * disabled processor did not exist.
    *
    * This does NOT remove the processor from the pipeline — it only
    * disables its runtime behavior. The processor still appears in
@@ -1436,12 +1439,12 @@ export default class KeyboardEngine<TComponent = unknown> {
   }
 
   /**
-   * Reassign a processor's priority weight at runtime and re-sort the
-   * pipeline, letting applications reorder stages without removing and
-   * re-adding them.
+   * Reassign a processor's priority weight at runtime, letting applications
+   * reorder stages without removing and re-adding them.
    *
-   * Higher weight runs first; ties keep the original registration order.
-   * Works on both built-in stages and custom processors. Use
+   * The processor is detached from its old stage and joins the stage that
+   * already carries the target weight, or opens a fresh stage of its own when
+   * none does. Works on both built-in stages and custom processors. Use
    * {@link builtinProcessorWeights} as a reference when choosing a weight
    * (e.g. `builtinProcessorWeights.modal - 1` to run just after the modal
    * barrier).
@@ -1514,9 +1517,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Process a keyboard event through the full processor pipeline.
    *
    * Builds a snapshot context from the engine's current state, then runs
-   * each processor in order — by descending `weight` (ties broken by
-   * registration order), skipping stages whose `active` is `false`. The
-   * first processor that returns `true` (event consumed) stops the chain.
+   * every stage in order of descending `weight`, skipping processors whose
+   * `active` is `false`. A stage groups equal-weight processors and runs as
+   * one unit: each member gets to observe the event, and if any of them
+   * returns `true` the event counts as consumed and the later stages are
+   * skipped.
    * The default built-in pipeline runs in this order:
    *
    * `modal` → composition (`affectOverlay: true`) → global sequence
@@ -1549,13 +1554,22 @@ export default class KeyboardEngine<TComponent = unknown> {
    */
   processKey(input: string, key: unknown): boolean {
     const ctx = this.buildPipelineContext(input, key);
-    for (const processor of this.state._processors) {
-      if (!processor.active) continue;
-      if (processor.process(ctx)) {
+
+    // A stage groups processors of equal weight, so it acts as one priority
+    // layer: every member gets to observe the event before the stage is
+    // consumed as a whole.
+    for (const stage of this.state._processors) {
+      let consumed = false;
+      for (const processor of stage) {
+        if (!processor.active) continue;
+        if (processor.process(ctx)) consumed = true;
+      }
+      if (consumed) {
         this.notifyPendingSyncs();
         return true;
       }
     }
+
     this.notifyPendingSyncs();
     return false;
   }

@@ -94,7 +94,6 @@ export interface PipelineContext<TComponent> {
  *   process(ctx) { return false; },
  *   active: true,
  *   weight: 0,
- *   createAt: 3,
  * };
  * ```
  */
@@ -110,12 +109,13 @@ export interface PipelineProcessor<TComponent> {
   /** Built-in processor id or custom name, unique in the pipeline and usable
    *  as an insertion target or for kick/activate toggles. */
   id: string;
-  /** Whether the stage runs. `processKey` skips stages with `active: false`. */
+  /** Whether the processor runs. `processKey` skips processors with `active: false`. */
   active: boolean;
-  /** Priority — higher runs first; equal weights are ordered by registration time. */
+  /**
+   * Priority — higher runs first. Processors sharing a weight form one stage;
+   * the stage runs as one unit, its members in insertion order.
+   */
   weight: number;
-  /** Registration order, stamped by the engine; breaks weight ties (earlier first). */
-  createAt: number;
 }
 
 /**
@@ -123,11 +123,9 @@ export interface PipelineProcessor<TComponent> {
  * stamps runtime state.
  *
  * Only `id` and `process` are required. Priority is expressed through
- * `addProcessor`'s `options` (`weight`, or a `before`/`after`/`index` sugar),
- * and `createAt` is injected by the engine as the registration order used to
- * break weight ties. The engine normalizes this into a full
- * {@link PipelineProcessor}, so stored processors always carry `weight`,
- * `createAt`, and `active`.
+ * `addProcessor`'s `options` (`weight`, or a `before`/`after`/`index` sugar).
+ * The engine normalizes this into a full {@link PipelineProcessor}, so stored
+ * processors always carry `weight` and `active`.
  */
 export interface ProcessorInput<TComponent> {
   /**
@@ -148,17 +146,17 @@ export interface ProcessorInput<TComponent> {
  * Per-instance custom processor injection for the engine.
  *
  * Supports the same positioning as {@link KeyboardEngine.addProcessor}:
- * - `{ processor, target, position }` — insert before/after a named processor (built-in or custom)
- * - `{ processor, index }`             — insert at a 0-based position
+ * - `{ processor, target, position }` — insert as a new stage before/after the stage holding a named processor (built-in or custom)
+ * - `{ processor, index }`             — insert as a new stage at a 0-based stage slot
  * - `{ processor }`                     — append to the end of the chain
  */
 export interface KeyboardProcessorProps<TComponent> {
   /** The custom processor to inject into the pipeline. */
   processor: ProcessorInput<TComponent>;
-  /** Target processor ID to insert relative to. Use with {@link position}. */
+  /** Processor ID whose stage to insert beside. Use with {@link position}. */
   target?: string;
-  /** Insert before or after {@link target}. */
+  /** Insert before or after the stage holding {@link target}. */
   position?: "before" | "after";
-  /** Insert at this 0-based index. Overrides target/position. */
+  /** Insert as a new stage at this 0-based stage slot. Overrides target/position. */
   index?: number;
 }

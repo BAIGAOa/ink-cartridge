@@ -23,14 +23,11 @@ import { builtinProcessorWeights } from "../processors/weights.js";
  *
  * Custom processors can be injected at any position via
  * {@link addProcessor} (or the constructor's `processors` prop), and any
- * stage can be temporarily disabled via {@link kickProcessor}.
+ * processor can be temporarily disabled via {@link kickProcessor}.
  * All pipeline state is **per-instance** — each `KeyboardEngine` manages
  * its own pipeline independently.
  */
 export default class PipelineManager<TComponent> {
-  /** Monotonic registration counter, stamped onto `createAt` on insert. */
-  private _serial = 0;
-
   constructor(
     private state: EngineState<TComponent>,
     custom?: KeyboardProcessorProps<TComponent>[],
@@ -49,15 +46,16 @@ export default class PipelineManager<TComponent> {
    * `global-key-screen` (global keys, affectLayer: false) → `screen-stack`
    * (screen stack, top to bottom).
    *
-   * Every built-in is registered through {@link addProcessor} with its weight
-   * from {@link builtinProcessorWeights}, so it gets a fresh `createAt` and
-   * the array ends up sorted. `custom` processors (the constructor's
-   * `processors` prop) are applied afterwards through the same path, using
-   * their `index` / `target` + `position`, or appended when neither is given.
+   * Every built-in is registered through {@link addProcessor} with its own
+   * weight from {@link builtinProcessorWeights}, so each lands in a stage of
+   * its own and the stage list ends up sorted. `custom` processors (the
+   * constructor's `processors` prop) are applied afterwards through the same
+   * path, using their `index` / `target` + `position`, or appended when
+   * neither is given.
    */
   _buildDefaultProcessors(
     custom?: KeyboardProcessorProps<TComponent>[],
-  ): PipelineProcessor<TComponent>[] {
+  ): PipelineProcessor<TComponent>[][] {
     this.state._processors = [];
 
     this.addProcessor(createModalProcessor(), {
@@ -109,15 +107,17 @@ export default class PipelineManager<TComponent> {
   /**
    * Insert a custom processor into this engine instance's pipeline.
    *
-   * The pipeline is kept sorted by weight — higher weight runs first. Equal
-   * weights are ordered by registration time: `createAt` is assigned by the
-   * engine on insert.
+   * The pipeline is a list of stages kept sorted by weight — higher weight
+   * runs first. Processors sharing a weight form one stage and run in
+   * insertion order within it.
    *
    * Priority is expressed through `options`:
    * - `{ weight: n }` — explicit priority, higher runs first
-   * - `{ index: n }` — place at that sorted slot
-   * - `{ before: "id" }` / `{ after: "id" }` — resolve relative to a named
-   *   processor (e.g. `"modal"`, `"layer"`)
+   * - `{ index: n }` — insert as a new stage at that 0-based stage slot
+   *   (`0` to the stage count, the latter being the append slot)
+   * - `{ before: "id" }` / `{ after: "id" }` — insert as a new stage just
+   *   before/after the stage holding the named processor (e.g. `"modal"`,
+   *   `"layer"`)
    * - omitted — weight `0`, i.e. after all built-in stages
    *
    * The insertion takes effect immediately — the next {@link processKey}
@@ -149,8 +149,9 @@ export default class PipelineManager<TComponent> {
    * engine.addProcessor(myAuditProcessor, { after: 'layer' });
    * ```
    *
-   * @throws If `processor.id` duplicates an existing processor id, or the
-   *         `before`/`after` target is not found in the pipeline.
+   * @throws If `processor.id` duplicates an existing processor id, the
+   *         `before`/`after` target is not found in the pipeline, or `index`
+   *         is not an integer within the valid stage range.
    */
   addProcessor(
     processor: ProcessorInput<TComponent>,
@@ -160,17 +161,28 @@ export default class PipelineManager<TComponent> {
       | { after?: string }
       | { index?: number },
   ): void {
-    if (this.state._processors.some((p) => p.id === processor.id)) {
+    const allProcessors = this.state._processors.flat();
+
+    if (allProcessors.some((p) => p.id === processor.id)) {
       throw new Error(
         `[ink-cartridge] Cannot add processor "${processor.id}": duplicate id`,
       );
     }
 
-    const arr = this.state._processors;
     const opts = options ?? {};
     let targetIndex: number | undefined;
 
     if ("index" in opts && typeof opts.index === "number") {
+      const stageCount = this.state._processors.length;
+      if (
+        !Number.isInteger(opts.index) ||
+        opts.index < 0 ||
+        opts.index > stageCount
+      ) {
+        throw new Error(
+          `[ink-cartridge] Cannot insert processor "${processor.id}" at index ${opts.index}: expected an integer in [0, ${stageCount}]`,
+        );
+      }
       targetIndex = opts.index;
     } else {
       const target =
@@ -181,23 +193,32 @@ export default class PipelineManager<TComponent> {
             : undefined;
       if (target) {
         const kind = "before" in opts ? "before" : "after";
-        const idx = arr.findIndex((p) => p.id === target);
-        if (idx === -1) {
+
+        // Positions are stage slots: a named target resolves to the stage
+        // holding it, and the new processor becomes a stage of its own
+        // beside that one — so "before modal" still runs strictly ahead of
+        // the modal barrier and can consume the event.
+        const stageIndex = this.state._processors.findIndex((stage) =>
+          stage.some((p) => p.id === target),
+        );
+
+        if (stageIndex === -1) {
           throw new Error(
             `[ink-cartridge] Cannot insert ${kind} "${target}": processor not found`,
           );
         }
-        targetIndex = kind === "before" ? idx : idx + 1;
+        targetIndex = kind === "before" ? stageIndex : stageIndex + 1;
       }
     }
 
     // Priority: explicit `weight`, else the positional sugar resolves to the
-    // weight of the slot it occupies, else the default 0 (after built-ins).
+    // weight of the stage slot it occupies, else the default 0 (after
+    // built-ins).
     let weight: number;
     if ("weight" in opts && typeof opts.weight === "number") {
       weight = opts.weight;
     } else if (targetIndex !== undefined) {
-      weight = this._weightForSlot(arr, targetIndex);
+      weight = this._weightForSlot(this.state._processors, targetIndex);
     } else {
       weight = 0;
     }
@@ -207,24 +228,40 @@ export default class PipelineManager<TComponent> {
       id: processor.id,
       active: processor.active ?? true,
       weight,
-      createAt: this._serial++,
     };
 
-    arr.push(full);
+    const sameWeight = this.state._processors.findIndex(
+      (each) => each[0].weight === weight,
+    );
+
+    if (sameWeight !== -1) {
+      const target = this.state._processors[sameWeight];
+
+      target.push(full);
+      // Sorting was already underway when the phase was formed.
+      // So there's no need to repeat the sorting here.
+      return;
+    }
+
+    this.state._processors.push([full]);
     this._sortByWeight();
   }
 
   /**
-   * Compute a weight that would sort a new processor exactly at `slot`,
-   * bisecting the weights of the processors surrounding the slot so the
-   * sorted order is preserved without disturbing existing entries.
+   * Compute a weight that sorts a new processor as its own stage at `slot`,
+   * bisecting the weights of the stages surrounding that slot so the sorted
+   * order is preserved without disturbing existing stages.
+   *
+   * @param arr - The stage list, already sorted by weight (descending).
+   * @param slot - Target 0-based stage slot.
    */
   private _weightForSlot(
-    arr: PipelineProcessor<TComponent>[],
+    arr: PipelineProcessor<TComponent>[][],
     slot: number,
   ): number {
-    const weightOf = (p?: PipelineProcessor<TComponent>) =>
-      p === undefined ? undefined : p.weight;
+    const weightOf = (p?: PipelineProcessor<TComponent>[]) =>
+      p === undefined ? undefined : p[0].weight;
+
     const above = slot > 0 ? weightOf(arr[slot - 1]) : undefined;
     const below = slot < arr.length ? weightOf(arr[slot]) : undefined;
 
@@ -241,13 +278,11 @@ export default class PipelineManager<TComponent> {
   }
 
   /**
-   * Re-sort the pipeline by weight (descending), tie-broken by registration
-   * order (`createAt`).
+   * Re-sort the stages by weight (descending). Stages always carry distinct
+   * weights, so there is no tie to break.
    */
   private _sortByWeight(): void {
-    this.state._processors.sort(
-      (a, b) => b.weight - a.weight || a.createAt - b.createAt,
-    );
+    this.state._processors.sort((a, b) => b[0].weight - a[0].weight);
   }
 
   /**
@@ -269,27 +304,36 @@ export default class PipelineManager<TComponent> {
    *          processor with the given id exists.
    */
   removeProcessor(processorId: string): boolean {
-    const idx = this.state._processors.findIndex(
-      (each) => each.id === processorId,
+    const stageIndex = this.state._processors.findIndex((stage) =>
+      stage.some((p) => p.id === processorId),
     );
-
-    if (idx === -1) {
+    if (stageIndex === -1) {
       return false;
     }
 
-    this.state._processors.splice(idx, 1);
+    const stage = this.state._processors[stageIndex];
+    stage.splice(
+      stage.findIndex((p) => p.id === processorId),
+      1,
+    );
+    // A stage is defined by its weight; with no member left it has none.
+    if (stage.length === 0) {
+      this.state._processors.splice(stageIndex, 1);
+    }
     return true;
   }
 
   /**
    * Return a read-only snapshot of the current processor pipeline.
    *
-   * Useful for debugging and introspection. The array is the live pipeline
-   * (not a copy) — it includes inactive processors, which are never removed
-   * from the pipeline array by kick/activate toggles.
+   * Useful for debugging and introspection. Stages are flattened into
+   * processing order, and the result is a new array — adding to or removing
+   * from it does not affect the pipeline, though it holds the same processor
+   * objects. It includes inactive processors, which are never removed from
+   * the pipeline by kick/activate toggles.
    */
   getProcessors(): readonly PipelineProcessor<TComponent>[] {
-    return this.state._processors;
+    return this.state._processors.flat();
   }
 
   /**
@@ -318,7 +362,7 @@ export default class PipelineManager<TComponent> {
    *          already active or no processor with that id exists.
    */
   activeProcessor(id: string): boolean {
-    const target = this.state._processors.find((p) => p.id === id);
+    const target = this.state._processors.flat().find((p) => p.id === id);
     if (!target || target.active) {
       return false;
     }
@@ -331,8 +375,8 @@ export default class PipelineManager<TComponent> {
    * by flipping its `active` flag off.
    *
    * The processor is skipped on the next {@link processKey} call — it is
-   * excluded before `process()` runs, so the key event falls through to
-   * the next pipeline stage as if the disabled processor did not exist.
+   * excluded before `process()` runs, so the rest of its stage and every
+   * later stage run as if the disabled processor did not exist.
    * Works on both built-in stages and custom processors added via
    * {@link addProcessor}.
    *
@@ -341,7 +385,7 @@ export default class PipelineManager<TComponent> {
    *          already inactive or no processor with that id exists.
    */
   kickProcessor(id: string): boolean {
-    const target = this.state._processors.find((p) => p.id === id);
+    const target = this.state._processors.flat().find((p) => p.id === id);
     if (!target || !target.active) {
       return false;
     }
@@ -350,14 +394,15 @@ export default class PipelineManager<TComponent> {
   }
 
   /**
-   * Reassign a processor's priority weight at runtime and re-sort the
-   * pipeline, letting applications reorder stages without removing and
-   * re-adding them.
+   * Reassign a processor's priority weight at runtime, letting applications
+   * reorder stages without removing and re-adding them.
    *
-   * Higher weight runs first. Ties keep the original registration order
-   * (`createAt` is unchanged), so setting two processors to the same weight
-   * keeps whichever was registered earlier ahead. The processor's `active`
-   * flag is untouched.
+   * Processors sharing a weight form one stage, and the stage list stays
+   * sorted by that shared weight, so repositioning the processor means
+   * relocating it between stages: it joins the stage that already carries
+   * the target weight, or opens a fresh stage of its own when no stage
+   * matches. Either way it is detached from its old stage first, and an old
+   * stage left empty is dropped. The `active` flag is untouched.
    *
    * Works on both built-in stages and custom processors. Use
    * {@link builtinProcessorWeights} as a reference when computing a target
@@ -366,15 +411,42 @@ export default class PipelineManager<TComponent> {
    *
    * @param id - The processor id to re-weight (built-in or custom).
    * @param weight - The new weight.
-   * @returns `true` if the processor was found and updated, `false` if no
-   *          processor with that id exists.
+   * @returns `true` if the processor was found, `false` if no processor with
+   *          that id exists.
    */
   setProcessorWeight(id: string, weight: number): boolean {
-    const target = this.state._processors.find((p) => p.id === id);
-    if (!target) {
+    const stageIndex = this.state._processors.findIndex((stage) =>
+      stage.some((p) => p.id === id),
+    );
+    if (stageIndex === -1) {
       return false;
     }
+
+    const stage = this.state._processors[stageIndex];
+    const processorIndex = stage.findIndex((p) => p.id === id);
+    const target = stage[processorIndex];
+
+    if (target.weight === weight) {
+      return true;
+    }
+
+    // Detach before locating the target stage: dropping an emptied stage
+    // shifts the indices of every stage after it.
+    stage.splice(processorIndex, 1);
+    if (stage.length === 0) {
+      this.state._processors.splice(stageIndex, 1);
+    }
     target.weight = weight;
+
+    const sameWeight = this.state._processors.find(
+      (each) => each[0].weight === weight,
+    );
+    if (sameWeight) {
+      sameWeight.push(target);
+      return true;
+    }
+
+    this.state._processors.push([target]);
     this._sortByWeight();
     return true;
   }

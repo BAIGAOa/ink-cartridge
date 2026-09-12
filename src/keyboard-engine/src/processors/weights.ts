@@ -1,8 +1,8 @@
 /**
  * Default weights of the built-in pipeline processors, keyed by processor id.
  *
- * Higher weight runs earlier; equal weights are ordered by registration time
- * (`createAt`). The weights descend from `modal` (the barrier that must run
+ * Higher weight runs earlier; equal weights share one stage and run in
+ * insertion order. The weights descend from `modal` (the barrier that must run
  * first) to `screen-stack` in steps of 1000, leaving headroom for custom
  * processors to slot between the built-ins — e.g. a processor that must run
  * before the modal barrier can use `builtinProcessorWeights.modal + 1`.
