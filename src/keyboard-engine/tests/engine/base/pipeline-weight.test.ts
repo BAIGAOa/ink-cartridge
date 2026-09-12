@@ -41,14 +41,13 @@ describe("pipeline weight ordering", () => {
     expect(order[order.length - 1]).toBe("two");
   });
 
-  it("stamps active/weight/createAt onto inserted processors", () => {
+  it("stamps active/weight onto inserted processors", () => {
     const engine = createEngine();
     engine.addProcessor({ id: "custom", process: () => false });
     const stored = engine.getProcessors().find((p) => p.id === "custom");
     expect(stored).toBeDefined();
     expect(stored!.active).toBe(true);
-    expect(typeof stored!.weight).toBe("number");
-    expect(typeof stored!.createAt).toBe("number");
+    expect(stored!.weight).toBe(0);
   });
 
   it("skips inactive processors before process() runs", () => {

@@ -87,18 +87,23 @@ export interface KeyboardProviderProps {
 	children: ReactNode;
 
 	/**
-	 * Here you can pre-insert the custom processors you want,
-	 * and they will be inserted into the pipeline based on their index and ID.
+	 * Custom processors to inject when the engine is created.
+	 *
+	 * Each entry is positioned by `index` — a 0-based stage slot — or by
+	 * `target` + `position`, which places it as a new stage beside the stage
+	 * holding that processor id; without either it is appended after all
+	 * built-in stages. A processor's own `id` identifies it for later
+	 * re-weighting or removal.
+	 *
 	 * @example
 	 * ```tsx
 	 * <KeyboardProvider
 	 *   processors={[
-	 *     { id: "uppercase", index: 0, processor: MyUppercaseProcessor },
-	 *     { id: "logger", index: 1, processor: MyLoggerProcessor },
+	 *     { processor: { id: "uppercase", process: uppercase }, index: 0 },
+	 *     { processor: { id: "logger", process: logger }, index: 1 },
 	 *   ]}
 	 * >
 	 * ```
-	 *
 	 */
 	processors?: KeyboardProcessorProps<ComponentType<any>>[];
 
