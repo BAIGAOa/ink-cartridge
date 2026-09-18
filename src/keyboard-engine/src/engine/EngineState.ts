@@ -101,6 +101,9 @@ export default class EngineState<TComponent> {
    * The active processor pipeline for this engine instance: an outer list of
    * stages sorted by weight (descending), each stage grouping the processors
    * that share that weight.
+   *
+   * Mutate only through `PipelineManager` — it holds an id-keyed index and a
+   * flattened snapshot cache that both track this array by reference.
    */
   _processors: PipelineProcessor<TComponent>[][] = [];
 

@@ -26,8 +26,25 @@ import { builtinProcessorWeights } from "../processors/weights.js";
  * processor can be temporarily disabled via {@link kickProcessor}.
  * All pipeline state is **per-instance** — each `KeyboardEngine` manages
  * its own pipeline independently.
+ *
+ * Two caches mirror the stage list so id lookups and introspection stay
+ * cheap: `processorIndex` maps each processor id to its processor and the
+ * stage holding it (O(1) instead of a scan), and `flatSnapshot` holds a
+ * lazily built flatten of the stages for {@link getProcessors}. Both are
+ * dropped on any structural change — add, remove, re-weight, or reset —
+ * while `active` toggles leave the pipeline shape untouched and keep them.
  */
 export default class PipelineManager<TComponent> {
+  private processorIndex = new Map<
+    string,
+    {
+      processor: PipelineProcessor<TComponent>;
+      stage: PipelineProcessor<TComponent>[];
+    }
+  >();
+
+  private flatSnapshot: readonly PipelineProcessor<TComponent>[] | null = null;
+
   constructor(
     private state: EngineState<TComponent>,
     custom?: KeyboardProcessorProps<TComponent>[],
@@ -57,6 +74,8 @@ export default class PipelineManager<TComponent> {
     custom?: KeyboardProcessorProps<TComponent>[],
   ): PipelineProcessor<TComponent>[][] {
     this.state._processors = [];
+    this.processorIndex.clear();
+    this.flatSnapshot = null;
 
     this.addProcessor(createModalProcessor(), {
       weight: builtinProcessorWeights.modal,
@@ -161,9 +180,7 @@ export default class PipelineManager<TComponent> {
       | { after?: string }
       | { index?: number },
   ): void {
-    const allProcessors = this.state._processors.flat();
-
-    if (allProcessors.some((p) => p.id === processor.id)) {
+    if (this.processorIndex.has(processor.id)) {
       throw new Error(
         `[ink-cartridge] Cannot add processor "${processor.id}": duplicate id`,
       );
@@ -198,9 +215,10 @@ export default class PipelineManager<TComponent> {
         // holding it, and the new processor becomes a stage of its own
         // beside that one — so "before modal" still runs strictly ahead of
         // the modal barrier and can consume the event.
-        const stageIndex = this.state._processors.findIndex((stage) =>
-          stage.some((p) => p.id === target),
-        );
+        const targetEntry = this.processorIndex.get(target);
+        const stageIndex = targetEntry
+          ? this.state._processors.indexOf(targetEntry.stage)
+          : -1;
 
         if (stageIndex === -1) {
           throw new Error(
@@ -230,21 +248,25 @@ export default class PipelineManager<TComponent> {
       weight,
     };
 
-    const sameWeight = this.state._processors.findIndex(
+    const sameWeight = this.state._processors.find(
       (each) => each[0].weight === weight,
     );
 
-    if (sameWeight !== -1) {
-      const target = this.state._processors[sameWeight];
-
-      target.push(full);
-      // Sorting was already underway when the phase was formed.
-      // So there's no need to repeat the sorting here.
-      return;
+    let targetStage: PipelineProcessor<TComponent>[] = [];
+    if (sameWeight) {
+      sameWeight.push(full);
+      targetStage = sameWeight;
+    } else {
+      targetStage = [full];
+      this.state._processors.push(targetStage);
+      this._sortByWeight();
     }
 
-    this.state._processors.push([full]);
-    this._sortByWeight();
+    this.processorIndex.set(processor.id, {
+      processor: full,
+      stage: targetStage,
+    });
+    this.flatSnapshot = null;
   }
 
   /**
@@ -304,22 +326,26 @@ export default class PipelineManager<TComponent> {
    *          processor with the given id exists.
    */
   removeProcessor(processorId: string): boolean {
-    const stageIndex = this.state._processors.findIndex((stage) =>
-      stage.some((p) => p.id === processorId),
-    );
-    if (stageIndex === -1) {
+    const entry = this.processorIndex.get(processorId);
+    if (!entry) {
       return false;
     }
 
-    const stage = this.state._processors[stageIndex];
-    stage.splice(
-      stage.findIndex((p) => p.id === processorId),
-      1,
-    );
+    const stage = entry.stage;
+    const indexInStage = stage.indexOf(entry.processor);
+    if (indexInStage !== -1) {
+      stage.splice(indexInStage, 1);
+    }
     // A stage is defined by its weight; with no member left it has none.
     if (stage.length === 0) {
-      this.state._processors.splice(stageIndex, 1);
+      const stageIndex = this.state._processors.indexOf(stage);
+      if (stageIndex !== -1) {
+        this.state._processors.splice(stageIndex, 1);
+      }
     }
+
+    this.processorIndex.delete(processorId);
+    this.flatSnapshot = null;
     return true;
   }
 
@@ -331,9 +357,18 @@ export default class PipelineManager<TComponent> {
    * from it does not affect the pipeline, though it holds the same processor
    * objects. It includes inactive processors, which are never removed from
    * the pipeline by kick/activate toggles.
+   *
+   * The flattened order is cached and rebuilt only when the pipeline's
+   * structure changes (add/remove/re-weight/reset), so repeated calls are
+   * cheap; each call still returns a fresh copy of the cached array.
    */
   getProcessors(): readonly PipelineProcessor<TComponent>[] {
-    return this.state._processors.flat();
+    if (this.flatSnapshot === null) {
+      this.flatSnapshot = this.state._processors.flat();
+    }
+    // Hand out a fresh array per call so callers can't mutate the cache;
+    // the elements are shared, so `active` toggles stay visible either way.
+    return [...this.flatSnapshot];
   }
 
   /**
@@ -354,15 +389,16 @@ export default class PipelineManager<TComponent> {
    *
    * Neither this method nor {@link kickProcessor} changes the pipeline
    * array — {@link getProcessors} returns the same list regardless of
-   * kick/activate state. Only `removeProcessor` and `resetProcessors`
-   * alter the pipeline array.
+   * kick/activate state. Only structural operations — {@link addProcessor},
+   * {@link removeProcessor}, {@link setProcessorWeight}, and
+   * {@link resetProcessors} — alter the pipeline.
    *
    * @param id - The processor id to re-enable (built-in or custom).
    * @returns `true` if the processor was re-activated, `false` if it was
    *          already active or no processor with that id exists.
    */
   activeProcessor(id: string): boolean {
-    const target = this.state._processors.flat().find((p) => p.id === id);
+    const target = this.processorIndex.get(id)?.processor;
     if (!target || target.active) {
       return false;
     }
@@ -385,7 +421,7 @@ export default class PipelineManager<TComponent> {
    *          already inactive or no processor with that id exists.
    */
   kickProcessor(id: string): boolean {
-    const target = this.state._processors.flat().find((p) => p.id === id);
+    const target = this.processorIndex.get(id)?.processor;
     if (!target || !target.active) {
       return false;
     }
@@ -415,26 +451,29 @@ export default class PipelineManager<TComponent> {
    *          that id exists.
    */
   setProcessorWeight(id: string, weight: number): boolean {
-    const stageIndex = this.state._processors.findIndex((stage) =>
-      stage.some((p) => p.id === id),
-    );
-    if (stageIndex === -1) {
+    const entry = this.processorIndex.get(id);
+    if (!entry) {
       return false;
     }
 
-    const stage = this.state._processors[stageIndex];
-    const processorIndex = stage.findIndex((p) => p.id === id);
-    const target = stage[processorIndex];
-
+    const target = entry.processor;
     if (target.weight === weight) {
       return true;
     }
 
+    const stage = entry.stage;
+    const indexInStage = stage.indexOf(target);
+
     // Detach before locating the target stage: dropping an emptied stage
     // shifts the indices of every stage after it.
-    stage.splice(processorIndex, 1);
+    if (indexInStage !== -1) {
+      stage.splice(indexInStage, 1);
+    }
     if (stage.length === 0) {
-      this.state._processors.splice(stageIndex, 1);
+      const stageIndex = this.state._processors.indexOf(stage);
+      if (stageIndex !== -1) {
+        this.state._processors.splice(stageIndex, 1);
+      }
     }
     target.weight = weight;
 
@@ -443,11 +482,15 @@ export default class PipelineManager<TComponent> {
     );
     if (sameWeight) {
       sameWeight.push(target);
-      return true;
+      entry.stage = sameWeight;
+    } else {
+      const newStage = [target];
+      this.state._processors.push(newStage);
+      this._sortByWeight();
+      entry.stage = newStage;
     }
 
-    this.state._processors.push([target]);
-    this._sortByWeight();
+    this.flatSnapshot = null;
     return true;
   }
 }
