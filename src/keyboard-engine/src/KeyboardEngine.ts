@@ -1158,9 +1158,10 @@ export default class KeyboardEngine<TComponent = unknown> {
    * are skipped and the key continues to layers below.
    *
    * Penetration means **pass-through**, not blocking — the key is only
-   * released, never consumed. Penetration rules are checked first during key
-   * matching (layer broadcast and screen-stack stages), so a key that is both
-   * stopped and penetrated on the same layer passes through. A wildcard `"*"`
+   * released, never consumed. Penetration rules are checked before bindings
+   * during key matching (layer broadcast and screen-stack stages). A key that
+   * is both penetrated and stopped on the same layer is still stopped there —
+   * {@link KeyboardEngine.stop} wins over penetration. A wildcard `"*"`
    * entry marks all keys transparent, and a `when` condition (callback or
    * registered condition id) gates the rule — when it evaluates to `false`
    * the penetration rule is ignored.
@@ -1191,9 +1192,11 @@ export default class KeyboardEngine<TComponent = unknown> {
    * Prevent keys from propagating beyond the current layer. A "stop barrier"
    * means: once a key reaches this layer, even if no binding handles it, it
    * does not fall through to layers below. Stop rules are checked after
-   * bindings and penetrations, and a `when` condition (callback or registered
-   * condition id) gates the rule — when it evaluates to `false` the key
-   * propagates normally. A wildcard `"*"` entry stops all keys.
+   * bindings and penetrations. A key that is both penetrated and stopped on
+   * the same layer is still stopped — stop takes priority over
+   * {@link KeyboardEngine.penetration}. A `when` condition (callback or
+   * registered condition id) gates the rule — when it evaluates to `false` the
+   * key propagates normally. A wildcard `"*"` entry stops all keys.
    *
    * `stopAction: true` treats `keys` as shortcut action IDs: the stop rule is
    * stored against the action id and resolved to the action's current bound
