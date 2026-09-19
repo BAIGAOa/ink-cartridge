@@ -400,7 +400,3 @@ render(
 <div align="center">
     <img src="/zh/docs-focus-system.gif" width="2040" alt="focus-system" />
 </div>
-
-## 下一步
-
-- 学习 ink-cartridge 的图层系统并了解一些常用模式。[普通图层](/zh/screen/layer-base)

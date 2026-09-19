@@ -171,7 +171,3 @@ render(
 3. **`active` 只影响键盘，不影响渲染。** 元素暂停后依旧显示，只是不响应按键。
 4. **模态层的键盘屏障不因元素暂停而消失。** 即使模态层内所有元素都被暂停，未处理的按键仍被吞掉，不会漏到下面的界面。
 5. **无法复活被 `eraseElementInModalLayer` 移除的元素。** 恢复需要重新 `applyElementToModalLayer`。
-
-## 下一步
-
-- 使用 `allowModal` 放行键盘事件：[allowModal 放行键盘事件](/zh/screen/allow-modal)

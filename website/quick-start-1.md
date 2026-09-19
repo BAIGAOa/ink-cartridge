@@ -93,7 +93,3 @@ Result:
 - `CurrentScreen` renders the active screen.
 
 > Tip: In Ink, the Enter key is `'return'`, not `'enter'`.
-
-### Next steps
-
-- Learn how to use `registerComponent` to organize your own screens — [Organize Your Screen](/screen/screen-registry)

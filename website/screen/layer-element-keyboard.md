@@ -145,7 +145,3 @@ Worth noting: **a paused element can't wake itself up with its own keys**. Since
 3. **`active` only affects keyboard, not rendering.** A paused element keeps displaying; it just stops responding to keys.
 4. **`activateElement` can't revive an element removed by `eraseElement`.** `eraseElement` destroys the element together with its keyboard registration; restoring requires `applyElement` again.
 5. **Modal layers have counterparts**: `activateElementInModalLayer` / `deactivateElementInModalLayer` (covered in a later article).
-
-## Next steps
-
-- Learn the basics of modal layers and their methods: [modal layer basics](/screen/modal-layer-base)

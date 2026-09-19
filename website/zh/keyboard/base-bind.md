@@ -200,7 +200,3 @@ boundKeyboard('x', () => confirm(), { times: 3 })
 1. **绑定必须注册在 `useEffect` 内，并返回解绑函数**，以避免绑定残留导致的"幽灵按键"（见上文"键盘事件传递机制"）。
 2. **通配符 `'*'`** 可匹配任意按键，常与 `once: true` 组合，可用于"按任意键继续"的场景。
 3. **`boundKeyboard` 仅可在组件内使用**——它通过 `useKeyboard` 获取上下文，且组件必须位于 `KeyboardProvider` 内部。
-
-## 下一步
-
-- 了解如何使用 `skip` , `gotoScreen` 方法并配合 `boundKeyboard` 使用。[屏幕导航](/zh/screen/navigation)

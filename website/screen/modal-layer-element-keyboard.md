@@ -171,7 +171,3 @@ Worth noting: a paused element receives no keys, so it can't wake itself up with
 3. **`active` only affects keyboard, not rendering.** A paused element keeps displaying; it just stops responding to keys.
 4. **A modal layer's keyboard barrier doesn't disappear when its elements are paused.** Even if every element in the modal layer is paused, unhandled keys are still swallowed and don't leak to the UI below.
 5. **An element removed by `eraseElementInModalLayer` can't be revived.** Restoring it requires `applyElementToModalLayer` again.
-
-## Next steps
-
-- Use `allowModal` to let keys pass through the modal barrier: [passing keys through with allowModal](/screen/allow-modal)

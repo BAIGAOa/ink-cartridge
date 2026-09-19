@@ -175,7 +175,3 @@ You already saw this in the example above: once `modal-1` is open, the `1` key o
 2. **Only the modal layer with the highest `zIndex` receives keys.** When several modal layers coexist, the rest stay dormant until the topmost one closes.
 3. **The top modal layer broadcasts within itself.** Just like ordinary layers, the event is broadcast to every active element in the top modal layer, so multiple handlers can respond at once.
 4. **The barrier swallows unhandled keys.** While a modal layer is open, unhandled keys don't bubble to the ordinary layers or the screen; use `allowModal` to let them through (covered in a later article).
-
-## Next steps
-
-- Learn how to deactivate and activate keyboard response of elements inside modal layers: [keyboard response of modal layer elements](/screen/modal-layer-element-keyboard)

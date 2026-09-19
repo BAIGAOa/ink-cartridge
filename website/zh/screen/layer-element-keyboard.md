@@ -145,7 +145,3 @@ render(
 3. **`active` 只影响键盘，不影响渲染。** 元素暂停后依旧显示，只是不响应按键。
 4. **`activateElement` 无法复活被 `eraseElement` 移除的元素。** `eraseElement` 会把元素连同它的键盘注册一起销毁，恢复需要重新 `applyElement`。
 5. **模态层有对应的变体**：`activateElementInModalLayer` / `deactivateElementInModalLayer`（见后续文章）。
-
-## 下一步
-
-- 了解模态层的基础概念与方法：[模态层基础](/zh/screen/modal-layer-base)

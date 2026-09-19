@@ -252,7 +252,3 @@ Run it:
 - Press `c` to close the panel, then press `h`: the page receives it again.
 
 Same key, two bindings, different attributions — that's call location deciding where a binding lands.
-
-## Next steps
-
-- Learn about named groups of the focus system. [unfinished doc](/todo)

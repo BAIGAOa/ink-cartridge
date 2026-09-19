@@ -488,7 +488,3 @@ That's the fundamental difference between "stop on hit" between layers and "broa
 2. **Equal `zIndex` is ordered by open time.** When `zIndex` ties, the layer opened earlier sits lower and receives events later (decided by `createdAt`).
 3. **Bindings only take effect while the layer is open and the element is active.** Once a layer closes or an element is deactivated, the corresponding bindings stop working.
 4. **Modal layers have higher keyboard priority than ordinary layers.** Modal layers render above ordinary layers, and only the modal layer with the highest `zIndex` receives keyboard events — covered in a later article.
-
-## Next steps
-
-- Learn how to control keyboard reception for a specific element inside its layer: [control keyboard reception of a layer element](/screen/layer-element-keyboard)

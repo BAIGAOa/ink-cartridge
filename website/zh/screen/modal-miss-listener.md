@@ -142,7 +142,3 @@ render(
 2. **丢失键仍被屏障吞掉。** 监听只是通知你「有个键没被处理」，不会改变事件流向。
 3. **`monitorWhen` / `monitorFocusMismatch` 默认为 `false`。** 需要把「命中 `when` 为假 / 非激活焦点目标」的按键也算作丢失键时，才把它们设为 `true`。
 4. **`useModalMissListener` 是 `useKeyboard()` 提供的方法，应在 `useEffect` 中调用并返回解绑函数。** 组件卸载时监听随之清理。
-
-## 下一步
-
-- 学习绑定方法的归属判断与所有者栈：了解 `boundKeyboard` 等方法如何感知页面、元素与图层，以及它们在何处调用会归属到哪里。[绑定方法的归属与所有者栈](/zh/screen/binding-attribution)

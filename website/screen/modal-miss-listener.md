@@ -142,7 +142,3 @@ Run it:
 2. **Missed keys are still swallowed by the barrier.** The listener only tells you "a key wasn't handled"; it doesn't change the flow of the event.
 3. **`monitorWhen` / `monitorFocusMismatch` default to `false`.** Set them to `true` only when you want keys that hit a `when`-false binding or a non-active focus target to count as missed too.
 4. **`useModalMissListener` is a method from `useKeyboard()`; call it inside `useEffect` and return its unbind function.** The listener is cleaned up when the component unmounts.
-
-## Next steps
-
-- Learn about binding attribution and the owner stack: how `boundKeyboard` and friends perceive pages, elements, and layers, and the rules for where they land when called: [binding attribution and the owner stack](/screen/binding-attribution)

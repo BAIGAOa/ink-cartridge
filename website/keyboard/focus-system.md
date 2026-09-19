@@ -403,7 +403,3 @@ Result:
 <div align="center">
     <img src="/en/docs-focus-system.gif" width="2040" alt="focus-system" />
 </div>
-
-## Next steps
-
-- Learn about ink-cartridge's layer system and some common patterns. [Layer Basics](/screen/layer-base)

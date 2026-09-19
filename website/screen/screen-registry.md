@@ -165,17 +165,3 @@ interface RegisterOptions {
 3. **No `parent` means a root screen.** A root screen has no parent node and is usually passed to `ScenarioManagementProvider` as `defaultScreen`, serving as the app's default page and home page.
 4. **There can be multiple root screens.** Every component without a `parent` is the root of its own independent tree; they don't affect each other and each has its own subtree.
 5. **`template` is default props, not "current values".** It only describes the default attributes used when the screen is created; props passed during navigation are merged with it, and `template` itself is never modified. It is optional — omitting it is equivalent to passing `{}`.
-
-## Next: give the tree an "entry point"
-
-Organizing screens is not enough — without an entry point the screens are dead. `registerComponent` only registers pages into the tree; to actually "switch pages" you need an **entry point**. So you bind keys to the current screen with `boundKeyboard` and call navigation methods inside the callbacks.
-
-- `boundKeyboard` — a foundational method of the keyboard system (from `useKeyboard()`), which binds key events to the current screen;
-- `skip` — navigate down from the current screen to a child screen;
-- `back` — return to the parent screen (supports `levels` to go back multiple levels);
-- `gotoScreen` — jump across branches to any registered screen.
-
-Combined, this is exactly how the minimal app in quick-start is written: press `Enter` → `skip(Detail)` to enter a child screen, press `Esc` → `back()` to return home.
-
-Next, you can learn the following:
-- `boundKeyboard` — learn how to bind keys to a screen — [Basic Binding](/keyboard/base-bind);

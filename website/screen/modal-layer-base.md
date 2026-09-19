@@ -187,7 +187,3 @@ Calling `closeModalLayer` on an ID that isn't registered is a no-op (a warning i
 4. **Modal layers take over the keyboard.** While a modal layer is open, keys it doesn't handle don't fall through to the ordinary layers or the screen below; only the modal layer with the highest `zIndex` receives keyboard events (covered in a later article).
 5. **Modal layers are cleared on page switches by default.** Running `skip` / `back` / `gotoScreen` clears every modal layer whose `crossPage` is `false`; set it to `true` to keep the layer across pages (covered in a later article).
 6. **Modal layer methods work both as hooks and as module-level imports.** The methods above come from `useScreenSystem()`, and can also be imported directly from `ink-cartridge`.
-
-## Next steps
-
-- Learn how keyboard events flow among modal layers: [modal layer keyboard events](/screen/modal-layer-keyboard)

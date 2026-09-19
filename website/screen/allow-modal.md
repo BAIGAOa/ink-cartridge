@@ -154,7 +154,3 @@ Letting keys through follows two rules:
 2. **The modal layer's own handlers take priority over the allowlist.** A key handled by the modal layer won't pass through the barrier.
 3. **The `when` condition.** When `when` is provided, the allow rule only takes effect while the condition is `true`; when `false`, the key stays blocked by the barrier.
 4. **Allowing a key through doesn't skip the modal layer.** It means "when the modal layer doesn't handle this key, let it fall through to the UI below" — the key still passes through the modal layer first.
-
-## Next steps
-
-- Listen for missed keys inside a modal layer: [listening for modal layer missed keys](/screen/modal-miss-listener)

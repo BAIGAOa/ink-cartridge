@@ -252,7 +252,3 @@ closeAllLayer();
 4. **`openLayer` 只开启一个空容器。** 没有挂载任何元素时，图层不会显示任何内容。
 5. **普通图层默认会在页面切换时被清除。** 执行 `skip` / `back` / `gotoScreen` 时，`crossPage` 为 `false` 的图层会被自动清除；设置为 `true` 即可跨页面保留（详见后续文章）。
 6. **图层方法既可以作为钩子使用，也可以模块级导入。** 上述方法既可以从 `useScreenSystem()` 获取，也可以从 `ink-cartridge` 直接导入使用。
-
-## 下一步
-
-- 学习键盘事件流是怎么对待图层的：[键盘事件在图层之间的行为](/zh/screen/layer-keyboard)
