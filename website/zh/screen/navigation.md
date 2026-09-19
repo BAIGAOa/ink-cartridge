@@ -228,8 +228,3 @@ function Setting() {
 ## 最佳实践
 
 当你需要跳转到直接子屏幕的时候使用 `skip` 方法，当你需要跨分支跨层级跳转的时候使用 `gotoScreen` ，而不是滥用 `gotoScreen` 。
-
-## 下一步
-
-- 你可以学习如何使用 `boundKeyboard` 的中级特性，并了解它们该什么时候使用并熟知它们的用处。[boundKeyboard 中级特性](/zh/keyboard/boundKeyboard-advanced)
-- 你也可以选择学习ink-cartridge的图层系统并了解一些常用模式。[普通图层](/zh/screen/layer-base)

@@ -230,8 +230,3 @@ function Setting() {
 ## Best practices
 
 Use `skip` when you need to jump to a direct child screen; use `gotoScreen` when you need to jump across branches or levels — don't overuse `gotoScreen`.
-
-## Next steps
-
-- You can learn the intermediate features of `boundKeyboard`, when to use them, and what they are for. [Intermediate Features of boundKeyboard](/keyboard/boundKeyboard-advanced)
-- You can also learn about ink-cartridge's layer system and some common patterns. [Layer Basics](/screen/layer-base)

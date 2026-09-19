@@ -52,7 +52,9 @@ export default defineConfig({
               { text: 'Binding Attribution & the Owner Stack', link: '/screen/binding-attribution'},
               { text: 'Focus Groups', link: '/keyboard/focus-group'},
               { text: 'Shortcuts & Actions', link: '/keyboard/shortcuts-actions'},
-              { text: 'Multi-key Sequences', link: '/keyboard/boundSequence'}
+              { text: 'Multi-key Sequences', link: '/keyboard/boundSequence'},
+              { text: 'Stopping Key Propagation', link: '/keyboard/stop'},
+              { text: 'Passing Keys Through', link: '/keyboard/penetration'}
             ]
           }
         ]
@@ -98,7 +100,9 @@ export default defineConfig({
               { text: '绑定方法的归属与所有者栈', link: '/zh/screen/binding-attribution'},
               { text: '默认组与命名组', link: '/zh/keyboard/focus-group'},
               { text: '快捷键与动作', link: '/zh/keyboard/shortcuts-actions'},
-              { text: '多键序列', link: '/zh/keyboard/boundSequence'}
+              { text: '多键序列', link: '/zh/keyboard/boundSequence'},
+              { text: '停止键传播', link: '/zh/keyboard/stop'},
+              { text: '键的穿透', link: '/zh/keyboard/penetration'}
             ]
           }
         ]

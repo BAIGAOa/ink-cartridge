@@ -165,18 +165,3 @@ interface RegisterOptions {
 3. **不声明 `parent` 即根屏幕。** 根屏幕没有父节点，通常作为 `defaultScreen` 传入 `ScenarioManagementProvider`，作为应用的默认页和主页。
 4. **可以有多个根屏幕。** 每个没有 `parent` 的组件都是一棵独立树的根，彼此互不影响，各自拥有自己的子树。
 5. **`template` 是默认 props，不是"当前值"。** 它只描述屏幕被创建时的默认属性；导航时传入的 props 会与之合并，`template` 本身不会被修改。它是可选的——省略等同于传 `{}`。
-
-## 下一步：给树一个"入口"
-
-组织完屏幕还不够，那样屏幕是死的——`registerComponent` 只负责把页面注册成树，真正"切换页面"还需要一个**入口**。因此需要使用 `boundKeyboard` 把按键绑定到当前屏幕，在回调里调用导航方法。
-
-- `boundKeyboard` —— 键盘系统的基础方法（来自 `useKeyboard()`），把按键事件绑定到当前屏幕；
-- `skip` —— 从当前屏幕向下跳到某个子屏幕；
-- `back` —— 返回父屏幕（支持 `levels` 指定返回层数）；
-- `gotoScreen` —— 跨分支直接跳转到任意已注册屏幕。
-
-组合起来就是 quick-start 里最小应用的写法：按 `Enter` → `skip(Detail)` 进入子屏幕，按 `Esc` → `back()` 返回主页。
-
-下一步，你可以学习以下内容。
-- `boundKeyboard` —— 学会把按键绑定到屏幕 [基本绑定](/zh/keyboard/base-bind)；
-

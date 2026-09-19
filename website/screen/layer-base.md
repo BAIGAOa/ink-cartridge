@@ -253,7 +253,3 @@ When several layers are open at the same time, `closeAllLayer` quickly clears th
 4. **`openLayer` only opens an empty container.** Without any mounted element, a layer renders nothing.
 5. **Ordinary layers are cleared on page switches by default.** Running `skip` / `back` / `gotoScreen` clears every layer whose `crossPage` is `false`; set it to `true` to keep the layer across pages (covered in a later article).
 6. **Layer methods work both as hooks and as module-level imports.** The methods above come from `useScreenSystem()`, and can also be imported directly from `ink-cartridge`.
-
-## Next steps
-
-- Learn how the keyboard event flow treats layers: [how keyboard events behave between layers](/screen/layer-keyboard)

@@ -201,7 +201,3 @@ Therefore, the recommended practice is: **always return the unbind function from
 1. **Bindings must be registered inside `useEffect` with the unbind function returned**, to avoid "ghost keys" caused by leftover bindings (see "Keyboard Event Propagation" above).
 2. **The wildcard `'*'`** matches any key and is often combined with `once: true` for "press any key to continue" scenarios.
 3. **`boundKeyboard` can only be used inside a component** — it obtains its context through `useKeyboard`, and the component must be inside a `KeyboardProvider`.
-
-## Next steps
-
-- Learn how to use the `skip` and `gotoScreen` methods together with `boundKeyboard` — [Navigation](/screen/navigation).
