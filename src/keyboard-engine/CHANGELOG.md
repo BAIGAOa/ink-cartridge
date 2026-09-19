@@ -1,5 +1,11 @@
 # @cartridge-engine/keyboard-engine
 
+## 2.1.15
+
+### Patch Changes
+
+- 76d1ab0: - **docs**(keyboard-engine): the `penetration` JSDoc no longer claims that a penetrated key passes through a stop rule — a key that is both penetrated and stopped on the same layer is stopped there, `stop` taking priority over penetration. The `stop` JSDoc now states the same precedence, and the two methods cross-reference each other.
+
 ## 2.1.14
 
 ### Patch Changes
