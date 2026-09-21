@@ -3,8 +3,16 @@
 layout: home
 
 hero:
-  name: "ink-cartridge-doc"
-  text: "ink-cartridge docs"
+  name: "ink-cartridge"
+  text: "Guides"
+  tagline: A React Ink component kit for building terminal UIs — layered keyboard engine, screen routing, and full mouse integration.
+  actions:
+    - theme: brand
+      text: Quick Start
+      link: /quick-start-1
+    - theme: alt
+      text: API Reference
+      link: https://baigaoa.github.io/ink-cartridge/framework/
 
 features:
   - title: Layered Keyboard Engine
