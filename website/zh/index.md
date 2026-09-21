@@ -3,8 +3,16 @@
 layout: home
 
 hero:
-  name: "ink-cartridge-doc"
-  text: "ink-cartridge docs"
+  name: "ink-cartridge"
+  text: "使用指南"
+  tagline: 基于 React Ink 的终端 UI 组件库——分层键盘引擎、屏幕路由与完整鼠标联动。
+  actions:
+    - theme: brand
+      text: 快速开始
+      link: /zh/quick-start-1
+    - theme: alt
+      text: API 参考
+      link: https://baigaoa.github.io/ink-cartridge/framework/
 
 features:
   - title: 分层键盘引擎
