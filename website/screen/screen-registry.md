@@ -22,6 +22,10 @@ Main Menu
 
 ## Prerequisites
 
+| Chapter | Why you need it |
+|---|---|
+| [Quick Start](/quick-start-1) | The screen tree and the overall provider structure are set up here |
+
 After screens are registered into the tree, they still need to be actually rendered, which is done by two components working together:
 
 - **`ScenarioManagementProvider`** — the context provider of the screen system, wrapping the whole app: it maintains the screen tree state (current path, layers, modal layers, etc.). `defaultScreen` specifies the initial screen at startup (must be a registered component, otherwise it throws), and `fullScreen` makes the screen fill the terminal height.

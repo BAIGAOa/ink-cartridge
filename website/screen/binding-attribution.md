@@ -6,6 +6,14 @@ For example, in `layer-keyboard`, the `w` inside the panel element only takes ef
 
 In this chapter, we'll uncover the answer. First we'll explain the mechanism behind it — the **owner** and the **owner stack** — then walk through, scenario by scenario, where `boundKeyboard` and friends land when called in different places.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Keyboard Events Between Layers](/screen/layer-keyboard) | This chapter uses its `w` / `a` example |
+| [Layer Element Keyboard](/screen/layer-element-keyboard) | Where a binding called inside an element lands |
+| [Modal Layer Element Keyboard](/screen/modal-layer-element-keyboard) | Where a binding called inside a modal element lands |
+
 ## Attribution: where a binding lives
 
 First, one concept: **attribution** is where a binding "lives". A binding doesn't exist in isolation — it's always attached to some keyboard layer. When the engine dispatches keys, it only looks for bindings in the relevant keyboard layer; it doesn't scan everything globally.

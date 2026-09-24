@@ -2,6 +2,13 @@
 
 In the previous chapter, we learned how to let keys through the modal barrier with `allowModal`. In this chapter, we'll learn about `useModalMissListener`: listening inside a modal layer for keys that aren't handled — the missed keys.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Modal Layer Keyboard Events](/screen/modal-layer-keyboard) | Missed keys are the ones the barrier swallows |
+| [Passing Keys with allowModal](/screen/allow-modal) | The previous chapter |
+
 ## What a missed key is
 
 While a modal layer is open, keys it doesn't handle are swallowed by the barrier. Most of the time we don't care about those keys, but some scenarios want to react when a key is swallowed — for example, showing a "key not bound" hint at the bottom of the popup, or counting the invalid keys the user pressed inside the modal layer.

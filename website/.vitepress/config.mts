@@ -72,6 +72,13 @@ const sidebarEn = [
       { text: 'Stopping Key Propagation', link: '/keyboard/stop' },
       { text: 'Passing Keys Through', link: '/keyboard/penetration' }
     ]
+  },
+  {
+    text: 'Mouse',
+    items: [
+      { text: 'Mouse Region Basics', link: '/mouse/mouse-base' },
+      { text: 'Mouse-Driven Keyboard Focus', link: '/mouse/mouse-focus' }
+    ]
   }
 ]
 
@@ -112,6 +119,13 @@ const sidebarZh = [
       { text: '多键序列', link: '/zh/keyboard/boundSequence' },
       { text: '停止键传播', link: '/zh/keyboard/stop' },
       { text: '键的穿透', link: '/zh/keyboard/penetration' }
+    ]
+  },
+  {
+    text: '鼠标',
+    items: [
+      { text: '鼠标区域基础', link: '/zh/mouse/mouse-base' },
+      { text: '鼠标与键盘焦点联动', link: '/zh/mouse/mouse-focus' }
     ]
   }
 ]

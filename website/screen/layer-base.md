@@ -13,6 +13,13 @@ After opening a layer you still need `applyElement` to mount an element into it 
 
 This chapter focuses on **ordinary layers**: it first explains the basic concept of a layer, then walks through the core methods `openLayer`, `applyElement`, `closeLayer`, and more.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Organize Your Screen](/screen/screen-registry) | Layers float above the screen, so know what a screen is first |
+| [Navigation](/screen/navigation) | Whether a layer survives a page switch is tied to navigation |
+
 ## The concept of a layer
 
 Before we start, one key fact: **`openLayer` only opens an empty container — it renders nothing by itself**. To actually show a layer you need two steps:

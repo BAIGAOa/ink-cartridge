@@ -8,6 +8,13 @@ stop(keys: string[], options?: StopOptions): () => void
 
 Call it inside a screen component or a layer element. It returns a function that removes the stop rule.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Basic Binding](/keyboard/base-bind) | A stop only matters when no binding matched |
+| [Layer Basics](/screen/layer-base) | `stop` acts on the current layer |
+
 ## Evaluation order within a layer
 
 | Order | Mechanism | Result when it matches |

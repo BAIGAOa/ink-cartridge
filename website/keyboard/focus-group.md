@@ -2,6 +2,12 @@
 
 Sometimes we may want a single screen to have several focuses at the same time, and ink-cartridge provides a complete multi-focus group system.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Focus System](/keyboard/focus-system) | The previous chapter; this one replaces the default group with named groups |
+
 ## What are default groups and named groups
 
 In the previous article we met focus and focus targets: a screen has only one active focus at a time, and Tab cycles between them. But have you ever wondered — these focuses aren't scattered around; they're gathered into **groups**, and everything from the previous article actually happens inside the **default group**.

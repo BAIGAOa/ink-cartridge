@@ -4,6 +4,13 @@ We already know how to organize screen structures with `registerComponent`, but 
 
 There are three core navigation methods, all obtained through the `useScreenSystem` hook and usually used together with methods like `boundKeyboard`.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Organize Your Screen](/screen/screen-registry) | Navigation happens on the screen tree, so the parent/child relation comes first |
+| [Basic Binding](/keyboard/base-bind) | Navigation methods are driven by keys |
+
 ## Using the `skip` method to switch screens
 
 When you need to switch to a direct child of the current screen, you can use the `skip` method. For example, suppose the root screen of your app is Menu, and Game declares its `parent` as Menu — you can then use `skip` to jump to it.

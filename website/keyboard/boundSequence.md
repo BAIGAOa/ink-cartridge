@@ -4,6 +4,14 @@ In the *Shortcuts & Actions* chapter we said multi-key sequences would get a ded
 
 By now you already know the focus system, focus groups, and binding attribution — this chapter assumes all of that and doesn't re-explain it. It focuses on the most common overload only: `boundSequence(keys, handler, options?)`.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Basic Binding](/keyboard/base-bind) | A sequence is still a form of binding |
+| [Focus Groups](/keyboard/focus-group) | A sequence can be bound to a focus target |
+| [Binding Attribution](/screen/binding-attribution) | Where you call a sequence decides where it lands |
+
 ## What is a sequence
 
 Think of vim's `d d`: you delete by pressing `d` twice. After the first key, the engine doesn't fire immediately — it enters a "pending" state and waits for the remaining keys.

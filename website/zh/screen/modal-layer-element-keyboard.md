@@ -2,6 +2,13 @@
 
 在上一章，我们学习了键盘事件在模态层之间的行为。在这一章中，我们将学习如何控制模态层内单个元素的键盘接收：用 `applyElementToModalLayer` 的 `active` 字段设定初始状态，再用 `activateElementInModalLayer` / `deactivateElementInModalLayer` 在运行时切换。
 
+## 前置知识
+
+| 文章 | 为什么需要 |
+|---|---|
+| [模态层基础](/zh/screen/modal-layer-base) | 元素挂载用的是模态层的 API |
+| [模态层键盘事件](/zh/screen/modal-layer-keyboard) | 上一章的内容 |
+
 ## 模态层内元素的键盘接收状态
 
 模态层内的元素与普通图层内的元素遵循相同的规则：每个元素都有一个键盘接收状态（`active`）。`active` 时，元素的绑定参与键盘分发；被暂停（`active: false`）后，元素仍然渲染，但不再接收键盘事件。

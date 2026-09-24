@@ -8,6 +8,13 @@ stop(keys: string[], options?: StopOptions): () => void
 
 在屏幕组件或图层元素内调用，返回一个移除拦截规则的函数。
 
+## 前置知识
+
+| 文章 | 为什么需要 |
+|---|---|
+| [基本绑定](/zh/keyboard/base-bind) | 拦截生效的前提是绑定未命中 |
+| [普通图层](/zh/screen/layer-base) | `stop` 作用在「当前层」上 |
+
 ## 同一层内的求值顺序
 
 | 顺序 | 机制 | 命中后的结果 |

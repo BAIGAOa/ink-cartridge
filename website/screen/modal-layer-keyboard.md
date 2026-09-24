@@ -2,6 +2,12 @@
 
 In the previous chapter, we learned the basics of modal layers and their methods. In this chapter, we'll learn how keyboard events flow among modal layers: why only the topmost modal layer receives keys, and why the rest of the UI seems "dead" while a modal layer is open.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Modal Layer Basics](/screen/modal-layer-base) | The previous chapter; this one expands the takeover rules |
+
 ## Where modal layers sit in the keyboard pipeline
 
 In the ordinary-layer chapter we mentioned that a keyboard event passes through a fixed processing pipeline. The modal-layer stage sits at the **very front** of that pipeline with the highest priority — it receives the event before global keys, ordinary layers, and the screen stack.

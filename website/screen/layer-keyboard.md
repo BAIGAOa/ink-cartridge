@@ -2,6 +2,13 @@
 
 In the previous chapter we learned the basic layer concepts and the related methods. In this chapter, we'll learn how keyboard events behave between layers.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Layer Basics](/screen/layer-base) | This chapter is about key flow between layers |
+| [Basic Binding](/keyboard/base-bind) | Bindings inside a layer are still declared with `boundKeyboard` |
+
 ## What is a keyboard event
 
 A **keyboard event** is the input produced when the user presses a key on the terminal. In ink-cartridge, every keyboard event is captured and dispatched centrally by the keyboard engine (`KeyboardEngine`) — you don't attach a separate listener per key. Instead you declare "what to do when a certain key is pressed" with `boundKeyboard`, and the engine decides which handler the event finally goes to.

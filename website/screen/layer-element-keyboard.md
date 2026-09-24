@@ -2,6 +2,13 @@
 
 In the previous chapter, we learned how keyboard events behave between layers. In this chapter, we'll learn how to control the keyboard reception of a **single element** inside a layer.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Layer Basics](/screen/layer-base) | You need the element mounting API first |
+| [Keyboard Events Between Layers](/screen/layer-keyboard) | The previous chapter; this one narrows to a single element |
+
 ## The keyboard-reception state of an element
 
 Let's start with a question: **without runtime `active` control, how would you make a layer element temporarily stop responding to keys?**

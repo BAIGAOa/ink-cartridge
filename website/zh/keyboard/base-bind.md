@@ -2,7 +2,11 @@
 
 ink-cartridge 提供了一套完整且强大的键盘引擎，用于统一管理应用程序的键盘事件处理。正确使用并组合其能力，可以避免键盘逻辑的混乱。本章介绍键盘引擎中最核心的方法之一：`boundKeyboard`。
 
-## 前置条件
+## 前置知识
+
+| 文章 | 为什么需要 |
+|---|---|
+| [快速开始](/zh/quick-start-1) | Provider 的完整嵌套顺序在这里给出 |
 
 在使用 `boundKeyboard` 之前，必须使用 `<KeyboardProvider />` 包裹 `<CurrentScreen />`：
 
