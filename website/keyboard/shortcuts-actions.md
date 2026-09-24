@@ -4,6 +4,12 @@ In the *Basic Binding* chapter we mentioned that `boundKeyboard` has three overl
 
 The core idea behind the action system is simple: **fully decouple "which key is pressed" from "which callback runs"**. You first register a set of callbacks as *actions*, then bind keys by action id — changing a keybinding never touches the callback, and changing a callback never touches its bindings.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Basic Binding](/keyboard/base-bind) | This chapter fills in the other two `boundKeyboard` overloads |
+
 ## Feature preview
 
 | Method | Description |

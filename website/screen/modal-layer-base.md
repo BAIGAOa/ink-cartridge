@@ -2,6 +2,13 @@
 
 In the previous chapter, we learned how to control keyboard reception of elements inside ordinary layers. In this chapter, we'll learn about **modal layers**: overlays that render above ordinary layers and suit dialogs and confirm boxes.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Layer Basics](/screen/layer-base) | A modal layer contrasts with and extends a regular layer |
+| [Layer Element Keyboard](/screen/layer-element-keyboard) | The previous chapter |
+
 ## The concept of a modal layer
 
 Real apps have many scenarios that need to **own the keyboard**: confirm boxes, modal dialogs, settings popups. While one of them is open, the user must make a choice or dismiss it — the rest of the UI shouldn't respond to keys. An ordinary layer can't satisfy this: it only floats above the screen, it doesn't intercept keys.

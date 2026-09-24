@@ -10,6 +10,13 @@ penetration(keys: string[], options?: PenetrationOptions): () => void
 
 Call it inside a screen component or a layer element. It returns a function that removes the transparency markers.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Layer Basics](/screen/layer-base) | `penetration` acts on the current layer |
+| [Keyboard Events Between Layers](/screen/layer-keyboard) | Penetration changes exactly that inter-layer propagation |
+
 ## Where you register it decides how far it releases
 
 | Registered in | Effect |

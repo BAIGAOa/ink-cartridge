@@ -3,6 +3,12 @@
 Previously, we covered the basic features of the `boundKeyboard` method: `mode` makes a binding active in a specific mode, `times` controls how many presses are needed to trigger a binding, and `once` destroys the binding automatically after it fires, which can be combined with `times`. But `boundKeyboard` has far more to offer. In this article we will cover the following features; some others will appear in later articles — for example `ref`, which involves the mouse, so it won't be covered here.
 Additionally, `boundKeyboard` has three overloads, but we only cover the most basic one. The other two involve Action shortcuts, so they are also out of scope for this article.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Basic Binding](/keyboard/base-bind) | This chapter continues straight on from `mode`, `times` and `once` |
+
 ## Feature overview
 
 | Option | Type | Description |

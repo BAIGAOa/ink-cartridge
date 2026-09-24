@@ -4,6 +4,10 @@ ink-cartridge provides a complete and powerful keyboard engine for managing keyb
 
 ## Prerequisites
 
+| Chapter | Why you need it |
+|---|---|
+| [Quick Start](/quick-start-1) | The full provider nesting order is laid out here |
+
 Before using `boundKeyboard`, you must wrap `<CurrentScreen />` with `<KeyboardProvider />`:
 
 ```tsx

@@ -2,6 +2,13 @@
 
 In the previous chapter, we learned how keyboard events behave among modal layers. In this chapter, we'll learn how to control the keyboard reception of a single element inside a modal layer: set the initial state with the `active` field of `applyElementToModalLayer`, then toggle it at runtime with `activateElementInModalLayer` / `deactivateElementInModalLayer`.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Modal Layer Basics](/screen/modal-layer-base) | Element mounting uses the modal layer API |
+| [Modal Layer Keyboard Events](/screen/modal-layer-keyboard) | The previous chapter |
+
 ## The keyboard-reception state of an element inside a modal layer
 
 Elements inside a modal layer follow the same rules as elements inside an ordinary layer: each element has a keyboard-reception state (`active`). When `active`, the element's bindings participate in keyboard dispatch; when paused (`active: false`), the element keeps rendering but no longer receives keyboard events.

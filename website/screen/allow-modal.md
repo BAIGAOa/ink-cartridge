@@ -2,6 +2,12 @@
 
 In the previous chapter, we learned how to deactivate and activate keyboard response of elements inside modal layers. In this chapter, we'll learn about `allowModal`: letting specific keys pass through the modal layer's keyboard barrier down to the ordinary layers or screen below.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Modal Layer Keyboard Events](/screen/modal-layer-keyboard) | `allowModal` opens the barrier that chapter describes |
+
 ## Why you need to let keys through
 
 While a modal layer is open, keys it doesn't handle are swallowed by the barrier. Most of the time that's the desired behavior — when a confirm box is open, the user shouldn't be able to operate the UI underneath. But some scenarios need exceptions: a help popup might want to let arrow keys scroll the page below; a settings popup might want a shortcut to reach the main UI directly.

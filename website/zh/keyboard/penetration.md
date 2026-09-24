@@ -10,6 +10,13 @@ penetration(keys: string[], options?: PenetrationOptions): () => void
 
 在屏幕组件或图层元素内调用，返回一个撤销穿透标记的函数。
 
+## 前置知识
+
+| 文章 | 为什么需要 |
+|---|---|
+| [普通图层](/zh/screen/layer-base) | `penetration` 作用在「当前层」上 |
+| [图层间的键盘事件](/zh/screen/layer-keyboard) | 穿透改变的就是本章讲的层间传播 |
+
 ## 注册位置决定放行范围
 
 | 注册位置 | 效果 |

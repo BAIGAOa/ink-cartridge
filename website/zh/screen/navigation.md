@@ -4,6 +4,13 @@
 
 导航方法包括三个核心方法，它们都通过 `useScreenSystem` 钩子获取，通常配合 `boundKeyboard` 等方法使用。
 
+## 前置知识
+
+| 文章 | 为什么需要 |
+|---|---|
+| [组织屏幕](/zh/screen/screen-registry) | 导航发生在屏幕树上，先要理解父子关系 |
+| [基本绑定](/zh/keyboard/base-bind) | 导航方法要靠按键触发 |
+
 ## 使用 `skip` 方法切换屏幕
 
 当你需要切换到当前屏幕的直接子屏幕时，你可以使用 `skip` 方法，举个例子，假设你的应用的根屏幕为 Menu ，而 Game 声明了它的 parent 为 Menu ，因此可以使用 `skip` 方法跳转屏幕。

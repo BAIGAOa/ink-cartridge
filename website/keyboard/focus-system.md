@@ -28,6 +28,12 @@ In this chapter, we'll learn the keyboard engine's focus system: the basic metho
 
 Additionally, ink-cartridge supports multi-focus: default groups and named groups. If no group is specified, focus operations happen in the default group. This article doesn't cover multi-focus; it will be explained in detail in a later article.
 
+## Prerequisites
+
+| Chapter | Why you need it |
+|---|---|
+| [Basic Binding](/keyboard/base-bind) | The focus system solves several bindings competing for the same key |
+
 ## Basic focus methods preview
 
 | Method | Type signature | Description |
