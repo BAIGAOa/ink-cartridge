@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://baigaoa.github.io/ink-cartridge/">
-    <img alt="cartridge" src="static/logo.png" height="150">
+    <img alt="cartridge" src="static/logo-mark.png" height="150">
   </a>
   <h1>Ink-cartridge</h1>
 
