@@ -5,8 +5,7 @@
       <img alt="cartridge" src="static/logo-light.png" height="128">
     </picture>
   </a>
-  <h1>Cartridge</h1>
-  <p>Cartridge for ink</p>
+  <h1>Ink-cartridge</h1>
 
   <a href="https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://www.npmjs.com/package/ink-cartridge"><img alt="npm version" src="https://img.shields.io/npm/v/ink-cartridge.svg"></a>
