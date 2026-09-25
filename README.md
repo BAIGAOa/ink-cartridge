@@ -1,19 +1,20 @@
 <div align="center">
-        <br>
-        <br>
-        <img width="740" alt="cartridge" src="static/logo.png">
-        <br>
-        <br>							 
+  <a href="https://baigaoa.github.io/ink-cartridge/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="static/logo-dark.png">
+      <img alt="cartridge" src="static/logo-light.png" height="128">
+    </picture>
+  </a>
+  <h1>Cartridge</h1>
+  <p>Cartridge for ink</p>
+
+  <a href="https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://www.npmjs.com/package/ink-cartridge"><img alt="npm version" src="https://img.shields.io/npm/v/ink-cartridge.svg"></a>
+  <a href="https://www.npmjs.com/package/@cartridge-engine/keyboard-engine"><img alt="npm version" src="https://img.shields.io/npm/v/@cartridge-engine/keyboard-engine.svg?label=keyboard-engine"></a>
+  <a href="https://github.com/BAIGAOa/ink-cartridge"><img alt="coverage" src="https://img.shields.io/badge/coverage-90%25-brightgreen"></a>
+  <a href="https://github.com/BAIGAOa/ink-cartridge"><img alt="keyboard-engine coverage" src="https://img.shields.io/badge/keyboard--engine%20coverage-90%25-brightgreen"></a>
+  <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
 </div>
-
->Cartridge for ink
-
-[![CI](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml/badge.svg)](https://github.com/BAIGAOa/ink-cartridge/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/ink-cartridge.svg)](https://www.npmjs.com/package/ink-cartridge)
-[![npm version](https://img.shields.io/npm/v/@cartridge-engine/keyboard-engine.svg?label=keyboard-engine)](https://www.npmjs.com/package/@cartridge-engine/keyboard-engine)
-[![coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
-[![coverage](https://img.shields.io/badge/keyboard--engine%20coverage-90%25-brightgreen)](https://github.com/BAIGAOa/ink-cartridge)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 
