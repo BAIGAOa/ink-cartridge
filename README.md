@@ -1,9 +1,6 @@
 <div align="center">
   <a href="https://baigaoa.github.io/ink-cartridge/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="static/logo-dark.png">
-      <img alt="cartridge" src="static/logo-light.png" height="128">
-    </picture>
+    <img alt="cartridge" src="static/logo.png" height="150">
   </a>
   <h1>Ink-cartridge</h1>
 
