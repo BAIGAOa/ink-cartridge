@@ -19,7 +19,12 @@ type StoredRegion = {
 };
 
 function pointInRect(x: number, y: number, rect: MouseRegionRect): boolean {
-  return x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
+  return (
+    x >= rect.x &&
+    x < rect.x + rect.width &&
+    y >= rect.y &&
+    y < rect.y + rect.height
+  );
 }
 
 /**
@@ -40,7 +45,11 @@ export default class MouseRegionService {
    * `drag` event, cleared on `release`. `dragging` distinguishes a plain
    * click (armed then released) from an actual drag (drag events seen).
    */
-  private drag: { layerId: string; regionId: string; dragging: boolean } | null = null;
+  private drag: {
+    layerId: string;
+    regionId: string;
+    dragging: boolean;
+  } | null = null;
 
   /**
    * Register a region. Overwrites any previous registration with the same
@@ -302,69 +311,47 @@ export default class MouseRegionService {
     // regular layer instead.
     if (modalLayers.length > 0) {
       const topModal = modalLayers[modalLayers.length - 1];
-      const hit = this.hitLayer(topModal, x, y);
-      if (hit) {
-        return hit;
-      }
-      return null;
+      return this.hitLayer(topModal.layerId, x, y);
     }
 
     for (let i = layers.length - 1; i >= 0; i--) {
-      const hit = this.hitLayer(layers[i], x, y);
+      const hit = this.hitLayer(layers[i].layerId, x, y);
       if (hit) return hit;
     }
-    return this.hitRoot(x, y);
-  }
-
-  private hitLayer(
-    layer: KeyboardLayer,
-    x: number,
-    y: number,
-  ): { layerId: string; regionId: string } | null {
-    const layerRegions = this.regions.get(layer.layerId);
-    if (!layerRegions) return null;
-    // Regions are independent of keyboard-layer `activeElements` — the layer
-    // being present in the hit-test order is the only gate. Candidate order
-    // is registration order, like the root layer.
-    const candidates = [...layerRegions.entries()].map(([regionId, region], i) => ({
-      regionId,
-      priority: region.priority,
-      order: i,
-    }));
-    return this.hitCandidates(candidates, layer.layerId, layerRegions, x, y);
-  }
-
-  private hitRoot(x: number, y: number): { layerId: string; regionId: string } | null {
-    const rootRegions = this.regions.get(ROOT_MOUSE_LAYER_ID);
-    if (!rootRegions) return null;
-    const candidates = [...rootRegions.entries()].map(([regionId, region], i) => ({
-      regionId,
-      priority: region.priority,
-      order: i,
-    }));
-    return this.hitCandidates(candidates, ROOT_MOUSE_LAYER_ID, rootRegions, x, y);
+    return this.hitLayer(ROOT_MOUSE_LAYER_ID, x, y);
   }
 
   /**
-   * Sort candidates by (priority desc, registration order desc) — higher
-   * priority wins, ties go to the later-registered region — then return the
-   * first one containing the point.
+   * Highest-priority region containing the point, without sorting or
+   * allocating a candidate array.
+   *
+   * Regions are independent of keyboard-layer `activeElements` — the layer
+   * being present in the hit-test order is the only gate.
    */
-  private hitCandidates(
-    candidates: Array<{ regionId: string; priority: number; order: number }>,
+  private hitLayer(
     layerId: string,
-    layerRegions: Map<string, StoredRegion>,
     x: number,
     y: number,
   ): { layerId: string; regionId: string } | null {
-    candidates.sort((a, b) => b.priority - a.priority || b.order - a.order);
-    for (const candidate of candidates) {
-      const region = layerRegions.get(candidate.regionId);
-      if (region && pointInRect(x, y, region.rect)) {
-        return { layerId, regionId: candidate.regionId };
+    const layerRegions = this.regions.get(layerId);
+    if (!layerRegions) return null;
+
+    let bestId: string | null = null;
+    let bestPriority = -Infinity;
+
+    // Map iteration order is insertion order and `set` on an existing key
+    // keeps its position, so a later entry always has a higher registration
+    // order. Using `>=` reproduces the old sort's tie-break exactly: highest
+    // priority wins, and among equal priorities the later-registered region
+    // wins. Switching this to `>` would silently flip that rule.
+    for (const [regionId, region] of layerRegions) {
+      if (region.priority >= bestPriority && pointInRect(x, y, region.rect)) {
+        bestId = regionId;
+        bestPriority = region.priority;
       }
     }
-    return null;
+
+    return bestId !== null ? { layerId, regionId: bestId } : null;
   }
 
   private getRegion(
