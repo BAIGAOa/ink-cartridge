@@ -120,7 +120,7 @@ See `agents/rules/testing.md` (loaded when editing `tests/**/*`) and `docs-agent
 
 ## Documentation
 
-- Public API changes → run `npm run docs` to verify typedoc output, then update `src/index.ts`. Docs auto-publish to [GitHub Pages](https://baigaoa.github.io/ink-cartridge/) on push to `main`. All API documentation lives in JSDoc — there are no hand-written API docs.
+- Public API changes → run `npm run docs` to verify typedoc output, then update `src/index.ts`. Docs auto-publish to [GitHub Pages](https://cartridgebox.art/) on push to `main`. All API documentation lives in JSDoc — there are no hand-written API docs.
 - `docs-agents/` is agent reference material (not user-facing docs).
 
 ## Reference docs

@@ -12,7 +12,7 @@ hero:
       link: /quick-start-1
     - theme: alt
       text: API Reference
-      link: https://baigaoa.github.io/ink-cartridge/framework/
+      link: https://cartridgebox.art/framework/
 
 features:
   - title: Layered Keyboard Engine

@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://baigaoa.github.io/ink-cartridge/">
+  <a href="https://cartridgebox.art/">
     <img alt="cartridge" src="static/logo-mark.png" height="150">
   </a>
   <h1>Ink-cartridge</h1>
@@ -266,11 +266,11 @@ npm install @cartridge-engine/i18n @cartridge-engine/theme @cartridge-engine/eve
 
 API docs are auto-published to GitHub Pages on every push to `main`:
 
-- [ink-cartridge API docs](https://baigaoa.github.io/ink-cartridge/framework/) — screen, keyboard
-- [keyboard-engine API docs](https://baigaoa.github.io/ink-cartridge/engine/) — standalone engine APIs (framework-agnostic)
-- [i18n API docs](https://baigaoa.github.io/ink-cartridge/i18n/) — @cartridge-engine/i18n (LanguageProvider, useI18n)
-- [theme API docs](https://baigaoa.github.io/ink-cartridge/theme/) — @cartridge-engine/theme (ThemeProvider, useTheme)
-- [event API docs](https://baigaoa.github.io/ink-cartridge/event/) — @cartridge-engine/event (EventBus, EventProvider)
+- [ink-cartridge API docs](https://cartridgebox.art/framework/) — screen, keyboard
+- [keyboard-engine API docs](https://cartridgebox.art/engine/) — standalone engine APIs (framework-agnostic)
+- [i18n API docs](https://cartridgebox.art/i18n/) — @cartridge-engine/i18n (LanguageProvider, useI18n)
+- [theme API docs](https://cartridgebox.art/theme/) — @cartridge-engine/theme (ThemeProvider, useTheme)
+- [event API docs](https://cartridgebox.art/event/) — @cartridge-engine/event (EventBus, EventProvider)
 
 ## For AI
 
