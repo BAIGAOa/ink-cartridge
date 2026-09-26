@@ -50,6 +50,7 @@ export type {
   MappingKeyCompletedEvent,
   MappingKeyBrokenEvent,
   MappingKeyConsumedEvent,
+  MappingKeyCancelledEvent,
   MappingKeyEntry,
   undo,
 } from "./CompositionEngine.js";
