@@ -20,7 +20,6 @@
   "toolbar.save": "Save",
   "toolbar.settings": "Settings",
   "fileTree.scanning": "Scanning...",
-  "fileTree.noDir": "No directory",
   "fileTree.fail": "Scan failed",
   "fileTree.unsaved": "Unsaved changes",
   "editor.setting.title": "Menu",

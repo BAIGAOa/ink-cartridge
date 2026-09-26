@@ -88,8 +88,14 @@ export class EditorController {
 
 		this.defineCommand("cursor.moveLeft", (doc) => doc.moveLeft());
 		this.defineCommand("cursor.moveRight", (doc) => doc.moveRight());
-		this.defineCommand("cursor.moveUp", (doc) => doc.moveUp());
-		this.defineCommand("cursor.moveDown", (doc) => doc.moveDown());
+		this.defineCommand("cursor.moveUp", (doc, args) => {
+			const count = typeof args?.count === "number" ? args.count : 1;
+			doc.moveUp(count);
+		});
+		this.defineCommand("cursor.moveDown", (doc, args) => {
+			const count = typeof args?.count === "number" ? args.count : 1;
+			doc.moveDown(count);
+		});
 		this.defineCommand("cursor.lineStart", (doc) => doc.moveToLineStart());
 		this.defineCommand("cursor.lineEnd", (doc) => doc.moveToLineEnd());
 		this.defineCommand("cursor.wordForward", (doc) => doc.moveWordForward());

@@ -368,10 +368,15 @@ export class Document {
 		}
 	}
 
-	/** Vertical movement aligns by visual column, so wide-character lines do not drift. */
-	moveUp(): void {
+	/**
+	 * Move up by `count` visual lines (default 1), aligning by visual column so
+	 * wide-character lines do not drift. Overshooting the top clamps to the
+	 * first visual line.
+	 */
+	moveUp(count = 1): void {
 		const { line, logical } = this._cursor;
-		if (this.cursorVisualLine === 0) {
+		const current = this.cursorVisualLine;
+		if (current === 0) {
 			// Already on the first visual line: still move to the start of the
 			// current segment (like up-to-line-start in vim).
 			const segs = this.lineSegments(line);
@@ -382,18 +387,26 @@ export class Document {
 			this.setCursor(line, segs[idx].start);
 			return;
 		}
-		const prev = this.visualLineAt(this.cursorVisualLine - 1);
+		const step = Math.max(1, Math.round(count));
+		const prev = this.visualLineAt(Math.max(0, current - step));
 		if (!prev) {
 			return;
 		}
 		this.moveToSegment(prev);
 	}
 
-	moveDown(): void {
-		if (this.cursorVisualLine >= this.visualLineCount - 1) {
+	/**
+	 * Move down by `count` visual lines (default 1), aligning by visual column.
+	 * Overshooting the bottom clamps to the last visual line.
+	 */
+	moveDown(count = 1): void {
+		const current = this.cursorVisualLine;
+		const last = this.visualLineCount - 1;
+		if (current >= last) {
 			return;
 		}
-		const next = this.visualLineAt(this.cursorVisualLine + 1);
+		const step = Math.max(1, Math.round(count));
+		const next = this.visualLineAt(Math.min(last, current + step));
 		if (!next) {
 			return;
 		}

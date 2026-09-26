@@ -131,6 +131,26 @@ describe("Document", () => {
 			doc.movePageDown(3);
 			expect(doc.cursor.line).toBe(5);
 		});
+
+		it("moves by a count of visual lines", () => {
+			const doc = new Document(["abcde", "ab", "abcde"].join("\n"));
+			doc.setCursor(2, 4);
+			doc.moveUp(2);
+			expect(doc.cursor).toEqual({ line: 0, logical: 4, visual: 4 });
+			doc.moveDown(2);
+			expect(doc.cursor).toEqual({ line: 2, logical: 4, visual: 4 });
+		});
+
+		it("clamps a count that overshoots the first/last line", () => {
+			const doc = new Document(["ab", "abcde"].join("\n"));
+			doc.setCursor(1, 4);
+			doc.moveUp(99);
+			// line 0 is narrower: the column clamps to its end
+			expect(doc.cursor).toEqual({ line: 0, logical: 2, visual: 2 });
+			doc.moveDown(99);
+			// the narrower line clamped the offset to 2, so the wider line gets 2 too
+			expect(doc.cursor).toEqual({ line: 1, logical: 2, visual: 2 });
+		});
 	});
 
 	describe("scrolling", () => {

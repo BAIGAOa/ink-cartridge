@@ -147,7 +147,7 @@ export function Editor({
 					session,
 					openFileTree: () => setFileTreeOpen((open) => !open),
 					openSettings: () => setSettingsOpen((open) => !open),
-					fileTreeOpen
+					fileTreeOpen,
 				},
 			});
 		}, 0);
@@ -207,11 +207,9 @@ export function Editor({
 		};
 
 		// insert mode: classic editing
-		bind(
-			["*"],
-			(input) => controller.execute("editor.insertText", { text: input }),
-			{ mode: "insert" },
-		);
+		bind(["*"], (input) => controller.execute("editor.insertText", { text: input }), {
+			mode: "insert",
+		});
 		bind(["return"], () => controller.execute("editor.splitLine"), { mode: "insert" });
 		bind(["right"], () => controller.execute("cursor.moveRight"), { mode: "insert" });
 		bind(["left"], () => controller.execute("cursor.moveLeft"), { mode: "insert" });
@@ -255,7 +253,57 @@ export function Editor({
 				return { ...ctx, lastFlag: null };
 			},
 		});
+
+		// Vim-style count prefix: digits accumulate in the chain's `value`, then a
+		// direction key spends it (`5j`, `12k`). Composition runs ahead of the
+		// screen bindings, so a bare digit arms a chain instead of moving.
+		const countKeys: string[] = [];
+		for (const digit of "1234567890") {
+			countKeys.push(digit);
+			registryCompositionKey({
+				key: digit,
+				flags: [],
+				alternativeFlag: "number",
+				needs: ["number"],
+				// `0` cannot open a count, so a bare `0` keeps meaning line-start
+				// via its binding below; it may still extend one (`10j`).
+				optional: digit !== "0",
+				mode: "normal",
+				execute: (ctx) => ({
+					...ctx,
+					value: (typeof ctx.value === "number" ? ctx.value : 0) * 10 + Number(digit),
+					lastFlag: "number",
+				}),
+			});
+		}
+
+		// Counts only pay off on the vertical keys; h/l/left/right stay untouched.
+		const directions: [string, string][] = [
+			["k", "cursor.moveUp"],
+			["up", "cursor.moveUp"],
+			["j", "cursor.moveDown"],
+			["down", "cursor.moveDown"],
+		];
+		for (const [key, command] of directions) {
+			countKeys.push(key);
+			registryCompositionKey({
+				key,
+				flags: [],
+				alternativeFlag: "direction",
+				needs: ["number"],
+				mode: "normal",
+				// The count is spent here and the chain ends, so swallow the key —
+				// otherwise the plain binding below would move one extra line.
+				KeyReleaseWhenChainInterrupted: true,
+				execute: (ctx) => {
+					controller.execute(command, { count: ctx.value });
+					return null;
+				},
+			});
+		}
+
 		unbinds.push(() => removeCompositionKey("g"));
+		unbinds.push(() => countKeys.forEach((key) => removeCompositionKey(key)));
 		// Ink marks "G" as shift+g, so the normalized key name is "shift+G".
 		bind(["shift+G"], () => controller.execute("cursor.documentEnd"), { mode: "normal" });
 		bind(["i"], () => switchMode("insert"), { mode: "normal" });
@@ -291,8 +339,7 @@ export function Editor({
 	const effectiveH = height > 0 ? height : doc.visualLineCount;
 	const cursor = doc.cursor;
 	const cursorVisualLine = doc.cursorVisualLine;
-	const cursorX =
-		doc.cursorSegmentVisual + lineNumberWidth + lineNumberRightSpacing + cursorOffset;
+	const cursorX = doc.cursorSegmentVisual + lineNumberWidth + lineNumberRightSpacing + cursorOffset;
 	const cursorY = cursorVisualLine - visibleStart + cursorHeightOffset;
 
 	setCursorPosition({ x: cursorX, y: cursorY });
@@ -337,8 +384,7 @@ export function Editor({
 		},
 	});
 
-	const modeText =
-		mode === "normal" ? t("editor.mode.normal") : t("editor.mode.insert");
+	const modeText = mode === "normal" ? t("editor.mode.normal") : t("editor.mode.insert");
 
 	return (
 		<Box flexDirection="column" height="100%" width="100%">
@@ -352,7 +398,7 @@ export function Editor({
 					{Array.from({ length: effectiveH }, (_, i) => {
 						const vline = visibleStart + i;
 						const seg = doc.visualLineAt(vline);
-						
+
 						if (!seg) {
 							return null;
 						}
@@ -363,9 +409,7 @@ export function Editor({
 									justifyContent="flex-end"
 									marginRight={lineNumberRightSpacing}
 								>
-									{seg.first ? (
-										<Text bold={cursor.line === seg.line}>{seg.line}</Text>
-									) : null}
+									{seg.first ? <Text bold={cursor.line === seg.line}>{seg.line}</Text> : null}
 								</Box>
 								{/* seg.text is tab-expanded; raw tabs would render at the
 									terminal tab stops and scramble the layout. */}

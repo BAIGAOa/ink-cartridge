@@ -40,12 +40,6 @@ export type FileTreeProps = {
 	session: EditorSession;
 };
 
-export type FileTreeDirState =
-	| FileTreeState
-	| {
-			noDir?: boolean;
-	  };
-
 /**
  * VSCode-style file tree pinned to the right edge of the terminal (regular
  * layer element). Recursively scans the configured root directory once per
@@ -65,7 +59,7 @@ export function FileTree({ session }: FileTreeProps) {
 	// scanTick bumps to force a re-scan — the cache never expires on its own.
 	const [scanTick, setScanTick] = useState(0);
 
-	const [root, setRoot] = useState<FileTreeDirState>({
+	const [root, setRoot] = useState<FileTreeState>({
 		scanning: true,
 	});
 	const [prevRoot, setPrevRoot] = useState(root);
@@ -74,10 +68,7 @@ export function FileTree({ session }: FileTreeProps) {
 		setRoot({ scanning: true });
 		(async () => {
 			const resolved = resolveFileTreeRoot(settings.fileTree, process.cwd());
-			const tree: FileNode | FileTreeDirState = resolved
-				? await scanDirectoryCached(resolved)
-				: { noDir: true };
-			setRoot(tree);
+			setRoot(await scanDirectoryCached(resolved));
 		})();
 	}, [settings.fileTree, scanTick]);
 
@@ -185,10 +176,6 @@ export function FileTree({ session }: FileTreeProps) {
 			{"scanning" in root ? (
 				<Box paddingLeft={1}>
 					<Text dimColor>{t("fileTree.scanning")}</Text>
-				</Box>
-			) : "noDir" in root ? (
-				<Box paddingLeft={1}>
-					<Text dimColor>{t("fileTree.noDir")}</Text>
 				</Box>
 			) : "fail" in root ? (
 				<Box paddingLeft={1}>

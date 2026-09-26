@@ -9,6 +9,16 @@ function EditorWithText() {
 	return <Editor value={"line1\nline2\nline3"} />;
 }
 
+/** Ten lines, long enough that the column readout stays meaningful. */
+function TenLines() {
+	return <Editor value={Array.from({ length: 10 }, (_, i) => `line ${i} abcdef`).join("\n")} />;
+}
+
+async function enterNormalMode(stdin: { write: (data: string) => void }) {
+	await press(stdin, "\x1b");
+	await flush();
+}
+
 describe("Editor modes", () => {
 	beforeEach(() => {
 		clearRegistry();
@@ -72,6 +82,73 @@ describe("Editor modes", () => {
 		await press(stdin, "g");
 		await flush();
 		expect(stripAnsi(lastFrame())).toContain("Ln 1");
+		unmount();
+	});
+
+	it("a count prefix moves by N lines (5j, 2k)", async () => {
+		registerComponent(TenLines, {});
+		const { stdin, lastFrame, unmount } = renderApp(TenLines);
+		await flush();
+		await enterNormalMode(stdin);
+		await press(stdin, "5");
+		await press(stdin, "j");
+		await flush();
+		// The count is swallowed, so the plain `j` binding must not add a line.
+		expect(stripAnsi(lastFrame())).toContain("Ln 6");
+		await press(stdin, "2");
+		await press(stdin, "k");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Ln 4");
+		unmount();
+	});
+
+	it("counts accumulate over digits and clamp at both ends", async () => {
+		registerComponent(TenLines, {});
+		const { stdin, lastFrame, unmount } = renderApp(TenLines);
+		await flush();
+		await enterNormalMode(stdin);
+		await press(stdin, "1");
+		await press(stdin, "2");
+		await press(stdin, "j");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Ln 10");
+		await press(stdin, "9");
+		await press(stdin, "9");
+		await press(stdin, "k");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Ln 1");
+		unmount();
+	});
+
+	it("a bare 0 still means line-start", async () => {
+		registerComponent(TenLines, {});
+		const { stdin, lastFrame, unmount } = renderApp(TenLines);
+		await flush();
+		await enterNormalMode(stdin);
+		await press(stdin, "3");
+		await press(stdin, "j");
+		await press(stdin, "l");
+		await press(stdin, "l");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Ln 4, Col 3");
+		await press(stdin, "0");
+		await flush();
+		expect(stripAnsi(lastFrame())).toContain("Ln 4, Col 1");
+		unmount();
+	});
+
+	it("count digits stay inert in insert mode", async () => {
+		registerComponent(TenLines, {});
+		const { stdin, lastFrame, unmount } = renderApp(TenLines);
+		await flush();
+		// Still in insert mode (the default): digits must land as text, not arm
+		// a count chain, so nothing moves.
+		await press(stdin, "5");
+		await press(stdin, "down");
+		await flush();
+		const frame = stripAnsi(lastFrame());
+		expect(frame).toContain("5down");
+		expect(frame).toContain("Ln 1");
 		unmount();
 	});
 });
