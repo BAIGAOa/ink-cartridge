@@ -20,7 +20,6 @@
   "toolbar.save": "保存",
   "toolbar.settings": "设置",
   "fileTree.scanning": "正在扫描...",
-  "fileTree.noDir": "没有目录",
   "fileTree.fail": "扫描失败",
   "fileTree.unsaved": "未保存的更改",
   "editor.setting.title": "菜单",

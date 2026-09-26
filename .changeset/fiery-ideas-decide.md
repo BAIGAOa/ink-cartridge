@@ -1,0 +1,8 @@
+---
+"blots-editor": patch
+---
+
+- **feat**(`blots-editor`): `cursor.moveUp` and `cursor.moveDown` accept a `count`, so one command can travel several lines instead of being fired repeatedly. `Document.moveUp`/`moveDown` take the same optional argument (default 1) and clamp an overshoot to the first/last visual line. A `count` of 1 keeps the old behavior exactly, down to the move-to-segment-start when the cursor already sits on the first visual line.
+- **feat**(`blots-editor`): normal mode gains a Vim-style count prefix — digits accumulate inside a composition chain (`value = value * 10 + digit`) and the next vertical key (`j`, `k`, `up`, `down`) spends it, so `5j` moves five lines and `12k` twelve. `0` can only extend a count, never open one, so a bare `0` still means line-start (`10j` still works). Counts are normal-mode only; with no count armed a direction key falls straight through to its plain binding, so single-line movement keeps zero latency and insert mode is untouched.
+- **fix**(`blots-editor`): the file tree no longer reports "No directory" when the root is set to a custom path that is blank — it falls back to the startup directory, which is exactly the state the picker leaves behind when you switch to custom without typing a path. The unreachable `fileTree.noDir` message is gone from both language packs; a path that is set but unreadable still reports "Scan failed".
+- **test**(`blots-editor`): `document` and `editor-controller` cover the `count` argument, `editor-mode` drives the count prefix end-to-end (accumulation, clamping, bare `0`, insert-mode inertness), and `file-tree-model` asserts the blank-path fallback.

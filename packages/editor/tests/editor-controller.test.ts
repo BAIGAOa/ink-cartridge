@@ -66,6 +66,18 @@ describe("EditorController", () => {
 			expect(ctl.document.cursor.line).toBe(3);
 		});
 
+		it("moveUp/moveDown honor the count arg", () => {
+			const ctl = new EditorController(["a", "b", "c", "d"].join("\n"));
+			ctl.document.setCursor(3, 0);
+			ctl.execute("cursor.moveUp", { count: 2 });
+			expect(ctl.document.cursor.line).toBe(1);
+			ctl.execute("cursor.moveDown", { count: 2 });
+			expect(ctl.document.cursor.line).toBe(3);
+			// No arg falls back to a single line.
+			ctl.execute("cursor.moveUp");
+			expect(ctl.document.cursor.line).toBe(2);
+		});
+
 		it("setPosition with a logical column sets exactly", () => {
 			const ctl = new EditorController("ab");
 			ctl.execute("cursor.setPosition", { line: 0, logical: 2 });

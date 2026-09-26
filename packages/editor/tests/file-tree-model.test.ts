@@ -112,8 +112,9 @@ describe("resolveFileTreeRoot / expandHome", () => {
 		);
 	});
 
-	it("returns null for an empty custom path", () => {
-		expect(resolveFileTreeRoot({ root: "custom", customPath: "  " }, "/start")).toBeNull();
+	it("falls back to the startup directory for a blank custom path", () => {
+		expect(resolveFileTreeRoot({ root: "custom", customPath: "  " }, "/start")).toBe("/start");
+		expect(resolveFileTreeRoot({ root: "custom", customPath: "" }, "/start")).toBe("/start");
 	});
 });
 

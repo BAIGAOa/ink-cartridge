@@ -71,14 +71,21 @@ export function expandHome(path: string): string {
 	return path === "~" ? homedir() : path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
 }
 
-/** Resolve the file-tree root from settings: startup dir or custom path. */
+/**
+ * Resolve the file-tree root from settings: the custom path, or the startup
+ * directory. A custom mode with a blank path falls back to the startup
+ * directory — the picker lets you select custom before typing anything, and an
+ * empty root should not read as "no directory".
+ */
 export function resolveFileTreeRoot(
 	settings: FileTreeSettings,
 	startupDir: string,
-): string | null {
+): string {
 	if (settings.root === "custom") {
 		const custom = expandHome(settings.customPath.trim());
-		return custom.length > 0 ? custom : null;
+		if (custom.length > 0) {
+			return custom;
+		}
 	}
 	return startupDir;
 }
