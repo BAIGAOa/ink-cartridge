@@ -50,4 +50,4 @@ npm test -w @cartridge-engine/ui        # vitest run
 ## See also
 
 - [ink-cartridge](https://github.com/BAIGAOa/ink-cartridge) — core framework: screen system, keyboard engine, theme, i18n, CLI
-- [API docs](https://baigaoa.github.io/ink-cartridge/framework/) — generated from JSDoc, auto-published on `main`
+- [API docs](https://cartridgebox.art/framework/) — generated from JSDoc, auto-published on `main`
