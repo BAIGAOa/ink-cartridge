@@ -255,6 +255,21 @@ export interface MappingKeyConsumedEvent {
 }
 
 /**
+ * Fired when a pending mapping-key sequence is dropped before completing:
+ * its timer expired, {@link CompositionEngine#abort} was called, or
+ * {@link CompositionEngine#undo} cancelled it.
+ *
+ * No target key has executed at this point, so there is nothing to undo —
+ * this event exists so subscribers can clear a "waiting for the next key"
+ * state. Without it, a timeout is indistinguishable from a sequence that
+ * is still in progress.
+ */
+export interface MappingKeyCancelledEvent {
+	/** Event discriminant — always `"cancelled"`. */
+	type: "cancelled";
+}
+
+/**
  * State-change events emitted by the mapping-key subsystem.
  *
  * Kept separate from {@link CompositionEvent} so subscribers of one
@@ -267,7 +282,8 @@ export type MappingKeyEvent =
 	| MappingKeyContinuedEvent
 	| MappingKeyCompletedEvent
 	| MappingKeyBrokenEvent
-	| MappingKeyConsumedEvent;
+	| MappingKeyConsumedEvent
+	| MappingKeyCancelledEvent;
 
 /**
  * State of an active composition chain waiting for the next key.
@@ -902,11 +918,14 @@ export default class CompositionEngine<TComponent = unknown> {
 	 * Clears the pending timer (no stale timeout callback will fire),
 	 * resets the context to `{ value: undefined, lastFlag: null, steps: [] }`,
 	 * and sets the engine's `compositionEngineHandle` flag to `false` so
-	 * pipeline processors stop treating the chain as pending. No-op when
-	 * no chain is pending.
+	 * pipeline processors stop treating the chain as pending. A pending
+	 * mapping sequence is cancelled too — callers reach for `abort()` to
+	 * drop the user's unfinished input, and a half-typed mapping prefix is
+	 * part of it. No-op when nothing is pending.
 	 */
 	abort(): void {
 		this.recordHistory();
+		this.cancelMappingPending();
 		this.clearPending();
 		this.notify({ type: "aborted" });
 	}
@@ -954,7 +973,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		// chain (or pending mapping sequence) alive would keep startPending()
 		// from beginning a new chain until the stale timeout fires.
 		this.clearPending();
-		this.clearMappingPending();
+		this.cancelMappingPending();
 
 		if (this.buffers.length === 0) return null;
 
@@ -1296,6 +1315,19 @@ export default class CompositionEngine<TComponent = unknown> {
 	}
 
 	/**
+	 * Drop a pending mapping sequence and tell mapping subscribers it is
+	 * gone — the counterpart of the `completed` / `broken` notifications that
+	 * the other terminal paths emit. Callers that already notify about their
+	 * own outcome (`completed`, `broken`, `consumed`) use
+	 * {@link clearMappingPending} directly and must not route through here.
+	 */
+	private cancelMappingPending(): void {
+		if (!this.mappingPendingEntry) return;
+		this.clearMappingPending();
+		this.notifyMapping({ type: "cancelled" });
+	}
+
+	/**
 	 * Reset the mapping-key pending timer to a new timeout. Mirrors
 	 * {@link resetPendingTimer} but for {@link mappingPendingEntry}.
 	 */
@@ -1303,7 +1335,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		if (!this.mappingPendingEntry) return;
 		clearTimeout(this.mappingPendingEntry.timer);
 		const timer = setTimeout(() => {
-			this.clearMappingPending();
+			this.cancelMappingPending();
 		}, timeout);
 		this.mappingPendingEntry.timer = timer;
 		this.mappingPendingEntry.timeout = timeout;
@@ -1419,6 +1451,10 @@ export default class CompositionEngine<TComponent = unknown> {
 			lastFlag: null,
 			steps: [],
 		};
+		// A mapping is an alias for its target keys, so the executed steps are
+		// collected here and handed to the undo ledger on success — exactly as
+		// if the user had typed the target keys themselves.
+		const executed: bufferEntry[] = [];
 
 		for (let i = 0; i < target.length; i++) {
 			const coms = [...(this.keyMappingTable.get(target[i]) ?? [])];
@@ -1447,6 +1483,11 @@ export default class CompositionEngine<TComponent = unknown> {
 					};
 				}
 				currentCtx = checkedCtx;
+				executed.push({
+					key: result.key,
+					undoAction: result.undoAction ?? ((c) => c),
+					ctx: currentCtx,
+				});
 				continue;
 			}
 
@@ -1469,6 +1510,17 @@ export default class CompositionEngine<TComponent = unknown> {
 			}
 
 			currentCtx = checked;
+			executed.push({
+				key: result.key,
+				undoAction: result.undoAction ?? ((c) => c),
+				ctx: currentCtx,
+			});
+		}
+
+		// An empty target would otherwise leave a zombie entry that `undo`
+		// can neither replay nor splice off.
+		if (executed.length > 0) {
+			this.buffers.push(executed);
 		}
 
 		return { ok: true };
@@ -1538,7 +1590,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		const pending: MappingPendingEntry<TComponent> = {
 			keys: [keyOfDestiny],
 			nextIndex: 1,
-			timeout: this.defaultTimeout,
+			timeout: selected.timeout ?? this.defaultTimeout,
 			timer: undefined as unknown as NodeJS.Timeout,
 			exclusive,
 			affectOverlay,
@@ -1546,7 +1598,7 @@ export default class CompositionEngine<TComponent = unknown> {
 		};
 
 		const timer = setTimeout(() => {
-			this.clearMappingPending();
+			this.cancelMappingPending();
 		}, pending.timeout);
 		pending.timer = timer;
 		this.mappingPendingEntry = pending;
@@ -1671,6 +1723,10 @@ export default class CompositionEngine<TComponent = unknown> {
 			// More keys expected — advance and keep waiting, no longer ambiguous.
 			pending.candidates = narrowed;
 			pending.nextIndex++;
+			// Re-seed from the entry we locked onto, mirroring globalSequence:
+			// disambiguation may pick a candidate other than the one that
+			// started the sequence, and its own timeout should apply from here.
+			pending.timeout = locked.timeout ?? this.defaultTimeout;
 			this.resetMappingPendingTimer(pending.timeout);
 			this.notifyMapping({ type: "continued", key: matchedKey });
 			return true;
@@ -1791,8 +1847,11 @@ export default class CompositionEngine<TComponent = unknown> {
 		const result = resolveCompositionKey(filtered, this.context.lastFlag);
 
 		if (result) {
+			// A rejected key is not part of the chain: like a broken match or a
+			// failed value guard, it drops the partial chain without recording
+			// it. Only chains that reach a terminal state (timeout, end key,
+			// `execute` returning null, or an explicit abort) are undoable.
 			if (!checkWhen(result.when, ctx.conditions)) {
-				this.recordHistory();
 				this.clearPending();
 				return false;
 			}
@@ -1903,6 +1962,11 @@ export default class CompositionEngine<TComponent = unknown> {
 	private recordHistory() {
 		if (this.historyKeys.length > 0) {
 			this.buffers.push([...this.historyKeys]);
+			// Reset after recording: `historyKeys` is the *current* sequence's
+			// history. Leaving it populated makes every later recordHistory call
+			// (a timeout callback, or an `abort()` with no chain pending) push
+			// the same entries again.
+			this.historyKeys = [];
 		}
 	}
 }
